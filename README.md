@@ -171,3 +171,4 @@ AI的语言艺术、分析水平、推导能力等将体现在大作业的算法
 ---
 
 ## 🔗其他链接
+- [AI集体破防！DeepSeek狼人杀封神之战，预判你的预判]([https://www.youfanx.com/gonglue/202405/467216.html](https://www.bilibili.com/video/BV1NGN9eAECT?buvid=Y64F886BB99B6286438BBAFB2AF37EBE8649&is_story_h5=false&mid=AeX96fkzlOGa11mBDedsTg%3D%3D&plat_id=168&share_from=ugc&share_medium=iphone&share_plat=ios&share_session_id=BF5CE729-CBB2-4D42-AEBA-DC82F6CD2257&share_source=WEIXIN&share_tag=s_i&spmid=main.my-history-search-result.option-more.0&timestamp=1743942232&unique_k=ZCUf2KS&up_id=5989845&share_source=weixin))
