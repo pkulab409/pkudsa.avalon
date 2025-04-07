@@ -1,3 +1,12 @@
+'''Avalon代码对战平台。
+它是一个基于Gradio构建的Web应用，允许用户通过不同的Tab页进行交互。平台包含以下主要功能模块：
+- 用户管理：处理用户的注册、登录以及状态维护。
+- 代码管理：允许用户编写、上传和管理代码。
+- 对战管理：提供代码对战功能，用户可以参与编程对战。
+- 天梯排名：展示用户在平台中的排名情况，鼓励良性竞争。
+'''
+
+
 import gradio as gr
 import os
 import importlib
@@ -44,6 +53,7 @@ with gr.Blocks(title="Avalon代码对战平台", theme=gr.themes.Soft()) as app:
 
         # 天梯排名Tab
         create_ladder_ranking_tab()
+
 
 # 启动应用
 if __name__ == "__main__":
