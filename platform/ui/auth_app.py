@@ -1,6 +1,8 @@
 import gradio as gr
 import logging
-import json
+
+# 移除 json 导入，因为不再需要 JS
+# import json
 
 
 def create_auth_app():
@@ -43,116 +45,50 @@ def create_auth_app():
                 f"注册失败: {message}",
             )
 
-    def handle_login(username, password):
-        """处理登录逻辑 - 返回API调用需要的数据"""
+    # 修改 Gradio 的登录处理函数
+    def handle_login(username, password, request: gr.Request):  # 确保 request 参数存在
+        """处理 Gradio 登录按钮点击，验证并尝试设置会话"""
+        from services.user_service import verify_user
+
+        logging.info(f"Gradio handle_login attempt for user: {username}")
+
         if not username or not password:
-            return json.dumps({"status": "error", "message": "用户名和密码不能为空"})
+            gr.Warning("用户名和密码不能为空")
+            return "用户名和密码不能为空"
 
-        return json.dumps(
-            {"status": "success", "username": username, "password": password}
-        )
+        # 1. 验证用户
+        success, message = verify_user(username, password)
 
-    with gr.Blocks(
-        title="认证中心",
-        theme=gr.themes.Soft(),
-        css="""
-        #login-error { 
-            color: red; 
-            margin-top: 10px; 
-            min-height: 20px;
-        }
-        #login-success {
-            color: green;
-            margin-top: 10px;
-            min-height: 20px;
-        }
-        """,
-    ) as auth_app:
+        if success:
+            # 2. 验证成功，尝试设置 FastAPI 会话
+            try:
+                # 直接尝试访问和设置 session
+                request.session["username"] = username
+                logging.info(
+                    f"Gradio handle_login: Verification successful for {username}. Session set: {dict(request.session)}"
+                )
+                gr.Info("登录成功！请手动访问 /gradio 路径。")
+                # 返回成功消息，提示用户下一步操作
+                return f"登录成功: {message}. 请手动导航到 /gradio"
+            except Exception as e:
+                # 捕获访问或设置 session 时可能发生的任何错误
+                logging.error(
+                    f"Gradio handle_login: Failed to access or set session. Error: {e}",
+                    exc_info=True,  # 记录详细的回溯信息
+                )
+                gr.Error("登录验证成功，但设置会话失败。请检查服务器日志或联系管理员。")
+                return "登录验证成功，但设置会话失败。"
+
+        else:
+            # 3. 验证失败
+            logging.warning(
+                f"Gradio handle_login: Verification failed for {username}: {message}"
+            )
+            gr.Warning(f"登录失败: {message}")
+            return f"登录失败: {message}"
+
+    with gr.Blocks(title="认证中心") as auth_app:
         gr.Markdown("# 代码对战平台 - 认证中心")
-
-        # 隐藏的状态值
-        login_result = gr.JSON(value="{}", visible=False)
-
-        # 添加简化的JavaScript实现直接登录
-        gr.HTML(
-            """
-            <script>
-            document.addEventListener("DOMContentLoaded", function() {
-                // 等待Gradio界面完全加载
-                setTimeout(function() {
-                    // 找到登录按钮并添加点击事件
-                    const loginButton = document.getElementById('login-button');
-                    if (loginButton) {
-                        console.log("找到登录按钮，正在添加事件监听器");
-                        
-                        loginButton.addEventListener('click', function() {
-                            // 登录按钮添加Gradio的原始事件处理后，再添加我们的处理
-                            setTimeout(async function() {
-                                // 获取用户名和密码输入
-                                const usernameInput = document.querySelector('input[placeholder="输入用户名"]');
-                                const passwordInput = document.querySelector('input[type="password"][placeholder="输入密码"]');
-                                const errorDiv = document.getElementById('login-error');
-                                const successDiv = document.getElementById('login-success');
-                                
-                                if (!usernameInput || !passwordInput) {
-                                    console.error("找不到用户名或密码输入框");
-                                    return;
-                                }
-                                
-                                const username = usernameInput.value;
-                                const password = passwordInput.value;
-                                
-                                if (!username || !password) {
-                                    if (errorDiv) errorDiv.textContent = "用户名和密码不能为空";
-                                    return;
-                                }
-                                
-                                // 显示正在登录
-                                if (errorDiv) errorDiv.textContent = "登录中...";
-                                if (successDiv) successDiv.textContent = "";
-                                
-                                try {
-                                    // 发送登录请求
-                                    const response = await fetch('/api/login', {
-                                        method: 'POST',
-                                        headers: {
-                                            'Content-Type': 'application/json',
-                                        },
-                                        body: JSON.stringify({ username, password }),
-                                        credentials: 'same-origin'
-                                    });
-                                    
-                                    if (response.ok) {
-                                        // 登录成功
-                                        if (errorDiv) errorDiv.textContent = "";
-                                        if (successDiv) successDiv.textContent = "登录成功！正在跳转...";
-                                        console.log("登录成功，正在跳转...");
-                                        
-                                        // 延迟跳转，让用户看到成功消息
-                                        setTimeout(function() {
-                                            window.location.href = '/gradio';
-                                        }, 800);
-                                    } else {
-                                        // 登录失败
-                                        const errorData = await response.json();
-                                        if (errorDiv) errorDiv.textContent = `登录失败: ${errorData.detail || response.statusText}`;
-                                    }
-                                } catch (error) {
-                                    // 网络错误
-                                    console.error("登录请求失败:", error);
-                                    if (errorDiv) errorDiv.textContent = "登录请求失败，请检查网络连接";
-                                }
-                            }, 100);
-                        }, true);
-                    } else {
-                        console.error("找不到登录按钮");
-                    }
-                }, 1000); // 给Gradio界面充分加载的时间
-            });
-            </script>
-            """
-        )
-
         with gr.Tabs() as auth_tabs:
             with gr.TabItem("登录"):
                 with gr.Column():
@@ -163,17 +99,18 @@ def create_auth_app():
                     login_password = gr.Textbox(
                         label="密码", type="password", placeholder="输入密码"
                     )
-                    gr.HTML("<div id='login-error'></div>")
-                    gr.HTML("<div id='login-success'></div>")
-                    login_button = gr.Button(
-                        "✅ 登录", variant="primary", elem_id="login-button"
-                    )
+                    # 添加用于显示状态的 Markdown 组件
+                    login_status_message = gr.Markdown("")
+                    # 移除 elem_id
+                    login_button = gr.Button("✅ 登录", variant="primary")
 
-                    # 将登录结果设为可见，并给定ID，供JavaScript使用
+                    # 绑定 Gradio 的 click 事件
                     login_button.click(
                         fn=handle_login,
                         inputs=[login_username, login_password],
-                        outputs=[login_result],
+                        outputs=[login_status_message],
+                        # Gradio 会自动将 gr.Request 注入到带有类型提示的 request 参数
+                        api_name="handle_login_gradio",
                     )
 
             with gr.TabItem("注册"):
@@ -189,6 +126,7 @@ def create_auth_app():
                     reg_message = gr.Markdown("")
                     register_button = gr.Button("🚀 注册新账户", variant="primary")
 
+                    # 注册按钮的逻辑保持不变
                     register_button.click(
                         fn=handle_auth_register,
                         inputs=[reg_username, reg_password, reg_confirm_password],

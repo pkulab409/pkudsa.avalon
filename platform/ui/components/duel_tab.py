@@ -3,7 +3,8 @@ import logging
 from game.visualizer import create_moves_visualization
 
 
-def create_duel_tab():
+# 接收 username_state
+def create_duel_tab(username_state):
     """创建对战中心Tab界面"""
     from services.duel_service import (
         start_test_duel,
@@ -14,29 +15,36 @@ def create_duel_tab():
     )
     from services.code_service import get_user_codes
 
-    def update_code_list(request: gr.Request):
+    # 修改函数签名，接收用户名
+    def update_code_list(current_username):
         """更新用户代码列表"""
-        username = request.session.get("username")
-        if not username:
-            return gr.update(choices=[])
-        user_codes_dict = get_user_codes(username)
-        return gr.update(choices=list(user_codes_dict.keys()))
+        if not current_username or current_username == "未登录":
+            # 返回两个更新指令，都设置为空选项
+            return gr.update(choices=[]), gr.update(choices=[])
+        user_codes_dict = get_user_codes(current_username)
+        choices = list(user_codes_dict.keys())
+        # 返回两个更新指令，都设置相同的选项
+        return gr.update(choices=choices), gr.update(choices=choices)
 
-    def handle_test_duel(user_code, opponent_code, request: gr.Request):
+    # 修改函数签名，接收用户名
+    def handle_test_duel(user_code, opponent_code, current_username):
         """处理测试对战请求"""
-        username = request.session.get("username")
-        if not username:
+        if not current_username or current_username == "未登录":
             gr.Warning("请先登录")
             return "请先登录", None
 
         # 执行对战
-        duel_process, result_code = start_test_duel(username, user_code, opponent_code)
+        duel_process, result_code = start_test_duel(
+            current_username, user_code, opponent_code
+        )
 
         # 生成可视化图表
         if result_code and result_code != "invalid":
             from services.code_service import get_code_content
 
-            user_code_content = get_code_content(username, user_code)
+            user_code_content = get_code_content(
+                current_username, user_code
+            )  # 使用 current_username
             baseline_codes = get_baseline_codes()
             opponent_code_content = baseline_codes.get(opponent_code, "")
 
@@ -51,15 +59,15 @@ def create_duel_tab():
 
         return duel_process, None
 
-    def handle_ladder_duel(user_code, request: gr.Request):
+    # 修改函数签名，接收用户名
+    def handle_ladder_duel(user_code, current_username):
         """处理天梯对战请求"""
-        username = request.session.get("username")
-        if not username:
+        if not current_username or current_username == "未登录":
             gr.Warning("请先登录")
             return "错误", "请先登录", None
 
         # 加入对战队列
-        status, message, result_code = join_ladder_duel(username, user_code)
+        status, message, result_code = join_ladder_duel(current_username, user_code)
 
         # 如果有对战结果，生成可视化图表
         plot_data = None
@@ -94,6 +102,11 @@ def create_duel_tab():
             with gr.Column(scale=1):
                 gr.Markdown("### 🚀 发起对战")
 
+                # 合并刷新按钮
+                refresh_code_lists_btn = gr.Button(
+                    "🔄 刷新我的代码列表"
+                )  # <--- 新增合并按钮
+
                 # 测试对战
                 with gr.Group():
                     gr.Markdown("#### 🧪 测试对战")
@@ -101,7 +114,7 @@ def create_duel_tab():
                     test_user_code = gr.Dropdown(
                         choices=[], label="选择您的代码", interactive=True
                     )
-                    refresh_test_code_btn = gr.Button("🔄 刷新我的代码 (测试)")
+                    # refresh_test_code_btn = gr.Button("🔄 刷新我的代码 (测试)") # <--- 移除
 
                     test_opponent_code = gr.Dropdown(
                         choices=list(get_baseline_codes().keys()),
@@ -122,7 +135,7 @@ def create_duel_tab():
                     ladder_user_code = gr.Dropdown(
                         choices=[], label="选择您的代码", interactive=True
                     )
-                    refresh_ladder_code_btn = gr.Button("🔄 刷新我的代码 (天梯)")
+                    # refresh_ladder_code_btn = gr.Button("🔄 刷新我的代码 (天梯)") # <--- 移除
 
                     join_ladder_btn = gr.Button("⏳ 加入天梯对战队列")
                     ladder_status = gr.Textbox(
@@ -148,27 +161,30 @@ def create_duel_tab():
                     )
                     duel_visualization = gr.Plot(label="对战可视化图")
 
-        # 事件处理
-        refresh_test_code_btn.click(
-            fn=update_code_list, inputs=[], outputs=[test_user_code]
-        )
-
-        refresh_ladder_code_btn.click(
-            fn=update_code_list, inputs=[], outputs=[ladder_user_code]
+        # 新增合并按钮的 click 事件
+        refresh_code_lists_btn.click(  # <--- 新增合并按钮的 click
+            fn=update_code_list,
+            inputs=[username_state],
+            outputs=[test_user_code, ladder_user_code],  # <--- 更新两个下拉列表
         )
 
         test_duel_btn.click(
             fn=handle_test_duel,
-            inputs=[test_user_code, test_opponent_code],
+            inputs=[
+                test_user_code,
+                test_opponent_code,
+                username_state,
+            ],
             outputs=[test_duel_result, test_duel_plot],
         )
 
         join_ladder_btn.click(
             fn=handle_ladder_duel,
-            inputs=[ladder_user_code],
+            inputs=[ladder_user_code, username_state],
             outputs=[ladder_status, ladder_duel_result, ladder_duel_plot],
         )
 
+        # 这部分不需要用户名
         refresh_records_btn.click(
             fn=lambda: gr.update(choices=get_duel_records()),
             inputs=[],
@@ -182,8 +198,9 @@ def create_duel_tab():
         )
 
     return {
-        "refresh_test_code_btn": refresh_test_code_btn,
+        # "refresh_test_code_btn": refresh_test_code_btn, # <--- 移除
         "test_user_code": test_user_code,
-        "refresh_ladder_code_btn": refresh_ladder_code_btn,
+        # "refresh_ladder_code_btn": refresh_ladder_code_btn, # <--- 移除
         "ladder_user_code": ladder_user_code,
+        "refresh_code_lists_btn": refresh_code_lists_btn,  # <--- 新增
     }

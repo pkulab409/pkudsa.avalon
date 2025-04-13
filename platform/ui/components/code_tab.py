@@ -2,7 +2,8 @@ import gradio as gr
 import logging
 
 
-def create_code_tab():
+# 接收 username_state
+def create_code_tab(username_state):
     """创建代码管理Tab界面"""
     from services.code_service import (
         get_user_codes,
@@ -12,54 +13,62 @@ def create_code_tab():
         get_code_templates,
     )
 
-    def load_user_codes(request: gr.Request):
+    # 修改函数签名，接收用户名
+    def load_user_codes(current_username):
         """加载当前登录用户的代码列表"""
-        username = request.session.get("username")
-        if not username:
-            return []
-        user_codes = get_user_codes(username)
-        return list(user_codes.keys())
+        if not current_username or current_username == "未登录":
+            return gr.update(choices=[])  # 返回更新指令
+        user_codes = get_user_codes(current_username)
+        return gr.update(choices=list(user_codes.keys()))  # 返回更新指令
 
-    def save_new_code(code_name, code_content, request: gr.Request):
+    # 修改函数签名，接收用户名
+    def save_new_code(code_name, code_content, current_username):
         """保存新代码，并返回更新给UI组件"""
-        username = request.session.get("username")
-        if not username:
+        if not current_username or current_username == "未登录":
             gr.Warning("请先登录")
             return gr.update(), gr.update(), gr.update(choices=[])
 
         if not code_name or not code_content:
             gr.Warning("代码名称和内容不能为空")
-            return gr.update(), gr.update(), gr.update(choices=load_user_codes(request))
+            # 重新加载该用户的代码列表
+            user_codes = get_user_codes(current_username)
+            return gr.update(), gr.update(), gr.update(choices=list(user_codes.keys()))
 
-        user_codes = get_user_codes(username)
+        user_codes = get_user_codes(current_username)
         if code_name in user_codes:
             gr.Warning("代码名称已存在，请选择该代码进行编辑")
-            return gr.update(), gr.update(), gr.update(choices=load_user_codes(request))
+            return gr.update(), gr.update(), gr.update(choices=list(user_codes.keys()))
 
-        success, message = save_code(username, code_name, code_content)
+        success, message = save_code(current_username, code_name, code_content)
+        # 重新加载该用户的代码列表
+        updated_user_codes = get_user_codes(current_username)
         if success:
             gr.Info(message)
             # 清空输入框，更新列表
             return (
                 gr.update(value=""),
                 gr.update(value=""),
-                gr.update(choices=load_user_codes(request)),
+                gr.update(choices=list(updated_user_codes.keys())),
             )
         else:
             gr.Error(message)
-            return gr.update(), gr.update(), gr.update(choices=load_user_codes(request))
+            return (
+                gr.update(),
+                gr.update(),
+                gr.update(choices=list(updated_user_codes.keys())),
+            )
 
-    def load_code_content(code_name, request: gr.Request):
+    # 修改函数签名，接收用户名
+    def load_code_content(code_name, current_username):
         """加载代码内容到编辑器"""
-        username = request.session.get("username")
-        if not username or not code_name:
+        if not current_username or current_username == "未登录" or not code_name:
             return ""
-        return get_code_content(username, code_name)
+        return get_code_content(current_username, code_name)
 
-    def save_edited_code(code_name, code_content, request: gr.Request):
+    # 修改函数签名，接收用户名
+    def save_edited_code(code_name, code_content, current_username):
         """保存编辑后的代码"""
-        username = request.session.get("username")
-        if not username:
+        if not current_username or current_username == "未登录":
             gr.Warning("请先登录")
             return
 
@@ -71,16 +80,16 @@ def create_code_tab():
             gr.Warning("代码内容不能为空")
             return
 
-        success, message = save_code(username, code_name, code_content)
+        success, message = save_code(current_username, code_name, code_content)
         if success:
             gr.Info(message)
         else:
             gr.Error(message)
 
-    def debug_code(code_name, input_params, request: gr.Request):
+    # 修改函数签名，接收用户名
+    def debug_code(code_name, input_params, current_username):
         """执行代码调试"""
-        username = request.session.get("username")
-        if not username:
+        if not current_username or current_username == "未登录":
             gr.Warning("请先登录")
             return "请先登录。"
 
@@ -88,7 +97,7 @@ def create_code_tab():
             gr.Warning("请先从下拉列表中选择要调试的代码")
             return "请选择代码。"
 
-        code_content = get_code_content(username, code_name)
+        code_content = get_code_content(current_username, code_name)
         if not code_content:
             gr.Error("获取代码内容失败")
             return "无法加载所选代码。"
@@ -150,29 +159,39 @@ def create_code_tab():
                     label="调试输出结果", lines=10, interactive=False
                 )
 
-        # 事件处理
+        # 事件处理 - 使用 username_state 作为输入
         template_dropdown.change(
             fn=load_template, inputs=[template_dropdown], outputs=[new_code_content]
         )
 
-        refresh_list_btn.click(fn=load_user_codes, inputs=[], outputs=[code_selector])
+        refresh_list_btn.click(
+            fn=load_user_codes,
+            inputs=[username_state],
+            outputs=[code_selector],  # <--- 修改这里
+        )
 
         save_new_code_btn.click(
             fn=save_new_code,
-            inputs=[new_code_name, new_code_content],
+            inputs=[new_code_name, new_code_content, username_state],  # <--- 修改这里
             outputs=[new_code_name, new_code_content, code_selector],
         )
 
         code_selector.change(
-            fn=load_code_content, inputs=[code_selector], outputs=[code_editor]
+            fn=load_code_content,
+            inputs=[code_selector, username_state],
+            outputs=[code_editor],  # <--- 修改这里
         )
 
         save_edit_btn.click(
-            fn=save_edited_code, inputs=[code_selector, code_editor], outputs=[]
+            fn=save_edited_code,
+            inputs=[code_selector, code_editor, username_state],
+            outputs=[],  # <--- 修改这里
         )
 
         debug_btn.click(
-            fn=debug_code, inputs=[code_selector, debug_input], outputs=[debug_output]
+            fn=debug_code,
+            inputs=[code_selector, debug_input, username_state],
+            outputs=[debug_output],  # <--- 修改这里
         )
 
     return {"code_selector": code_selector, "refresh_list_btn": refresh_list_btn}

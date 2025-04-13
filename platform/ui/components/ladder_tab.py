@@ -19,60 +19,75 @@ def create_ladder_tab():
                 users, key=lambda x: x.get("ladder_points", 0), reverse=True
             )
 
-            # 构建排名表格数据
+            # 英文分区映射
+            division_map_en = {"新手区": "Bronze", "进阶区": "Silver", "大师区": "Gold"}
+
+            # 构建排名表格数据 - 使用英文分区
             rows = []
             for i, user in enumerate(ranked_users):
-                username = user.get("username", "未知")
+                username = user.get("username", "Unknown")
                 points = user.get("ladder_points", 0)
-                division = user.get("division", "未知")
+                division_internal = user.get("division", "新手区")
+                division_display_en = division_map_en.get(division_internal, "Unknown")
 
-                rows.append([i + 1, username, points, division])
+                rows.append(
+                    [i + 1, username, points, division_display_en]
+                )  # 使用英文分区
 
-            # 格式化为表格字符串
-            table_str = "| 排名 | 用户名 | 积分 | 分区 |\n"
-            table_str += "|------|--------|------|------|\n"
+            # 格式化为表格字符串 - 使用英文表头
+            table_str = "| Rank | Username | Points | Division |\n"
+            table_str += "|------|----------|--------|----------|\n"
             for row in rows:
                 table_str += f"| {row[0]} | {row[1]} | {row[2]} | {row[3]} |\n"
 
-            # 创建统计图表
-            division_counts = {"新手区": 0, "进阶区": 0, "大师区": 0}
+            # 创建统计图表 - 使用英文标签
+            division_counts_en = {"Bronze": 0, "Silver": 0, "Gold": 0}
             for user in users:
-                division = user.get("division", "新手区")
-                if division in division_counts:
-                    division_counts[division] += 1
+                division_internal = user.get("division", "新手区")
+                division_display_en = division_map_en.get(division_internal, "Unknown")
+                if division_display_en in division_counts_en:
+                    division_counts_en[division_display_en] += 1
 
             fig, ax = plt.subplots(figsize=(6, 4))
-            divisions = list(division_counts.keys())
-            counts = list(division_counts.values())
+            divisions_en = list(division_counts_en.keys())  # 使用英文分区键
+            counts = list(division_counts_en.values())
 
-            ax.bar(divisions, counts, color=["green", "blue", "purple"])
-            ax.set_title("各分区用户分布")
-            ax.set_xlabel("分区")
-            ax.set_ylabel("用户数")
+            ax.bar(
+                divisions_en, counts, color=["#cd7f32", "#c0c0c0", "#ffd700"]
+            )  # 使用 Bronze, Silver, Gold 颜色
+            ax.set_title("User Distribution by Division")  # 英文标题
+            ax.set_xlabel("Division")  # 英文 X 轴标签
+            ax.set_ylabel("Number of Users")  # 英文 Y 轴标签
 
             for i, count in enumerate(counts):
                 ax.text(i, count + 0.1, str(count), ha="center")
 
             return table_str, fig
         except Exception as e:
-            logging.error(f"加载排名数据时出错: {e}")
-            return "加载排名数据失败: " + str(e), None
+            logging.error(f"Error loading ranking data: {e}")
+            # 返回英文错误信息
+            return "Failed to load ranking data: " + str(e), None
 
-    with gr.Tab("🏆 天梯排名"):
+    # 使用英文 Tab 标题
+    with gr.Tab("🏆 Ladder Rankings"):
         with gr.Row():
             with gr.Column(scale=2):
-                gr.Markdown("### 📊 排行榜")
+                # 使用英文 Markdown 标题
+                gr.Markdown("### 📊 Leaderboard")
 
                 ranking_table = gr.Markdown(
-                    "加载中...",
+                    "Loading...",  # 英文加载提示
                 )
 
-                refresh_ranking_btn = gr.Button("🔄 刷新排名")
+                # 使用英文按钮文本
+                refresh_ranking_btn = gr.Button("🔄 Refresh Rankings")
 
             with gr.Column(scale=1):
-                gr.Markdown("### 📈 分区统计")
+                # 使用英文 Markdown 标题
+                gr.Markdown("### 📈 Division Stats")
 
-                division_plot = gr.Plot(label="分区人数统计")
+                # 使用英文 Plot 标签
+                division_plot = gr.Plot(label="Division Statistics")
 
         # 事件处理
         refresh_ranking_btn.click(
