@@ -59,8 +59,8 @@ app = gr.mount_gradio_app(
 if __name__ == "__main__":
     uvicorn.run(
         "main:app",
-        host="127.0.0.1",
-        port=8022,
+        host="0.0.0.0",
+        port=8023,
         reload=True,
         workers=1,  # 开发时建议使用 workers=1 以避免重载问题
     )
