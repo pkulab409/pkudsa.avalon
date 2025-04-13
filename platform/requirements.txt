@@ -1,0 +1,4 @@
+gradio>=3.40.1
+pandas>=1.3.0
+matplotlib>=3.0.0 # 添加 matplotlib 依赖
+tinydb>=4.7.0
