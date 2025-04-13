@@ -114,4 +114,4 @@ app.add_middleware(AuthMiddleware)
 
 # 启动
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8022, reload=True, workers=1)
+    uvicorn.run("main:app", host="127.0.0.1", port=8022, reload=True, workers=4)
