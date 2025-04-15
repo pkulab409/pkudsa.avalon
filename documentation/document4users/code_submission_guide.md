@@ -36,7 +36,7 @@ def get_role_info(role_info: dict):  # 拿到信息
 
 
 def listen(content: dict):  # 收听信息
-	pass
+    pass
 
 
 def walk() -> int:  # 走步
