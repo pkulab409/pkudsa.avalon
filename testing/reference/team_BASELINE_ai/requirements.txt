@@ -1,0 +1,20 @@
+'''
+平台将通过如下方式导入并调用你的策略：
+from ai_submissions.team_rationalwolf.strategy import MyStrategy
+
+ai = MyStrategy()
+ai.propose_team(game_info)
+'''
+
+class MyStrategy:
+    def propose_team(self, game_info):
+        ...
+
+    def vote_team(self, game_info):
+        ...
+
+    def perform_mission(self, game_info):
+        ...
+
+    def guess_merlin(self, game_info):
+        ...
