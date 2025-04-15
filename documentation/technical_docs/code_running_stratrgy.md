@@ -17,7 +17,7 @@ def get_map(map: list):  # 获取地图
     pass
 
 def listen(content: dict):  # 收听信息
-	pass
+    pass
 
 def choose_mission_operators(number: int) -> list:  # 选择队员
     pass
@@ -59,6 +59,7 @@ for player_index in range(1, 8):
         for j in range(1, 8):
             if j != player_index and roles_distributed[j] in ["Morgana", "Assassin", "Oberon"]:
                 merlin_info[j] = "red"
+        players[player_index].get_role_info(merlin_info)
     elif ...  # 奇特角色略去
 
 
