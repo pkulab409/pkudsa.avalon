@@ -2,42 +2,46 @@
 
 *dmcnczy 25/4/17*
 
-- 用户提交一个python文件代码，必须包含以下函数：
+- 用户提交一个python文件代码，必须包含`Player`类，其必须包含以下方法：
+
+**务必注意**：以下所有的方法均由服务器调用：当每回合的所需信息已经向你的玩家类(的实例)传递完毕后，你的玩家类就可以开始进行分析计算。当然，你也可以等到服务器调用请求相关数据（如：发言，投票，选人等）的方法时再计算。
 
 ```python
-# 用户提交的代码必须包含以下函数
+# 以下为服务器主动行为
 
-def get_player_index(index):  # 拿到玩家编号
+def set_player_index(index: int):  # 为玩家设置编号
     pass
 
-def get_role_type(role_type: str):  # 拿到角色
+def set_role_type(role_type: str):  # 为玩家设置角色
     pass
 
-def get_role_info(role_info: dict):  # 拿到信息
+def pass_role_sight(role_info: dict[str, int]):  # 向玩家传递角色特有的信息（即，某些其他玩家的身份）以键值对{身份: 编号}形式给出
     pass
 
-def get_map(map: list):  # 获取地图
+def pass_map(map: list[list[str]]):  # 向玩家传递当前地图的拷贝
     pass
 
-def listen(content: dict):  # 收听信息
+def pass_message(content: tuple[int, str]):  # 向玩家传递其他玩家的发言，以元组(发言人编号, 发言内容)形式给出
     pass
 
-def choose_mission_operators(number: int) -> list:  # 选择队员
+def pass_mission_members(leader: int, members: list[int]):  # 向玩家传递当前轮次队长和队员信息
     pass
 
-def get_mission_operators_info(content: dict):  # 获取当前轮次队长和队员信息
+# 以下为玩家主动行为（仍为服务器端主动调用）
+
+def mission_member(number: int) -> list[int]:  # 选择队员
     pass
 
-def walk() -> list:  # 走步
+def walk() -> tuple:  # 走步，若内核调用后玩家返回('Up', 'Right', 'Down')，即为玩家试图向上、向右再向下行进。传递长度小于3的元组视为放弃步数。
     pass
 
 def say() -> str:  # 发言
     pass
 
-def mission_vote1() -> bool:  # 第一轮投票
+def mission_vote1() -> bool:  # 第一轮投票（公投表决）
     pass
 
-def mission_vote2() -> bool:  # 第二轮投票
+def mission_vote2() -> bool:  # 第二轮投票（任务执行）
     pass
 
 ```
