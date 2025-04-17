@@ -23,14 +23,11 @@ def pass_map(map_data: list[list[str]]):  # 向玩家传递当前地图的拷贝
 
 def pass_message(content: tuple[int, str]):  # 向玩家传递其他玩家的发言，以元组(发言人编号, 发言内容)形式给出
     pass
-"""
-TODO 既然是顺次发言，是不是每个人发完言都进行广播，而非所有人说完后再广播比较好?
-"""
 
 def pass_mission_members(leader: int, members: list[int]):  # 向玩家传递当前轮次队长和队员信息
     pass
 
-# 以下为玩家主动行为（仍为服务器端主动调用）
+# 以下为玩家主动行为（即，需要玩家分析计算，执行策略）（仍为服务器端主动调用）
 
 def decide_mission_member(member_number: int) -> list[int]:  # 选择队员
     pass
