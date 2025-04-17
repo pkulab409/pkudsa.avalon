@@ -40,6 +40,9 @@ def mission_vote1() -> bool:  # 第一轮投票
 def mission_vote2() -> bool:  # 第二轮投票
     pass
 
+def assass() -> int:  # 刺杀
+    pass
+
 ```
 
 - 此外，用户还可以自行调用LLM、公有库以及私有库的API（此处仅提供函数名称，供用户使用）：
@@ -109,6 +112,8 @@ for _ in range(7):
 # 其他步骤略去…
 
 ```
+
+读了一下原来已有运行代码的后端程序（ [程序](/platform/services/code_service.py) ），我在这里写的直接import调用用户写的程序和原来已有code_service的策略还是有些不同，但是应该是可以完美适配的~
 
 - 相应地，服务器也需要定义好上述`avalon_game_helper`中的函数，并且**指定好公有库、私有库中数据存放格式（例如 [格式规范](./io/reference/io_standard.md) ）**。 （这件事情也需要大家统一确定好~）
 
