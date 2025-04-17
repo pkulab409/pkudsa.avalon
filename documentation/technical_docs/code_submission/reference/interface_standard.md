@@ -40,7 +40,7 @@
 	
 	- 接收到文件后存储于临时目录
 		
-	- 解压文件并校验文件夹结构，标准文件结构见[README](数算/Avalon/pkudsa.avalon/documentation/technical_docs/code_submission/reference/README.md)
+	- 解压文件并校验文件夹结构，标准文件结构见[README](README.md)
 		
 	- 提交反馈给前端，若成功则进行后续对局模拟等操作
 		
