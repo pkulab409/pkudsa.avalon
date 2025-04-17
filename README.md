@@ -1,4 +1,5 @@
-# 游戏《阿瓦隆》<span style="font-size: smaller;">`pkudsa.avalon`</span>
+# 《图灵阿瓦隆-Tuvalon》
+## 基于游戏《阿瓦隆》的延伸作品<span style="font-size: smaller;">`pkudsa.avalon`</span>
 
 （2025年春季数算B课程大作业）
 
