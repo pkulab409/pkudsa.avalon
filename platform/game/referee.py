@@ -1,104 +1,113 @@
 """
-负责执行玩家代码和单回合对战逻辑。
+Module: referee.py
+
+主裁判模块，负责协调 Avalon 游戏中各个阶段的流程。
+
+主要功能：
+- assign_roles(): 随机分配身份并初始化玩家
+- pass_night_info(): 向玩家传递夜晚情报
+- single_round(): 执行一轮完整的任务（包括选人、发言、公投与任务执行）
+- game_loop(): 控制整局游戏的流程，判断胜负并处理刺杀环节
+
+依赖接口：baselines.Player 必须实现指定的交互接口。
 """
 
-import traceback
-import builtins  # <--- 导入 builtins 模块
-import random  # <--- 移到这里，确保 random 在 try 块外导入一次即可
-from .rules import determine_winner  # 使用相对导入
+import random
+from baselines import Player  # 假设你写好的Player类放在player.py里
 
+class Referee:
+    def __init__(self):
+        self.players = [None] + [Player(i) for i in range(1, 8)]  # 玩家编号从1到7
+        self.roles = ["Merlin", "Percival", "Knight", "Knight", "Morgana", "Assassin", "Oberon"]
+        self.role_distribution = {}
+        self.map = [["." for _ in range(7)] for _ in range(7)]  # 简单7x7地图
 
-def execute_player_code(code_content):
-    """
-    执行玩家代码并获取其回合决策。
-    警告：当前的 exec 实现存在安全风险，生产环境应使用沙箱。
-    Returns: move (str) or error identifier (str)
-    """
-    try:
-        # 准备执行环境 (可以考虑进一步限制)
-        # 使用导入的 builtins 模块构建安全的内建函数字典
-        safe_builtins_dict = {}
-        allowed_builtins_names = [
-            "print",
-            "int",
-            "float",
-            "str",
-            "list",
-            "dict",
-            "tuple",
-            "len",
-            "range",
-            "abs",
-            "max",
-            "min",
-            "sum",
-            "True",
-            "False",
-            "None",
-            "round",
-            # 可以根据需要添加其他安全的内建函数/类型
-        ]
-        for name in allowed_builtins_names:
-            try:
-                # 从导入的 builtins 模块获取属性
-                safe_builtins_dict[name] = getattr(builtins, name)
-            except AttributeError:
-                # 处理可能不存在的属性（虽然列表中的应该都存在）
-                print(
-                    f"Warning: Builtin '{name}' not found in standard builtins module."
-                )
+    def assign_roles(self):
+        random.shuffle(self.roles)
+        for i in range(1, 8):
+            role = self.roles[i-1]
+            self.players[i].set_role_type(role)
+            self.role_distribution[i] = role
 
-        # 将构建好的安全内建字典传递给 exec
-        exec_globals = {"__builtins__": safe_builtins_dict, "random": random}
+    def pass_night_info(self):
+        for i in range(1, 8):
+            role = self.role_distribution[i]
+            if role == "Merlin":
+                red_info = {j: "red" for j in range(1, 8)
+                            if j != i and self.role_distribution[j] in ["Morgana", "Assassin", "Oberon"]}
+                self.players[i].set_role_info(red_info)
+            elif role == "Percival":
+                maybe_merlin = {j: "maybe_merlin" for j in range(1, 8)
+                                if self.role_distribution[j] in ["Merlin", "Morgana"]}
+                self.players[i].set_role_info(maybe_merlin)
+            elif role in ["Morgana", "Assassin"]:
+                red_mates = {j: "red" for j in range(1, 8)
+                             if j != i and self.role_distribution[j] in ["Morgana", "Assassin"]}
+                self.players[i].set_role_info(red_mates)
+            # Oberon不看任何人
 
-        # 执行代码
-        exec(code_content, exec_globals)
+    def pass_map_info(self):
+        for i in range(1, 8):
+            self.players[i].pass_map(self.map)
 
-        # 调用 play_game 函数
-        if "play_game" in exec_globals and callable(exec_globals["play_game"]):
-            move = exec_globals["play_game"]()
-            allowed_moves = ["rock", "paper", "scissors"]  # 示例允许的出招
-            if isinstance(move, str) and move.lower() in allowed_moves:
-                return move.lower()
+    def single_round(self, round_num: int, leader_index: int, mission_size: int) -> bool:
+        print(f"\n--- Round {round_num}, Leader: {leader_index} ---")
+
+        # 1. 队长选人
+        team = self.players[leader_index].decide_mission_member(mission_size)
+        for i in range(1, 8):
+            self.players[i].pass_mission_members(leader_index, team)
+
+        # 2. 所有玩家发言
+        for i in range(1, 8):
+            speech = self.players[i].say()
+            for j in range(1, 8):
+                if i != j:
+                    self.players[j].pass_message((i, speech))
+
+        # 3. 所有玩家投票（mission_vote1）
+        votes = {i: self.players[i].mission_vote1() for i in range(1, 8)}
+        approve_count = sum(votes.values())
+        approved = approve_count >= 4
+        print(f"Voting result: {votes} -> {'Approved' if approved else 'Rejected'}")
+
+        if not approved:
+            return False  # 本轮未进行任务
+
+        # 4. 被选中的玩家进行任务执行（mission_vote2）
+        results = [self.players[i].mission_vote2() for i in team]
+        fail_count = results.count(False)
+        print(f"Mission executed by: {team}, result votes: {results}")
+        return fail_count == 0  # 成功返回 True，否则 False
+
+    def game_loop(self):
+        self.assign_roles()
+        self.pass_night_info()
+        self.pass_map_info()
+
+        leader = random.randint(1, 7)
+        blue_success = 0
+        red_success = 0
+        round_num = 1
+
+        while blue_success < 3 and red_success < 3:
+            mission_size = [2, 3, 3, 4, 4][round_num - 1]  # 可调整
+            success = self.single_round(round_num, leader, mission_size)
+            if success:
+                blue_success += 1
             else:
-                print(f"Player code returned invalid move: {move}")
-                return "invalid_move_type_or_value"
+                red_success += 1
+            round_num += 1
+            leader = 1 if leader == 7 else leader + 1
+
+        print(f"\nGame ended: Blue {blue_success} vs Red {red_success}")
+        if blue_success >= 3:
+            print("Blue wins! Now red attempts assassination.")
+            merlin_guess = self.players[[i for i in range(1, 8)
+                                         if self.role_distribution[i] == "Assassin"][0]].assass()
+            if self.role_distribution[merlin_guess] == "Merlin":
+                print(f"Assassin guessed {merlin_guess} correctly. Red wins by assassination!")
+            else:
+                print(f"Assassin guessed {merlin_guess} wrong. Blue wins!")
         else:
-            return "play_game_not_found_or_not_callable"
-    except Exception as e:
-        print(f"Error executing player code: {e}")
-        traceback.print_exc()  # <--- 这行会打印详细错误信息
-        return "execution_error"
-
-
-def run_single_round(code_content1, code_content2):
-    """
-    执行单回合对战。
-
-    Args:
-        code_content1 (str): 玩家1的代码内容。
-        code_content2 (str): 玩家2的代码内容。
-
-    Returns:
-        tuple: (move1: str, move2: str, result: str)
-               result 是 'player1_win', 'player2_win', 'draw', 'invalid'
-    """
-    move1 = execute_player_code(code_content1)
-    move2 = execute_player_code(code_content2)
-
-    # 检查代码执行结果
-    error_flags = ["error", "not_found", "invalid_move"]
-    p1_failed = any(flag in str(move1) for flag in error_flags)
-    p2_failed = any(flag in str(move2) for flag in error_flags)
-
-    if p1_failed and p2_failed:
-        result = "draw"  # 双方都失败，判平局
-    elif p1_failed:
-        result = "player2_win"
-    elif p2_failed:
-        result = "player1_win"
-    else:
-        # 双方代码都成功执行，根据游戏规则判断
-        result = determine_winner(move1, move2)  # 调用 game.rules 中的函数
-
-    return move1, move2, result
+            print("Red wins by completing missions!")

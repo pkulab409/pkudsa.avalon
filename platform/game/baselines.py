@@ -1,34 +1,67 @@
 # filepath: /home/eric/qhw/platform/game/baselines.py
-"""
-定义游戏的基础 AI (Baseline) 策略。
-"""
 
-BASELINE_CODE_A = """
-def play_game():
-    # 简单的策略：总是出布
-    return 'paper'
-"""
+import random
+from avalon_game_helper import askLLM, read_public_lib, read_private_lib, write_into_private
 
-BASELINE_CODE_B = """
-def play_game():
-    # 随机策略
-    choices = ['rock', 'paper', 'scissors']
-    # 直接使用由裁判注入的 random 模块
-    return random.choice(choices)
-"""
+class Player:
+    def __init__(self):
+        self.player_index = None
+        self.role_type = None
+        self.role_sight = {}
+        self.mapdata = []
+        self.messages = []
+        self.mission_members = []
+        self.last_leader = None
+        self.last_team = []
+        self.is_chosen = False
 
-# 如果需要，可以在这里添加更多的 Baseline 策略
-# BASELINE_CODE_C = """..."""
+    def set_player_index(self, index: int):
+        self.player_index = index
 
+    def set_role_type(self, role_type: str):
+        self.role_type = role_type
 
-def get_all_baseline_codes():
-    """
-    返回一个包含所有已定义 Baseline 代码的字典。
-    键是描述性名称，值是代码内容的字符串。
-    """
-    return {
-        "Baseline A (总是出布)": BASELINE_CODE_A,
-        "Baseline B (随机)": BASELINE_CODE_B,
-        # 在此添加其他 Baseline
-        # "Baseline C": BASELINE_CODE_C,
-    }
+    def pass_role_sight(self, role_sight: dict[str, int]):
+        self.role_sight = role_sight
+
+    def pass_map(self, map_data: list[list[str]]):
+        self.mapdata = map_data
+
+    def pass_message(self, content: tuple[int, str]):
+        self.messages.append(content)
+
+    def pass_mission_members(self, leader: int, members: list[int]):
+        self.last_leader = leader
+        self.last_team = members
+        self.is_chosen = self.player_index in members
+
+    def decide_mission_member(self, member_number: int) -> list[int]:
+        # 默认自己一定上，随机挑选其他人
+        others = [i for i in range(1, 8) if i != self.player_index]
+        random.shuffle(others)
+        return [self.player_index] + others[:member_number - 1]
+
+    def walk(self) -> tuple:
+        # 随机选择最多3步方向
+        directions = ['Up', 'Down', 'Left', 'Right']
+        random.shuffle(directions)
+        return tuple(directions[:random.randint(0, 3)])
+
+    def say(self) -> str:
+        # 默认说一句简单的话（可拓展调用 LLM）
+        return f"我是玩家{self.player_index}，我支持当前任务。"
+
+    def mission_vote1(self) -> bool:
+        # 默认投赞成票
+        return True
+
+    def mission_vote2(self) -> bool:
+        # 敌人投反对票，其他人投赞成票
+        if self.role_type in ["Assassin", "Morgana", "Oberon"]:
+            return False
+        return True
+
+    def assass(self) -> int:
+        # 随机刺杀一个非自己玩家
+        candidates = [i for i in range(1, 8) if i != self.player_index]
+        return random.choice(candidates)
