@@ -66,7 +66,10 @@ def create_code_table(db):
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS codes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            code TEXT NOT NULL
+            username TEXT NOT NULL,
+            code_name TEXT NOT NULL,
+            code_content TEXT NOT NULL,
+            UNIQUE(username, code_name) -- 确保每个用户的代码名称唯一
         )
     ''')
     db.commit()
