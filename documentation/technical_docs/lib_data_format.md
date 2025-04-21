@@ -35,7 +35,7 @@
       "map_size": 9
     }
   ]
-```
+  ```
 
 ### 2. 夜晚阶段
 
@@ -325,7 +325,7 @@
   - 例如，用户使用了如下代码向私有库中存储信息：
 
   ```python
-  from avalon_game_helper import write_into_private
+  from game.avalon_game_helper import write_into_private
 
   write_into_private("1号玩家动机不纯。")
   write_into_private("2号玩家这轮的说话只有我能听到。他说他是梅林，坏人是5,6,7号。")

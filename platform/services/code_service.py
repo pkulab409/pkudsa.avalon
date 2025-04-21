@@ -5,6 +5,8 @@ import io
 import sys
 import traceback
 import threading
+import types
+
 
 Code = Query()
 
@@ -50,6 +52,28 @@ def get_code_content(username, code_name):
     db = get_code_db()
     code_doc = db.get((Code.username == username) & (Code.code_name == code_name))
     return code_doc.get("code_content", "") if code_doc else ""
+
+
+def _restricted_importer(name, globals=None, locals=None, fromlist=(), level=0):
+    """安全模块导入器"""
+    allowed_modules = {
+        'random': (None, __import__('random')),
+        're': (None, __import__('re')),
+        'game': ('game', None),
+        'game.avalon_game_helper': ('game.avalon_game_helper', None)
+    }
+    
+    if name in allowed_modules:
+        module_path, preload = allowed_modules[name]
+        if preload is None:
+            # 动态加载已创建的模块实例
+            return sys.modules.get(module_path or name)
+        return preload
+    
+    # 抛出精确的错误信息
+    if any(name.startswith(m) for m in ['os', 'sys', 'subprocess']):
+        raise ImportError(f"禁止导入系统模块: {name}")
+    raise ImportError(f"模块不在白名单中: {name}")
 
 
 def execute_code_safely(code_content, input_params=None):
@@ -106,15 +130,33 @@ def execute_code_safely(code_content, input_params=None):
                 "True": True,
                 "False": False,
                 "None": None,
+                "__build_class__": __build_class__,
+                "__name__": "__main__",
+                "__import__": _restricted_importer
             }
 
             # 创建安全的执行环境
             exec_globals = {"__builtins__": safe_builtins, "input_params": input_params}
 
-            # 允许使用random模块(常用于策略生成)
-            import random
 
-            exec_globals["random"] = random
+            # 安全导入game模块函数
+            game_module = types.ModuleType('game')
+            avalon_helper = types.ModuleType('avalon_game_helper')
+            
+            # 从实际模块导入允许的函数
+            original_module = __import__('game.avalon_game_helper', fromlist=['*'])
+            for func in ['askLLM', 'read_public_lib', 'read_private_lib', 'write_into_private']:
+                setattr(avalon_helper, func, getattr(original_module, func))
+            
+            game_module.avalon_game_helper = avalon_helper
+            exec_globals['game'] = game_module
+
+            # # 允许使用random模块(常用于策略生成)
+            # import random
+            # import re
+
+            # exec_globals["random"] = __import__('random')
+            # exec_globals["re"] = __import__('re')
 
             # 执行代码
             exec(code_content, exec_globals)
@@ -134,39 +176,88 @@ def execute_code_safely(code_content, input_params=None):
         return redirected_output.getvalue(), redirected_error.getvalue(), result
 
 
+AVALON_CODE_TEMPLATE = r'''
+import random
+import re
+from game.avalon_game_helper import (
+    askLLM,
+    read_public_lib,
+    read_private_lib,
+    write_into_private,
+)
+
+
+class Player:
+    def __init__(self):
+        pass
+
+
+    def set_player_index(self, index: int):
+        """设置玩家编号"""
+        pass
+
+
+    def set_role_type(self, role_type: str):
+        """设置角色类型"""
+        pass
+
+
+    def pass_role_sight(self, role_sight: dict[str, int]):
+        """传递角色视野信息"""
+        pass
+
+
+    def pass_map(self, map_data: list[list[str]]):
+        """传递地图数据"""
+        pass
+
+
+    def pass_message(self, content: tuple[int, str]):
+        """传递其他玩家发言"""
+        pass
+
+
+    def pass_mission_members(self, leader: int, members: list[int]):
+        """告知任务队长和队员"""
+        pass
+
+
+    def decide_mission_member(self, member_number: int) -> list[int]:
+        """选择任务队员"""
+        pass
+
+
+    def walk(self) -> tuple[str, ...]:
+        """走步，返回(方向,...)"""
+        pass
+
+
+    def say(self) -> str:
+        """发言"""
+        pass
+
+
+    def mission_vote1(self) -> bool:
+        """公投表决"""
+        pass
+
+
+    def mission_vote2(self) -> bool:
+        """任务执行投票"""
+        pass
+
+
+    def assass(self) -> int:
+        """刺杀（只有刺客角色会被调用）"""
+        pass
+
+'''
+
+
 def get_code_templates():
     """获取预定义的代码模板"""
     templates = {
-        "基础策略": """def play_game():
-    # 返回 'rock', 'paper', 或 'scissors'
-    return 'rock'
-""",
-        "随机策略": """def play_game():
-    import random
-    choices = ['rock', 'paper', 'scissors']
-    return random.choice(choices)
-""",
-        "记忆策略": """# 全局变量用于记忆对手历史
-opponent_moves = []
-
-def play_game():
-    import random
-    choices = ['rock', 'paper', 'scissors']
-    
-    # 如果没有历史数据，随机选择
-    if not opponent_moves:
-        return random.choice(choices)
-        
-    # 根据对手历史选择最优策略
-    # 这只是一个示例实现
-    last_move = opponent_moves[-1]
-    if last_move == 'rock':
-        return 'paper'  # 克制石头
-    elif last_move == 'paper':
-        return 'scissors'  # 克制布
-    else:
-        return 'rock'  # 克制剪刀
-""",
+        "Avalon - Player 类模板": AVALON_CODE_TEMPLATE
     }
 
     return templates

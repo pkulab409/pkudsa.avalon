@@ -132,7 +132,7 @@ def create_code_tab(username_state):
                     language="python",
                     lines=15,
                     label="新代码内容",
-                    value="# 在此输入您的 Python 代码...\n\ndef play_game():\n    # 返回 'rock', 'paper', 或 'scissors'\n    return 'rock'\n",
+                    value="# 在此输入您的 Python 代码...",
                 )
                 save_new_code_btn = gr.Button("💾 保存新代码")
 

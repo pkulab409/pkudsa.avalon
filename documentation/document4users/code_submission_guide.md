@@ -4,7 +4,7 @@
 
 # 提交代码要求
 
-Version 0.1  Date: 25/4/18
+Version 0.2  Date: 25/4/21
 
 ## 提交的代码和服务器之间的互动规则简述
 
@@ -68,26 +68,35 @@ class Player:
     - `self.map = None`：后续 `pass_map` 中接收的地图数据；
     - `self.memory = {"speech": {}, "teams": [], "votes": [], "mission_results": []}`：记录发言、队伍历史、投票结果及任务结果；
     - `self.suspects = set()`：可疑玩家编号集合；
-    - 视具体实现可额外初始化其它缓冲或配置项。
+    - 视具体实现可额外初始化其它缓冲或配置项（见下）。
+  - **当然，这些成员属性是由大家自定的，我们这里的示例仅供参考，大家可以在其中自由发挥。**
 
 - **示例**：
   ```python
   class Player:
       def __init__(self):
           # 基本状态
-          self.index = None
-          self.role = None
+          self.index = None  # 玩家编号
+          self.role = None  # 角色类型
           # 地图
           self.map = None
           # 历史记录
           self.memory = {
-              "speech": {},         # {player_index: [messages]}
-              "teams": [],          # 每轮队伍信息
-              "votes": [],          # 每轮投票详情
-              "mission_results": [] # 任务成功/失败
+              "speech": {},  # {player_index: [messages]}
+              "teams": [],  # 每轮队伍信息
+              "votes": [],  # 每轮投票详情
+              "mission_results": [],  # 任务成功/失败
           }
           # 推理辅助
-          self.suspects = set()
+          self.suspects = set()  # 可疑玩家编号集合
+          self.trusted = set()  # 信任玩家编号集合
+          self.role_sight = {}  # 角色视野信息
+          self.round = 0  # 当前回合数
+          self.last_leader = None  # 上一轮队长
+          self.last_team = []  # 上一轮队伍成员
+          self.player_count = 7  # 总玩家数
+          self.is_evil = False  # 是否为邪恶方
+          self.location = None  # 当前位置
   ```
 
 ### 1. `set_player_index(self, index: int)`
@@ -118,7 +127,7 @@ class Player:
 - **返回值**：无。
 - **被调用时机**：夜晚阶段，服务端向特定角色调用。
 - **使用建议**：
-  - 将视野信息保存在 `self.sight` 或合并到可疑玩家集合 `self.suspects`，用于后续推理。
+  - 将视野信息保存在 `self.role_sight` 或合并到可疑玩家集合 `self.suspects`，用于后续推理。
 
 ### 4. `pass_map(self, map_data: list[list[str]])`
 **功能**：传递当前游戏地图数据的深拷贝给玩家。
@@ -161,8 +170,7 @@ class Player:
 - **返回值**：整数列表，长度等于 `member_number`。
 - **被调用时机**：轮到自己担任队长时。
 - **使用建议**：
-  - 必须包含 `self.index`；
-  - 优先排除在可疑集合中的玩家或根据信任度排序后取前 `member_number` 人。
+  - 根据游戏策略，选择合适人选。
 
 ### 8. `walk(self) -> tuple[str, ...]`
 **功能**：执行移动行为，返回一组方向指令。
@@ -201,9 +209,8 @@ class Player:
 - **返回值**：布尔值，`True` 表示任务成功（蓝方），`False` 表示破坏（红方）。
 - **被调用时机**：任务成员确定后。
 - **使用建议**：
-  - 红方角色（"Assassin","Morgana","Oberon"）应返回 `False`；
-  - 蓝方角色必须返回 `True`；
-  - 或可结合混淆策略，增加不可预测性。
+  - 红方角色（"Assassin","Morgana","Oberon"）可以返回 `False`，或可结合混淆策略，增加不可预测性。
+  - 蓝方角色必须返回 `True` （如果不返回 `True` 将造成不可预料的后果）。
 
 ### 12. `assass(self) -> int`
 **功能**：红方失败时刺杀操作，选择目标玩家编号。
@@ -221,7 +228,10 @@ class Player:
 服务器为大家提供了辅助 API 工具包，用户可以通过下面语句导入：
 
 ```python
-import avalon_game_helper as helper
+from game.avalon_game_helper import (
+    askLLM, read_public_lib,
+    read_private_lib, write_into_private
+)
 ```
 
 工具包中有以下工具函数可供使用：
@@ -236,7 +246,7 @@ import avalon_game_helper as helper
 
 - **调用示例**:
   ```python
-  response = helper.askLLM("推测当前玩家的阵营是？")
+  response = askLLM("推测当前玩家的阵营是？")
   ```
 
 ---
@@ -249,7 +259,7 @@ import avalon_game_helper as helper
 
 - **调用示例**：
   ```python
-  history = helper.read_public_lib()
+  history = read_public_lib()
   ```
 
 ### 3. `read_private_lib() -> dict`
@@ -260,7 +270,7 @@ import avalon_game_helper as helper
 
 - **调用示例**：
   ```python
-  private_data = helper.read_private_lib()
+  private_data = read_private_lib()
   ```
 
 ### 4. `write_into_private(content: str) -> None`
@@ -271,7 +281,7 @@ import avalon_game_helper as helper
 
 - **调用示例**：
   ```python
-  helper.write_into_private('{"suspects": ["player3", "player5"]}')
+  write_into_private('{"suspects": ["player3", "player5"]}')
   ```
 
 请根据需要在策略中调用，记录、分析对局数据。
@@ -295,7 +305,11 @@ import avalon_game_helper as helper
 ```python
 import random
 import re
-from avalon_game_helper import askLLM, read_public_lib, read_private_lib, write_into_private
+from gema.avalon_game_helper import (
+    askLLM, read_public_lib,
+    read_private_lib, write_into_private
+)
+
 
 class Player:
     def __init__(self, player_index: int):
@@ -405,3 +419,8 @@ class Player:
 ```  
 
 - **注意事项**：所有方法名、参数及返回类型务必与规范一致。
+
+## import限制
+
+
+- **重要**：目前我们只开放了 `re` 、 `random` 和 `avalon_game_helper` 中的四个函数的 import 权限。建议完全按照示例代码导入 Python 库。
