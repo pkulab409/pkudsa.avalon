@@ -115,9 +115,9 @@ def update_user_points(username, points_change) -> bool:
     current_points = result[0]
     new_points = current_points + points_change
 
-    if new_points < 1000:
+    if new_points < 1500:
         new_division = "新手区"
-    elif new_points < 1500:
+    elif new_points < 1800:
         new_division = "进阶区"
     else:
         new_division = "大师区"

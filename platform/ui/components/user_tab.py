@@ -47,7 +47,7 @@ def create_user_tab(username_state):
             fig = plt.figure(figsize=(6, 4))
             # 使用英文分区名称
             divisions_en = ["Bronze", "Silver", "Gold"]
-            division_thresholds = [0, 1000, 1500, 3000]  # 阈值保持不变
+            division_thresholds = [0, 1500, 1800, 3000]  # 阈值保持不变
 
             # 创建积分条形图 - 使用英文标签
             plt.barh(["Points"], [ladder_points], color="skyblue")

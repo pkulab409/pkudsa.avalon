@@ -18,6 +18,8 @@
 
 > 🚧建设中…
 
+请先参阅 [技术文档](/documentation/technical_docs/lib_data_format.md) 。后续我们将加入更易懂的用户操作指南。
+
 ## 大语言模型API
 
 **注意：我们对大预言模型做出了 token 调用限制，以防止程序对大语言模型的过度依赖。**

@@ -138,19 +138,6 @@ def execute_code_safely(code_content, input_params=None):
             # 创建安全的执行环境
             exec_globals = {"__builtins__": safe_builtins, "input_params": input_params}
 
-
-            # 安全导入game模块函数
-            game_module = types.ModuleType('game')
-            avalon_helper = types.ModuleType('avalon_game_helper')
-            
-            # 从实际模块导入允许的函数
-            original_module = __import__('game.avalon_game_helper', fromlist=['*'])
-            for func in ['askLLM', 'read_public_lib', 'read_private_lib', 'write_into_private']:
-                setattr(avalon_helper, func, getattr(original_module, func))
-            
-            game_module.avalon_game_helper = avalon_helper
-            exec_globals['game'] = game_module
-
             # # 允许使用random模块(常用于策略生成)
             # import random
             # import re
