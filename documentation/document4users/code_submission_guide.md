@@ -305,7 +305,7 @@ from game.avalon_game_helper import (
 ```python
 import random
 import re
-from gema.avalon_game_helper import (
+from game.avalon_game_helper import (
     askLLM, read_public_lib,
     read_private_lib, write_into_private
 )
