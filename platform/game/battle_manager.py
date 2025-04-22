@@ -65,10 +65,10 @@ class BattleManager:
                 referee = AvalonReferee(battle_id, self.data_dir)
                 
                 # 加载玩家代码
-                player_modules = referee.load_player_codes(player_codes)
+                player_modules = referee._load_codes(player_codes)
                 
                 # 初始化玩家实例 <--- 添加这一行
-                referee._initialize_players(player_modules) 
+                referee.load_player_codes(player_modules) 
                 # 开始游戏
                 result = referee.run_game()
                 

@@ -166,12 +166,12 @@ class Player:
   - 保存 `self.last_leader`、`self.last_team` 并记录到历史队伍信息 `self.memory["teams"]`；
   - 检查自身是否在队伍中，以便在 `mission_vote2` 中区分投票逻辑。
 
-### 7. `decide_mission_member(self, member_number: int) -> list[int]`
+### 7. `decide_mission_member(self, team_size: int) -> list[int]`
 **功能**：由队长角色调用，选择本轮任务的执行成员。
 
 - **参数**：
-  - `member_number`：整数，所需队员人数。
-- **返回值**：整数列表，长度等于 `member_number`。
+  - `team_size`：整数，所需队员人数。
+- **返回值**：整数列表，长度等于 `team_size`。
 - **被调用时机**：轮到自己担任队长时。
 - **使用建议**：
   - 根据游戏策略，选择合适人选。
@@ -339,14 +339,6 @@ class Player:
         self.role = role_type
 
     def pass_role_sight(self, role_sight: dict[str, int]):
-        '''
-        该函数是系统在夜晚阶段传入的“我方可识别敌方信息”，
-        例如：梅林会得到“红方玩家编号”的列表或字典。
-        注意：
-        1.红方角色根本不会获得任何此类信息，不要误用。
-        2.对于派西维尔，看到应该是梅林和莫甘娜的混合视图，
-        不应该加入`suspect`
-        '''
         self.sight = role_sight
         self.suspects.update(role_sight.values())
 
@@ -359,7 +351,7 @@ class Player:
         if "任务失败" in speech or "破坏" in speech:
             self.suspects.add(player_id)  # 简化的推理：谁喊破坏谁可疑
 
-    def decide_mission_member(self, member_number: int) -> list[int]:
+    def decide_mission_member(self, team_size: int) -> list[int]:
         """
         选择任务队员：
         - 自己一定上
@@ -367,8 +359,8 @@ class Player:
         """
         candidates = [i for i in range(1, 8) if i != self.index and i not in self.suspects]
         random.shuffle(candidates)
-        chosen = [self.index] + candidates[:member_number - 1]
-        return chosen[:member_number]
+        chosen = [self.index] + candidates[:team_size - 1]
+        return chosen[:team_size]
 
     def pass_mission_members(self, leader: int, members: list[int]):
         self.last_leader = leader # 储存本轮的队长编号
@@ -440,4 +432,4 @@ class Player:
 ## import限制
 
 
-- **重要**：目前我们只开放了 `re` 、 `random` 和 `avalon_game_helper` 中的四个函数的 import 权限。建议完全按照示例代码导入 Python 库。
+- **重要**：目前我们只开放了 `re` 、 `random` 、 `collections` 和 `avalon_game_helper` 中的四个函数的 import 权限。建议完全按照示例代码导入 Python 库。

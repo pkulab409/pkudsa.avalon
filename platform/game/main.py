@@ -12,7 +12,7 @@ from player_loader import load_baseline_code
 def parse_arguments():
     """解析命令行参数"""
     parser = argparse.ArgumentParser(description="阿瓦隆游戏系统")
-    parser.add_argument("--mode", choices=["basic", "smart", "mixed"], default="basic",
+    parser.add_argument("--mode", choices=["basic", "smart", "mixed"], default="smart",
                         help="游戏模式: basic(基础AI), smart(智能AI), mixed(混合)")
     parser.add_argument("--games", type=int, default=1, help="运行的游戏数量")
     parser.add_argument("--data-dir", default="./data", help="数据存储目录")

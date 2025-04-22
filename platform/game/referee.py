@@ -101,7 +101,44 @@ class AvalonReferee:
                 json.dump({"logs": []}, f)
         logger.info(f"Public and private log files initialized in {self.data_dir}")
 
-    def load_player_code(self, player_modules: Dict[int, Any]):
+    def _load_codes(self, player_codes):
+        player_modules = {}
+        
+        for player_id, code_content in player_codes.items():
+            # 创建唯一模块名
+            module_name = f"player_{player_id}_module_{int(time.time()*1000)}"
+            logger.info(f"为玩家 {player_id} 创建模块: {module_name}")
+            
+            try:
+                # 创建模块规范
+                spec = importlib.util.spec_from_loader(module_name, loader=None)
+                if spec is None:
+                    logger.error(f"为 {module_name} 创建规范失败")
+                    continue
+                    
+                # 从规范创建模块
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[module_name] = module  # 注册模块
+                
+                # 执行代码
+                exec(code_content, module.__dict__)
+                
+                # 检查Player类是否存在
+                if not hasattr(module, "Player"):
+                    logger.error(f"玩家 {player_id} 的代码已执行但未找到 'Player' 类")
+                    continue
+                
+                # 存储模块
+                player_modules[player_id] = module
+                logger.info(f"玩家 {player_id} 代码加载成功")
+                
+            except Exception as e:
+                logger.error(f"加载玩家 {player_id} 代码时出错: {str(e)}")
+                traceback.print_exc()
+        
+        return player_modules
+
+    def load_player_codes(self, player_modules: Dict[int, Any]):
         """
         加载玩家代码模块
         player_modules: {1: module1, 2: module2, ...}
@@ -1039,145 +1076,6 @@ class AvalonReferee:
                 json.dump(self.public_log, f, ensure_ascii=False, indent=2)
         except Exception as e:
             logger.error(f"Error writing public log: {str(e)}")
-
-
-def run_avalon_game(
-    game_id: str, player_modules: Dict[int, Any], data_dir: str = "./data"
-) -> Dict[str, Any]:
-    """
-    运行一场阿瓦隆游戏
-
-    参数:
-        game_id: 游戏ID
-        player_modules: 玩家代码模块字典 {1: module1, 2: module2, ...}
-        data_dir: 数据目录
-
-    返回:
-        游戏结果字典
-    """
-    referee = AvalonReferee(game_id, data_dir)
-    referee.load_player_code(player_modules)
-    return referee.run_game()
-
-
-# 测试函数
-def test_run_game():
-    """测试运行游戏"""
-    logger.info("--- Starting Test Game Run ---")
-    # 这里可以加载测试用的Player模块
-    from game.baselines import get_all_baseline_codes  # Ensure import is here
-
-    baseline_codes = get_all_baseline_codes()
-    player_modules = {}
-    player_codes = {}  # Store code content for potential debugging
-
-    for i in range(1, PLAYER_COUNT + 1):
-        # Choose different baselines? For now, all basic.
-        code_key = "basic_player"  # or "smart_player" or randomly assign
-        code_content = baseline_codes[code_key]
-        player_codes[i] = code_content
-        logger.info(f"Loading {code_key} for Player {i}")
-
-        # 动态创建模块
-        module_name = f"player_{i}_module_{int(time.time()*1000)}"  # More unique name
-        spec = importlib.util.spec_from_loader(module_name, loader=None)
-        if spec is None:
-            logger.error(f"Failed to create spec for {module_name}")
-            continue
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[module_name] = module  # Register module
-
-        # 执行代码
-        try:
-            exec(code_content, module.__dict__)
-            # Check if Player class exists after exec
-            if not hasattr(module, "Player"):
-                logger.error(
-                    f"Code for player {i} executed but 'Player' class not found in module."
-                )
-                # Handle error - maybe skip this player or use a default?
-                continue
-            player_modules[i] = module
-        except Exception as e:
-            logger.error(f"Failed to execute code for player {i}: {e}", exc_info=True)
-            # Handle error
-
-    if len(player_modules) != PLAYER_COUNT:
-        logger.error(
-            f"Could not load all players ({len(player_modules)}/{PLAYER_COUNT}). Aborting test game."
-        )
-        return
-
-    # 运行游戏
-    game_id = f"test_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-    data_dir = os.path.join("./data", "test_runs")  # Separate dir for test runs
-    os.makedirs(data_dir, exist_ok=True)
-    logger.info(f"Running test game with ID: {game_id}")
-    result = run_avalon_game(game_id, player_modules, data_dir=data_dir)
-    logger.info(f"--- Test Game Run Finished ---")
-    # Use logger instead of print for final result
-    logger.info(f"Game result: {json.dumps(result, indent=2)}")
-
-
-def run_single_round(code1, code2):
-    """
-    执行一场完整的阿瓦隆游戏对决
-
-    Args:
-        code1: 玩家1代码内容
-        code2: 玩家2代码内容
-
-    Returns:
-        tuple: (player1_result, player2_result, result_code)
-            player1_result: 玩家1结果描述
-            player2_result: 玩家2结果描述
-            result_code: 比赛结果代码 ("player1_win", "player2_win", "draw", "error")
-    """
-    try:
-        # 预处理代码，创建玩家实例
-        player1_instance = execute_player_code(code1, "player1")
-        player2_instance = execute_player_code(code2, "player2")
-
-        if "error" in str(player1_instance) or "error" in str(player2_instance):
-            # 如果有玩家代码执行错误
-            if "error" in str(player1_instance) and "error" not in str(
-                player2_instance
-            ):
-                return f"执行错误: {player1_instance}", "有效", "player2_win"
-            elif "error" not in str(player1_instance) and "error" in str(
-                player2_instance
-            ):
-                return "有效", f"执行错误: {player2_instance}", "player1_win"
-            else:
-                return (
-                    f"执行错误: {player1_instance}",
-                    f"执行错误: {player2_instance}",
-                    "error",
-                )
-
-        # 简化的Avalon对决逻辑 - 基于策略评分
-        # 注意：这是一个简化版本，真实的Avalon需要更复杂的实现
-
-        # 假设每个Player类都有一个get_strategy方法返回策略字符串
-        try:
-            strategy1 = evaluate_strategy(player1_instance, "player1")
-            strategy2 = evaluate_strategy(player2_instance, "player2")
-
-            # 比较策略分数决定胜负
-            if strategy1 > strategy2:
-                return f"策略评分: {strategy1}", f"策略评分: {strategy2}", "player1_win"
-            elif strategy2 > strategy1:
-                return f"策略评分: {strategy1}", f"策略评分: {strategy2}", "player2_win"
-            else:
-                return f"策略评分: {strategy1}", f"策略评分: {strategy2}", "draw"
-
-        except Exception as e:
-            logging.error(f"策略评估错误: {e}")
-            return f"评估错误: {str(e)[:100]}", f"评估错误: {str(e)[:100]}", "error"
-
-    except Exception as e:
-        logging.error(f"运行对战时发生错误: {e}", exc_info=True)
-        return f"系统错误: {str(e)[:100]}", f"系统错误: {str(e)[:100]}", "error"
 
 
 def execute_player_code(code_content, player_id):

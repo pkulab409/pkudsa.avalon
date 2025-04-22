@@ -12,7 +12,8 @@ def _restricted_importer(name, globals=None, locals=None, fromlist=(), level=0):
         'random': (None, __import__('random')),
         're': (None, __import__('re')),
         'game': ('game', None),
-        'game.avalon_game_helper': ('game.avalon_game_helper', None)
+        'game.avalon_game_helper': ('game.avalon_game_helper', None),
+        'collections': (None, __import__('collections'))
     }
     
     if name in allowed_modules:
