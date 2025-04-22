@@ -32,21 +32,21 @@ def create_player_codes(mode: str) -> Dict[int, str]:
     if mode == "basic":
         # 所有玩家使用基础AI
         basic_code = load_baseline_code("basic_player")
-        for i in range(1, 6):
+        for i in range(1, 8):
             player_codes[i] = basic_code
             
     elif mode == "smart":
         # 所有玩家使用智能AI
         smart_code = load_baseline_code("smart_player")
-        for i in range(1, 6):
+        for i in range(1, 8):
             player_codes[i] = smart_code
             
     elif mode == "mixed":
         # 混合模式：一半基础AI，一半智能AI
         basic_code = load_baseline_code("basic_player")
         smart_code = load_baseline_code("smart_player")
-        for i in range(1, 6):
-            player_codes[i] = smart_code if i <= 3 else basic_code
+        for i in range(1, 8):
+            player_codes[i] = smart_code if i <= 4 else basic_code
     
     return player_codes
 

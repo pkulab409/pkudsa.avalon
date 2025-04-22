@@ -15,14 +15,16 @@ from contextlib import redirect_stdout, redirect_stderr
 from typing import Dict, List, Any, Optional, Tuple, Set
 
 # 游戏常量
-PLAYER_COUNT = 5
-MISSION_MEMBER_COUNT = [2, 3, 2, 3, 3]  # 每轮任务需要的成员数
+PLAYER_COUNT = 7
+MISSION_MEMBER_COUNT = [2, 3, 3, 4, 4]  # 每轮任务需要的成员数
 ROLES = {
     "Merlin": "blue",
-    "Loyal Servant1": "blue",
-    "Loyal Servant2": "blue", 
+    "Percival": "blue",
+    "Knight1": "blue",
+    "Knight2": "blue", 
     "Assassin": "red",
-    "Morgana": "red"
+    "Morgana": "red",
+    "Oberon": "red"
 }
 
 logging.basicConfig(level=logging.INFO, 
