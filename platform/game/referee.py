@@ -209,11 +209,12 @@ class AvalonReferee:
 
         # 3. 派西维尔看到梅林和莫甘娜（但无法区分）
         percival_id = [pid for pid, r in self.roles.items() if r == "Percival"]
-        if percival_id:
+        morgana_id = [pid for pid, r in self.roles.items() if r == "Morgana"]
+        if percival_id and morgana_id:
             percival_id = percival_id[0]
-            targets = {
-                r: pid for pid, r in self.roles.items() if r in ["Merlin", "Morgana"]
-            }
+            morgana_id = morgana_id[0]
+            merlin_morgana_id = sorted([merlin_id, morgana_id])
+            targets = {f"Special{i+1}": merlin_morgana_id[i] for i in range(2)}
             logger.debug(
                 f"Sending Merlin/Morgana info to Percival (Player {percival_id}): {targets}"
             )
@@ -221,7 +222,7 @@ class AvalonReferee:
 
         # 记录夜晚阶段完成
         self.log_public_event({"type": "night_phase_complete"})
-        logger.info("Night Phase complete.")
+        logger.info("Night Phase complete.") 
 
     def run_mission_round(self):
         """执行一轮任务"""
@@ -620,7 +621,7 @@ class AvalonReferee:
             {
                 "type": "limited_speech",
                 "round": self.current_round,
-                "speeches": speeches,
+                # "speeches": speeches,  这里的speech不能人尽皆知
             }
         )
         logger.info("Limited Speech phase complete.")
