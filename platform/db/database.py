@@ -31,7 +31,7 @@ def get_code_db():
     """获取代码数据库连接"""
     global code_db
     if code_db is None:
-        code_db = sqlite3.connect(code_file, indent=4)
+        code_db = sqlite3.connect(code_file)
         create_code_table(code_db)
     return code_db
 
@@ -40,7 +40,7 @@ def get_duel_db():
     """获取对战数据库连接"""
     global duel_db
     if duel_db is None:
-        duel_db = sqlite3.connect(duel_file, indent=4)
+        duel_db = sqlite3.connect(duel_file)
         create_duel_table(duel_db)
     return duel_db
 
@@ -66,7 +66,10 @@ def create_code_table(db):
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS codes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            code TEXT NOT NULL
+            username TEXT NOT NULL,
+            code_name TEXT NOT NULL,
+            code_content TEXT NOT NULL,
+            UNIQUE(username, code_name) -- 确保每个用户的代码名称唯一
         )
     ''')
     db.commit()

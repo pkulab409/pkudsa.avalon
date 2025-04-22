@@ -1,166 +1,81 @@
 import logging
 from db.database import get_code_db
-from tinydb import Query
-import io
-import sys
-import traceback
-import threading
-import types
+import sqlite3
 
+# 配置日志记录
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-Code = Query()
-
-# 代码执行锁，保护全局资源
-code_exec_lock = threading.Lock()
-
-
-def get_user_codes(username):
+def get_user_codes(username: str) -> dict[str, str]:
     """获取指定用户的所有代码"""
     if not username:
+        logging.warning("get_user_codes: 用户名为空")
         return {}
 
     db = get_code_db()
-    user_code_docs = db.search(Code.username == username)
-    codes_dict = {}
-    for doc in user_code_docs:
-        codes_dict[doc.get("code_name")] = doc.get("code_content")
-    return codes_dict
+    cursor = db.cursor()
+    try:
+        cursor.execute("SELECT code_name, code_content FROM codes WHERE username = ?", (username,))
+        result = cursor.fetchall()
+
+        codes_dict = {code_name: code_content for code_name, code_content in result}
+        logging.info(f"get_user_codes: 获取到 {len(codes_dict)} 条代码记录 for {username}")
+        return codes_dict
+    except sqlite3.Error as e:
+        logging.error(f"get_user_codes: 数据库错误 - {e}")
+        return {}
+    finally:
+        cursor.close()  # 确保游标关闭
 
 
-def save_code(username, code_name, code_content):
+def save_code(username: str, code_name: str, code_content: str) -> tuple[bool, str]:
     """保存或更新用户的代码"""
     if not username or not code_name or not code_content:
+        logging.warning("save_code: 用户名、代码名称或代码内容为空")
         return False, "用户名、代码名称和内容都不能为空"
 
-    code_data = {
-        "username": username,
-        "code_name": code_name,
-        "code_content": code_content,
-    }
-
     db = get_code_db()
-    # 使用upsert: 如果存在则更新，不存在则插入
-    db.upsert(code_data, (Code.username == username) & (Code.code_name == code_name))
-    return True, "代码保存成功"
+    cursor = db.cursor()
+    try:
+        cursor.execute('''
+            INSERT INTO codes (username, code_name, code_content)
+            VALUES (?, ?, ?)
+            ON CONFLICT(username, code_name) DO UPDATE SET code_content=excluded.code_content
+        ''', (username, code_name, code_content))
+        db.commit()
+        logging.info(f"save_code: 代码 '{code_name}' 已成功保存/更新 for {username}")
+        return True, "代码保存成功"
+    except sqlite3.Error as e:
+        logging.error(f"save_code: 数据库错误 - {e}")
+        return False, f"数据库错误：{e}"
+    finally:
+        cursor.close()  # 确保游标关闭
 
 
-def get_code_content(username, code_name):
+def get_code_content(username: str, code_name: str) -> str:
     """获取特定代码的内容"""
     if not username or not code_name:
+        logging.warning("get_code_content: 用户名或代码名称为空")
         return ""
 
     db = get_code_db()
-    code_doc = db.get((Code.username == username) & (Code.code_name == code_name))
-    return code_doc.get("code_content", "") if code_doc else ""
-
-
-def _restricted_importer(name, globals=None, locals=None, fromlist=(), level=0):
-    """安全模块导入器"""
-    allowed_modules = {
-        'random': (None, __import__('random')),
-        're': (None, __import__('re')),
-        'game': ('game', None),
-        'game.avalon_game_helper': ('game.avalon_game_helper', None)
-    }
-    
-    if name in allowed_modules:
-        module_path, preload = allowed_modules[name]
-        if preload is None:
-            # 动态加载已创建的模块实例
-            return sys.modules.get(module_path or name)
-        return preload
-    
-    # 抛出精确的错误信息
-    if any(name.startswith(m) for m in ['os', 'sys', 'subprocess']):
-        raise ImportError(f"禁止导入系统模块: {name}")
-    raise ImportError(f"模块不在白名单中: {name}")
-
-
-def execute_code_safely(code_content, input_params=None):
-    """
-    在隔离环境中安全地执行用户代码
-
-    Args:
-        code_content: 要执行的代码内容
-        input_params: 可选的代码输入参数
-
-    Returns:
-        tuple: (stdout_output, stderr_output, execution_result)
-    """
-    if not code_content:
-        return "", "代码内容为空", None
-
-    # 使用锁确保执行的线程安全性
-    with code_exec_lock:
-        # 捕获标准输出和错误
-        old_stdout = sys.stdout
-        old_stderr = sys.stderr
-        redirected_output = io.StringIO()
-        redirected_error = io.StringIO()
-        sys.stdout = redirected_output
-        sys.stderr = redirected_error
-
-        result = None
-        try:
-            # 准备执行环境
-            safe_builtins = {
-                "print": print,
-                "len": len,
-                "range": range,
-                "int": int,
-                "float": float,
-                "str": str,
-                "list": list,
-                "dict": dict,
-                "tuple": tuple,
-                "sum": sum,
-                "min": min,
-                "max": max,
-                "round": round,
-                "abs": abs,
-                "all": all,
-                "any": any,
-                "enumerate": enumerate,
-                "zip": zip,
-                "map": map,
-                "filter": filter,
-                "sorted": sorted,
-                "reversed": reversed,
-                "bool": bool,
-                "True": True,
-                "False": False,
-                "None": None,
-                "__build_class__": __build_class__,
-                "__name__": "__main__",
-                "__import__": _restricted_importer
-            }
-
-            # 创建安全的执行环境
-            exec_globals = {"__builtins__": safe_builtins, "input_params": input_params}
-
-            # # 允许使用random模块(常用于策略生成)
-            # import random
-            # import re
-
-            # exec_globals["random"] = __import__('random')
-            # exec_globals["re"] = __import__('re')
-
-            # 执行代码
-            exec(code_content, exec_globals)
-
-            # 尝试获取play_game函数的结果
-            if "play_game" in exec_globals and callable(exec_globals["play_game"]):
-                result = exec_globals["play_game"]()
-                print(f"play_game() 返回结果: {result}")
-        except Exception as e:
-            print(f"执行错误: {str(e)}")
-            traceback.print_exc(file=sys.stderr)
-        finally:
-            # 恢复标准输出和错误
-            sys.stdout = old_stdout
-            sys.stderr = old_stderr
-
-        return redirected_output.getvalue(), redirected_error.getvalue(), result
+    cursor = db.cursor()
+    try:
+        cursor.execute('''
+            SELECT code_content FROM codes
+            WHERE username = ? AND code_name = ?
+        ''', (username, code_name))
+        result = cursor.fetchone()
+        if result:
+            logging.info(f"get_code_content: 获取到代码 '{code_name}' for {username}")
+            return result[0]
+        else:
+            logging.info(f"get_code_content: 未找到代码 '{code_name}' for {username}")
+            return ""
+    except sqlite3.Error as e:
+        logging.error(f"get_code_content: 数据库错误 - {e}")
+        return ""
+    finally:
+        cursor.close()  # 确保游标关闭
 
 
 AVALON_CODE_TEMPLATE = r'''
@@ -240,8 +155,7 @@ class Player:
 
 '''
 
-
-def get_code_templates():
+def get_code_templates() -> dict[str, str]:
     """获取预定义的代码模板"""
     templates = {
         "Avalon - Player 类模板": AVALON_CODE_TEMPLATE
