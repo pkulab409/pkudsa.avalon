@@ -9,8 +9,10 @@ def create_code_tab(username_state):
         get_user_codes,
         save_code,
         get_code_content,
-        execute_code_safely,
         get_code_templates,
+    )
+    from services.sandbox import(
+        execute_code_safely,
     )
 
     # 修改函数签名，接收用户名

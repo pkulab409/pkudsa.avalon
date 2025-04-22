@@ -76,3 +76,89 @@ def get_code_content(username: str, code_name: str) -> str:
         return ""
     finally:
         cursor.close()  # 确保游标关闭
+
+
+AVALON_CODE_TEMPLATE = r'''
+import random
+import re
+from game.avalon_game_helper import (
+    askLLM,
+    read_public_lib,
+    read_private_lib,
+    write_into_private,
+)
+
+
+class Player:
+    def __init__(self):
+        pass
+
+
+    def set_player_index(self, index: int):
+        """设置玩家编号"""
+        pass
+
+
+    def set_role_type(self, role_type: str):
+        """设置角色类型"""
+        pass
+
+
+    def pass_role_sight(self, role_sight: dict[str, int]):
+        """传递角色视野信息"""
+        pass
+
+
+    def pass_map(self, map_data: list[list[str]]):
+        """传递地图数据"""
+        pass
+
+
+    def pass_message(self, content: tuple[int, str]):
+        """传递其他玩家发言"""
+        pass
+
+
+    def pass_mission_members(self, leader: int, members: list[int]):
+        """告知任务队长和队员"""
+        pass
+
+
+    def decide_mission_member(self, member_number: int) -> list[int]:
+        """选择任务队员"""
+        pass
+
+
+    def walk(self) -> tuple[str, ...]:
+        """走步，返回(方向,...)"""
+        pass
+
+
+    def say(self) -> str:
+        """发言"""
+        pass
+
+
+    def mission_vote1(self) -> bool:
+        """公投表决"""
+        pass
+
+
+    def mission_vote2(self) -> bool:
+        """任务执行投票"""
+        pass
+
+
+    def assass(self) -> int:
+        """刺杀（只有刺客角色会被调用）"""
+        pass
+
+'''
+
+def get_code_templates() -> dict[str, str]:
+    """获取预定义的代码模板"""
+    templates = {
+        "Avalon - Player 类模板": AVALON_CODE_TEMPLATE
+    }
+
+    return templates
