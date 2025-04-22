@@ -222,6 +222,7 @@ class Player:
   - 按照前期推理结果（`self.suspects` 或私有存储记录）选择最可能为梅林的玩家；
   - 写入私有日志，便于赛后复盘。
 
+---
 
 ## 可调用的辅助API
 
@@ -249,8 +250,6 @@ from game.avalon_game_helper import (
   response = askLLM("推测当前玩家的阵营是？")
   ```
 
----
-
 ### 2. `read_public_lib() -> list[dict]`
 **功能**：读取所有玩家可见的公共对局记录库，包含全局对战信息。
 
@@ -277,15 +276,18 @@ from game.avalon_game_helper import (
 **功能**：向当前玩家的私有存储中追加写入内容。
 
 - **参数**：
-  - `content` (str): 需要保存的文本内容（建议使用 JSON 格式以确保可解析性）。
+  - `content` (str): 需要保存的文本内容。
 
 - **调用示例**：
   ```python
-  write_into_private('{"suspects": ["player3", "player5"]}')
+  write_into_private('suspects: 3,5')
   ```
 
 请根据需要在策略中调用，记录、分析对局数据。
 
+- 关于公有库、私有库的 [更多说明](./server_func.md)
+
+---
 
 ## 服务器调用流程概览
 
@@ -297,6 +299,7 @@ from game.avalon_game_helper import (
 6. **投票与任务**：分别调用 `mission_vote1`、`mission_vote2`，记录投票结果。
 7. **刺杀阶段**：游戏结束后，若红方失败触发刺杀，调用 `assass` 选择目标。
 
+---
 
 ## 示例代码
 
@@ -419,6 +422,8 @@ class Player:
 ```  
 
 - **注意事项**：所有方法名、参数及返回类型务必与规范一致。对战平台网页上提供了定义这些函数的模板，可以直接调用。
+
+---
 
 ## import限制
 
