@@ -4,7 +4,7 @@
 
 # 提交代码要求
 
-Version 0.2  Date: 25/4/21
+Version 0.3  Date: 25/4/22
 
 ## 提交的代码和服务器之间的互动规则简述
 
@@ -123,7 +123,11 @@ class Player:
 **功能**：向具有视野能力的角色（如梅林、派西维尔）传递夜晚视野信息。
 
 - **参数**：
-  - `role_sight`：字典类型，键为对方角色名（如 "Morgana"），值为玩家编号。
+  - `role_sight`：字典类型。
+    - **梅林**会得到红方玩家的信息：`{"Morgana": 4, "Assassin": 5, "Oberon": 7}`
+    - **莫甘娜**得到刺客信息：`{"Assassin"： 5}`
+    - **刺客**得到莫甘娜信息：`{"Morgana": 4}`
+    - **派西维尔**得到梅林和莫甘娜的编号，但无法区分：`{"Special1": 1, "Special2", 4}`
 - **返回值**：无。
 - **被调用时机**：夜晚阶段，服务端向特定角色调用。
 - **使用建议**：
@@ -315,8 +319,8 @@ from game.avalon_game_helper import (
 
 
 class Player:
-    def __init__(self, player_index: int):
-        self.index = player_index
+    def __init__(self):
+        self.index = None
         self.role = None
         self.role_info = {}
         self.map = None
@@ -328,10 +332,13 @@ class Player:
         self.teammates = set()   # 推测的可信玩家编号
         self.suspects = set()    # 推测的红方编号
 
+    def set_player_index(self, index: int):
+        self.index = index
+
     def set_role_type(self, role_type: str):
         self.role = role_type
 
-    def set_role_info(self, role_sight: dict[str, int]):
+    def pass_role_sight(self, role_sight: dict[str, int]):
         '''
         该函数是系统在夜晚阶段传入的“我方可识别敌方信息”，
         例如：梅林会得到“红方玩家编号”的列表或字典。
@@ -418,6 +425,11 @@ class Player:
         - 蓝方一定True（成功）
         """
         return self.role not in ["Morgana", "Assassin", "Oberon"]
+
+    def assass(self) -> int:
+        """刺杀"""
+        possible_targets = [i for i in range(1, 6) if i != self.player_id]
+        return random.choice(possible_targets)
 
 ```  
 
