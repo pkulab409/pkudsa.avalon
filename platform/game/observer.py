@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+'''observer 模块：
+游戏观察者实例，用于记录指定游戏的快照。
+预留快照调用的接口，用于前端的游戏可视化。
+'''
+
+
 import time
 from typing import Any, Dict, List
 from threading import Lock
