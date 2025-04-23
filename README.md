@@ -1,18 +1,10 @@
-# 数据库方案优化（dev_Database分支）
-
-## 目标
-
-- [x] 将数据库方案更换为SQLite
-- [ ] 沙箱执行器优化
-- [ ] `code_service.py`接入对战管理器，实现传入玩家代码
-- [ ] 游戏日志实现
+# 数据库方案优化和游戏逻辑整理（dev_Database分支）
 
 ## TODO
 
-- [x] `database.py` 重写
+- [x] 将数据库方案更换为SQLite，`database.py` 重写
 - [x] `user_service.py` 重写
-- [x] `code_service.py` 基本功能重写
-- [x] `code_service.py` 原有接口恢复
-- [ ] 沙箱执行器优化
-- [ ] 编写数据库接口说明文档
-- [ ] 游戏日志实现
+- [x] `code_service.py` 重写
+- [x] game包接口规范化
+- [ ] game包内部逻辑调整
+- [ ] 数据库表型优化

@@ -1076,32 +1076,3 @@ class AvalonReferee:
                 json.dump(self.public_log, f, ensure_ascii=False, indent=2)
         except Exception as e:
             logger.error(f"Error writing public log: {str(e)}")
-
-
-def execute_player_code(code_content, player_id):
-    """安全执行玩家代码并返回Player实例"""
-    try:
-        # 创建模块
-        module_name = f"player_module_{player_id}"
-        spec = importlib.util.spec_from_loader(module_name, loader=None)
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[module_name] = module
-
-        # 重定向标准输出和错误
-        stdout = StringIO()
-        stderr = StringIO()
-
-        with redirect_stdout(stdout), redirect_stderr(stderr):
-            # 执行代码
-            exec(code_content, module.__dict__)
-
-            # 检查Player类
-            if hasattr(module, "Player"):
-                return module.Player()
-            else:
-                return "error: Player类未找到"
-
-    except Exception as e:
-        error_msg = traceback.format_exc()
-        logging.error(f"执行玩家代码时出错 ({player_id}): {error_msg}")
-        return f"error: {str(e)[:100]}"
