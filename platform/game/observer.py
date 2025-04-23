@@ -1,5 +1,6 @@
 import time
 from typing import Any, Dict, List
+from threading import Lock
 
 class Observer:
     def __init__(self, battle_id):
@@ -10,6 +11,8 @@ class Observer:
         """
         self.battle_id = battle_id
         self.snapshots = []
+        self._lock = Lock()  # 添加线程锁
+
 
     def make_snapshot(self, event_type: str, event_data: Dict[str, Any]) -> None:
         """
@@ -24,14 +27,16 @@ class Observer:
             "event_type": event_type, # 事件类型: 系统消息/玩家行动
             "event_data": event_data, # 事件数据，这里保存最后需要显示的文字
         }
-        self.snapshots.append(snapshot)
+        with self._lock:  # 加锁保护写操作
+            self.snapshots.append(snapshot)
 
     def pop_snapshots(self) -> List[Dict[str, Any]]:
         """
         获取并清空当前的所有游戏快照，表示已被消费
         """
-        snapshots = self.snapshots
-        self.snapshots = []  # 清空队列
+        with self._lock:  # 加锁保护读取 + 清空操作
+            snapshots = self.snapshots
+            self.snapshots = []
         return snapshots
     
     # 下面的两个函数不需要用到

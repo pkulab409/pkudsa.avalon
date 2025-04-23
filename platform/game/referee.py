@@ -16,6 +16,7 @@ import importlib.util
 from io import StringIO
 from contextlib import redirect_stdout, redirect_stderr
 from datetime import datetime
+from observer import Observer
 
 # 配置日志
 logging.basicConfig(
