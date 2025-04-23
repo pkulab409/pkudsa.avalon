@@ -1,10 +1,19 @@
-# 数据库方案优化和游戏逻辑整理（dev_Database分支）
+# 前后端对接和游戏逻辑完善（dev_GameObserver分支TODO）
 
-## TODO
+## 游戏逻辑
 
-- [x] 将数据库方案更换为SQLite，`database.py` 重写
-- [x] `user_service.py` 重写
-- [x] `code_service.py` 重写
-- [x] game包接口规范化
-- [ ] game包内部逻辑调整
-- [ ] 数据库表型优化
+- [x] Observer类集成
+- [ ] game包内部优化
+- [ ] game包接口整理和相关开发者文档
+- [ ] 离线测试包外部接口和gui界面实现
+- [ ] 离线测试包用户文档
+
+## 平台
+
+- [ ] 赛制和榜单
+- [ ] elo机制
+
+## 测试
+
+- [ ] basic_player和smart_player重写(请注意保持接口不变)
+- [ ] LLM调用的限制(如有)
