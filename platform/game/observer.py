@@ -7,14 +7,14 @@ class Observer:
         """
         创建一个新的观察者实例，用于记录指定游戏的快照。
         game_id: 该实例所对应的游戏对局编号。
-        snapshots: List[Dict[str, Any]]：该实例所维护的消息队列，每个dict对应一次快照
+        snapshots: List[Dict[str, str]]：该实例所维护的消息队列，每个dict对应一次快照
         """
         self.battle_id = battle_id
         self.snapshots = []
         self._lock = Lock()  # 添加线程锁
 
 
-    def make_snapshot(self, event_type: str, event_data: Dict[str, Any]) -> None:
+    def make_snapshot(self, event_type: str, event_data: str) -> None:
         """
         接收一次游戏事件并生成对应快照，加入内部消息队列中。
 
@@ -24,7 +24,7 @@ class Observer:
         snapshot = {
             "battle_id": self.battle_id,
             "timestamp": time.time(),
-            "event_type": event_type, # 事件类型: 系统消息/玩家行动
+            "event_type": event_type, # 事件类型: referee, player1, ..., player7
             "event_data": event_data, # 事件数据，这里保存最后需要显示的文字
         }
         with self._lock:  # 加锁保护写操作

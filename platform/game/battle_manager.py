@@ -66,7 +66,7 @@ class BattleManager:
         def battle_thread_func():
             try:
                 # 初始化裁判
-                referee = AvalonReferee(battle_id, self.data_dir)
+                referee = AvalonReferee(battle_id, battle_observer, self.data_dir)
                 
                 # 加载玩家代码
                 player_modules = referee._load_codes(player_codes)
@@ -91,7 +91,8 @@ class BattleManager:
         battle_thread = threading.Thread(target=battle_thread_func)
         self.battles[battle_id] = battle_thread
         self.battle_status[battle_id] = "running"
-        self.battle_observers[battle_id] = Observer(battle_id)
+        battle_observer = Observer(battle_id)
+        self.battle_observers[battle_id] = battle_observer
         battle_thread.start()
         
         logger.info(f"对战 {battle_id} 已创建并启动")

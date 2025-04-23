@@ -1,5 +1,10 @@
 """
 裁判系统 - 负责执行游戏规则和管理游戏状态
+
+新增的observer, 按以下方法调用:
+self.battle_observer.make_snapshot(event_type: str, event_data: str)
+    "event_type": 事件类型: referee, player1, ..., player7
+    "event_data": 事件数据, 这里保存最后需要显示的文字
 """
 
 import os
@@ -60,7 +65,7 @@ HEARING_RANGE = {  # 听力范围（中心格周围的方格数）
 
 
 class AvalonReferee:
-    def __init__(self, game_id: str, data_dir: str = "./data"):
+    def __init__(self, game_id: str, battle_observer: Observer, data_dir: str = "./data"):
         self.game_id = game_id
         self.data_dir = data_dir
         self.players = {}  # 玩家对象字典 {1: player1, 2: player2, ...}
@@ -82,6 +87,9 @@ class AvalonReferee:
 
         # 初始化日志文件
         self.init_logs()
+
+        # Observer实例
+        self.battle_observer = battle_observer
 
     def init_logs(self):
         """初始化游戏日志"""
@@ -261,6 +269,7 @@ class AvalonReferee:
         # 记录夜晚阶段完成
         self.log_public_event({"type": "night_phase_complete"})
         logger.info("Night Phase complete.") 
+        self.battle_observer.make_snapshot('referee', 'night')
 
     def run_mission_round(self):
         """执行一轮任务"""
@@ -291,6 +300,7 @@ class AvalonReferee:
 
             # 1. 队长选择队员
             logger.info(f"Leader {self.leader_index} is proposing a team.")
+            self.battle_observer.make_snapshot('referee', f"Leader {self.leader_index} is proposing a team.")
             mission_members = self.safe_execute(
                 self.leader_index, "decide_mission_member", member_count
             )
@@ -372,34 +382,42 @@ class AvalonReferee:
 
             # 2. 第一轮发言（全图广播）
             logger.info("Starting Global Speech phase.")
+            self.battle_observer.make_snapshot('referee', "Starting Global Speech phase.")
             self.conduct_global_speech()
 
             # 3. 玩家移动
             logger.info("Starting Movement phase.")
+            self.battle_observer.make_snapshot('referee', "Starting Movement phase.")
             self.conduct_movement()
 
             # 4. 第二轮发言（有限听力范围）
             logger.info("Starting Limited Speech phase.")
+            self.battle_observer.make_snapshot('referee', "Starting Limited Speech phase.")
             self.conduct_limited_speech()
 
             # 5. 公投表决
             logger.info("Starting Public Vote phase.")
+            self.battle_observer.make_snapshot('referee', "Starting Public Vote phase.")
             approve_votes = self.conduct_public_vote(mission_members)
             logger.info(
                 f"Public vote result: {approve_votes} Approve vs {PLAYER_COUNT - approve_votes} Reject."
             )
+            self.battle_observer.make_snapshot('referee', f"Public vote result: {approve_votes} Approve vs {PLAYER_COUNT - approve_votes} Reject.")
 
             if approve_votes >= (PLAYER_COUNT // 2 + 1):  # 过半数同意
                 logger.info("Team Approved. Executing mission.")
+                self.battle_observer.make_snapshot('referee',"Team Approved. Executing mission.")
                 # 执行任务
                 mission_success = self.execute_mission(mission_members)
                 break  # Exit vote loop
             else:
                 logger.info("Team Rejected.")
+                self.battle_observer.make_snapshot('referee',"Team Rejected.")
                 # 否决，更换队长
                 old_leader = self.leader_index
                 self.leader_index = self.leader_index % PLAYER_COUNT + 1
                 logger.info(f"Leader changed from {old_leader} to {self.leader_index}.")
+                self.battle_observer.make_snapshot('referee',f"Leader changed from {old_leader} to {self.leader_index}.")
 
                 # 记录否决
                 self.log_public_event(
@@ -417,6 +435,7 @@ class AvalonReferee:
                     logger.warning(
                         "Maximum vote rounds reached. Forcing mission execution with last proposed team."
                     )
+                    self.battle_observer.make_snapshot('referee',"Maximum vote rounds reached. Forcing mission execution with last proposed team.")
                     self.log_public_event(
                         {"type": "consecutive_rejections", "round": self.current_round}
                     )
@@ -428,6 +447,7 @@ class AvalonReferee:
         logger.info(
             f"Mission {self.current_round} Result: {'Success' if mission_success else 'Fail'}"
         )
+        self.battle_observer.make_snapshot('referee',f"Mission {self.current_round} Result: {'Success' if mission_success else 'Fail'}")
         self.mission_results.append(mission_success)
 
         if mission_success:
@@ -453,6 +473,7 @@ class AvalonReferee:
                 }
             )
         logger.info(f"Score: Blue {self.blue_wins} - Red {self.red_wins}")
+        self.battle_observer.make_snapshot('referee',f"Score: Blue {self.blue_wins} - Red {self.red_wins}")
 
         # 更新队长 (Moved outside the loop, happens once per mission round end)
         # self.leader_index = self.leader_index % PLAYER_COUNT + 1 # Already updated on rejection, needs careful thought if approved
@@ -463,6 +484,7 @@ class AvalonReferee:
             f"Leader for next round will be {self.leader_index} (previous was {old_leader_for_next_round})"
         )
         logger.info(f"--- End of Mission Round {self.current_round} ---")
+        self.battle_observer.make_snapshot('referee',f"--- End of Mission Round {self.current_round} ---")
 
     def random_select_members(self, member_count: int) -> List[int]:
         """随机选择指定数量的队员"""
@@ -495,6 +517,7 @@ class AvalonReferee:
             logger.info(
                 f"Global Speech - Player {player_id}: {speech[:100]}{'...' if len(speech) > 100 else ''}"
             )
+            self.battle_observer.make_snapshot(f"player{player_id}", f"{speech[:100]}{'...' if len(speech) > 100 else ''}")
             speeches.append((player_id, speech))
 
             # 通知所有玩家发言内容
@@ -508,6 +531,7 @@ class AvalonReferee:
             {"type": "global_speech", "round": self.current_round, "speeches": speeches}
         )
         logger.info("Global Speech phase complete.")
+        self.battle_observer.make_snapshot("referee","Global Speech phase complete.")
 
     def conduct_movement(self):
         """执行玩家移动"""
@@ -643,6 +667,7 @@ class AvalonReferee:
             logger.info(
                 f"Limited Speech - Player {speaker_id}: {speech[:100]}{'...' if len(speech) > 100 else ''}"
             )
+            self.battle_observer.make_snapshot(f"player{speaker_id}",f"{speech[:100]}{'...' if len(speech) > 100 else ''}")
             speeches.append((speaker_id, speech))
 
             # 确定能听到的玩家
@@ -663,6 +688,7 @@ class AvalonReferee:
             }
         )
         logger.info("Limited Speech phase complete.")
+        self.battle_observer.make_snapshot("referee", "Limited Speech phase complete.")
 
     def get_players_in_hearing_range(self, speaker_id: int) -> List[int]:
         """获取能听到指定玩家发言的所有玩家ID"""
@@ -706,6 +732,7 @@ class AvalonReferee:
             logger.debug(
                 f"Public Vote - Player {player_id}: {'Approve' if vote else 'Reject'}"
             )
+            self.battle_observer.make_snapshot(f"player{player_id}", f"{'Approve' if vote else 'Reject'}")
 
         # 统计支持票
         approve_count = sum(1 for v in votes.values() if v)
@@ -736,6 +763,7 @@ class AvalonReferee:
         logger.info(
             f"Executing Mission {self.current_round} with members: {mission_members}"
         )
+        self.battle_observer.make_snapshot("referee", f"Executing Mission {self.current_round} with members: {mission_members}")
         logger.debug("Requesting mission execution votes (vote2).")
 
         for player_id in mission_members:
@@ -770,6 +798,7 @@ class AvalonReferee:
         logger.info(
             f"Mission Execution: {fail_votes} Fail votes submitted. Required fails for failure: {required_fails}. Result: {'Success' if mission_success else 'Fail'}"
         )
+        self.battle_observer.make_snapshot("referee", f"Mission Execution: {fail_votes} Fail votes submitted. Required fails for failure: {required_fails}. Result: {'Success' if mission_success else 'Fail'}")
         # 记录任务执行结果（匿名）
         self.log_public_event(
             {
@@ -787,6 +816,7 @@ class AvalonReferee:
         刺杀阶段，返回刺杀是否成功（刺中梅林）
         """
         logger.info("--- Starting Assassination Phase ---")
+        self.battle_observer.make_snapshot("referee","--- Starting Assassination Phase ---")
         # 找到刺客
         assassin_id = None
         for player_id, role in self.roles.items():
@@ -799,6 +829,7 @@ class AvalonReferee:
             return False  # Cannot assassinate without an assassin
 
         logger.info(f"Assassin (Player {assassin_id}) is choosing a target.")
+        self.battle_observer.make_snapshot(f"player{assassin_id}","choosing a target.")
         # 刺客选择目标
         target_id = self.safe_execute(assassin_id, "assass")
         logger.debug(f"Assassin {assassin_id} chose target: {target_id}")
@@ -847,6 +878,7 @@ class AvalonReferee:
         logger.info(
             f"Assassination: Player {assassin_id} targeted Player {target_id} ({target_role}). Result: {'Success' if success else 'Fail'}"
         )
+        self.battle_observer.make_snapshot(f"player{assassin_id}",f"Assassination: Player {assassin_id} targeted Player {target_id} ({target_role}). Result: {'Success' if success else 'Fail'}")
 
         # 记录刺杀结果
         self.log_public_event(
@@ -883,9 +915,11 @@ class AvalonReferee:
 
             # 游戏结束判定
             logger.info("===== Game Over =====")
+            self.battle_observer.make_snapshot('referee','===== Game Over =====')
             logger.info(
                 f"Final Score: Blue {self.blue_wins} - Red {self.red_wins} after {self.current_round} rounds."
             )
+            self.battle_observer.make_snapshot('referee',f"Final Score: Blue {self.blue_wins} - Red {self.red_wins} after {self.current_round} rounds.")
 
             game_result = {
                 "blue_wins": self.blue_wins,
@@ -902,6 +936,7 @@ class AvalonReferee:
                 logger.info(
                     "Blue team completed 3 missions. Proceeding to assassination."
                 )
+                self.battle_observer.make_snapshot('referee',"Blue team completed 3 missions. Proceeding to assassination.")
                 assassination_success = self.assassinate_phase()
 
                 if assassination_success:
@@ -909,6 +944,7 @@ class AvalonReferee:
                     game_result["winner"] = "red"
                     game_result["win_reason"] = "assassination_success"
                     logger.info("Game Result: Red wins (Assassination Success)")
+                    self.battle_observer.make_snapshot('referee',"Game Result: Red wins (Assassination Success)")
                 else:
                     # 刺杀失败，蓝方胜利
                     game_result["winner"] = "blue"
@@ -916,22 +952,26 @@ class AvalonReferee:
                         "missions_complete_and_assassination_failed"
                     )
                     logger.info("Game Result: Blue wins (Assassination Failed)")
+                    self.battle_observer.make_snapshot('referee',"Game Result: Blue wins (Assassination Failed)")
             elif self.red_wins >= 3:
                 # 红方直接胜利（3轮任务失败）
                 game_result["winner"] = "red"
                 game_result["win_reason"] = "missions_failed"
                 logger.info("Game Result: Red wins (3 Failed Missions)")
+                self.battle_observer.make_snapshot('referee',"Game Result: Red wins (3 Failed Missions)")
             else:
                 # 达到最大轮数，根据胜利次数判定
                 logger.warning(
                     f"Max rounds ({MAX_MISSION_ROUNDS}) reached without 3 wins for either team."
                 )
+                self.battle_observer.make_snapshot('referee',f"Max rounds ({MAX_MISSION_ROUNDS}) reached without 3 wins for either team.")
                 if self.blue_wins > self.red_wins:
                     game_result["winner"] = "blue"
                     game_result["win_reason"] = "more_successful_missions_at_max_rounds"
                     logger.info(
                         "Game Result: Blue wins (More missions succeeded at max rounds)"
                     )
+                    self.battle_observer.make_snapshot('referee',"Game Result: Blue wins (More missions succeeded at max rounds)")
                 else:  # Includes draw in mission wins, red wins draws
                     game_result["winner"] = "red"
                     game_result["win_reason"] = (
@@ -940,10 +980,12 @@ class AvalonReferee:
                     logger.info(
                         "Game Result: Red wins (More or equal missions failed at max rounds)"
                     )
+                    self.battle_observer.make_snapshot('referee',"Game Result: Red wins (More or equal missions failed at max rounds)")
 
             # 记录游戏结果
             self.log_public_event({"type": "game_end", "result": game_result})
             logger.info(f"===== Game {self.game_id} Finished =====")
+            self.battle_observer.make_snapshot('referee',f"===== Game {self.game_id} Finished =====")
             return game_result
 
         except Exception as e:

@@ -109,9 +109,14 @@ def run_games(args):
                 break
             else:
                 snapshots_quene = battle_manager.get_snapshots_queue(battle_id)
+                for dict in snapshots_quene:
+                    print(dict)
                 # List[Dict[str, Any]]消息队列，每个dict是一个快照
             time.sleep(0.5)
-        
+        snapshots_quene = battle_manager.get_snapshots_queue(battle_id)
+        for dict in snapshots_quene:
+            print(dict)
+
         # 获取游戏结果
         result = battle_manager.get_battle_result(battle_id)
         
