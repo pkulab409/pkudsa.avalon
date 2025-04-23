@@ -12,10 +12,12 @@ from player_loader import load_baseline_code
 def parse_arguments():
     """解析命令行参数"""
     parser = argparse.ArgumentParser(description="阿瓦隆游戏系统")
-    parser.add_argument("--mode", choices=["basic", "smart", "mixed"], default="smart",
-                        help="游戏模式: basic(基础AI), smart(智能AI), mixed(混合)")
+    parser.add_argument("--mode", choices=["basic_test", "smart_test", "mixed_test", "qualifying"], default="mixed_test",
+                        help="游戏模式: basic_test(基础AI), smart_test(智能AI), mixed_test(混合), qualifying(排位赛)")
     parser.add_argument("--games", type=int, default=1, help="运行的游戏数量")
     parser.add_argument("--data-dir", default="./data", help="数据存储目录")
+    # 添加命令行参数
+    parser.add_argument("--player-codes", type=str, help="指定玩家代码路径，JSON格式，每个键是player_id，值是.py文件路径")
     return parser.parse_args()
 
 def setup_environment(args):
@@ -25,29 +27,43 @@ def setup_environment(args):
     os.makedirs(args.data_dir, exist_ok=True)
     print(f"数据将存储在: {args.data_dir}")
 
-def create_player_codes(mode: str) -> Dict[int, str]:
-    """创建玩家代码"""
-    player_codes = {}
-    
-    if mode == "basic":
+def create_player_codes(mode: str, player_codes = {}) -> Dict[int, str]:
+    """
+    创建玩家代码
+    参数:
+        mode: 对战模式
+        player_codes: 已指定的玩家代码字典 {player_id: code_content}，键值对数目不大于7
+    返回:
+        player_codes: 用ai策略补全的玩家代码字典，键值对数目7
+    """
+    print(f"[DEBUG] 初始传入的 player_codes: {list(player_codes.keys())}")
+    if mode == "basic_test":
         # 所有玩家使用基础AI
         basic_code = load_baseline_code("basic_player")
         for i in range(1, 8):
-            player_codes[i] = basic_code
+            if not i in player_codes:
+                player_codes[i] = basic_code
             
-    elif mode == "smart":
+    elif mode == "smart_test":
         # 所有玩家使用智能AI
         smart_code = load_baseline_code("smart_player")
         for i in range(1, 8):
-            player_codes[i] = smart_code
+            if not i in player_codes:
+                player_codes[i] = smart_code
             
-    elif mode == "mixed":
+    elif mode == "mixed_test":
         # 混合模式：一半基础AI，一半智能AI
         basic_code = load_baseline_code("basic_player")
         smart_code = load_baseline_code("smart_player")
+        import random
         for i in range(1, 8):
-            player_codes[i] = smart_code if i <= 4 else basic_code
-    
+            if not i in player_codes:
+                player_codes[i] = smart_code if random.random() <= 0.5 else basic_code
+
+    elif mode == "qualifying":
+        # 排位赛
+        pass
+
     return player_codes
 
 def run_games(args):
@@ -61,9 +77,21 @@ def run_games(args):
     
     print(f"开始运行 {args.games} 场游戏，模式: {args.mode}")
     
+    # 外部传入的玩家代码
+    if args.player_codes:
+        import json
+        with open(args.player_codes, "r") as f:
+            code_map = json.load(f)
+        player_codes = {}
+        for pid, filepath in code_map.items():
+            with open(filepath, "r") as f:
+                player_codes[int(pid)] = f.read()
+    else:
+        player_codes = {}
+    
     # 创建并启动所有游戏
     for i in range(args.games):
-        player_codes = create_player_codes(args.mode)
+        player_codes = create_player_codes(args.mode, player_codes)
         battle_id = battle_manager.create_battle(player_codes)
         battle_ids.append(battle_id)
         print(f"游戏 {i+1}/{args.games} 已启动，ID: {battle_id}")
