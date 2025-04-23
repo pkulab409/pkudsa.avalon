@@ -322,11 +322,12 @@
 
 ```json
 {
-  "logs": []
+  "logs": [],
+  "llm_history": [{"role": "system", "content": "你是一个专家。"}]
 }
 ```
 
-- **给予用户的发挥空间**：用户科技将任意字符串添加到私有库 JSON 的 `logs` 字段下。
+- **给予用户的发挥空间**：用户可以将任意字符串添加到私有库 JSON 的 `logs` 字段下。
 
   - 例如，用户使用了如下代码向私有库中存储信息：
 
@@ -342,8 +343,39 @@
   ```json
   {
     "logs": [
-      "[1234512345] 1号玩家动机不纯。",
-      "[1234554321] 2号玩家这轮的说话只有我能听到。他说他是梅林，坏人是5,6,7号。"
+      {
+        "timestamp": 1745396437.1877804,
+        "content": "\u6211\u662f\u90aa\u6076\u9635\u8425\u3002"
+      }
     ]
   }
   ```
+
+- **LLM 聊天记录保留**：用户和LLM的聊天记录在私有库 JSON 的 `llm_history` 字段下。例如：
+
+```json
+{
+  "logs": [
+    {
+      "timestamp": 1745396437.1877804,
+      "content": "\u6211\u662f\u90aa\u6076\u9635\u8425\u3002"
+    }
+  ],
+  "llm_history": [
+    {
+      "role": "system",
+      "content": "\n\u4f60\u662f\u4e00\u4e2a\u4e13\u4e1a\u52a9\u7406\u3002\n"
+    },
+    {
+      "role": "user",
+      "content": "\u968f\u4fbf\u751f\u6210\u4e00\u53e530\u5b57\u4ee5\u5185\u7684\u73a97\u4eba\u300a\u963f\u74e6\u9686\u300b\u6e38\u620f\u65f6\u53ef\u80fd\u8bf4\u7684\u8bdd\u3002\u53ea\u7ed9\u51fa\u8bdd\uff0c\u4e0d\u8981\u522b\u7684\u4fe1\u606f\u3002"
+    },
+    {
+      "role": "assistant",
+      "content": "\"\u6d3e\u897f\u7ef4\u5c14\uff0c\u4f60\u5230\u5e95\u770b\u5230\u6885\u6797\u8fd8\u662f\u83ab\u5fb7\u96f7\u5fb7\u4e86\uff1f\u5feb\u51b3\u5b9a\u554a\uff01\""
+    }
+  ]
+}
+```
+
+这样，用户在下一次调用LLM时，先前的聊天记录 (`context`) 会被自动导入。

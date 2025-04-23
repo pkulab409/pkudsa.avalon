@@ -99,5 +99,5 @@ class Player:
 
     def assass(self) -> int:
         """刺杀"""
-        possible_targets = [i for i in range(1, 6) if i != self.player_id]
+        possible_targets = [i for i in range(1, 8) if i != self.index]
         return random.choice(possible_targets)

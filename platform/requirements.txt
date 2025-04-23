@@ -4,3 +4,5 @@ matplotlib>=3.0.0
 tinydb>=4.7.0
 fastapi
 itsdangerous
+dotenv
+openai
