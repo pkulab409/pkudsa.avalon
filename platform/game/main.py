@@ -5,9 +5,11 @@ import os
 import sys
 import argparse
 from typing import Dict, Any, List
+import time
 
 from battle_manager import BattleManager
 from player_loader import load_baseline_code
+from observer import Observer
 
 def parse_arguments():
     """解析命令行参数"""
@@ -105,7 +107,9 @@ def run_games(args):
             status = battle_manager.get_battle_status(battle_id)
             if status in ["completed", "error"]:
                 break
-            import time
+            else:
+                snapshots_quene = battle_manager.get_snapshots_queue(battle_id)
+                # List[Dict[str, Any]]消息队列，每个dict是一个快照
             time.sleep(0.5)
         
         # 获取游戏结果

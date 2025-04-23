@@ -34,6 +34,7 @@ class BattleManager:
         self.battles = {}  # 存储所有对战 {battle_id: battle_thread}
         self.battle_results = {}  # 存储对战结果 {battle_id: result}
         self.battle_status = {}  # 存储对战状态 {battle_id: status}
+        self.battle_observers = {} # 存储观察者类实例 {battle_id: Observer}
         self.data_dir = os.environ.get("AVALON_DATA_DIR", "./data")
         
         # 确保数据目录存在
@@ -54,9 +55,12 @@ class BattleManager:
         """
         # 生成唯一对战ID
         battle_id = str(uuid.uuid4())
-        
+        while battle_id in self.battle_observers:
+            battle_id = str(uuid.uuid4())
+
         # 导入依赖项 - 避免循环导入
         from referee import AvalonReferee
+        from observer import Observer
         
         # 创建对战线程
         def battle_thread_func():
@@ -67,8 +71,9 @@ class BattleManager:
                 # 加载玩家代码
                 player_modules = referee._load_codes(player_codes)
                 
-                # 初始化玩家实例 <--- 添加这一行
+                # 初始化玩家实例 <--- 添加这一行, 注意这个函数在referee里，而不是player_loader
                 referee.load_player_codes(player_modules) 
+
                 # 开始游戏
                 result = referee.run_game()
                 
@@ -86,6 +91,7 @@ class BattleManager:
         battle_thread = threading.Thread(target=battle_thread_func)
         self.battles[battle_id] = battle_thread
         self.battle_status[battle_id] = "running"
+        self.battle_observers[battle_id] = Observer(battle_id)
         battle_thread.start()
         
         logger.info(f"对战 {battle_id} 已创建并启动")
@@ -94,6 +100,12 @@ class BattleManager:
     def get_battle_status(self, battle_id: str) -> Optional[str]:
         """获取对战状态"""
         return self.battle_status.get(battle_id)
+    
+    def get_snapshots_queue(self, battle_id: str) -> List[Dict[str, Any]]:
+        """获取游戏快照"""
+        battle_observer = self.battle_observers[battle_id]
+        snapshots_quene = battle_observer.pop_snapshots()
+        return snapshots_quene
     
     def get_battle_result(self, battle_id: str) -> Optional[Dict[str, Any]]:
         """获取对战结果"""
