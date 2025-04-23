@@ -16,6 +16,7 @@ import importlib.util
 from io import StringIO
 from contextlib import redirect_stdout, redirect_stderr
 from datetime import datetime
+from avalon_game_helper import INIT_PRIVA_LOG_DICT
 
 # 配置日志
 logging.basicConfig(
@@ -98,7 +99,7 @@ class AvalonReferee:
                 self.data_dir, f"game_{self.game_id}_player_{player_id}_private.json"
             )
             with open(private_log_file, "w", encoding="utf-8") as f:
-                json.dump({"logs": []}, f)
+                json.dump(INIT_PRIVA_LOG_DICT, f)
         logger.info(f"Public and private log files initialized in {self.data_dir}")
 
     def _load_codes(self, player_codes):

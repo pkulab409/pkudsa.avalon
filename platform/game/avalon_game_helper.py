@@ -5,26 +5,61 @@ import os
 import json
 import time
 import logging
-import requests
-from typing import Dict, Any, Optional, Set, List
+from typing import Dict, Any, List, Tuple
+from dotenv import load_dotenv
+from openai import OpenAI
+
 
 # 配置日志
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("GameHelper")
 
+
+# 为LLM的API自动加载.env文件
+load_dotenv()
+# 在和avalon_game_helper相同目录下创建一个`.env`，包含两行：
+# OPENAI_API_KEY=sk-{{SECRET-KEY}} （在github里肯定不能展示对吧，但技术组手里都有）
+# OPENAI_BASE_URL=https://chat.noc.pku.edu.cn/v1
+
+
+# openai初始配置
+try:
+    client = OpenAI()  # 自动读取环境变量
+    models = client.models.list()
+    # 不出意外的话这里有三个模型：
+    #   - deepseek-v3-250324
+    #   - deepseek-v3-250324-64k-local
+    #   - deepseek-r1-64k-local
+except Exception as e:
+    logger.error(f"Error when initializing LLM MODEL - {e}")
+else:
+    logger.info(f"Successfully imported LLM MODELs - {models}")
+
+
 # 全局上下文变量
 _CURRENT_PLAYER_ID = None  # 当前玩家ID
 _GAME_SESSION_ID = None  # 当前游戏会话ID
 _DATA_DIR = os.environ.get("AVALON_DATA_DIR", "./data")
 
+
 # LLM相关配置
-_LLM_API_ENDPOINT = os.environ.get(
-    "LLM_API_ENDPOINT", "http://localhost:8000/api/v1/generate")
-_LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
-_LLM_MAX_TOKENS = int(os.environ.get("LLM_MAX_TOKENS", 1000))
-_LLM_TEMPERATURE = float(os.environ.get("LLM_TEMPERATURE", 0.7))
-_LLM_TIMEOUT = int(os.environ.get("LLM_TIMEOUT", 30))  # 请求超时时间（秒）
+_USE_STREAM = False  # 使用流式
+_INIT_SYSTRM_PROMPT = '''
+你是一个专业助理。
+'''  # 后期可修改
+_TEMPERATURE = 1            # 创造性 (0-2, 默认1)
+_MAX_TOKENS = 500           # 最大生成长度
+_TOP_P = 0.9                # 输出多样性控制
+_PRESENCE_PENALTY = 0.5     # 避免重复话题 (-2~2)
+_FREQUENCY_PENALTY = 0.5    # 避免重复用词 (-2~2)
+
+
+# 初始用户库JSON
+INIT_PRIVA_LOG_DICT = {
+    "logs": [],
+    "llm_history": [{"role": "system", "content": _INIT_SYSTRM_PROMPT}]
+}
 
 
 def set_current_context(player_id: int, game_id: str) -> None:
@@ -54,44 +89,121 @@ def askLLM(prompt: str) -> str:
         logger.error("LLM调用缺少上下文（玩家ID或游戏ID缺失）")
         return "LLM调用错误：未设置玩家或游戏上下文"
 
+    # 获取日志
+    existing_data = _get_private_lib_content()
+    # 获取LLM聊天记录
+    _player_chat_history = existing_data["llm_history"]
+    
+    # 调LLM
     try:
-        # 构建API请求
-        headers = {"Content-Type": "application/json"}
-        if _LLM_API_KEY:
-            headers["Authorization"] = f"Bearer {_LLM_API_KEY}"
-
-        payload = {
-            "prompt": prompt,
-            "max_tokens": _LLM_MAX_TOKENS,
-            "temperature": _LLM_TEMPERATURE
-        }
-
-        # 记录到私有日志
-        write_into_private(f"LLM请求: {prompt[:100]}...")
-
-        # 发送请求
-        response = requests.post(
-            _LLM_API_ENDPOINT,
-            headers=headers,
-            json=payload,
-            timeout=_LLM_TIMEOUT
-        )
-
-        # 检查响应
-        if response.status_code == 200:
-            result = response.json()
-            answer = result.get("generated_text", "未找到生成的文本")
-            write_into_private(f"LLM回答: {answer[:100]}...")
-            return answer
-        else:
-            error_msg = f"LLM API调用失败，状态码: {response.status_code}"
-            write_into_private(error_msg)
-            return error_msg
-
+        _, reply = _fetch_LLM_reply(_player_chat_history, prompt)
     except Exception as e:
-        error_msg = f"LLM调用错误: {str(e)}"
-        write_into_private(error_msg)
-        return error_msg
+        return f"LLM调用错误: {str(e)}"
+
+    # 追加新日志
+    try:
+        existing_data["llm_history"].append({
+            "role": "user",
+            "content": prompt
+        })
+        existing_data["llm_history"].append({
+            "role": "assistant",
+            "content": reply
+        })
+    except Exception as e:
+        return f"LLM聊天记录保存错误: {str(e)}"
+
+    # 写回私有库文件
+    _write_back_private(data=existing_data)
+
+    return reply
+
+
+def _fetch_LLM_reply(history, cur_prompt) -> Tuple[bool, str]:
+    """
+    从历史记录和当前提示中获取LLM回复。
+
+    参数:
+        history (list): 包含先前对话的消息列表。
+        cur_prompt (str): 当前用户输入的提示。
+
+    返回:
+        Tuple[bool, str]: 返回一个元组，第一个元素是布尔值，表示操作是否成功；
+                          第二个元素是字符串，包含LLM的回复内容。
+    """
+    completion = client.chat.completions.create(
+        model="deepseek-v3-250324-64k-local",
+        messages=history + [
+            {"role": "user", "content": cur_prompt}
+        ],
+        stream=_USE_STREAM,
+        temperature=_TEMPERATURE,
+        max_tokens=_MAX_TOKENS,
+        top_p=_TOP_P, 
+        presence_penalty=_PRESENCE_PENALTY,
+        frequency_penalty=_FREQUENCY_PENALTY
+    )
+
+    # 如果使用流式输出：参照下面
+    # full_response = []
+    # for chunk in completion:
+    #     if chunk.choices:
+    #         delta = chunk.choices[0].delta
+    #         if delta.content:  # 过滤空内容
+    #             print(delta.content, end="", flush=True)
+    #             full_response.append(delta.content)
+    # final_answer = "".join(full_response)
+    # return True, final_answer
+
+    return True, completion.choices[0].message.content
+
+
+def _get_private_lib_content() -> dict:
+    """
+    获取私有库内容
+
+    该函数用于构建私有数据文件路径，并读取现有数据。
+    如果文件不存在或无法解析，将返回默认数据结构。
+
+    返回:
+        dict: 包含现有数据或默认数据结构的字典。
+    """
+    # 构建私有数据文件路径
+    private_file = os.path.join(
+        _DATA_DIR,
+        f"game_{_GAME_SESSION_ID}_player_{_CURRENT_PLAYER_ID}_private.json"
+    )
+
+    # 确保目录存在
+    os.makedirs(os.path.dirname(private_file), exist_ok=True)
+
+    # 读取现有数据
+    existing_data = {}
+    if os.path.exists(private_file):
+        try:
+            with open(private_file, "r", encoding="utf-8") as f:
+                existing_data = json.load(f)
+        except json.JSONDecodeError:
+            existing_data = INIT_PRIVA_LOG_DICT
+    else:
+        existing_data = INIT_PRIVA_LOG_DICT
+
+    return existing_data
+
+
+def _write_back_private(data: dict) -> None:
+    # 构建私有数据文件路径
+    private_file = os.path.join(
+        _DATA_DIR,
+        f"game_{_GAME_SESSION_ID}_player_{_CURRENT_PLAYER_ID}_private.json"
+    )
+
+    # 确保目录存在
+    os.makedirs(os.path.dirname(private_file), exist_ok=True)
+
+    # 打开文件，写回
+    with open(private_file, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
 
 
 def read_private_lib() -> List[str]:
@@ -101,25 +213,7 @@ def read_private_lib() -> List[str]:
         return
 
     try:
-        # 构建私有数据文件路径
-        private_file = os.path.join(
-            _DATA_DIR,
-            f"game_{_GAME_SESSION_ID}_player_{_CURRENT_PLAYER_ID}_private.json"
-        )
-
-        # 确保目录存在
-        os.makedirs(os.path.dirname(private_file), exist_ok=True)
-
-        # 读取现有数据
-        existing_data = {}
-        if os.path.exists(private_file):
-            try:
-                with open(private_file, "r", encoding="utf-8") as f:
-                    existing_data = json.load(f)
-            except json.JSONDecodeError:
-                existing_data = {"logs": []}
-        else:
-            existing_data = {"logs": []}
+        existing_data = _get_private_lib_content()  # 获取日志
 
         return existing_data["logs"]
 
@@ -139,25 +233,8 @@ def write_into_private(content: str) -> None:
         return
 
     try:
-        # 构建私有数据文件路径
-        private_file = os.path.join(
-            _DATA_DIR,
-            f"game_{_GAME_SESSION_ID}_player_{_CURRENT_PLAYER_ID}_private.json"
-        )
-
-        # 确保目录存在
-        os.makedirs(os.path.dirname(private_file), exist_ok=True)
-
-        # 读取现有数据
-        existing_data = {}
-        if os.path.exists(private_file):
-            try:
-                with open(private_file, "r", encoding="utf-8") as f:
-                    existing_data = json.load(f)
-            except json.JSONDecodeError:
-                existing_data = {"logs": []}
-        else:
-            existing_data = {"logs": []}
+        # 获取日志
+        existing_data = _get_private_lib_content()
 
         # 追加新日志
         existing_data["logs"].append({
@@ -166,8 +243,7 @@ def write_into_private(content: str) -> None:
         })
 
         # 写回文件
-        with open(private_file, "w", encoding="utf-8") as f:
-            json.dump(existing_data, f, indent=2)
+        _write_back_private(data=existing_data)
 
     except Exception as e:
         logger.error(f"写入私有日志时出错: {str(e)}")
@@ -197,3 +273,10 @@ def read_public_lib() -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"读取游戏历史时出错: {str(e)}")
         return {"error": str(e), "events": []}
+
+
+if __name__ == '__main__':
+    print(_fetch_LLM_reply(  # 测试LLM
+        history=[{"role": "system", "content": "你是一个专业助理"}],
+        cur_prompt="大气化学")
+    )

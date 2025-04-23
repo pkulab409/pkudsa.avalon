@@ -63,60 +63,8 @@ class Player:
         return ("Up", "Left", "Right")
 
     def say(self) -> str:
-        """动态生成策略性发言，包含多种发言模式"""
-        current_round = len(self.team_history)
-        last_mission = self.mission_results[-1] if self.mission_results else None
-        
-        current_round = len(self.team_history)
-        last_mission = self.mission_results[-1] if self.mission_results else None
-
-        # 新增支持多参数的模板
-        templates = {
-            "analysis": [
-                "从{player}的投票模式来看，ta有可疑行为",
-                "本轮组队包含{count}个可疑成员，建议重新考虑",
-                "结合{round}轮的失败结果，我们需要重新评估信任链"
-            ],
-            "strategy": [
-                "建议本轮组队包含P{player1}和P{player2}",
-                "下轮必须排除P{player}参与的队伍",
-                "我们需要{number}人纯白队试试"
-            ]
-        }
-
-        # 修改后的智能参数生成逻辑
-        def generate_params(template: str) -> dict:
-            """根据模板类型生成参数字典"""
-            params = {}
-            if "P{" in template:
-                candidates = [p for p in self.players 
-                             if p != self.index]
-                if "player1" in template:
-                    selected = random.sample(candidates, 2)
-                    params.update({"player1": selected[0], "player2": selected[1]})
-                else:
-                    params["player"] = random.choice(candidates)
-            elif "可疑成员" in template:
-                params["count"] = len([p for p in self.team_history[-1] 
-                                     if p in self.trusted_evil])
-            elif "失败结果" in template:
-                params["round"] = next((i+1 for i, r in enumerate(self.mission_results) 
-                                      if not r), "未找到")
-            return params
-
-        # 选择模板并生成参数
-        template = random.choice(templates["analysis"] + templates["strategy"])
-        params = generate_params(template)
-
-        try:
-            # 使用安全格式化方法
-            return template.format(**params)
-        except KeyError:
-            # 降级处理：替换失败的参数为随机值
-            return template.format(player=random.randint(0,5), 
-                                 number=random.randint(2,4),
-                                 count=1,
-                                 round=current_round)
+        what_deepseek_says = askLLM("随便生成一句30字以内的玩7人《阿瓦隆》游戏时可能说的话。只给出话，不要别的信息。")
+        return what_deepseek_says
 
     def _generate_smart_param(self, template: str, current_round: int) -> str:
         """根据上下文生成智能参数"""
