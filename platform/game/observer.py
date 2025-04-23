@@ -2,6 +2,7 @@ import time
 from typing import Any, Dict, List
 from threading import Lock
 
+
 class Observer:
     def __init__(self, battle_id):
         """
@@ -13,19 +14,25 @@ class Observer:
         self.snapshots = []
         self._lock = Lock()  # 添加线程锁
 
-
-    def make_snapshot(self, event_type: str, event_data: str) -> None:
+    def make_snapshot(self, event_type: str, event_data) -> None:
         """
         接收一次游戏事件并生成对应快照，加入内部消息队列中。
 
-        event_type：事件类型，例如 "mission_vote1_result"。
-        event_data：事件数据，格式任意，由调用者决定。
+        event_type (str): 显示类型：
+            "referee" -- 显示成旁白
+            "player1" ~ "player7" -- 显示成玩家对话框气泡
+            "move" -- 显示成地图
+        event_data: 事件数据，数据类型语具体状况如下：
+            * 如果 event_type 是 "referee"： str 类型，表示旁白
+            * 如果 event_type 是 "player{P}"： str 类型，表示玩家行为
+            * 如果 event_type 是 "move"： dict 类型，表示不同玩家目前的位置
+                例： {1: (1, 3), 2: (2, 5), 3: (4, 7), ...}
         """
         snapshot = {
             "battle_id": self.battle_id,
             "timestamp": time.time(),
-            "event_type": event_type, # 事件类型: referee, player1, ..., player7
-            "event_data": event_data, # 事件数据，这里保存最后需要显示的文字
+            "event_type": event_type, # 事件类型: referee, player{P}, move
+            "event_data": event_data, # 事件数据，这里保存最后需要显示的内容
         }
         with self._lock:  # 加锁保护写操作
             self.snapshots.append(snapshot)

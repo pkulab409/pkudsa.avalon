@@ -217,6 +217,7 @@ class AvalonReferee:
                     self.map_data[x][y] = str(player_id)
                     break
         logger.info(f"Player positions: {self.player_positions}")
+        self.battle_observer.make_snapshot("move", self.player_positions)
 
         # 通知所有玩家地图信息
         for player_id in range(1, PLAYER_COUNT + 1):
@@ -356,11 +357,16 @@ class AvalonReferee:
                     # Ensure correct count even if too many valid were initially proposed (due to duplicates ignored)
                     mission_members = valid_members[:member_count]
                     logger.info(f"Corrected/Completed team: {mission_members}")
+
                 else:
                     mission_members = valid_members  # Use the validated list
                     logger.info(
-                        f"Leader {self.leader_index} proposed valid team: {mission_members}"
+                        f"Leader {self.leader_index} proposed team: {mission_members}"
                     )
+
+                self.battle_observer.make_snapshot(  # snapshot
+                        'referee',
+                        f"Leader {self.leader_index} proposed team: {mission_members}")
 
             # 通知所有玩家队伍组成
             logger.debug("Notifying all players of the proposed team.")
@@ -644,6 +650,10 @@ class AvalonReferee:
             {"type": "movement", "round": self.current_round, "movements": movements}
         )
         logger.info("Movement phase complete.")
+
+        # 面向前端的记录
+        self.battle_observer.make_snapshot("referee", "Movement phase complete.")
+        self.battle_observer.make_snapshot("move", self.player_positions)
 
     def conduct_limited_speech(self):
         """进行有限范围发言（只有在听力范围内的玩家能听到）"""

@@ -67,7 +67,7 @@ def create_player_codes(mode: str, player_codes={}) -> Dict[int, str]:
                 player_codes[i] = smart_code if random.random(
                 ) <= 0.5 else basic_code
 
-    elif mode == "qualifying":
+    elif mode == "qualifying":  # <-- [等待匹配赛接入] ---
         # 排位赛
         pass
 
