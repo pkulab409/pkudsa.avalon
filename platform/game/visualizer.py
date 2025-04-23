@@ -1,3 +1,6 @@
+'''
+这个文件可能已经没有实际作用
+
 """
 游戏可视化模块 - 负责将游戏数据可视化展示
 """
@@ -101,3 +104,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     visualize_game_console(args.game_id, args.data_dir)
+'''

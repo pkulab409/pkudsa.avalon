@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}
+  上传AI代码 - 游戏平台
+{% endblock title %}
+{% block content %}
+  <div class="container mt-5">
+    <div class="row justify-content-center">
+      <div class="col-md-8">
+        <div class="card shadow">
+          <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">上传AI代码</h4>
+          </div>
+          <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="mb-3">
+                <label for="name" class="form-label">AI名称</label>
+                <input type="text" class="form-control" id="name" name="name" required>
+              </div>
+              <div class="mb-3">
+                <label for="game_type" class="form-label">游戏类型</label>
+                <select class="form-select" id="game_type" name="game_type" required>
+                  {% for game_type in game_types %}<option value="{{ game_type.id }}">{{ game_type.name }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="ai_code" class="form-label">AI代码文件</label>
+                <input type="file"
+                       class="form-control"
+                       id="ai_code"
+                       name="ai_code"
+                       accept=".py"
+                       required>
+                <div class="form-text">仅支持.py文件，文件大小不超过500KB</div>
+              </div>
+              <div class="mb-3">
+                <label for="description" class="form-label">描述（可选）</label>
+                <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+              </div>
+              <div class="mb-3 form-check">
+                <input type="checkbox"
+                       class="form-check-input"
+                       id="make_active"
+                       name="make_active"
+                       checked>
+                <label class="form-check-label" for="make_active">设为当前活跃AI</label>
+                <div class="form-text">如果选中，该AI将被用于自动对战</div>
+              </div>
+              <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary">上传</button>
+                <a href="{{ url_for('ai.list_ai') }}" class="btn btn-outline-secondary">取消</a>
+              </div>
+            </form>
+          </div>
+          <div class="card-footer">
+            <div class="alert alert-info mb-0">
+              <h5 class="alert-heading">AI代码要求</h5>
+              <p>
+                您的AI代码必须包含一个名为 <code>make_move(game_state)</code> 的函数，该函数接收当前游戏状态并返回您的下一步动作。
+              </p>
+              <p>
+                详细的API说明和示例代码请参考<a href="#" class="alert-link">AI开发文档</a>。
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock content %}

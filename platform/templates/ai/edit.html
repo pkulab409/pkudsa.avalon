@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}
+  编辑AI代码 - 游戏平台
+{% endblock title %}
+{% block content %}
+  <div class="container mt-5">
+    <div class="row justify-content-center">
+      <div class="col-md-8">
+        <div class="card shadow">
+          <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">编辑AI代码</h4>
+          </div>
+          <div class="card-body">
+            <form method="post">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="mb-3">
+                <label for="name" class="form-label">AI名称</label>
+                <input type="text"
+                       class="form-control"
+                       id="name"
+                       name="name"
+                       value="{{ ai_code.name }}"
+                       required>
+              </div>
+              <div class="mb-3">
+                <label for="game_type" class="form-label">游戏类型</label>
+                <input type="text"
+                       class="form-control"
+                       value="{%- if ai_code.game_type == 'default' -%}默认游戏{%- else -%}{{ ai_code.game_type }}{%- endif -%}"
+                       readonly>
+              </div>
+              <div class="mb-3">
+                <label for="description" class="form-label">描述（可选）</label>
+                <textarea class="form-control" id="description" name="description" rows="3">{{ ai_code.description }}</textarea>
+              </div>
+              {% if not ai_code.is_active %}
+                <div class="mb-3 form-check">
+                  <input type="checkbox"
+                         class="form-check-input"
+                         id="make_active"
+                         name="make_active">
+                  <label class="form-check-label" for="make_active">设为当前活跃AI</label>
+                  <div class="form-text">如果选中，该AI将被用于自动对战</div>
+                </div>
+              {% endif %}
+              <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary">保存更改</button>
+                <a href="{{ url_for('ai.list_ai') }}" class="btn btn-outline-secondary">取消</a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock content %}

@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}
+  游戏房间 - {{ room_info.room_name }}
+{% endblock title %}
+{% block content %}
+  <div class="container mt-5">
+    <div class="row">
+      <div class="col-lg-8">
+        <div class="card shadow mb-4">
+          <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">{{ room_info.room_name }}</h4>
+            <div>
+              <span class="badge bg-info me-2">{{ game_type }}</span>
+              <span class="badge bg-secondary">{{ room_info.current_players }}/{{ room_info.max_players }}
+              玩家</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div id="gameArea" class="mb-4">
+              <div class="text-center p-5 bg-light rounded">
+                {% if room_info.status == "waiting" %}
+                  <h5>等待其他玩家加入...</h5>
+                  <div class="spinner-border text-primary mt-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                  <p class="mt-3">
+                    房间号: <strong>{{ room_id }}</strong>
+                  </p>
+                  <p>邀请朋友加入该房间!</p>
+                {% elif room_info.status == "ready" %}
+                  <h5>所有玩家已就绪</h5>
+                  {% if is_host %}
+                    <button id="startGameBtn" class="btn btn-success mt-3">
+                      <i class="bi bi-play-fill"></i> 开始游戏
+                    </button>
+                  {% else %}
+                    <p class="mt-3">等待房主开始游戏...</p>
+                  {% endif %}
+                {% else %}
+                  <div id="gameContent">
+                    <!-- 游戏内容将在这里动态加载 -->
+                    <h5>游戏已开始!</h5>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 操作按钮 -->
+      <div class="mt-3 text-center">
+        <button type="button" class="btn btn-danger" id="leaveRoomBtn">
+          <i class="bi bi-box-arrow-left"></i> 离开房间
+        </button>
+      </div>
+    </div>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const roomId = "{{ room_id }}";
+        const userId = "{{ current_user.id }}";
+        const isHost = {{ 'true' if room_info.host_id| int == current_user.id | int else 'false' }};
+
+        // 离开房间 - 允许在任何状态下离开
+        document.getElementById('leaveRoomBtn').addEventListener('click', function () {
+            const message = "{{ room_info.status }}" === "playing"
+                ? '游戏已开始，离开房间将记为放弃，确定要离开吗?'
+                : '确定要离开房间吗?';
+
+            if (confirm(message)) {
+                fetch(`/lobby/leave_room/${roomId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.href = '/lobby';
+                        } else {
+                            alert('离开房间失败: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('发生错误，请重试');
+                    });
+            }
+        });
+
+        // 开始游戏（仅房主可见）
+        const startGameBtn = document.getElementById('startGameBtn');
+        if (startGameBtn) {
+            startGameBtn.addEventListener('click', function () {
+                fetch(`/game/start/${roomId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // 游戏开始成功，可以在这里添加逻辑
+                            document.getElementById('gameArea').innerHTML = '<h5>游戏已开始!</h5>';
+                        } else {
+                            alert('开始游戏失败: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('发生错误，请重试');
+                    });
+            });
+        }
+
+        // 添加WebSocket连接代码，监听房间更新
+        const socket = io();
+
+        // 加入房间
+        socket.emit('join_room', { room_id: roomId }, function(response) {
+            if (!response.success) {
+                alert('加入房间失败: ' + response.error);
+                window.location.href = '/lobby';
+            }
+        });
+
+        // 监听玩家加入事件
+        socket.on('player_joined', function(user) {
+            console.log('玩家加入:', user);
+            // 这里可以更新UI，显示新玩家
+        });
+
+        // 监听游戏开始事件
+        socket.on('game_started', function(data) {
+            console.log('游戏开始:', data);
+            document.getElementById('gameArea').innerHTML = '<h5>游戏已开始!</h5>';
+            // 在这里加载游戏界面
+        });
+
+        // 监听玩家离开事件
+        socket.on('user_left', function(user) {
+            console.log('玩家离开:', user);
+            // 这里可以更新UI，移除离开的玩家
+        });
+
+        // 监听断开连接事件
+        socket.on('disconnect', function() {
+            console.log('与服务器断开连接');
+        });
+    });
+  </script>
+{% endblock content %}

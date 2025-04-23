@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}
+  排行榜 - 游戏平台
+{% endblock title %}
+{% block content %}
+  <div class="container mt-4">
+    <div class="row">
+      <div class="col-lg-12">
+        <div class="card shadow-sm">
+          <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">游戏排行榜</h3>
+            <div class="dropdown">
+              <button class="btn btn-outline-light dropdown-toggle"
+                      type="button"
+                      id="gameTypeDropdown"
+                      data-bs-toggle="dropdown"
+                      aria-expanded="false">
+                {% for game in game_types %}
+                  {% if game.id == game_type %}{{ game.name }}{% endif %}
+                {% endfor %}
+              </button>
+              <ul class="dropdown-menu" aria-labelledby="gameTypeDropdown">
+                {% for game in game_types %}
+                  <li>
+                    <a class="dropdown-item {% if game.id == game_type %}active{% endif %}"
+                       href="{{ url_for('ranking.show_ranking', game_type=game.id, sort_by=sort_by) }}">{{
+                    game.name }}</a>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-striped table-hover">
+                <thead class="table-light">
+                  <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">用户</th>
+                    <th scope="col">
+                      <a href="{{ url_for('ranking.show_ranking', game_type=game_type, sort_by='score') }}"
+                         class="text-decoration-none {% if sort_by == 'score' %}text-primary fw-bold{% endif %}">分数</a>
+                    </th>
+                    <th scope="col">
+                      <a href="{{ url_for('ranking.show_ranking', game_type=game_type, sort_by='wins') }}"
+                         class="text-decoration-none {% if sort_by == 'wins' %}text-primary fw-bold{% endif %}">胜场</a>
+                    </th>
+                    <th scope="col">
+                      <a href="{{ url_for('ranking.show_ranking', game_type=game_type, sort_by='losses') }}"
+                         class="text-decoration-none {% if sort_by == 'losses' %}text-primary fw-bold{% endif %}">负场</a>
+                    </th>
+                    <th scope="col">平局</th>
+                    <th scope="col">总场次</th>
+                    <th scope="col">胜率</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for item in ranking_items %}
+                    <tr>
+                      <th scope="row">{{ item.rank }}</th>
+                      <td>
+                        <div class="d-flex align-items-center">
+                          <a href="{{ url_for('profile.profile', username=item.user.username) }}">{{ item.user.username }}</a>
+                        </div>
+                      </td>
+                      <td>{{ item.score }}</td>
+                      <td>{{ item.wins }}</td>
+                      <td>{{ item.losses }}</td>
+                      <td>{{ item.draws }}</td>
+                      <td>{{ item.total }}</td>
+                      <td>{{ item.win_rate }}</td>
+                    </tr>
+                  {% endfor %}
+                  {% if not ranking_items %}
+                    <tr>
+                      <td colspan="8" class="text-center py-3">暂无排名数据</td>
+                    </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% if current_user.is_authenticated %}
+      <div class="row mt-4">
+        <div class="col-lg-12">
+          <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+              <h4 class="mb-0">我的战绩</h4>
+            </div>
+            <div class="card-body">
+              <div id="user-stats-loading" class="text-center py-3">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">加载中...</span>
+                </div>
+                <p class="mt-2">正在加载您的游戏统计数据...</p>
+              </div>
+              <div id="user-stats-container" class="table-responsive d-none">
+                <table class="table table-bordered">
+                  <thead class="table-light">
+                    <tr>
+                      <th>游戏</th>
+                      <th>分数</th>
+                      <th>胜</th>
+                      <th>负</th>
+                      <th>平</th>
+                      <th>总场次</th>
+                      <th>胜率</th>
+                      <th>最近游戏</th>
+                    </tr>
+                  </thead>
+                  <tbody id="user-stats-body">
+                    <!-- JavaScript 会填充这里 -->
+                  </tbody>
+                </table>
+              </div>
+              <div id="user-stats-empty" class="alert alert-info d-none" role="alert">您尚未参与任何游戏，开始游戏来积累您的战绩吧！</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+{% endblock content %}
+{% block scripts %}
+  {{ super() }}
+  <script>
+    // 仅当用户已登录时加载用户统计数据
+    {% if current_user.is_authenticated %}
+    document.addEventListener('DOMContentLoaded', function () {
+        loadUserStats({{ current_user.id }});
+    });
+
+    // 加载用户统计数据
+    function loadUserStats(userId) {
+        fetch(`/api/user_stats/${userId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayUserStats(data.stats);
+                } else {
+                    console.error('Failed to load user stats:', data.message);
+                    document.getElementById('user-stats-loading').classList.add('d-none');
+                    document.getElementById('user-stats-empty').classList.remove('d-none');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading user stats:', error);
+                document.getElementById('user-stats-loading').classList.add('d-none');
+                document.getElementById('user-stats-empty').classList.remove('d-none');
+            });
+    }
+
+    // 显示用户统计数据
+    function displayUserStats(stats) {
+        const statsBody = document.getElementById('user-stats-body');
+        document.getElementById('user-stats-loading').classList.add('d-none');
+
+        if (stats.length === 0) {
+            document.getElementById('user-stats-empty').classList.remove('d-none');
+            return;
+        }
+
+        document.getElementById('user-stats-container').classList.remove('d-none');
+
+        statsBody.innerHTML = '';
+        stats.forEach(stat => {
+            const row = document.createElement('tr');
+
+            // 格式化最后游戏时间
+            let lastPlayed = stat.last_played ? new Date(stat.last_played).toLocaleString() : '从未';
+
+            row.innerHTML = `
+                <td>${getGameName(stat.game_type)}</td>
+                <td>${stat.score}</td>
+                <td>${stat.wins}</td>
+                <td>${stat.losses}</td>
+                <td>${stat.draws}</td>
+                <td>${stat.total}</td>
+                <td>${stat.win_rate}%</td>
+                <td>${lastPlayed}</td>
+            `;
+            statsBody.appendChild(row);
+        });
+    }
+
+    // 获取游戏类型的显示名称
+    function getGameName(gameType) {
+        const gameTypes = {
+            'default': '默认游戏'
+            // 可以根据需要添加更多游戏类型
+        };
+        return gameTypes[gameType] || gameType;
+    }
+    {% endif %}
+  </script>
+{% endblock scripts %}

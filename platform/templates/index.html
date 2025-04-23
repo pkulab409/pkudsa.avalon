@@ -1,0 +1,55 @@
+{# filepath: /home/eric/platform/templates/index.html #}
+{% extends "base.html" %}
+{% block title %}
+  首页 - 游戏平台
+{% endblock title %}
+{% block content %}
+  <div class="container mt-5">
+    <div class="row justify-content-center">
+      <div class="col-md-10">
+        <div class="card shadow-lg">
+          <div class="card-body p-5">
+            <h1 class="display-4 text-center mb-4">欢迎来到游戏平台！</h1>
+            <p class="lead text-center mb-5">在这里，你可以找到各种有趣的游戏，与全球玩家一较高下。</p>
+            <div class="row text-center">
+              <div class="col-md-4 mb-4">
+                <div class="card h-100 border-primary">
+                  <div class="card-body">
+                    <i class="bi bi-controller display-3 text-primary mb-3"></i>
+                    <h5 class="card-title">游戏大厅</h5>
+                    <p class="card-text">浏览可用的游戏房间或创建你自己的房间。</p>
+                    <a href="{{ url_for('lobby.lobby') }}" class="btn btn-primary">进入大厅</a>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4 mb-4">
+                <div class="card h-100 border-success">
+                  <div class="card-body">
+                    <i class="bi bi-trophy display-3 text-success mb-3"></i>
+                    <h5 class="card-title">排行榜</h5>
+                    <p class="card-text">查看顶尖玩家的排名和你的战绩。</p>
+                    <a href="{{ url_for('ranking.show_ranking') }}" class="btn btn-success">查看排名</a>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4 mb-4">
+                <div class="card h-100 border-info">
+                  <div class="card-body">
+                    <i class="bi bi-person-circle display-3 text-info mb-3"></i>
+                    <h5 class="card-title">个人中心</h5>
+                    <p class="card-text">管理你的个人资料和游戏设置。</p>
+                    {% if current_user.is_authenticated %}
+                      <a href="{{ url_for('profile.profile') }}" class="btn btn-info">我的中心</a>
+                    {% else %}
+                      <a href="{{ url_for('auth.login') }}" class="btn btn-info">登录/注册</a>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock content %}

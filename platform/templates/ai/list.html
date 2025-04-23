@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}
+  我的AI代码 - 游戏平台
+{% endblock title %}
+{% block content %}
+  <div class="container mt-5">
+    <div class="row">
+      <div class="col-12">
+        <div class="card shadow">
+          <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">我的AI代码</h4>
+            <a href="{{ url_for('ai.upload_ai') }}" class="btn btn-light btn-sm">
+              <i class="bi bi-plus-circle"></i> 上传新AI
+            </a>
+          </div>
+          <div class="card-body">
+            {% if ai_codes %}
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>名称</th>
+                      <th>游戏类型</th>
+                      <th>状态</th>
+                      <th>最后更新</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for ai in ai_codes %}
+                      <tr>
+                        <td>{{ ai.name }}</td>
+                        <td>
+                          {% if ai.game_type == 'default' %}
+                            默认游戏
+                          {% else %}
+                            {{ ai.game_type }}
+                          {% endif %}
+                        </td>
+                        <td>
+                          {% if ai.is_active %}
+                            <span class="badge bg-success">当前活跃</span>
+                          {% else %}
+                            <span class="badge bg-secondary">未激活</span>
+                          {% endif %}
+                        </td>
+                        <td>{{ ai.updated_at.strftime("%Y-%m-%d %H:%M") }}</td>
+                        <td>
+                          <div class="btn-group btn-group-sm">
+                            <a href="{{ url_for('ai.edit_ai', ai_id=ai.id) }}"
+                               class="btn btn-outline-primary">
+                              <i class="bi bi-pencil"></i>
+                            </a>
+                            {% if not ai.is_active %}
+                              <form action="{{ url_for('ai.activate_ai', ai_id=ai.id) }}"
+                                    method="post"
+                                    class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-outline-success">
+                                  <i class="bi bi-check-circle"></i>
+                                </button>
+                              </form>
+                              <form action="{{ url_for('ai.delete_ai', ai_id=ai.id) }}"
+                                    method="post"
+                                    class="d-inline"
+                                    onsubmit="return confirm('确认删除此AI代码吗？此操作不可撤销。')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-outline-danger">
+                                  <i class="bi bi-trash"></i>
+                                </button>
+                              </form>
+                            {% endif %}
+                          </div>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <div class="alert alert-info">您尚未上传任何AI代码。点击"上传新AI"按钮来上传您的第一个AI代码。</div>
+            {% endif %}
+          </div>
+          <div class="card-footer">
+            <p class="text-muted small mb-0">
+              <i class="bi bi-info-circle"></i> 上传您的AI代码来参与游戏对战。每种游戏类型只能有一个活跃的AI代码。
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock content %}
