@@ -16,6 +16,9 @@ logging.basicConfig(level=logging.INFO,
                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("PlayerLoader")
 
+'''
+execute_player_code已经没有实际作用，此方法在referee里被实现
+
 def execute_player_code(code_content: str, player_id: int) -> Tuple[Any, str, str]:
     """
     安全执行玩家代码并返回Player实例
@@ -53,6 +56,7 @@ def execute_player_code(code_content: str, player_id: int) -> Tuple[Any, str, st
         error_msg = traceback.format_exc()
         logger.error(f"执行玩家 {player_id} 代码时出错: {error_msg}")
         return f"错误: {str(e)[:100]}", stdout.getvalue() if 'stdout' in locals() else "", stderr.getvalue() if 'stderr' in locals() else ""
+'''
 
 def load_baseline_code(baseline_name: str) -> Optional[str]:
     """
