@@ -31,20 +31,12 @@
                       <tr>
                         <td>{{ ai.name }}</td>
                         <td>
-                          {% if ai.game_type == 'default' %}
-                            默认游戏
-                          {% else %}
-                            {{ ai.game_type }}
-                          {% endif %}
-                        </td>
-                        <td>
                           {% if ai.is_active %}
                             <span class="badge bg-success">当前活跃</span>
                           {% else %}
                             <span class="badge bg-secondary">未激活</span>
                           {% endif %}
                         </td>
-                        <td>{{ ai.updated_at.strftime("%Y-%m-%d %H:%M") }}</td>
                         <td>
                           <div class="btn-group btn-group-sm">
                             <a href="{{ url_for('ai.edit_ai', ai_id=ai.id) }}"

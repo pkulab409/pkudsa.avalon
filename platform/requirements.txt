@@ -16,3 +16,4 @@ PyPDF2
 Flask-SocketIO==5.3.4
 gevent==23.9.1
 gevent-websocket==0.10.1
+faker

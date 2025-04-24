@@ -9,26 +9,6 @@
         <div class="card shadow-sm">
           <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h3 class="mb-0">游戏排行榜</h3>
-            <div class="dropdown">
-              <button class="btn btn-outline-light dropdown-toggle"
-                      type="button"
-                      id="gameTypeDropdown"
-                      data-bs-toggle="dropdown"
-                      aria-expanded="false">
-                {% for game in game_types %}
-                  {% if game.id == game_type %}{{ game.name }}{% endif %}
-                {% endfor %}
-              </button>
-              <ul class="dropdown-menu" aria-labelledby="gameTypeDropdown">
-                {% for game in game_types %}
-                  <li>
-                    <a class="dropdown-item {% if game.id == game_type %}active{% endif %}"
-                       href="{{ url_for('ranking.show_ranking', game_type=game.id, sort_by=sort_by) }}">{{
-                    game.name }}</a>
-                  </li>
-                {% endfor %}
-              </ul>
-            </div>
           </div>
           <div class="card-body">
             <div class="table-responsive">
@@ -38,15 +18,15 @@
                     <th scope="col">#</th>
                     <th scope="col">用户</th>
                     <th scope="col">
-                      <a href="{{ url_for('ranking.show_ranking', game_type=game_type, sort_by='score') }}"
+                      <a href="{{ url_for('ranking.show_ranking', sort_by='score') }}"
                          class="text-decoration-none {% if sort_by == 'score' %}text-primary fw-bold{% endif %}">分数</a>
                     </th>
                     <th scope="col">
-                      <a href="{{ url_for('ranking.show_ranking', game_type=game_type, sort_by='wins') }}"
+                      <a href="{{ url_for('ranking.show_ranking', sort_by='wins') }}"
                          class="text-decoration-none {% if sort_by == 'wins' %}text-primary fw-bold{% endif %}">胜场</a>
                     </th>
                     <th scope="col">
-                      <a href="{{ url_for('ranking.show_ranking', game_type=game_type, sort_by='losses') }}"
+                      <a href="{{ url_for('ranking.show_ranking', sort_by='losses') }}"
                          class="text-decoration-none {% if sort_by == 'losses' %}text-primary fw-bold{% endif %}">负场</a>
                     </th>
                     <th scope="col">平局</th>
@@ -83,6 +63,7 @@
         </div>
       </div>
     </div>
+    <!-- 用户统计保留，但移除游戏类型字段 -->
     {% if current_user.is_authenticated %}
       <div class="row mt-4">
         <div class="col-lg-12">
@@ -101,14 +82,12 @@
                 <table class="table table-bordered">
                   <thead class="table-light">
                     <tr>
-                      <th>游戏</th>
                       <th>分数</th>
                       <th>胜</th>
                       <th>负</th>
                       <th>平</th>
                       <th>总场次</th>
                       <th>胜率</th>
-                      <th>最近游戏</th>
                     </tr>
                   </thead>
                   <tbody id="user-stats-body">
@@ -166,33 +145,21 @@
         document.getElementById('user-stats-container').classList.remove('d-none');
 
         statsBody.innerHTML = '';
-        stats.forEach(stat => {
+        // 我们需要将其转换为单个元素的数组
+        const statsArray = Array.isArray(stats) ? stats : [stats];
+        
+        statsArray.forEach(stat => {
             const row = document.createElement('tr');
-
-            // 格式化最后游戏时间
-            let lastPlayed = stat.last_played ? new Date(stat.last_played).toLocaleString() : '从未';
-
             row.innerHTML = `
-                <td>${getGameName(stat.game_type)}</td>
                 <td>${stat.score}</td>
                 <td>${stat.wins}</td>
                 <td>${stat.losses}</td>
                 <td>${stat.draws}</td>
                 <td>${stat.total}</td>
                 <td>${stat.win_rate}%</td>
-                <td>${lastPlayed}</td>
             `;
             statsBody.appendChild(row);
         });
-    }
-
-    // 获取游戏类型的显示名称
-    function getGameName(gameType) {
-        const gameTypes = {
-            'default': '默认游戏'
-            // 可以根据需要添加更多游戏类型
-        };
-        return gameTypes[gameType] || gameType;
     }
     {% endif %}
   </script>

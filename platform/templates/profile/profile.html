@@ -25,7 +25,6 @@
                 <table class="table table-hover">
                   <thead>
                     <tr>
-                      <th>游戏</th>
                       <th>分数</th>
                       <th>胜</th>
                       <th>负</th>
@@ -35,26 +34,19 @@
                     </tr>
                   </thead>
                   <tbody>
-                    {% for stat in game_stats %}
+                    {% if game_stats %}
                       <tr>
+                        <td>{{ game_stats.elo_score }}</td>
+                        <td>{{ game_stats.wins }}</td>
+                        <td>{{ game_stats.losses }}</td>
+                        <td>{{ game_stats.draws }}</td>
+                        <td>{{ game_stats.games_played }}</td>
                         <td>
-                          {% if stat.game_type == 'default' %}
-                            默认游戏
-                          {% else %}
-                            {{ stat.game_type }}
-                          {% endif %}
-                        </td>
-                        <td>{{ stat.score }}</td>
-                        <td>{{ stat.games_won }}</td>
-                        <td>{{ stat.games_lost }}</td>
-                        <td>{{ stat.games_draw }}</td>
-                        <td>{{ stat.games_played }}</td>
-                        <td>
-                          {{ "%.1f"|format(stat.games_won / stat.games_played * 100) if stat.games_played
+                          {{ "%.1f"|format(game_stats.wins / game_stats.games_played * 100) if game_stats.games_played
                           else 0 }}%
                         </td>
                       </tr>
-                    {% endfor %}
+                    {% endif %}
                   </tbody>
                 </table>
               </div>
@@ -81,80 +73,6 @@
               </div>
             {% else %}
               <p>查看{{ user.username }}的游戏战绩，挑战其AI！</p>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- 最近对战记录 -->
-    <div class="row">
-      <div class="col-12">
-        <div class="card shadow-sm">
-          <div class="card-header bg-success text-white">
-            <h4 class="mb-0">最近对战</h4>
-          </div>
-          <div class="card-body">
-            {% if recent_battles %}
-              <div class="table-responsive">
-                <table class="table table-hover">
-                  <thead>
-                    <tr>
-                      <th>日期</th>
-                      <th>游戏</th>
-                      <th>对手</th>
-                      <th>结果</th>
-                      <th>分数变化</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for battle in recent_battles %}
-                      <tr>
-                        <td>{{ battle.started_at.strftime("%Y-%m-%d %H:%M") }}</td>
-                        <td>
-                          {% if battle.game_type == 'default' %}
-                            默认游戏
-                          {% else %}
-                            {{ battle.game_type }}
-                          {% endif %}
-                        </td>
-                        <td>
-                          {% if battle.player1_id == user.id %}
-                            <a href="{{ url_for('profile.profile', username=battle.player2.username) }}">{{ battle.player2.username }}</a>
-                          {% else %}
-                            <a href="{{ url_for('profile.profile', username=battle.player1.username) }}">{{ battle.player1.username }}</a>
-                          {% endif %}
-                        </td>
-                        <td>
-                          {% if battle.is_draw %}
-                            <span class="badge bg-secondary">平局</span>
-                          {% elif (battle.winner_id == user.id) %}
-                            <span class="badge bg-success">胜利</span>
-                          {% else %}
-                            <span class="badge bg-danger">失败</span>
-                          {% endif %}
-                        </td>
-                        <td>
-                          {% if battle.is_draw %}
-                            <span class="text-secondary">+0</span>
-                          {% elif (battle.winner_id == user.id) %}
-                            <span class="text-success">+{{ battle.score_change or 10 }}</span>
-                          {% else %}
-                            <span class="text-danger">-{{ battle.score_change or 10 }}</span>
-                          {% endif %}
-                        </td>
-                      </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-            {% else %}
-              <div class="alert alert-info">{{ user.username if not is_self else '您' }}尚无对战记录。</div>
-            {% endif %}
-            {% if recent_battles and is_self %}
-              <div class="d-grid gap-2 mt-3">
-                <a href="{{ url_for('profile.battle_history') }}"
-                   class="btn btn-outline-success">查看完整对战历史</a>
-              </div>
             {% endif %}
           </div>
         </div>

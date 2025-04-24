@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from database.models import User, GameStats, Battle, db
+from database.action import get_user_battles
 
 # 创建蓝图
 profile_bp = Blueprint("profile", __name__)
@@ -8,33 +9,28 @@ profile_bp = Blueprint("profile", __name__)
 
 @profile_bp.route("/profile")
 @profile_bp.route("/profile/<username>")
-@login_required
 def profile(username=None):
     """显示用户个人资料页面"""
     # 如果未指定用户名，显示当前登录用户的资料
     if username is None:
+        if not current_user.is_authenticated:
+            return redirect(url_for("auth.login"))
         user = current_user
     else:
         # 查找指定用户名的用户
         user = User.query.filter_by(username=username).first_or_404()
 
-    # 获取用户的游戏统计数据
-    from database.action import get_player_stats
+    # 查询用户的游戏统计数据
+    game_stats = GameStats.query.filter_by(user_id=user.id).first()
 
-    game_stats = get_player_stats(user.id)
-
-    # 获取用户最近的对战记录
-    # 注意参数传递：paginate=False 以获取Battle对象列表而非元组
-    from database.action import get_user_battles
-
-    recent_battles = get_user_battles(user.id, page=1, per_page=5, paginate=False)
+    # 判断当前用户是否在查看自己的资料
+    is_self = current_user.is_authenticated and current_user.id == user.id
 
     return render_template(
         "profile/profile.html",
         user=user,
-        game_stats=game_stats,
-        recent_battles=recent_battles,
-        is_self=(user.id == current_user.id),
+        game_stats=game_stats,  # 现在是单个对象，不是列表
+        is_self=is_self,
     )
 
 
@@ -59,6 +55,6 @@ def battle_history():
         "profile/battle_history.html",
         battles=battles,
         page=page,
-        total_pages=total_pages,
+        total_pages=total,
         total_battles=total,
     )

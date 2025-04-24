@@ -1,0 +1,2 @@
+将redis客户端作为单例全局使用,放在utils中导入
+将battle_manager作为全局单例使用,放在utils中导入

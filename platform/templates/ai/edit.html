@@ -23,13 +23,6 @@
                        required>
               </div>
               <div class="mb-3">
-                <label for="game_type" class="form-label">游戏类型</label>
-                <input type="text"
-                       class="form-control"
-                       value="{%- if ai_code.game_type == 'default' -%}默认游戏{%- else -%}{{ ai_code.game_type }}{%- endif -%}"
-                       readonly>
-              </div>
-              <div class="mb-3">
                 <label for="description" class="form-label">描述（可选）</label>
                 <textarea class="form-control" id="description" name="description" rows="3">{{ ai_code.description }}</textarea>
               </div>

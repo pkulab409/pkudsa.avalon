@@ -10,7 +10,6 @@
           <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h4 class="mb-0">{{ room_info.room_name }}</h4>
             <div>
-              <span class="badge bg-info me-2">{{ game_type }}</span>
               <span class="badge bg-secondary">{{ room_info.current_players }}/{{ room_info.max_players }}
               玩家</span>
             </div>
@@ -19,7 +18,7 @@
             <div id="gameArea" class="mb-4">
               <div class="text-center p-5 bg-light rounded">
                 {% if room_info.status == "waiting" %}
-                  <h5>等待其他玩家加入...</h5>
+                  <h5>等待玩家加入...</h5>
                   <div class="spinner-border text-primary mt-3" role="status">
                     <span class="visually-hidden">Loading...</span>
                   </div>
@@ -27,19 +26,30 @@
                     房间号: <strong>{{ room_id }}</strong>
                   </p>
                   <p>邀请朋友加入该房间!</p>
-                {% elif room_info.status == "ready" %}
-                  <h5>所有玩家已就绪</h5>
+                  <!-- 添加AI代码选择区域 -->
+                  <div class="mt-4 mb-3 border-top pt-3">
+                    <h6>选择我的AI代码</h6>
+                    <div class="d-flex justify-content-center align-items-center gap-2">
+                      <select id="myAiSelect" class="form-select" style="max-width: 240px;">
+                        <option value="">正在加载AI代码...</option>
+                      </select>
+                      <button id="selectAiBtn" class="btn btn-outline-primary">
+                        <i class="bi bi-check-circle"></i> 确认选择
+                      </button>
+                    </div>
+                    <div id="aiStatusDisplay" class="mt-2 small text-muted">当前未选择AI代码</div>
+                  </div>
+                  <!-- 如果是房主，显示开始游戏按钮 -->
                   {% if is_host %}
                     <button id="startGameBtn" class="btn btn-success mt-3">
                       <i class="bi bi-play-fill"></i> 开始游戏
                     </button>
-                  {% else %}
-                    <p class="mt-3">等待房主开始游戏...</p>
                   {% endif %}
-                {% else %}
+                {% elif room_info.status == "playing" %}
                   <div id="gameContent">
                     <!-- 游戏内容将在这里动态加载 -->
-                    <h5>游戏已开始!</h5>
+                    <h5>游戏正在进行!</h5>
+                    <!-- 可以添加游戏界面或状态信息 -->
                   </div>
                 {% endif %}
               </div>
@@ -52,6 +62,30 @@
         <button type="button" class="btn btn-danger" id="leaveRoomBtn">
           <i class="bi bi-box-arrow-left"></i> 离开房间
         </button>
+      </div>
+    </div>
+  </div>
+  <!-- 添加游戏结果模态框 -->
+  <div class="modal fade"
+       id="gameResultModal"
+       tabindex="-1"
+       aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">游戏结果</h5>
+          <button type="button"
+                  class="btn-close"
+                  data-bs-dismiss="modal"
+                  aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="gameResultContent">
+          <!-- 结果内容将在这里动态加载 -->
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+          <a href="/lobby" class="btn btn-primary">返回大厅</a>
+        </div>
       </div>
     </div>
   </div>
@@ -115,6 +149,97 @@
             });
         }
 
+        // 添加AI对手
+        document.getElementById('addAiBtn')?.addEventListener('click', function() {
+            const aiType = document.getElementById('aiOpponentSelect').value;
+            if (!aiType) {
+                alert('请选择AI类型');
+                return;
+            }
+            
+            fetch(`/game/add_ai_opponent/${roomId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ ai_type: aiType })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateOpponentsList();
+                } else {
+                    alert('添加AI对手失败: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+
+        // 更新对手列表
+        function updateOpponentsList() {
+            fetch(`/game/opponents/${roomId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const opponentsList = document.getElementById('opponentsList');
+                    opponentsList.innerHTML = '';
+                    
+                    data.opponents.forEach(opponent => {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                        
+                        let opponentText = '';
+                        if (opponent.type === 'ai') {
+                            opponentText = `AI: ${opponent.name}`;
+                        } else {
+                            opponentText = `玩家: ${opponent.username}`;
+                        }
+                        
+                        li.innerHTML = `
+                            ${opponentText}
+                            ${is_host ? `<button class="btn btn-sm btn-danger remove-opponent" data-id="${opponent.id}" data-type="${opponent.type}">移除</button>` : ''}
+                        `;
+                        opponentsList.appendChild(li);
+                    });
+                    
+                    // 添加移除对手事件
+                    document.querySelectorAll('.remove-opponent').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            removeOpponent(this.dataset.id, this.dataset.type);
+                        });
+                    });
+                }
+            });
+        }
+
+        // 移除对手
+        function removeOpponent(id, type) {
+            fetch(`/game/remove_opponent/${roomId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ id: id, type: type })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateOpponentsList();
+                } else {
+                    alert('移除对手失败: ' + data.message);
+                }
+            });
+        }
+
+        // 页面加载时更新对手列表
+        if (document.getElementById('opponentsList')) {
+            updateOpponentsList();
+        }
+
         // 添加WebSocket连接代码，监听房间更新
         const socket = io();
 
@@ -137,6 +262,8 @@
             console.log('游戏开始:', data);
             document.getElementById('gameArea').innerHTML = '<h5>游戏已开始!</h5>';
             // 在这里加载游戏界面
+            // 启动状态检查
+            gameStatusInterval = setInterval(fetchGameStatus, 2000);
         });
 
         // 监听玩家离开事件
@@ -149,6 +276,227 @@
         socket.on('disconnect', function() {
             console.log('与服务器断开连接');
         });
+
+        // 在socket连接后添加
+        // 定时获取游戏状态
+        let gameStatusInterval;
+
+        if (room_info.status === 'playing') {
+            gameStatusInterval = setInterval(fetchGameStatus, 2000);
+        }
+
+        function fetchGameStatus() {
+            const battleId = '{{ room_info.battle_id }}';
+            if (!battleId) return;
+            
+            fetch(`/game/status/${battleId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateGameUI(data.status, data.snapshots);
+                    
+                    // 如果游戏已结束，停止轮询
+                    if (data.status === 'completed' || data.status === 'error') {
+                        clearInterval(gameStatusInterval);
+                        // 显示游戏结果模态框
+                        showGameResultModal(data.result);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching game status:', error);
+            });
+        }
+
+        function updateGameUI(status, snapshots) {
+            // 这里可以根据游戏状态和快照更新UI
+            const gameContent = document.getElementById('gameContent');
+            
+            if (status === 'completed') {
+                gameContent.innerHTML = '<h5>游戏已结束!</h5>';
+                // 可以添加结果显示
+            } else if (status === 'error') {
+                gameContent.innerHTML = '<h5 class="text-danger">游戏发生错误!</h5>';
+            }
+            
+            // 处理快照更新UI
+            if (snapshots && snapshots.length > 0) {
+                // 示例：显示最新的几个事件
+                const eventsDiv = document.createElement('div');
+                eventsDiv.className = 'mt-3';
+                
+                const latestSnapshots = snapshots.slice(-5); // 最新的5个事件
+                latestSnapshots.forEach(snapshot => {
+                    const eventP = document.createElement('p');
+                    eventP.className = 'small mb-1';
+                    eventP.textContent = `${snapshot.event_type}: ${snapshot.description}`;
+                    eventsDiv.appendChild(eventP);
+                });
+                
+                // 更新或追加事件区域
+                const existingEvents = document.getElementById('gameEvents');
+                if (existingEvents) {
+                    existingEvents.innerHTML = eventsDiv.innerHTML;
+                } else {
+                    eventsDiv.id = 'gameEvents';
+                    gameContent.appendChild(eventsDiv);
+                }
+            }
+
+            // 在updateGameUI函数中添加
+            if (status === 'completed' && data.result) {
+                // 显示游戏结果模态框
+                const resultModal = new bootstrap.Modal(document.getElementById('gameResultModal'));
+                const resultContent = document.getElementById('gameResultContent');
+                
+                // 构建结果HTML
+                let resultHTML = '';
+                if (data.result.winner === 'blue') {
+                    resultHTML += '<div class="alert alert-primary">蓝方胜利!</div>';
+                } else if (data.result.winner === 'red') {
+                    resultHTML += '<div class="alert alert-danger">红方胜利!</div>';
+                }
+                
+                // 添加角色分配
+                resultHTML += '<h5>角色分配</h5><ul>';
+                for (const [playerId, role] of Object.entries(data.result.roles)) {
+                    resultHTML += `<li>玩家 ${playerId}: ${role}</li>`;
+                }
+                resultHTML += '</ul>';
+                
+                // 添加任务结果
+                resultHTML += '<h5>任务结果</h5><ul>';
+                data.result.mission_results.forEach((mission, index) => {
+                    resultHTML += `<li>任务 ${index + 1}: ${mission ? '成功' : '失败'}</li>`;
+                });
+                resultHTML += '</ul>';
+                
+                resultContent.innerHTML = resultHTML;
+                resultModal.show();
+            }
+        }
+
+        function showGameResultModal(result) {
+            const gameResultContent = document.getElementById('gameResultContent');
+            gameResultContent.innerHTML = `
+                <h5>游戏结果</h5>
+                <p>${result}</p>
+            `;
+            const gameResultModal = new bootstrap.Modal(document.getElementById('gameResultModal'));
+            gameResultModal.show();
+        }
+
+        // 在document.addEventListener('DOMContentLoaded'...函数内添加
+        
+        // 加载用户的AI代码列表
+        function loadUserAiCodes() {
+            
+            fetch(`/ai/api/user_ai_codes`)
+            .then(response => response.json())
+            .then(data => {
+                const selectEl = document.getElementById('myAiSelect');
+                selectEl.innerHTML = '';
+                
+                if (data.success && data.ai_codes.length > 0) {
+                    // 添加AI代码选项
+                    data.ai_codes.forEach(ai => {
+                        const option = document.createElement('option');
+                        option.value = ai.id;
+                        option.textContent = ai.name;
+                        if (ai.is_active) {
+                            option.selected = true;
+                            updateAiStatusDisplay(ai);
+                        }
+                        selectEl.appendChild(option);
+                    });
+                } else {
+                    // 没有AI代码
+                    const option = document.createElement('option');
+                    option.value = "";
+                    option.textContent = "未找到AI代码";
+                    selectEl.appendChild(option);
+                    
+                    // 显示上传链接
+                    document.getElementById('aiStatusDisplay').innerHTML = 
+                        '您还没有可用的AI代码。<a href="/ai/upload" target="_blank">上传一个新的AI代码</a>';
+                }
+            })
+            .catch(error => {
+                console.error('加载AI代码失败:', error);
+                document.getElementById('myAiSelect').innerHTML = '<option value="">加载失败</option>';
+            });
+        }
+        
+        // 更新AI状态显示
+        function updateAiStatusDisplay(ai) {
+            const statusEl = document.getElementById('aiStatusDisplay');
+            if (ai) {
+                statusEl.innerHTML = `当前选择: <strong>${ai.name}</strong> (${ai.is_active ? '活跃' : '未活跃'})`;
+                statusEl.className = 'mt-2 small text-success';
+            } else {
+                statusEl.innerHTML = '当前未选择AI代码';
+                statusEl.className = 'mt-2 small text-muted';
+            }
+        }
+        
+        // 选择AI代码按钮事件
+        document.getElementById('selectAiBtn')?.addEventListener('click', function() {
+            const aiId = document.getElementById('myAiSelect').value;
+            if (!aiId) {
+                alert('请选择一个AI代码');
+                return;
+            }
+            
+            // 先选择AI
+            fetch(`/game/select_ai/${roomId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ ai_id: aiId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 选择成功后，实例化AI
+                    return fetch(`/ai/api/instantiate_player/${aiId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        },
+                        body: JSON.stringify({ room_id: roomId })
+                    });
+                } else {
+                    throw new Error(data.message);
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('AI代码实例化成功！您的AI已准备就绪');
+                    updateAiStatusDisplay({
+                        name: document.getElementById('myAiSelect').options[
+                            document.getElementById('myAiSelect').selectedIndex
+                        ].text,
+                        is_active: true,
+                        instance_id: data.instance_id
+                    });
+                } else {
+                    alert('AI实例化失败: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('选择AI失败: ' + error.message);
+            });
+        });
+        
+        // 页面加载时加载AI代码列表
+        if (document.getElementById('myAiSelect')) {
+            loadUserAiCodes();
+        }
     });
   </script>
 {% endblock content %}

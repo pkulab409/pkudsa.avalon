@@ -201,17 +201,13 @@ def _write_back_private(data: dict) -> None:
 
 def read_private_lib() -> List[str]:
     """从私有库中读取内容"""
-    if _CURRENT_PLAYER_ID is None or not _GAME_SESSION_ID:
-        logger.error("尝试在无玩家ID或游戏ID上下文的情况下读取私有日志")
-        return
+    private_data = _get_private_lib_content()
 
-    try:
-        existing_data = _get_private_lib_content()  # 获取日志
+    # 检查数据结构，返回日志内容
+    logs = private_data.get("logs", [])
 
-        return existing_data["logs"]
-
-    except Exception as e:
-        logger.error(f"写入私有日志时出错: {str(e)}")
+    # 只返回内容部分
+    return [log.get("content", "") for log in logs]
 
 
 def write_into_private(content: str) -> None:
@@ -221,22 +217,21 @@ def write_into_private(content: str) -> None:
     参数:
         content: 需要保存的文本内容
     """
-    if _CURRENT_PLAYER_ID is None or not _GAME_SESSION_ID:
-        logger.error("尝试在无玩家ID或游戏ID上下文的情况下写入私有日志")
-        return
+    # 获取当前私有库内容
+    private_data = _get_private_lib_content()
 
-    try:
-        # 获取日志
-        existing_data = _get_private_lib_content()
+    # 添加新记录
+    new_record = {"timestamp": time.time(), "content": content}
 
-        # 追加新日志
-        existing_data["logs"].append({"timestamp": time.time(), "content": content})
+    # 确保logs字段存在
+    if "logs" not in private_data:
+        private_data["logs"] = []
 
-        # 写回文件
-        _write_back_private(data=existing_data)
+    # 追加记录
+    private_data["logs"].append(new_record)
 
-    except Exception as e:
-        logger.error(f"写入私有日志时出错: {str(e)}")
+    # 写回文件
+    _write_back_private(private_data)
 
 
 def read_public_lib() -> Dict[str, Any]:

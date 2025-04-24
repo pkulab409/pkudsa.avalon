@@ -18,12 +18,6 @@
                 <input type="text" class="form-control" id="name" name="name" required>
               </div>
               <div class="mb-3">
-                <label for="game_type" class="form-label">游戏类型</label>
-                <select class="form-select" id="game_type" name="game_type" required>
-                  {% for game_type in game_types %}<option value="{{ game_type.id }}">{{ game_type.name }}</option>{% endfor %}
-                </select>
-              </div>
-              <div class="mb-3">
                 <label for="ai_code" class="form-label">AI代码文件</label>
                 <input type="file"
                        class="form-control"

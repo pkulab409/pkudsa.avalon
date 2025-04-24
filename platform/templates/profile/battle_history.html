@@ -1,0 +1,15 @@
+<!-- 修改 /home/eric/dsa/pkudsa.avalon/platform/templates/profile/battle_history.html -->
+<!-- 在对战历史表格中添加查看详情按钮 -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3>对战历史</h3>
+  <a href="{{ url_for('visualizer.upload_game_json') }}"
+     class="btn btn-primary">
+    <i class="bi bi-upload"></i> 上传对局JSON
+  </a>
+</div>
+<td>
+  <a href="{{ url_for('visualizer.game_replay', game_id=battle.game_id) }}"
+     class="btn btn-sm btn-primary">
+    <i class="bi bi-eye"></i> 查看详情
+  </a>
+</td>

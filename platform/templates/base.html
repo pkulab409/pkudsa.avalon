@@ -44,6 +44,9 @@
             <li class="nav-item">
               <a class="nav-link" href="{{ url_for('ranking.show_ranking') }}">排行榜</a>
             </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('visualizer.upload_game_json') }}">上传对局</a>
+            </li>
           </ul>
           <ul class="navbar-nav">
             {% if current_user.is_authenticated %}
