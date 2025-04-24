@@ -160,7 +160,16 @@ def make_snapshot(self, event_type: str, event_data) -> None:
   "error_msg": "..."
 }
 ````
+玩家代码返回值错误也将中止游戏，**公有库**添加一项：
 
+```json
+{
+  "type": "player_return_ERROR",
+  "error_code_pid": 1,  // 1~7
+  "error_code_method": "...",
+  "error_msg": "..."
+}
+````
 ---
 
 ## 4. `battle_manager.py` 模块
