@@ -1109,7 +1109,7 @@ class AvalonReferee:
             self.log_public_event({
                 "type": "CRITICAL ERROR",
                 "error_code_pid": player_id,
-                "error_code_methof": method_name,
+                "error_code_method": method_name,
                 "error_msg": str(e)
             })
             # 中止游戏
