@@ -331,7 +331,7 @@ class AvalonReferee:
                 # 给公有库添加报错信息
                 self.log_public_event({
                     "type": "player_return_ERROR",
-                    "error_code_pid": player_id,
+                    "error_code_pid": self.leader_index,
                     "error_code_method": "decide_mission_member",
                     "error_msg": f"Error return as Leader. Player {self.leader_index}: {mission_members}"
                 })
