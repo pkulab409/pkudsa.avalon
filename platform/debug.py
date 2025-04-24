@@ -1,17 +1,10 @@
 # 游戏对战平台主程序入口
 from app import create_app
-from flask_socketio import SocketIO
 from blueprints.game import register_socket_events
 from flask import render_template  # 添加这一行导入render_template函数
 
 # 创建应用实例
 app = create_app()
-
-# 初始化Socket.IO支持实时游戏通信
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="gevent")
-
-# 注册Socket.IO事件处理器
-register_socket_events(socketio)
 
 
 # 全局错误处理
@@ -32,7 +25,4 @@ def health_check():
 
 
 if __name__ == "__main__":
-    # 使用socketio.run代替app.run以支持WebSocket
-    socketio.run(app, debug=True, host="0.0.0.0", port=5000)
-    # 生产环境部署请使用：
-    # gunicorn --worker-class gevent --workers 4 --bind 0.0.0.0:5000 main:app
+    app.run(debug=True, host="0.0.0.0", port=5000)
