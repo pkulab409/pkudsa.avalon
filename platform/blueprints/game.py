@@ -1,12 +1,10 @@
 from flask import Blueprint, render_template, jsonify, request, current_app
 from flask_login import login_required, current_user
-from flask_socketio import join_room, leave_room, emit
 from config.config import Config
 import json
-from database.models import db, AICode, User, Room, RoomParticipant
+from database.models import db, AICode, User, Room, RoomParticipant, Battle
 import time
 import uuid
-from database.models import AICode, User, Battle
 from datetime import datetime
 
 
@@ -358,75 +356,3 @@ def get_ai_instance_status(room_id):
     except Exception as e:
         current_app.logger.error(f"获取AI实例状态失败: {str(e)}")
         return jsonify({"success": False, "message": f"获取AI实例状态失败: {str(e)}"})
-
-
-# WebSocket事件处理
-def register_socket_events(socketio):
-    """注册所有游戏相关的Socket.IO事件处理函数"""
-
-    @socketio.on("connect")
-    def handle_connect():
-        """客户端连接事件处理"""
-        print(
-            f"Client connected: {current_user.username if current_user.is_authenticated else 'Guest'}"
-        )
-
-    @socketio.on("disconnect")
-    def handle_disconnect():
-        """客户端断开连接事件处理"""
-        print(
-            f"Client disconnected: {current_user.username if current_user.is_authenticated else 'Guest'}"
-        )
-
-    @socketio.on("join_room")
-    def handle_join_room(data):
-        """玩家加入房间"""
-        if not current_user.is_authenticated:
-            return {"success": False, "error": "Unauthorized"}
-
-        room_id = data.get("room_id")
-        if not room_id:
-            return {"success": False, "error": "No room_id provided"}
-
-        # 从数据库获取房间信息
-        room = Room.query.get(room_id)
-        if not room:
-            return {"success": False, "error": "Room does not exist"}
-
-        # 检查玩家是否属于这个房间
-        participant = RoomParticipant.query.filter_by(
-            room_id=room_id, user_id=current_user.id, is_ai=False
-        ).first()
-
-        if not participant:
-            return {"success": False, "error": "You are not a member of this room"}
-
-        # 加入Socket.IO房间
-        join_room(room_id)
-
-        # 更新玩家状态
-        user_info = {
-            "user_id": current_user.id,
-            "username": current_user.username,
-        }
-
-        # 通知房间其他玩家有新玩家加入
-        emit("player_joined", user_info, room=room_id, include_self=False)
-
-        # 返回房间信息给加入的玩家
-        return {"success": True, "room_info": room.to_dict(), "current_user": user_info}
-
-    @socketio.on("leave")
-    def on_leave(data):
-        """玩家离开房间"""
-        room_id = data.get("room_id")
-        if not room_id:
-            return
-
-        leave_room(room_id)
-
-        emit(
-            "user_left",
-            {"user_id": current_user.id, "username": current_user.username},
-            room=room_id,
-        )
