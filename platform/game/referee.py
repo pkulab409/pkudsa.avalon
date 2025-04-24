@@ -3,7 +3,7 @@
 
 新增的observer, 按以下方法调用:
 self.battle_observer.make_snapshot(event_type: str, event_data: str)
-    "event_type": 事件类型: referee, player1, ..., player7
+    "event_type": 事件类型: "referee", "player1", ..., "player7", "move"
     "event_data": 事件数据, 这里保存最后需要显示的文字
 """
 
@@ -13,16 +13,14 @@ import json
 import random
 import importlib
 import traceback
-from typing import Dict, List, Tuple, Any, Set, Optional
+from typing import Dict, List, Any
 import time
 import logging
-from pathlib import Path
 import importlib.util
-from io import StringIO
-from contextlib import redirect_stdout, redirect_stderr
 from datetime import datetime
 from observer import Observer
 from avalon_game_helper import INIT_PRIVA_LOG_DICT
+from restrictor import RESTRICTED_BUILTINS
 
 # 配置日志
 logging.basicConfig(
@@ -113,39 +111,40 @@ class AvalonReferee:
 
     def _load_codes(self, player_codes):
         player_modules = {}
-        
+
         for player_id, code_content in player_codes.items():
             # 创建唯一模块名
             module_name = f"player_{player_id}_module_{int(time.time()*1000)}"
             logger.info(f"为玩家 {player_id} 创建模块: {module_name}")
-            
+
             try:
                 # 创建模块规范
                 spec = importlib.util.spec_from_loader(module_name, loader=None)
                 if spec is None:
                     logger.error(f"为 {module_name} 创建规范失败")
                     continue
-                    
+
                 # 从规范创建模块
                 module = importlib.util.module_from_spec(spec)
                 sys.modules[module_name] = module  # 注册模块
-                
-                # 执行代码
+
+                # 执行代码（限制 builtins）
+                module.__dict__['__builtins__'] = RESTRICTED_BUILTINS
                 exec(code_content, module.__dict__)
-                
+
                 # 检查Player类是否存在
                 if not hasattr(module, "Player"):
                     logger.error(f"玩家 {player_id} 的代码已执行但未找到 'Player' 类")
                     continue
-                
+
                 # 存储模块
                 player_modules[player_id] = module
                 logger.info(f"玩家 {player_id} 代码加载成功")
-                
+
             except Exception as e:
                 logger.error(f"加载玩家 {player_id} 代码时出错: {str(e)}")
                 traceback.print_exc()
-        
+
         return player_modules
 
     def load_player_codes(self, player_modules: Dict[int, Any]):
@@ -160,12 +159,24 @@ class AvalonReferee:
                 player_instance = module.Player()
                 self.players[player_id] = player_instance
                 # 设置玩家编号
-                self.safe_execute(player_id, "set_player_index", player_id)
-                logger.info(f"Player {player_id} code loaded and instance created.")
-            except Exception as e:
-                logger.error(f"Error loading player {player_id} code: {str(e)}")
-                traceback.print_exc()
-                # Consider how to handle player load failure - maybe replace with a default bot?
+            except Exception as e:  # 玩家代码报错
+                logger.error(
+                    f"Error executing Player {player_id} method '__init__': {str(e)}",
+                    exc_info=True,  # Include traceback in log
+                )
+                # 给公有库添加报错信息
+                self.log_public_event({
+                    "type": "CRITICAL ERROR",
+                    "error_code_pid": player_id,
+                    "error_code_method": "__init__",
+                    "error_msg": str(e)
+                })
+                # 中止游戏
+                raise RuntimeError(f"Error executing Player {player_id} method '__init__': {str(e)}. Game suspended.")
+            
+            # 分配编号
+            self.safe_execute(player_id, "set_player_index", player_id)
+            logger.info(f"Player {player_id} code loaded and instance created.")
 
     def init_game(self):
         """初始化游戏：分配角色、初始化地图"""
@@ -313,50 +324,71 @@ class AvalonReferee:
                 not isinstance(mission_members, list)
                 or len(mission_members) != member_count
             ):
-                logger.warning(
-                    f"Player {self.leader_index} returned invalid mission members: {mission_members}. Selecting randomly."
+                logger.error(
+                    f"Leader {self.leader_index} returned non-list: {type(mission_members)}.",
+                    exc_info=True,  # Include traceback in log
                 )
-                mission_members = self.random_select_members(member_count)
-                logger.info(f"Randomly selected team: {mission_members}")
+                # 给公有库添加报错信息
+                self.log_public_event({
+                    "type": "player_return_ERROR",
+                    "error_code_pid": player_id,
+                    "error_code_method": "decide_mission_member",
+                    "error_msg": f"Error return as Leader. Player {self.leader_index}: {mission_members}"
+                })
+                # 中止游戏
+                raise RuntimeError(f"Leader {self.leader_index} returned non-list: {type(mission_members)}. Game suspended.")
+                
             else:
                 valid_members = []
-                invalid_found = False
                 for member in mission_members:
                     if isinstance(member, int) and 1 <= member <= PLAYER_COUNT:
                         if (
                             member not in valid_members
-                        ):  # Prevent duplicates from player
+                        ):  # 防止队员重复
                             valid_members.append(member)
                         else:
-                            logger.warning(
-                                f"Leader {self.leader_index} proposed duplicate member {member}. Ignored."
-                            )
-                            invalid_found = True
+                            logger.error(
+                                f"Leader {self.leader_index} proposed duplicate member {member}.",
+                                exc_info=True,  # Include traceback in log
+                                )
+                            # 给公有库添加报错信息
+                            self.log_public_event({
+                                "type": "player_return_ERROR",
+                                "error_code_pid": player_id,
+                                "error_code_method": "decide_mission_member",
+                                "error_msg": f"Error return as Leader. Player {self.leader_index}: {mission_members}"
+                            })
+                            # 中止游戏
+                            raise RuntimeError(f"Leader {self.leader_index} proposed duplicate member: {mission_members}. Game suspended.")
                     else:
-                        logger.warning(
-                            f"Leader {self.leader_index} proposed invalid member ID {member}. Ignored."
-                        )
-                        invalid_found = True
+                        logger.error(
+                            f"Leader {self.leader_index} proposed invalid member {member}.",
+                            exc_info=True,  # Include traceback in log
+                            )
+                        # 给公有库添加报错信息
+                        self.log_public_event({
+                            "type": "player_ruturn_ERROR",
+                            "error_code_pid": player_id,
+                            "error_code_method": "decide_mission_member",
+                            "error_msg": f"Error return as Leader. Player {self.leader_index}: {mission_members}"
+                        })                            
+                        # 中止游戏
+                        raise RuntimeError(f"Leader {self.leader_index} proposed invalid member: {mission_members}. Game suspended.")
 
-                if len(valid_members) != member_count or invalid_found:
-                    logger.warning(
-                        f"Correcting team proposal from leader {self.leader_index}. Original: {mission_members}"
-                    )
-                    # If not enough valid members, fill randomly
-                    current_members = set(valid_members)
-                    needed = member_count - len(valid_members)
-                    if needed > 0:
-                        all_players = list(range(1, PLAYER_COUNT + 1))
-                        random.shuffle(all_players)
-                        for p in all_players:
-                            if p not in current_members:
-                                valid_members.append(p)
-                                current_members.add(p)
-                                if len(valid_members) == member_count:
-                                    break
-                    # Ensure correct count even if too many valid were initially proposed (due to duplicates ignored)
-                    mission_members = valid_members[:member_count]
-                    logger.info(f"Corrected/Completed team: {mission_members}")
+                if len(valid_members) != member_count:
+                    logger.error(
+                        f"Leader {self.leader_index} proposed too many(few) members: {member}.",
+                        exc_info=True,  # Include traceback in log
+                        )
+                    # 给公有库添加报错信息
+                    self.log_public_event({
+                        "type": "player_ruturn_ERROR",
+                        "error_code_pid": player_id,
+                        "error_code_method": "decide_mission_member",
+                        "error_msg": f"Error return as Leader. Player {self.leader_index}: {mission_members}"
+                    })                            
+                    # 中止游戏
+                    raise RuntimeError(f"Leader {self.leader_index} proposed too many(few) members: {mission_members}. Game suspended.")
 
                 else:
                     mission_members = valid_members  # Use the validated list
@@ -416,7 +448,7 @@ class AvalonReferee:
                 self.battle_observer.make_snapshot('referee',"Team Approved. Executing mission.")
                 # 执行任务
                 mission_success = self.execute_mission(mission_members)
-                break  # Exit vote loop
+                break  # 退出循环
             else:
                 logger.info("Team Rejected.")
                 self.battle_observer.make_snapshot('referee',"Team Rejected.")
@@ -493,13 +525,6 @@ class AvalonReferee:
         logger.info(f"--- End of Mission Round {self.current_round} ---")
         self.battle_observer.make_snapshot('referee',f"--- End of Mission Round {self.current_round} ---")
 
-    def random_select_members(self, member_count: int) -> List[int]:
-        """随机选择指定数量的队员"""
-        logger.debug(f"Randomly selecting {member_count} members.")
-        all_players = list(range(1, PLAYER_COUNT + 1))
-        random.shuffle(all_players)
-        return all_players[:member_count]
-
     def conduct_global_speech(self):
         """进行全局发言（所有玩家都能听到）"""
         speeches = []
@@ -516,10 +541,19 @@ class AvalonReferee:
             speech = self.safe_execute(player_id, "say")
 
             if not isinstance(speech, str):
-                logger.warning(
-                    f"Player {player_id} returned non-string speech: {type(speech)}. Using default."
-                )
-                speech = "..."  # 默认发言
+                logger.error(
+                    f"Player {player_id} returned non-string speech: {type(speech)}.",
+                    exc_info=True,  # Include traceback in log
+                    )
+                # 给公有库添加报错信息
+                self.log_public_event({
+                    "type": "player_ruturn_ERROR",
+                    "error_code_pid": player_id,
+                    "error_code_method": "say",
+                    "error_msg": f"Error return when global speech. Player {player_id}."
+                })                            
+                # 中止游戏
+                raise RuntimeError(f"Player {player_id} returned non-string speech: {type(speech)}. Game suspended.")
 
             logger.info(
                 f"Global Speech - Player {player_id}: {speech[:100]}{'...' if len(speech) > 100 else ''}"
@@ -540,120 +574,124 @@ class AvalonReferee:
         logger.info("Global Speech phase complete.")
         self.battle_observer.make_snapshot("referee","Global Speech phase complete.")
 
-    def conduct_movement(self):
-        """执行玩家移动"""
-        # 从队长开始，按编号顺序移动
-        ordered_players = [
-            (i - 1) % PLAYER_COUNT + 1
-            for i in range(self.leader_index, self.leader_index + PLAYER_COUNT)
-        ]
-        logger.debug(f"Movement order: {ordered_players}")
 
-        movements = []
-        # 清空地图上的玩家标记 (log this action)
-        logger.debug("Clearing player markers from map before movement.")
-        for x in range(MAP_SIZE):
-            for y in range(MAP_SIZE):
-                if self.map_data[x][y] in [str(i) for i in range(1, PLAYER_COUNT + 1)]:
-                    self.map_data[x][y] = " "
+###### 这里是玩家移动的代码，存在错误 ######
+###### 这里是玩家移动的代码，存在错误 ######
+###### 这里是玩家移动的代码，存在错误 ######
+    # def conduct_movement(self):
+    #     """执行玩家移动"""
+    #     # 从队长开始，按编号顺序移动
+    #     ordered_players = [
+    #         (i - 1) % PLAYER_COUNT + 1
+    #         for i in range(self.leader_index, self.leader_index + PLAYER_COUNT)
+    #     ]
+    #     logger.debug(f"Movement order: {ordered_players}")
 
-        for player_id in ordered_players:
-            # 获取当前位置
-            current_pos = self.player_positions[player_id]
-            logger.debug(
-                f"Requesting movement from Player {player_id} at {current_pos}"
-            )
+    #     movements = []
+    #     # 清空地图上的玩家标记 (log this action)
+    #     logger.debug("Clearing player markers from map before movement.")
+    #     for x in range(MAP_SIZE):
+    #         for y in range(MAP_SIZE):
+    #             if self.map_data[x][y] in [str(i) for i in range(1, PLAYER_COUNT + 1)]:
+    #                 self.map_data[x][y] = " "
 
-            # 获取移动方向
-            directions = self.safe_execute(player_id, "walk")
+    #     for player_id in ordered_players:
+    #         # 获取当前位置
+    #         current_pos = self.player_positions[player_id]
+    #         logger.debug(
+    #             f"Requesting movement from Player {player_id} at {current_pos}"
+    #         )
 
-            if not isinstance(directions, tuple) and not isinstance(
-                directions, list
-            ):  # Allow list too
-                logger.warning(
-                    f"Player {player_id} returned invalid directions type: {type(directions)}. No movement."
-                )
-                directions = ()
+    #         # 获取移动方向
+    #         directions = self.safe_execute(player_id, "walk")
 
-            # 最多移动3步
-            steps = min(len(directions), 3)
-            new_pos = current_pos
+    #         if not isinstance(directions, tuple) and not isinstance(
+    #             directions, list
+    #         ):  # Allow list too
+    #             logger.warning(
+    #                 f"Player {player_id} returned invalid directions type: {type(directions)}. No movement."
+    #             )
+    #             directions = ()
 
-            valid_moves = []
-            logger.debug(f"Player {player_id} requested moves: {directions[:steps]}")
-            for i in range(steps):
-                if i >= len(directions):
-                    break
+    #         # 最多移动3步
+    #         steps = min(len(directions), 3)
+    #         new_pos = current_pos
 
-                direction = (
-                    directions[i].lower() if isinstance(directions[i], str) else ""
-                )
+    #         valid_moves = []
+    #         logger.debug(f"Player {player_id} requested moves: {directions[:steps]}")
+    #         for i in range(steps):
+    #             if i >= len(directions):
+    #                 break
 
-                x, y = new_pos
-                if direction == "up" and x > 0:
-                    new_pos = (x - 1, y)
-                    valid_moves.append("up")
-                elif direction == "down" and x < MAP_SIZE - 1:
-                    new_pos = (x + 1, y)
-                    valid_moves.append("down")
-                elif direction == "left" and y > 0:
-                    new_pos = (x, y - 1)
-                    valid_moves.append("left")
-                elif direction == "right" and y < MAP_SIZE - 1:
-                    new_pos = (x, y + 1)
-                    valid_moves.append("right")
-                else:
-                    # 无效移动，跳过
-                    continue
+    #             direction = (
+    #                 directions[i].lower() if isinstance(directions[i], str) else ""
+    #             )
 
-                # 检查是否与其他玩家重叠
-                if new_pos in [
-                    self.player_positions[pid]
-                    for pid in range(1, PLAYER_COUNT + 1)
-                    if pid != player_id
-                ]:
-                    # 回退到上一个位置
-                    new_pos = (x, y)
-                    valid_moves.pop()  # 移除最后一个无效移动
-                    break
+    #             x, y = new_pos
+    #             if direction == "up" and x > 0:
+    #                 new_pos = (x - 1, y)
+    #                 valid_moves.append("up")
+    #             elif direction == "down" and x < MAP_SIZE - 1:
+    #                 new_pos = (x + 1, y)
+    #                 valid_moves.append("down")
+    #             elif direction == "left" and y > 0:
+    #                 new_pos = (x, y - 1)
+    #                 valid_moves.append("left")
+    #             elif direction == "right" and y < MAP_SIZE - 1:
+    #                 new_pos = (x, y + 1)
+    #                 valid_moves.append("right")
+    #             else:
+    #                 # 无效移动，跳过
+    #                 continue
 
-            # 更新玩家位置
-            if new_pos != current_pos:
-                logger.info(
-                    f"Movement - Player {player_id}: {current_pos} -> {new_pos} via {valid_moves}"
-                )
-            else:
-                logger.info(
-                    f"Movement - Player {player_id}: No valid movement from {current_pos} with request {directions[:steps]}"
-                )
+    #             # 检查是否与其他玩家重叠
+    #             if new_pos in [
+    #                 self.player_positions[pid]
+    #                 for pid in range(1, PLAYER_COUNT + 1)
+    #                 if pid != player_id
+    #             ]:
+    #                 # 回退到上一个位置
+    #                 new_pos = (x, y)
+    #                 valid_moves.pop()  # 移除最后一个无效移动
+    #                 break
 
-            self.player_positions[player_id] = new_pos
-            x, y = new_pos
-            self.map_data[x][y] = str(player_id)  # Place marker after all checks
+    #         # 更新玩家位置
+    #         if new_pos != current_pos:
+    #             logger.info(
+    #                 f"Movement - Player {player_id}: {current_pos} -> {new_pos} via {valid_moves}"
+    #             )
+    #         else:
+    #             logger.info(
+    #                 f"Movement - Player {player_id}: No valid movement from {current_pos} with request {directions[:steps]}"
+    #             )
 
-            movements.append(
-                {
-                    "player_id": player_id,
-                    "requested_moves": list(directions[:steps]),  # Log requested moves
-                    "executed_moves": valid_moves,  # Log executed moves
-                    "final_position": new_pos,
-                }
-            )
+    #         self.player_positions[player_id] = new_pos
+    #         x, y = new_pos
+    #         self.map_data[x][y] = str(player_id)  # Place marker after all checks
 
-        # 更新所有玩家的地图
-        logger.debug("Updating all players with the new map state.")
-        for player_id in range(1, PLAYER_COUNT + 1):
-            self.safe_execute(player_id, "pass_map", self.map_data)
+    #         movements.append(
+    #             {
+    #                 "player_id": player_id,
+    #                 "requested_moves": list(directions[:steps]),  # Log requested moves
+    #                 "executed_moves": valid_moves,  # Log executed moves
+    #                 "final_position": new_pos,
+    #             }
+    #         )
 
-        # 记录移动
-        self.log_public_event(
-            {"type": "movement", "round": self.current_round, "movements": movements}
-        )
-        logger.info("Movement phase complete.")
+    #     # 更新所有玩家的地图
+    #     logger.debug("Updating all players with the new map state.")
+    #     for player_id in range(1, PLAYER_COUNT + 1):
+    #         self.safe_execute(player_id, "pass_map", self.map_data)
 
-        # 面向前端的记录
-        self.battle_observer.make_snapshot("referee", "Movement phase complete.")
-        self.battle_observer.make_snapshot("move", self.player_positions)
+    #     # 记录移动
+    #     self.log_public_event(
+    #         {"type": "movement", "round": self.current_round, "movements": movements}
+    #     )
+    #     logger.info("Movement phase complete.")
+
+    #     # 面向前端的记录
+    #     self.battle_observer.make_snapshot("referee", "Movement phase complete.")
+    #     self.battle_observer.make_snapshot("move", self.player_positions)
 
     def conduct_limited_speech(self):
         """进行有限范围发言（只有在听力范围内的玩家能听到）"""
@@ -670,10 +708,19 @@ class AvalonReferee:
             speech = self.safe_execute(speaker_id, "say")
 
             if not isinstance(speech, str):
-                logger.warning(
-                    f"Player {speaker_id} returned non-string speech: {type(speech)}. Using default."
-                )
-                speech = "..."  # 默认发言
+                logger.error(
+                    f"Player {speaker_id} returned non-string speech: {type(speech)}.",
+                    exc_info=True,  # Include traceback in log
+                    )
+                # 给公有库添加报错信息
+                self.log_public_event({
+                    "type": "player_ruturn_ERROR",
+                    "error_code_pid": speaker_id,
+                    "error_code_method": "say",
+                    "error_msg": f"Error return when limited speech. Player {speaker_id}."
+                })                            
+                # 中止游戏
+                raise RuntimeError(f"Player {speaker_id} returned non-string speech: {type(speech)}. Game suspended.")
 
             logger.info(
                 f"Limited Speech - Player {speaker_id}: {speech[:100]}{'...' if len(speech) > 100 else ''}"
@@ -701,26 +748,30 @@ class AvalonReferee:
         logger.info("Limited Speech phase complete.")
         self.battle_observer.make_snapshot("referee", "Limited Speech phase complete.")
 
-    def get_players_in_hearing_range(self, speaker_id: int) -> List[int]:
-        """获取能听到指定玩家发言的所有玩家ID"""
-        hearers = []
-        speaker_x, speaker_y = self.player_positions[speaker_id]
 
-        for player_id in range(1, PLAYER_COUNT + 1):
-            player_x, player_y = self.player_positions[player_id]
+###### 这里是玩家听力范围的代码，存在错误 ######
+###### 这里是玩家听力范围的代码，存在错误 ######
+###### 这里是玩家听力范围的代码，存在错误 ######
+    # def get_players_in_hearing_range(self, speaker_id: int) -> List[int]:
+    #     """获取能听到指定玩家发言的所有玩家ID"""
+    #     hearers = []
+    #     speaker_x, speaker_y = self.player_positions[speaker_id]
 
-            # 计算曼哈顿距离
-            distance = abs(player_x - speaker_x) + abs(player_y - speaker_y)
+    #     for player_id in range(1, PLAYER_COUNT + 1):
+    #         player_x, player_y = self.player_positions[player_id]
 
-            # 获取角色和对应的听力范围
-            role = self.roles[player_id]
-            hearing_range = HEARING_RANGE.get(role, 1)  # 默认为1
+    #         # 计算曼哈顿距离
+    #         distance = abs(player_x - speaker_x) + abs(player_y - speaker_y)
 
-            # 如果在听力范围内，加入听者列表
-            if distance <= hearing_range:
-                hearers.append(player_id)
+    #         # 获取角色和对应的听力范围
+    #         role = self.roles[player_id]
+    #         hearing_range = HEARING_RANGE.get(role, 1)  # 默认为1
 
-        return hearers
+    #         # 如果在听力范围内，加入听者列表
+    #         if distance <= hearing_range:
+    #             hearers.append(player_id)
+
+    #     return hearers
 
     def conduct_public_vote(self, mission_members: List[int]) -> int:
         """
@@ -734,10 +785,19 @@ class AvalonReferee:
 
             # 确保投票结果是布尔值
             if not isinstance(vote, bool):
-                logger.warning(
-                    f"Player {player_id} returned invalid public vote: {type(vote)}. Assigning random vote."
-                )
-                vote = random.choice([True, False])
+                logger.error(
+                    f"Player {player_id} returned non-bool public vote: {type(vote)}.",
+                    exc_info=True,  # Include traceback in log
+                    )
+                # 给公有库添加报错信息
+                self.log_public_event({
+                    "type": "player_ruturn_ERROR",
+                    "error_code_pid": player_id,
+                    "error_code_method": "mission_vote1",
+                    "error_msg": f"Error return when public vote. Player {player_id}."
+                })                            
+                # 中止游戏
+                raise RuntimeError(f"Player {player_id} returned non-bool public vote: {type(vote)}. Game suspended.")
 
             votes[player_id] = vote
             logger.debug(
@@ -782,12 +842,19 @@ class AvalonReferee:
 
             # 确保投票结果是布尔值
             if not isinstance(vote, bool):
-                # 红方默认投失败，蓝方默认投成功
-                is_evil = self.roles[player_id] in RED_ROLES
-                logger.warning(
-                    f"Player {player_id} ({self.roles[player_id]}) returned invalid mission vote: {type(vote)}. Defaulting based on role ({'Fail' if is_evil else 'Success'})."
-                )
-                vote = not is_evil  # True for blue (Success), False for red (Fail)
+                logger.error(
+                    f"Player {player_id} returned non-bool mission vote: {type(vote)}.",
+                    exc_info=True,  # Include traceback in log
+                    )
+                # 给公有库添加报错信息
+                self.log_public_event({
+                    "type": "player_ruturn_ERROR",
+                    "error_code_pid": player_id,
+                    "error_code_method": "mission_vote2",
+                    "error_msg": f"Error return when mission vote. Player {player_id}."
+                })                            
+                # 中止游戏
+                raise RuntimeError(f"Player {player_id} returned non-bool mission vote: {type(vote)}. Game suspended.")
 
             votes[player_id] = vote
             logger.debug(
@@ -837,7 +904,18 @@ class AvalonReferee:
 
         if not assassin_id:
             logger.error("No Assassin found! Skipping assassination.")
-            return False  # Cannot assassinate without an assassin
+            logger.error(
+                f"No Assassin found!",
+                exc_info=True,  # Include traceback in log
+            )
+            # 给公有库添加报错信息
+            self.log_public_event({
+                "type": "CRITICAL ERROR",
+                "error_code_method": "assassinate_phase",
+                "error_msg": "No Assassin found!"
+            })
+            # 中止游戏
+            raise RuntimeError("No Assassin found! Game suspended.")
 
         logger.info(f"Assassin (Player {assassin_id}) is choosing a target.")
         self.battle_observer.make_snapshot(f"player{assassin_id}","choosing a target.")
@@ -847,41 +925,36 @@ class AvalonReferee:
 
         # 确保目标是有效玩家ID
         if not isinstance(target_id, int) or target_id < 1 or target_id > PLAYER_COUNT:
-            logger.warning(
-                f"Assassin returned invalid target: {target_id}. Choosing random target."
-            )
-            # 随机选择目标
-            possible_targets = [
-                i
-                for i in range(1, PLAYER_COUNT + 1)
-                if self.roles[i] not in RED_ROLES and i != assassin_id
-            ]
-            if not possible_targets:  # Should not happen if blue won, but safety check
-                possible_targets = [
-                    i for i in range(1, PLAYER_COUNT + 1) if i != assassin_id
-                ]
-            target_id = (
-                random.choice(possible_targets) if possible_targets else assassin_id
-            )  # Avoid error if list empty
-            logger.info(f"Randomly selected target: {target_id}")
+            logger.error(
+                f"Assassin returned invalid target: {target_id}.",
+                exc_info=True,  # Include traceback in log
+                )
+            # 给公有库添加报错信息
+            self.log_public_event({
+                "type": "player_ruturn_ERROR",
+                "error_code_pid": assassin_id,
+                "error_code_method": "assass",
+                "error_msg": f"Error return when assass. Player {assassin_id}."
+            })                            
+            # 中止游戏
+            raise RuntimeError(f"Assassin returned invalid target: {target_id}. Game suspended.")
         elif target_id == assassin_id:
-            logger.warning(
-                f"Assassin {assassin_id} targeted themselves. Invalid. Choosing random target."
-            )
-            # Same random logic as above
-            possible_targets = [
-                i
-                for i in range(1, PLAYER_COUNT + 1)
-                if self.roles[i] not in RED_ROLES and i != assassin_id
-            ]
-            if not possible_targets:
-                possible_targets = [
-                    i for i in range(1, PLAYER_COUNT + 1) if i != assassin_id
-                ]
-            target_id = (
-                random.choice(possible_targets) if possible_targets else assassin_id
-            )
-            logger.info(f"Randomly selected target: {target_id}")
+            logger.error(
+                f"Assassin {assassin_id} targeted themselves.",
+                exc_info=True,  # Include traceback in log
+                )
+            # 给公有库添加报错信息
+            self.log_public_event({
+                "type": "player_ruturn_ERROR",
+                "error_code_pid": assassin_id,
+                "error_code_method": "assass",
+                "error_msg": f"Error return when assass. Player {assassin_id}."
+            })                            
+            # 中止游戏
+            raise RuntimeError(f"""
+                               Assassin {assassin_id} targeted themselves. Game suspended. 
+                               FOOL Assassin! FOOL Assassin! FOOL Assassin! FOOL Assassin!
+                               """)
 
         # 判断是否刺中梅林
         target_role = self.roles[target_id]
@@ -970,28 +1043,29 @@ class AvalonReferee:
                 game_result["win_reason"] = "missions_failed"
                 logger.info("Game Result: Red wins (3 Failed Missions)")
                 self.battle_observer.make_snapshot('referee',"Game Result: Red wins (3 Failed Missions)")
-            else:
-                # 达到最大轮数，根据胜利次数判定
-                logger.warning(
-                    f"Max rounds ({MAX_MISSION_ROUNDS}) reached without 3 wins for either team."
-                )
-                self.battle_observer.make_snapshot('referee',f"Max rounds ({MAX_MISSION_ROUNDS}) reached without 3 wins for either team.")
-                if self.blue_wins > self.red_wins:
-                    game_result["winner"] = "blue"
-                    game_result["win_reason"] = "more_successful_missions_at_max_rounds"
-                    logger.info(
-                        "Game Result: Blue wins (More missions succeeded at max rounds)"
-                    )
-                    self.battle_observer.make_snapshot('referee',"Game Result: Blue wins (More missions succeeded at max rounds)")
-                else:  # Includes draw in mission wins, red wins draws
-                    game_result["winner"] = "red"
-                    game_result["win_reason"] = (
-                        "more_or_equal_failed_missions_at_max_rounds"
-                    )
-                    logger.info(
-                        "Game Result: Red wins (More or equal missions failed at max rounds)"
-                    )
-                    self.battle_observer.make_snapshot('referee',"Game Result: Red wins (More or equal missions failed at max rounds)")
+            ##### 貌似没用 #####
+            # else:
+            #     # 达到最大轮数，根据胜利次数判定
+            #     logger.warning(
+            #         f"Max rounds ({MAX_MISSION_ROUNDS}) reached without 3 wins for either team."
+            #     )
+            #     self.battle_observer.make_snapshot('referee',f"Max rounds ({MAX_MISSION_ROUNDS}) reached without 3 wins for either team.")
+            #     if self.blue_wins > self.red_wins:
+            #         game_result["winner"] = "blue"
+            #         game_result["win_reason"] = "more_successful_missions_at_max_rounds"
+            #         logger.info(
+            #             "Game Result: Blue wins (More missions succeeded at max rounds)"
+            #         )
+            #         self.battle_observer.make_snapshot('referee',"Game Result: Blue wins (More missions succeeded at max rounds)")
+            #     else:  # Includes draw in mission wins, red wins draws
+            #         game_result["winner"] = "red"
+            #         game_result["win_reason"] = (
+            #             "more_or_equal_failed_missions_at_max_rounds"
+            #         )
+            #         logger.info(
+            #             "Game Result: Red wins (More or equal missions failed at max rounds)"
+            #         )
+            #         self.battle_observer.make_snapshot('referee',"Game Result: Red wins (More or equal missions failed at max rounds)")
 
             # 记录游戏结果
             self.log_public_event({"type": "game_end", "result": game_result})
@@ -1086,28 +1160,36 @@ class AvalonReferee:
 
             return result
 
-        except Exception as e:
+        except Exception as e:  # 玩家代码报错
             logger.error(
                 f"Error executing Player {player_id} ({self.roles.get(player_id)}) method '{method_name}': {str(e)}",
                 exc_info=True,  # Include traceback in log
             )
-            # traceback.print_exc() # Already logged with exc_info=True
-            # Provide default behavior on error too
-            if method_name == "mission_vote1":
-                return random.choice([True, False])
-            if method_name == "mission_vote2":
-                return self.roles.get(player_id) not in RED_ROLES
-            if method_name == "decide_mission_member":
-                return self.random_select_members(args[0])
-            if method_name == "assass":
-                return random.choice(
-                    [i for i in range(1, PLAYER_COUNT + 1) if i != player_id]
-                )
-            if method_name == "say":
-                return f"[Error executing say: {str(e)}]"
-            if method_name == "walk":
-                return ()
-            return None  # Default return on error for other methods
+            # 给公有库添加报错信息
+            self.log_public_event({
+                "type": "CRITICAL ERROR",
+                "error_code_pid": player_id,
+                "error_code_method": method_name,
+                "error_msg": str(e)
+            })
+            # 中止游戏
+            raise RuntimeError(f"Error executing Player {player_id} ({self.roles.get(player_id)}) method '{method_name}': {str(e)}. Game suspended.")
+            # 触发随机处理
+            # if method_name == "mission_vote1":
+            #     return random.choice([True, False])
+            # if method_name == "mission_vote2":
+            #     return self.roles.get(player_id) not in RED_ROLES
+            # if method_name == "decide_mission_member":
+            #     return self.random_select_members(args[0])
+            # if method_name == "assass":
+            #     return random.choice(
+            #         [i for i in range(1, PLAYER_COUNT + 1) if i != player_id]
+            #     )
+            # if method_name == "say":
+            #     return f"[Error executing say: {str(e)}]"
+            # if method_name == "walk":
+            #     return ()
+            # return None  # Default return on error for other methods
 
     def log_public_event(self, event: Dict[str, Any]):
         """记录公共事件到日志"""
