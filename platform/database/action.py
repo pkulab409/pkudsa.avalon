@@ -1,13 +1,11 @@
 from .base import db
 import logging
-from sqlalchemy import select
-from sqlalchemy import update
-from sqlalchemy import or_, func
-import datetime  # 添加此导入
-from .models import User, Battle, GameStats  # 添加此导入
+from sqlalchemy import select, update, or_, func
+import datetime
+from .models import User, Battle, GameStats
+import json
 
 logger = logging.getLogger(__name__)
-
 
 # 需要实现安全提交函数
 def safe_commit():
@@ -19,7 +17,6 @@ def safe_commit():
         db.session.rollback()
         logger.error(f"数据库提交失败: {str(e)}")
         return False
-
 
 def create_battle(player_ids, game_type, room_id, **kwargs):
     """
@@ -35,8 +32,6 @@ def create_battle(player_ids, game_type, room_id, **kwargs):
         Battle对象或None
     """
     try:
-        import json
-
         battle_data = {
             "player_ids": json.dumps(player_ids),
             "game_type": game_type,
@@ -58,7 +53,6 @@ def create_battle(player_ids, game_type, room_id, **kwargs):
         db.session.rollback()
         logger.error(f"创建对战记录失败: {str(e)}")
         return None
-
 
 def end_battle(
     battle_id,
@@ -83,8 +77,6 @@ def end_battle(
         Battle对象或None
     """
     try:
-        import json
-
         battle = db.session.get(Battle, battle_id)
         if not battle:
             return None
@@ -118,7 +110,6 @@ def end_battle(
         logger.error(f"结束对战失败: {str(e)}")
         return None
 
-
 def update_player_stats(battle):
     """
     根据对战结果更新玩家统计数据
@@ -127,8 +118,6 @@ def update_player_stats(battle):
         battle: Battle对象
     """
     try:
-        import json
-
         # 获取玩家列表
         player_ids = json.loads(battle.player_ids)
 
@@ -164,7 +153,7 @@ def update_player_stats(battle):
                 elif player_id in loser_ids:
                     stat.games_lost += 1
 
-        # 计算新的ELO分数 (仅对两人游戏),需要修改
+        # 计算新的ELO分数 (仅对两人游戏)
         if (
             not battle.is_draw
             and len(player_ids) == 2
@@ -185,7 +174,6 @@ def update_player_stats(battle):
     except Exception as e:
         db.session.rollback()
         logger.error(f"更新玩家统计失败: {str(e)}")
-
 
 def update_elo_scores(player1_stats, player2_stats, winner_id):
     """
@@ -214,7 +202,6 @@ def update_elo_scores(player1_stats, player2_stats, winner_id):
     player1_stats.score = int(player1_stats.score + K * (s1 - e1))
     player2_stats.score = int(player2_stats.score + K * (s2 - e2))
 
-
 def get_player_stats(user_id, game_type=None):
     """
     获取玩家在特定游戏类型的统计数据
@@ -234,7 +221,6 @@ def get_player_stats(user_id, game_type=None):
     except Exception as e:
         logger.error(f"获取玩家统计数据失败: {str(e)}")
         return []
-
 
 def get_leaderboard(game_type, limit=100):
     """
@@ -260,7 +246,6 @@ def get_leaderboard(game_type, limit=100):
         logger.error(f"获取排行榜失败: {str(e)}")
         return []
 
-
 def get_user_battles(user_id, page=1, per_page=10, paginate=True):
     """
     获取用户的对战历史
@@ -276,11 +261,7 @@ def get_user_battles(user_id, page=1, per_page=10, paginate=True):
         paginate=False时: 对战列表
     """
     try:
-        import json
-        from sqlalchemy.sql import text
-
         # 由于player_ids是JSON字符串，我们需要使用JSON搜索或文本搜索
-        # 这里使用简单的字符串匹配（不够严谨但可用）
         user_id_str = str(user_id)
         query = Battle.query.filter(
             Battle.player_ids.like(f"%{user_id_str}%")
@@ -291,24 +272,18 @@ def get_user_battles(user_id, page=1, per_page=10, paginate=True):
             battles = query.offset((page - 1) * per_page).limit(per_page).all()
 
             # 进一步过滤结果，确保用户确实在player_ids中
-            filtered_battles = []
-            for battle in battles:
-                players = json.loads(battle.player_ids)
-                if user_id in players:
-                    filtered_battles.append(battle)
-
+            filtered_battles = [
+                battle for battle in battles if user_id in json.loads(battle.player_ids)
+            ]
             return filtered_battles, total
         else:
             # 不分页，直接返回限制数量的结果
             battles = query.limit(per_page).all()
 
             # 进一步过滤结果
-            filtered_battles = []
-            for battle in battles:
-                players = json.loads(battle.player_ids)
-                if user_id in players:
-                    filtered_battles.append(battle)
-
+            filtered_battles = [
+                battle for battle in battles if user_id in json.loads(battle.player_ids)
+            ]
             return filtered_battles
     except Exception as e:
         logger.error(f"获取用户对战历史失败: {str(e)}")
