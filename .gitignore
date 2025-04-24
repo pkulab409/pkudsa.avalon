@@ -176,3 +176,5 @@ cython_debug/
 platform/data/
 nohup.out
 data/
+platform/upload/
+platform.db
