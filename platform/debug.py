@@ -1,6 +1,5 @@
 # 游戏对战平台主程序入口
 from app import create_app
-from blueprints.game import register_socket_events
 from flask import render_template  # 添加这一行导入render_template函数
 
 # 创建应用实例
