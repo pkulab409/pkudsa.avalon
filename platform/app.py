@@ -1,5 +1,4 @@
-import os
-from flask import Flask, g, request, current_app
+from flask import Flask, request, current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, current_user
 from flask_wtf.csrf import CSRFProtect
@@ -8,13 +7,15 @@ from datetime import timedelta, datetime
 import logging
 
 
-from database.base import db, login_manager  # 从 base.py 导入而不是在这里创建
-from database import initialize_database  # Removed initialize_course_data
+from database.base import db, login_manager
+from database import initialize_database
 
-# Initialize CSRF protection globally
+
+# 初始化csrf保护
 csrf = CSRFProtect()
 
 
+# 创建Flask应用
 def create_app(config_object=Config):
     app = Flask(__name__)
     app.config.from_object(config_object)
@@ -46,27 +47,26 @@ def create_app(config_object=Config):
     login_manager.login_message_category = "warning"
     login_manager.remember_cookie_duration = timedelta(days=7)
 
-    # 导入数据库工具模块
-    from utils.db_utils import build_log_file_path
-
     from blueprints.ranking import ranking_bp
     from blueprints.lobby import lobby_bp
     from blueprints.game import game_bp
-    from blueprints.main import main_bp  # 导入 main 蓝图
-    from blueprints.auth import auth as auth_bp  # 导入 auth 蓝图
+    from blueprints.main import main_bp
+    from blueprints.auth import auth as auth_bp
     from blueprints.profile import profile_bp
     from blueprints.ai import ai_bp
     from blueprints.visualizer import visualizer_bp
 
     # 将蓝图注册到应用
-    app.register_blueprint(main_bp)  # 注册 main 蓝图
-    app.register_blueprint(ranking_bp)
-    app.register_blueprint(lobby_bp)
+    app.register_blueprint(main_bp)
+    # 除主页面之外均制定前缀
+    # 这里的前缀是为了避免与主页面路由冲突
+    app.register_blueprint(ranking_bp, url_prefix="/ranking")
+    app.register_blueprint(lobby_bp, url_prefix="/lobby")
     app.register_blueprint(game_bp, url_prefix="/game")
-    app.register_blueprint(auth_bp, url_prefix="/auth")  # 注册 auth 蓝图
-    app.register_blueprint(profile_bp, url_prefix="/user")  # 注册 profile 蓝图
-    app.register_blueprint(ai_bp, url_prefix="/user")  # 注册 ai 蓝图
-    app.register_blueprint(visualizer_bp, url_prefix="/visualizer")  # 添加此行
+    app.register_blueprint(auth_bp, url_prefix="/auth")
+    app.register_blueprint(profile_bp, url_prefix="/profile")
+    app.register_blueprint(ai_bp, url_prefix="/ai")
+    app.register_blueprint(visualizer_bp, url_prefix="/visualizer")
 
     # 确保在应用上下文中创建所有表
     with app.app_context():

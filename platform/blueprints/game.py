@@ -7,30 +7,11 @@ import time
 import uuid
 from datetime import datetime
 
-
-def get_room_ai_instance(room_id, user_id):
-    """获取房间中指定用户的AI实例"""
-    participant = RoomParticipant.query.filter_by(
-        room_id=room_id, user_id=user_id, is_ai=False
-    ).first()
-
-    if not participant or not participant.selected_ai_code_id:
-        return None, None
-
-    ai_code = AICode.query.get(participant.selected_ai_code_id)
-    if not ai_code:
-        return None, None
-
-    # 从数据库获取AI实例，而不是从内存
-    ai_instance = participant.get_ai_instance()
-    return ai_instance, participant.selected_ai_code_id
-
-
 # 创建蓝图
 game_bp = Blueprint("game", __name__)
 
 
-@game_bp.route("/room/<room_id>")
+@game_bp.route("/game_room/<room_id>")
 @login_required
 def game_room(room_id):
     """加载游戏房间页面"""
@@ -39,26 +20,13 @@ def game_room(room_id):
     if not room:
         return render_template("error.html", message="房间不存在")
 
-    # 检查玩家是否有权限进入房间
-    participant = RoomParticipant.query.filter_by(
-        room_id=room_id, user_id=current_user.id, is_ai=False
-    ).first()
-
-    if not participant:
-        return render_template("error.html", message="您没有权限进入该房间")
-
     # 获取房间中所有玩家的信息
     player_info = []
     participants = RoomParticipant.query.filter_by(room_id=room_id, is_ai=False).all()
 
     for p in participants:
         if p.user:
-            player_info.append(
-                {
-                    "id": p.user.id,
-                    "username": p.user.username,
-                }
-            )
+            player_info.append({"id": p.user.id})
 
     # 检查是否是房主
     is_host = current_user.id == room.host_id
@@ -72,63 +40,54 @@ def game_room(room_id):
     )
 
 
-@game_bp.route("/game/start/<room_id>", methods=["POST"])
+@game_bp.route("/start_game/<room_id>", methods=["POST"])
 @login_required
 def start_game(room_id):
     """开始游戏"""
-    # 查找房间
-    room = Room.query.get(room_id)
-    if not room:
-        return jsonify({"success": False, "message": "房间不存在"})
+    try:
+        # 获取当前用户
+        current_user_id = current_user.id
 
-    # 检查是否为房主
-    if room.host_id != current_user.id:
-        return jsonify({"success": False, "message": "只有房主可以开始游戏"})
+        # 验证房间信息
+        room = Room.query.get(room_id)
+        if not room:
+            return jsonify({"success": False, "message": "房间不存在"})
 
-    # 检查房间状态
-    if room.status != "ready":
-        return jsonify({"success": False, "message": "房间还未准备好"})
+        # 验证用户是否是房主
+        if room.owner_id != current_user_id:
+            return jsonify({"success": False, "message": "只有房主可以开始游戏"})
 
-    # 检查玩家数量
-    participants = RoomParticipant.query.filter_by(room_id=room_id).all()
-    if len(participants) != room.max_players:
+        # 检查房间状态
+        if room.status != "ready":
+            return jsonify(
+                {"success": False, "message": f"房间状态不允许开始游戏: {room.status}"}
+            )
+
+        # 获取房间参与者
+        participants = RoomParticipant.query.filter_by(room_id=room_id).all()
+        if len(participants) < 7:  # 阿瓦隆需要7名玩家
+            return jsonify({"success": False, "message": "需要7名玩家才能开始游戏"})
+
+        # 获取对战管理器
+        from utils.battle_manager_utils import get_battle_manager
+
+        battle_manager = get_battle_manager()
+
+        # 创建并启动对战
+        battle_id = battle_manager.create_battle(room_id)
+        if not battle_id:
+            return jsonify({"success": False, "message": "创建对战失败"})
+
+        # 如果前面的create_battle没有更新房间状态，这里可以补充更新
+        # 但通常这部分已经在battle_manager.create_battle中通过调用database.action.create_battle完成
+
         return jsonify(
-            {"success": False, "message": f"需要{room.max_players}名玩家才能开始游戏"}
+            {"success": True, "message": "游戏已开始", "battle_id": battle_id}
         )
 
-    # 创建对战记录
-    battle_id = str(uuid.uuid4())
-
-    # 获取玩家ID列表
-    player_ids = []
-    for p in participants:
-        if not p.is_ai:
-            player_ids.append(p.user_id)
-        else:
-            # 处理AI参与者
-            pass
-
-    # 创建Battle记录
-    battle = Battle(
-        id=battle_id,
-        status="waiting",
-        room_id=room_id,
-        player_ids=json.dumps(player_ids),
-        started_at=datetime.now(),
-    )
-
-    # 更新房间状态和关联对战
-    room.status = "playing"
-    room.current_battle_id = battle_id
-
-    # 保存到数据库
-    db.session.add(battle)
-    db.session.commit()
-
-    # 此处启动游戏逻辑（使用线程或队列）
-    # ...
-
-    return jsonify({"success": True, "message": "游戏已开始", "battle_id": battle_id})
+    except Exception as e:
+        current_app.logger.error(f"开始游戏失败: {str(e)}")
+        return jsonify({"success": False, "message": f"开始游戏失败: {str(e)}"})
 
 
 # 添加AI对手
@@ -136,47 +95,71 @@ def start_game(room_id):
 @login_required
 def add_ai_opponent(room_id):
     """添加AI对手到房间"""
-    # 检查是否为房主
-    room = Room.query.get(room_id)
-    if not room:
-        return jsonify({"success": False, "message": "房间不存在"})
+    try:
+        # 检查是否为房主
+        room = Room.query.get(room_id)
+        if not room:
+            return jsonify({"success": False, "message": "房间不存在"})
 
-    if room.host_id != current_user.id:
-        return jsonify({"success": False, "message": "只有房主可以添加AI对手"})
+        if room.host_id != current_user.id:
+            return jsonify({"success": False, "message": "只有房主可以添加AI对手"})
 
-    # 检查房间状态
-    if room.status != "waiting":
-        return jsonify({"success": False, "message": "只能在等待状态添加AI对手"})
+        # 检查房间状态
+        if room.status != "waiting":
+            return jsonify({"success": False, "message": "只能在等待状态添加AI对手"})
 
-    # 解析请求数据
-    data = request.get_json()
-    ai_type = data.get("ai_type")
+        # 解析请求数据
+        data = request.get_json()
+        ai_type = data.get("ai_type")  # 'basic_player', 'smart_player', 'user_ai'
+        ai_code_id = data.get("ai_code_id")  # 如果选择用户AI，需要提供ai_code_id
 
-    if not ai_type or ai_type not in ["basic_player", "smart_player"]:
-        return jsonify({"success": False, "message": "无效的AI类型"})
+        if not ai_type:
+            return jsonify({"success": False, "message": "未指定AI类型"})
 
-    # 生成唯一ID给AI
-    ai_id = f"ai_{uuid.uuid4().hex[:8]}"
+        # 生成唯一ID给AI
+        ai_id = f"ai_{uuid.uuid4().hex[:8]}"
+        ai_name = None
+        selected_ai_code_id = None
 
-    # 添加新AI参与者
-    ai_name = "基础AI" if ai_type == "basic_player" else "智能AI"
-    ai_participant = RoomParticipant(
-        room_id=room_id,
-        is_ai=True,
-        ai_id=ai_id,
-        ai_type=ai_type,
-        ai_name=ai_name,
-        join_time=int(time.time()),
-    )
+        if ai_type in ["basic_player", "smart_player"]:
+            # 基准AI类型
+            ai_name = "基础AI" if ai_type == "basic_player" else "智能AI"
+        elif ai_type == "user_ai" and ai_code_id:
+            # 用户上传的AI
+            ai_code = AICode.query.get(ai_code_id)
+            if not ai_code:
+                return jsonify({"success": False, "message": "指定的AI代码不存在"})
 
-    db.session.add(ai_participant)
-    db.session.commit()
+            ai_name = f"{ai_code.name} (玩家AI)"
+            selected_ai_code_id = ai_code.id
+        else:
+            return jsonify({"success": False, "message": "无效的AI类型或缺少AI代码ID"})
 
-    return jsonify({"success": True, "message": "已添加AI对手"})
+        # 添加新AI参与者
+        ai_participant = RoomParticipant(
+            room_id=room_id,
+            is_ai=True,
+            ai_id=ai_id,
+            ai_type=ai_type,
+            ai_name=ai_name,
+            join_time=int(time.time()),
+            selected_ai_code_id=selected_ai_code_id,  # 设置选择的AI代码ID
+        )
+
+        db.session.add(ai_participant)
+        db.session.commit()
+
+        return jsonify(
+            {"success": True, "message": f"已添加AI对手: {ai_name}", "ai_id": ai_id}
+        )
+
+    except Exception as e:
+        current_app.logger.error(f"添加AI对手失败: {str(e)}")
+        return jsonify({"success": False, "message": f"添加AI对手失败: {str(e)}"})
 
 
 # 获取房间中的对手列表
-@game_bp.route("/game/opponents/<room_id>")
+@game_bp.route("/game/opponents/<room_id>", methods=["GET"])
 @login_required
 def get_opponents(room_id):
     """获取房间中的所有对手"""
@@ -239,7 +222,7 @@ def remove_opponent(room_id):
     return jsonify({"success": True, "message": "已移除对手"})
 
 
-@game_bp.route("/game/status/<battle_id>")
+@game_bp.route("/game/status/<battle_id>", methods=["GET"])
 @login_required
 def get_game_status(battle_id):
     """获取游戏状态"""
@@ -314,7 +297,7 @@ def select_ai_for_game(room_id):
         return jsonify({"success": False, "message": f"选择AI代码失败: {str(e)}"})
 
 
-@game_bp.route("/game/ai_instance_status/<room_id>")
+@game_bp.route("/game/ai_instance_status/<room_id>", methods=["GET"])
 @login_required
 def get_ai_instance_status(room_id):
     """获取玩家在房间中的AI实例状态"""
@@ -356,3 +339,59 @@ def get_ai_instance_status(room_id):
     except Exception as e:
         current_app.logger.error(f"获取AI实例状态失败: {str(e)}")
         return jsonify({"success": False, "message": f"获取AI实例状态失败: {str(e)}"})
+
+
+@game_bp.route("/game/available_ai_codes", methods=["GET"])
+@login_required
+def get_available_ai_codes():
+    """获取所有可用的AI代码（包括基准AI和用户上传的）"""
+    try:
+        result = {
+            "baseline_ai": [
+                {"id": "basic_player", "name": "基础AI", "type": "baseline"},
+                {"id": "smart_player", "name": "智能AI", "type": "baseline"},
+            ],
+            "user_ai": [],
+        }
+
+        # 获取用户上传的所有AI代码
+        ai_codes = AICode.query.filter_by(user_id=current_user.id).all()
+        for ai in ai_codes:
+            result["user_ai"].append(
+                {
+                    "id": ai.id,
+                    "name": ai.name,
+                    "description": ai.description,
+                    "type": "user_ai",
+                }
+            )
+
+        return jsonify({"success": True, "ai_codes": result})
+    except Exception as e:
+        current_app.logger.error(f"获取可用AI代码失败: {str(e)}")
+        return jsonify({"success": False, "message": f"获取可用AI代码失败: {str(e)}"})
+
+
+@game_bp.route("/ai/api/user_ai_codes", methods=["GET"])
+@login_required
+def get_user_ai_codes():
+    """获取用户的AI代码列表"""
+    try:
+        # 获取用户上传的所有AI代码
+        ai_codes = AICode.query.filter_by(user_id=current_user.id).all()
+        user_ai_list = []
+
+        for ai in ai_codes:
+            user_ai_list.append(
+                {
+                    "id": ai.id,
+                    "name": ai.name,
+                    "description": ai.description,
+                    "created_at": ai.created_at,
+                }
+            )
+
+        return jsonify({"success": True, "ai_codes": user_ai_list})
+    except Exception as e:
+        current_app.logger.error(f"获取用户AI代码失败: {str(e)}")
+        return jsonify({"success": False, "message": f"获取用户AI代码失败: {str(e)}"})

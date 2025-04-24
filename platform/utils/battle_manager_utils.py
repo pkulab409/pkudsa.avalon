@@ -15,9 +15,10 @@ _battle_manager = None
 
 def get_battle_manager():
     """获取对战管理器实例"""
-    # 这里应该从数据库而非内存获取对战管理器状态
-    # 具体实现取决于您的对战管理器架构
-    pass
+    global _battle_manager
+    if _battle_manager is None:
+        _battle_manager = BattleManager()
+    return _battle_manager
 
 
 def get_player_instance(battle_id, player_id):

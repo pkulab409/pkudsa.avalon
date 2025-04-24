@@ -21,6 +21,7 @@ def safe_commit():
         return False
 
 
+# -----------------------------------------------------------------------------------------
 # 房间相关操作函数
 def create_room(name, host_id, max_players, is_public=True):
     """
@@ -36,12 +37,9 @@ def create_room(name, host_id, max_players, is_public=True):
         room: 创建的房间对象，如果创建失败则返回None
     """
     try:
-        # 生成房间ID
-        room_id = str(uuid.uuid4())
 
         # 创建房间
         room = Room(
-            id=room_id,
             name=name,
             host_id=host_id,
             max_players=max_players,
@@ -51,7 +49,7 @@ def create_room(name, host_id, max_players, is_public=True):
 
         # 添加房主作为第一个参与者
         participant = RoomParticipant(
-            room_id=room_id, user_id=host_id, is_ai=False, is_host=True, is_ready=False
+            room_id=room.id, user_id=host_id, is_ai=False, is_host=True, is_ready=False
         )
 
         db.session.add(room)
@@ -412,6 +410,41 @@ def get_user_ai_codes(user_id):
         return []
 
 
+def get_ai_code_by_id(ai_code_id):
+    """
+    根据ID获取AI代码记录
+
+    参数:
+        ai_code_id: AI代码ID
+
+    返回:
+        AICode对象，找不到则返回None
+    """
+    try:
+        return AICode.query.get(ai_code_id)
+    except Exception as e:
+        logger.error(f"获取AI代码失败: {str(e)}")
+        return None
+
+
+def get_room_participants(room_id):
+    """
+    获取房间所有参与者
+
+    参数:
+        room_id: 房间ID
+
+    返回:
+        参与者列表，出错则返回空列表
+    """
+    try:
+        return RoomParticipant.query.filter_by(room_id=room_id).all()
+    except Exception as e:
+        logger.error(f"获取房间参与者失败: {str(e)}")
+        return []
+
+
+# -----------------------------------------------------------------------------------------
 # 对战相关操作函数
 def create_battle(player_ids, room_id=None, **kwargs):
     """
