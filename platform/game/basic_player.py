@@ -101,3 +101,51 @@ class Player:
         """刺杀"""
         possible_targets = [i for i in range(1, 8) if i != self.index]
         return random.choice(possible_targets)
+
+    def show_internal_state(self) -> str:
+    """显示傻瓜AI当前的内部推理状态（用于调试和后续的计分规则）"""
+        state = []
+        
+        # 基础信息
+        state.append(f"=== 玩家 {self.index} ({self.role}) 内部状态 ===")
+        
+        # 角色视野信息
+        if hasattr(self, 'sight'):
+            state.append(f"角色视野: {self.sight}")
+        else:
+            state.append("角色视野: 无特殊信息")
+        
+        # 身份推理
+        state.append("\n=== 身份推理 ===")
+        state.append(f"可信队友: {sorted(self.teammates)}")
+        state.append(f"嫌疑玩家: {sorted(self.suspects)}")
+        
+        # 发言分析
+        state.append("\n=== 发言记录 ===")
+        for pid, speeches in self.memory["speech"].items():
+            state.append(f"玩家{pid}最近发言: {speeches[-1][:30]}...")
+        
+        # 投票历史
+        if self.memory["votes"]:
+            state.append("\n=== 投票历史 ===")
+            for i, (operators, votes) in enumerate(self.memory["votes"], 1):
+                state.append(f"第{i}轮投票: 操作者{operators} → 投票结果{votes}")
+        
+        # 任务历史
+        if "team_history" in self.memory:
+            state.append("\n=== 任务历史 ===")
+            for record in self.memory["team_history"]:
+                state.append(
+                    f"第{record['round']}轮: "
+                    f"队长{record['leader']} 队伍{record['team']} "
+                    f"{'含我' if record['included_me'] else '不含我'}"
+                )
+        
+        # 当前轮次信息
+        if hasattr(self, 'last_team'):
+            state.append("\n=== 当前轮次 ===")
+            state.append(f"队长: {self.last_leader}")
+            state.append(f"队伍: {self.last_team}")
+            state.append(f"我在队伍中: {'是' if self.is_chosen else '否'}")
+        
+        return "\n".join(state)
