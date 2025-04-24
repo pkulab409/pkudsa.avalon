@@ -1,6 +1,7 @@
 """
 游戏辅助模块 - 提供辅助功能供玩家代码使用
 """
+
 import os
 import json
 import time
@@ -11,8 +12,9 @@ from openai import OpenAI
 
 
 # 配置日志
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger("GameHelper")
 
 
@@ -45,20 +47,20 @@ _DATA_DIR = os.environ.get("AVALON_DATA_DIR", "./data")
 
 # LLM相关配置
 _USE_STREAM = False  # 使用流式
-_INIT_SYSTRM_PROMPT = '''
+_INIT_SYSTRM_PROMPT = """
 你是一个专业助理。
-'''  # 后期可修改
-_TEMPERATURE = 1            # 创造性 (0-2, 默认1)
-_MAX_TOKENS = 500           # 最大生成长度
-_TOP_P = 0.9                # 输出多样性控制
-_PRESENCE_PENALTY = 0.5     # 避免重复话题 (-2~2)
-_FREQUENCY_PENALTY = 0.5    # 避免重复用词 (-2~2)
+"""  # 后期可修改
+_TEMPERATURE = 1  # 创造性 (0-2, 默认1)
+_MAX_TOKENS = 500  # 最大生成长度
+_TOP_P = 0.9  # 输出多样性控制
+_PRESENCE_PENALTY = 0.5  # 避免重复话题 (-2~2)
+_FREQUENCY_PENALTY = 0.5  # 避免重复用词 (-2~2)
 
 
 # 初始用户库JSON
 INIT_PRIVA_LOG_DICT = {
     "logs": [],
-    "llm_history": [{"role": "system", "content": _INIT_SYSTRM_PROMPT}]
+    "llm_history": [{"role": "system", "content": _INIT_SYSTRM_PROMPT}],
 }
 
 
@@ -93,7 +95,7 @@ def askLLM(prompt: str) -> str:
     existing_data = _get_private_lib_content()
     # 获取LLM聊天记录
     _player_chat_history = existing_data["llm_history"]
-    
+
     # 调LLM
     try:
         _, reply = _fetch_LLM_reply(_player_chat_history, prompt)
@@ -102,14 +104,8 @@ def askLLM(prompt: str) -> str:
 
     # 追加新日志
     try:
-        existing_data["llm_history"].append({
-            "role": "user",
-            "content": prompt
-        })
-        existing_data["llm_history"].append({
-            "role": "assistant",
-            "content": reply
-        })
+        existing_data["llm_history"].append({"role": "user", "content": prompt})
+        existing_data["llm_history"].append({"role": "assistant", "content": reply})
     except Exception as e:
         return f"LLM聊天记录保存错误: {str(e)}"
 
@@ -131,17 +127,16 @@ def _fetch_LLM_reply(history, cur_prompt) -> Tuple[bool, str]:
         Tuple[bool, str]: 返回一个元组，第一个元素是布尔值，表示操作是否成功；
                           第二个元素是字符串，包含LLM的回复内容。
     """
+    model_name = os.environ.get("OPENAI_MODEL_NAME", "deepseek-chat")
     completion = client.chat.completions.create(
-        model="deepseek-v3-250324-64k-local",
-        messages=history + [
-            {"role": "user", "content": cur_prompt}
-        ],
+        model=model_name,
+        messages=history + [{"role": "user", "content": cur_prompt}],
         stream=_USE_STREAM,
         temperature=_TEMPERATURE,
         max_tokens=_MAX_TOKENS,
-        top_p=_TOP_P, 
+        top_p=_TOP_P,
         presence_penalty=_PRESENCE_PENALTY,
-        frequency_penalty=_FREQUENCY_PENALTY
+        frequency_penalty=_FREQUENCY_PENALTY,
     )
 
     # 如果使用流式输出：参照下面
@@ -170,8 +165,7 @@ def _get_private_lib_content() -> dict:
     """
     # 构建私有数据文件路径
     private_file = os.path.join(
-        _DATA_DIR,
-        f"game_{_GAME_SESSION_ID}_player_{_CURRENT_PLAYER_ID}_private.json"
+        _DATA_DIR, f"game_{_GAME_SESSION_ID}_player_{_CURRENT_PLAYER_ID}_private.json"
     )
 
     # 确保目录存在
@@ -194,8 +188,7 @@ def _get_private_lib_content() -> dict:
 def _write_back_private(data: dict) -> None:
     # 构建私有数据文件路径
     private_file = os.path.join(
-        _DATA_DIR,
-        f"game_{_GAME_SESSION_ID}_player_{_CURRENT_PLAYER_ID}_private.json"
+        _DATA_DIR, f"game_{_GAME_SESSION_ID}_player_{_CURRENT_PLAYER_ID}_private.json"
     )
 
     # 确保目录存在
@@ -237,10 +230,7 @@ def write_into_private(content: str) -> None:
         existing_data = _get_private_lib_content()
 
         # 追加新日志
-        existing_data["logs"].append({
-            "timestamp": time.time(),
-            "content": content
-        })
+        existing_data["logs"].append({"timestamp": time.time(), "content": content})
 
         # 写回文件
         _write_back_private(data=existing_data)
@@ -261,8 +251,7 @@ def read_public_lib() -> Dict[str, Any]:
         return {"error": "未设置游戏上下文", "events": []}
 
     try:
-        public_file = os.path.join(
-            _DATA_DIR, f"game_{_GAME_SESSION_ID}_public.json")
+        public_file = os.path.join(_DATA_DIR, f"game_{_GAME_SESSION_ID}_public.json")
 
         if os.path.exists(public_file):
             with open(public_file, "r", encoding="utf-8") as f:
@@ -275,8 +264,10 @@ def read_public_lib() -> Dict[str, Any]:
         return {"error": str(e), "events": []}
 
 
-if __name__ == '__main__':
-    print(_fetch_LLM_reply(  # 测试LLM
-        history=[{"role": "system", "content": "你是一个专业助理"}],
-        cur_prompt="大气化学")
+if __name__ == "__main__":
+    print(
+        _fetch_LLM_reply(  # 测试LLM
+            history=[{"role": "system", "content": "你是一个专业助理"}],
+            cur_prompt="大气化学",
+        )
     )
