@@ -103,7 +103,7 @@ class Player:
         return random.choice(possible_targets)
 
     def show_internal_state(self) -> str:
-    """显示傻瓜AI当前的内部推理状态（用于调试和后续的计分规则）"""
+        """显示傻瓜AI当前的内部推理状态（用于调试和后续的计分规则）"""
         state = []
         
         # 基础信息

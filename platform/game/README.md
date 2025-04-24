@@ -146,6 +146,21 @@ def make_snapshot(self, event_type: str, event_data) -> None:
     """
 ```
 
+### 3.3 ⚠️玩家代码报错时，中止游戏
+
+目前能实现玩家代码报错时中止游戏，**但还需要经过测试debug**。
+
+玩家代码报错中止游戏时，**公有库**添加一项：
+
+```json
+{
+  "type": "CRITICAL ERROR",
+  "error_code_pid": 1,  // 1~7
+  "error_code_method": "...",
+  "error_msg": "..."
+}
+````
+
 ---
 
 ## 4. `battle_manager.py` 模块
@@ -251,10 +266,6 @@ def make_snapshot(self, event_type: str, event_data) -> None:
     运行指定数量的游戏（调用`battle_manager.create_battle()`）并统计结果。
 
 > `main.py` 还需要经过修改后，封装成面向用户进行测试的模块。
-
----
-
-> 🚧**还未实现的功能**：用户代码报错，游戏随即终止。
 
 ---
 
