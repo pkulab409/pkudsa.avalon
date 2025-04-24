@@ -19,10 +19,10 @@ logger = logging.getLogger("GameHelper")
 
 
 # 为LLM的API自动加载.env文件
-if not load_dotenv("LLM.env"):
-    logger.error(f"Error when loading environment variables from `LLM.env`.")
+if not load_dotenv():
+    logger.error(f"Error when loading environment variables from `.env` at current file directory.")
     # 这里只要有一个环境变量被读取成功就不会报错
-# 在和avalon_game_helper相同目录下创建一个`LLM.env`，包含三行：
+# 在和avalon_game_helper相同目录下创建一个`.env`文件，包含三行：
 # OPENAI_API_KEY={API_KEY}（需要填入）
 # OPENAI_BASE_URL=https://chat.noc.pku.edu.cn/v1
 # OPENAI_MODEL_NAME=deepseek-v3-250324-64k-local
