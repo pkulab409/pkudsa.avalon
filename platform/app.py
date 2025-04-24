@@ -2,7 +2,6 @@ import os
 from flask import Flask, g, request, current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, current_user
-from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from config.config import Config
 from datetime import timedelta, datetime
