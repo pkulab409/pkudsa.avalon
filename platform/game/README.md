@@ -146,7 +146,7 @@ def make_snapshot(self, event_type: str, event_data) -> None:
     """
 ```
 
-### 3.3 ⚠️玩家代码报错时，中止游戏
+### 3.3 ⚠️玩家代码报错或返回值不合法时，中止游戏
 
 目前能实现玩家代码报错时中止游戏，**但还需要经过测试debug**。
 
