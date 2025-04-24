@@ -23,6 +23,7 @@ from contextlib import redirect_stdout, redirect_stderr
 from datetime import datetime
 from observer import Observer
 from avalon_game_helper import INIT_PRIVA_LOG_DICT
+from restrictor import RESTRICTED_BUILTINS
 
 # 配置日志
 logging.basicConfig(
@@ -113,39 +114,40 @@ class AvalonReferee:
 
     def _load_codes(self, player_codes):
         player_modules = {}
-        
+
         for player_id, code_content in player_codes.items():
             # 创建唯一模块名
             module_name = f"player_{player_id}_module_{int(time.time()*1000)}"
             logger.info(f"为玩家 {player_id} 创建模块: {module_name}")
-            
+
             try:
                 # 创建模块规范
                 spec = importlib.util.spec_from_loader(module_name, loader=None)
                 if spec is None:
                     logger.error(f"为 {module_name} 创建规范失败")
                     continue
-                    
+
                 # 从规范创建模块
                 module = importlib.util.module_from_spec(spec)
                 sys.modules[module_name] = module  # 注册模块
-                
-                # 执行代码
+
+                # 执行代码（限制 builtins）
+                module.__dict__['__builtins__'] = RESTRICTED_BUILTINS
                 exec(code_content, module.__dict__)
-                
+
                 # 检查Player类是否存在
                 if not hasattr(module, "Player"):
                     logger.error(f"玩家 {player_id} 的代码已执行但未找到 'Player' 类")
                     continue
-                
+
                 # 存储模块
                 player_modules[player_id] = module
                 logger.info(f"玩家 {player_id} 代码加载成功")
-                
+
             except Exception as e:
                 logger.error(f"加载玩家 {player_id} 代码时出错: {str(e)}")
                 traceback.print_exc()
-        
+
         return player_modules
 
     def load_player_codes(self, player_modules: Dict[int, Any]):
@@ -160,12 +162,24 @@ class AvalonReferee:
                 player_instance = module.Player()
                 self.players[player_id] = player_instance
                 # 设置玩家编号
-                self.safe_execute(player_id, "set_player_index", player_id)
-                logger.info(f"Player {player_id} code loaded and instance created.")
-            except Exception as e:
-                logger.error(f"Error loading player {player_id} code: {str(e)}")
-                traceback.print_exc()
-                # Consider how to handle player load failure - maybe replace with a default bot?
+            except Exception as e:  # 玩家代码报错
+                logger.error(
+                    f"Error executing Player {player_id} method '__init__': {str(e)}",
+                    exc_info=True,  # Include traceback in log
+                )
+                # 给公有库添加报错信息
+                self.log_public_event({
+                    "type": "CRITICAL ERROR",
+                    "error_code_pid": player_id,
+                    "error_code_method": "__init__",
+                    "error_msg": str(e)
+                })
+                # 中止游戏
+                raise RuntimeError(f"Error executing Player {player_id} method '__init__': {str(e)}. Game suspended.")
+            
+            # 分配编号
+            self.safe_execute(player_id, "set_player_index", player_id)
+            logger.info(f"Player {player_id} code loaded and instance created.")
 
     def init_game(self):
         """初始化游戏：分配角色、初始化地图"""
@@ -1086,28 +1100,36 @@ class AvalonReferee:
 
             return result
 
-        except Exception as e:
+        except Exception as e:  # 玩家代码报错
             logger.error(
                 f"Error executing Player {player_id} ({self.roles.get(player_id)}) method '{method_name}': {str(e)}",
                 exc_info=True,  # Include traceback in log
             )
-            # traceback.print_exc() # Already logged with exc_info=True
-            # Provide default behavior on error too
-            if method_name == "mission_vote1":
-                return random.choice([True, False])
-            if method_name == "mission_vote2":
-                return self.roles.get(player_id) not in RED_ROLES
-            if method_name == "decide_mission_member":
-                return self.random_select_members(args[0])
-            if method_name == "assass":
-                return random.choice(
-                    [i for i in range(1, PLAYER_COUNT + 1) if i != player_id]
-                )
-            if method_name == "say":
-                return f"[Error executing say: {str(e)}]"
-            if method_name == "walk":
-                return ()
-            return None  # Default return on error for other methods
+            # 给公有库添加报错信息
+            self.log_public_event({
+                "type": "CRITICAL ERROR",
+                "error_code_pid": player_id,
+                "error_code_methof": method_name,
+                "error_msg": str(e)
+            })
+            # 中止游戏
+            raise RuntimeError(f"Error executing Player {player_id} ({self.roles.get(player_id)}) method '{method_name}': {str(e)}. Game suspended.")
+            # 触发随机处理
+            # if method_name == "mission_vote1":
+            #     return random.choice([True, False])
+            # if method_name == "mission_vote2":
+            #     return self.roles.get(player_id) not in RED_ROLES
+            # if method_name == "decide_mission_member":
+            #     return self.random_select_members(args[0])
+            # if method_name == "assass":
+            #     return random.choice(
+            #         [i for i in range(1, PLAYER_COUNT + 1) if i != player_id]
+            #     )
+            # if method_name == "say":
+            #     return f"[Error executing say: {str(e)}]"
+            # if method_name == "walk":
+            #     return ()
+            # return None  # Default return on error for other methods
 
     def log_public_event(self, event: Dict[str, Any]):
         """记录公共事件到日志"""
