@@ -20,9 +20,10 @@ logger = logging.getLogger("GameHelper")
 
 # 为LLM的API自动加载.env文件
 load_dotenv()
-# 在和avalon_game_helper相同目录下创建一个`.env`，包含两行：
+# 在和avalon_game_helper相同目录下创建一个`.env`，包含三行：
 # OPENAI_API_KEY=sk-{{SECRET-KEY}} （在github里肯定不能展示对吧，但技术组手里都有）
 # OPENAI_BASE_URL=https://chat.noc.pku.edu.cn/v1
+# OPENAI_MODEL_NAME=deepseek-v3-250324-64k-local
 
 
 # openai初始配置
@@ -66,11 +67,11 @@ INIT_PRIVA_LOG_DICT = {
 
 def set_current_context(player_id: int, game_id: str) -> None:
     """
-    设置当前上下文 - 这个函数由游戏服务器在调用玩家代码前设置
+    设置当前上下文 - 这个函数由 referee 在调用玩家代码前设置
 
     参数:
-        player_id: 当前玩家ID
-        game_id: 当前游戏会话ID
+        player_id: 当前玩家 ID
+        game_id: 当前游戏会话 ID
     """
     global _CURRENT_PLAYER_ID, _GAME_SESSION_ID
     _CURRENT_PLAYER_ID = player_id
@@ -268,6 +269,6 @@ if __name__ == "__main__":
     print(
         _fetch_LLM_reply(  # 测试LLM
             history=[{"role": "system", "content": "你是一个专业助理"}],
-            cur_prompt="大气化学",
+            cur_prompt="L3自动驾驶自行车",
         )
     )

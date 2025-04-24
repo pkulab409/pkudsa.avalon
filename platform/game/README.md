@@ -61,7 +61,7 @@ OPENAI_MODEL_NAME=deepseek-v3-250324-64k-local
 
 ## 3. `referee.py` 模块
 
-该模块实现了 `AvalonReferee` 类，负责主持阿瓦隆（Avalon）游戏的完整流程，包括角色分配、回合执行、日志记录与胜负判定。
+该模块实现了 `AvalonReferee` 类，负责主持阿瓦隆游戏的完整流程，包括角色分配、回合执行、日志记录与胜负判定。
 
 ### 3.1 核心类：`AvalonReferee`
 
@@ -93,7 +93,7 @@ class AvalonReferee:
 1. **模块加载 (`_load_codes` 函数)**
    1. 为每个玩家 ID 构建唯一模块名，格式为 `player_<id>_module_<timestamp>`。
    2. 使用 `importlib.util.spec_from_loader` 创建模块规范，并通过 `module_from_spec` 生成模块对象。
-   3. 将模块注册到 `sys.modules`，然后 `exec(code_content, module.__dict__)` 执行玩家提供的代码。
+   3. 将模块注册到 `sys.modules`，然后 `exec(code_content, module.__dict__)` 执行玩家提供的代码（**通过 restrictor 限制了 `__builtins__`**）。
    4. 校验模块中是否定义了 `Player` 类，若缺失则记录错误并跳过；否则保存该模块以供后续使用（**此时玩家的代码字符串成功被转化成一个模块**）。
 
 2. **类实例化、游戏开始 (`load_player_codes` 函数)**
@@ -245,9 +245,17 @@ def make_snapshot(self, event_type: str, event_data) -> None:
 
 ---
 
-## 7. `main.py` 模块
+## 7. `restrictor.py` 模块
 
-### 7.1 方法
+- 提供一个**被限制**（或“阉割”）的 `__builtins__` ，记为对象 `RESTRICTED_BUILTINS` ：
+    - 限制 `exec` / `eval` / `open` 等 Python 系统功能
+    - 限制 `import` ，只能导入允许的 Python 库
+
+---
+
+## 8. `main.py` 模块
+
+### 8.1 方法
 
 - **`parse_arguments()`**
 

@@ -3,7 +3,7 @@
 
 新增的observer, 按以下方法调用:
 self.battle_observer.make_snapshot(event_type: str, event_data: str)
-    "event_type": 事件类型: referee, player1, ..., player7
+    "event_type": 事件类型: "referee", "player1", ..., "player7", "move"
     "event_data": 事件数据, 这里保存最后需要显示的文字
 """
 
@@ -13,13 +13,10 @@ import json
 import random
 import importlib
 import traceback
-from typing import Dict, List, Tuple, Any, Set, Optional
+from typing import Dict, List, Any
 import time
 import logging
-from pathlib import Path
 import importlib.util
-from io import StringIO
-from contextlib import redirect_stdout, redirect_stderr
 from datetime import datetime
 from observer import Observer
 from avalon_game_helper import INIT_PRIVA_LOG_DICT
