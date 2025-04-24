@@ -4,7 +4,7 @@
 
 # 提交代码要求
 
-Version 0.3  Date: 25/4/22
+Version 1.0  Date: 25/4/24
 
 ## 提交的代码和服务器之间的互动规则简述
 
@@ -265,11 +265,11 @@ from game.avalon_game_helper import (
   history = read_public_lib()
   ```
 
-### 3. `read_private_lib() -> dict`
+### 3. `read_private_lib() -> list[dict]`
 **功能**：读取仅对当前玩家可见的私有存储数据。
 
 - **返回值**：
-  - `dict`: 返回私有存储的完整内容。
+  - `list[dict]`: 返回一个字典列表，每个字典表示一条记录。 字典中，键 `"content"` 对应的值是先前写入的文本内容。
 
 - **调用示例**：
   ```python
@@ -432,4 +432,21 @@ class Player:
 ## import限制
 
 
-- **重要**：目前我们只开放了 `re` 、 `random` 、 `collections` 和 `avalon_game_helper` 中的四个函数的 import 权限。建议完全按照示例代码导入 Python 库。
+- **重要**：目前我们只开放了以下包的 import 权限：
+
+    - `re`
+    - `random`
+    - `collections`
+    - `game.avalon_game_helper`
+
+- 建议完全按照以下示例代码导入 Python 库：
+
+```python
+import random
+import re
+import collections
+from game.avalon_game_helper import (
+    askLLM, read_public_lib,
+    read_private_lib, write_into_private
+)
+```

@@ -14,10 +14,11 @@
   - `typing`：类型注解
   - `pathlib`、`os`、`sys`、`json`、`time`、`random` 等标准库
 
-目录中需包含一个 `.env` 文件（被 ignore 了，自己跑之前需要配置好）：
+目录中需包含一个 `.env` 文件，内含使用的大模型 API 信息（被 ignore 了，自己跑之前需要配置好）：
 ```dotenv
 OPENAI_API_KEY=sk-<YOUR_SECRET_KEY>
 OPENAI_BASE_URL=https://chat.noc.pku.edu.cn/v1
+OPENAI_MODEL_NAME=deepseek-v3-250324-64k-local
 ```
 
 ---
@@ -263,4 +264,4 @@ def make_snapshot(self, event_type: str, event_data) -> None:
 
 ---
 
-**最后更新**：2025-04-23
+**最后更新**：2025-04-24

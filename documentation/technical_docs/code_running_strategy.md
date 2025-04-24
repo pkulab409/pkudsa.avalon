@@ -29,7 +29,7 @@ def pass_mission_members(leader: int, members: list[int]):  # 向玩家传递当
 
 # 以下为玩家主动行为（即，需要玩家分析计算，执行策略）（仍为服务器端主动调用）
 
-def decide_mission_member(member_number: int) -> list[int]:  # 选择队员
+def decide_mission_member(team_size: int) -> list[int]:  # 选择队员
     pass
 
 def walk() -> tuple:  # 走步，若内核调用后玩家返回('Up', 'Right', 'Down')，即为玩家试图向上、向右再向下行进。传递长度小于3的元组视为放弃步数。
