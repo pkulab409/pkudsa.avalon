@@ -19,16 +19,18 @@ logger = logging.getLogger("GameHelper")
 
 
 # 为LLM的API自动加载.env文件
-load_dotenv()
-# 在和avalon_game_helper相同目录下创建一个`.env`，包含三行：
-# OPENAI_API_KEY=sk-{{SECRET-KEY}} （在github里肯定不能展示对吧，但技术组手里都有）
+if not load_dotenv("LLM.env"):
+    logger.error(f"Error when loading environment variables from `LLM.env`.")
+    # 这里只要有一个环境变量被读取成功就不会报错
+# 在和avalon_game_helper相同目录下创建一个`LLM.env`，包含三行：
+# OPENAI_API_KEY={API_KEY}（需要填入）
 # OPENAI_BASE_URL=https://chat.noc.pku.edu.cn/v1
 # OPENAI_MODEL_NAME=deepseek-v3-250324-64k-local
 
 
 # openai初始配置
 try:
-    client = OpenAI()  # 自动读取环境变量
+    client = OpenAI()  # 自动读取（来自load_dotenv的）环境变量
     models = client.models.list()
     # 不出意外的话这里有三个模型：
     #   - deepseek-v3-250324
@@ -99,7 +101,7 @@ def askLLM(prompt: str) -> str:
 
     # 调LLM
     try:
-        _, reply = _fetch_LLM_reply(_player_chat_history, prompt)
+        reply = _fetch_LLM_reply(_player_chat_history, prompt)
     except Exception as e:
         return f"LLM调用错误: {str(e)}"
 
@@ -116,7 +118,7 @@ def askLLM(prompt: str) -> str:
     return reply
 
 
-def _fetch_LLM_reply(history, cur_prompt) -> Tuple[bool, str]:
+def _fetch_LLM_reply(history, cur_prompt) -> str:
     """
     从历史记录和当前提示中获取LLM回复。
 
@@ -128,7 +130,7 @@ def _fetch_LLM_reply(history, cur_prompt) -> Tuple[bool, str]:
         Tuple[bool, str]: 返回一个元组，第一个元素是布尔值，表示操作是否成功；
                           第二个元素是字符串，包含LLM的回复内容。
     """
-    model_name = os.environ.get("OPENAI_MODEL_NAME", "deepseek-chat")
+    model_name = os.environ.get("OPENAI_MODEL_NAME", None)
     completion = client.chat.completions.create(
         model=model_name,
         messages=history + [{"role": "user", "content": cur_prompt}],
@@ -140,18 +142,7 @@ def _fetch_LLM_reply(history, cur_prompt) -> Tuple[bool, str]:
         frequency_penalty=_FREQUENCY_PENALTY,
     )
 
-    # 如果使用流式输出：参照下面
-    # full_response = []
-    # for chunk in completion:
-    #     if chunk.choices:
-    #         delta = chunk.choices[0].delta
-    #         if delta.content:  # 过滤空内容
-    #             print(delta.content, end="", flush=True)
-    #             full_response.append(delta.content)
-    # final_answer = "".join(full_response)
-    # return True, final_answer
-
-    return True, completion.choices[0].message.content
+    return completion.choices[0].message.content
 
 
 def _get_private_lib_content() -> dict:
