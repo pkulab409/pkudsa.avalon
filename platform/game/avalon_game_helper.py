@@ -46,6 +46,7 @@ else:
 _CURRENT_PLAYER_ID = None  # 当前玩家ID
 _GAME_SESSION_ID = None  # 当前游戏会话ID
 _DATA_DIR = os.environ.get("AVALON_DATA_DIR", "./data")
+_CURRENT_ROUND = None
 
 
 # LLM相关配置
@@ -54,7 +55,9 @@ _INIT_SYSTRM_PROMPT = """
 你是一个专业助理。
 """  # 后期可修改
 _TEMPERATURE = 1  # 创造性 (0-2, 默认1)
-_MAX_TOKENS = 500  # 最大生成长度
+_MAX_INPUT_TOKENS = 500  # 最大 prompt 长度
+_MAX_OUTPUT_TOKENS = 500  # 最大生成长度
+_MAX_CALL_COUNT_PER_ROUND = 1  # 一轮最多调用 LLM 次数
 _TOP_P = 0.9  # 输出多样性控制
 _PRESENCE_PENALTY = 0.5  # 避免重复话题 (-2~2)
 _FREQUENCY_PENALTY = 0.5  # 避免重复用词 (-2~2)
@@ -64,6 +67,7 @@ _FREQUENCY_PENALTY = 0.5  # 避免重复用词 (-2~2)
 INIT_PRIVA_LOG_DICT = {
     "logs": [],
     "llm_history": [{"role": "system", "content": _INIT_SYSTRM_PROMPT}],
+    "llm_call_counts": [0 for _ in range(6)],  # 第 1~5 轮分别用了几次
 }
 
 
@@ -78,6 +82,17 @@ def set_current_context(player_id: int, game_id: str) -> None:
     global _CURRENT_PLAYER_ID, _GAME_SESSION_ID
     _CURRENT_PLAYER_ID = player_id
     _GAME_SESSION_ID = game_id
+
+
+def set_current_round(round_) -> None:
+    """
+    设置当前 ROUND 上下文 - 这个函数由 referee 在更改 ROUND 时设置
+
+    参数:
+        round: 当前游戏运行到第几轮
+    """
+    global _CURRENT_ROUND
+    _CURRENT_ROUND = round_
 
 
 def askLLM(prompt: str) -> str:
@@ -98,6 +113,19 @@ def askLLM(prompt: str) -> str:
     existing_data = _get_private_lib_content()
     # 获取LLM聊天记录
     _player_chat_history = existing_data["llm_history"]
+    # 获取LLM调用次数记录
+    _player_call_counts = existing_data["llm_call_counts"]
+
+    # 判断用户在这一轮已经调用几次 LLM，执行相应操作
+    if _player_call_counts[_CURRENT_ROUND] >= _MAX_CALL_COUNT_PER_ROUND:
+        raise RuntimeError(f"Maximum call count per round of player {_CURRENT_PLAYER_ID} exceeded")
+    else:
+        existing_data["llm_call_counts"][_CURRENT_ROUND] += 1
+
+    if len(prompt) > _MAX_INPUT_TOKENS:
+        prompt = prompt[:_MAX_INPUT_TOKENS]  # 切断 prompt 至限制长度以内
+        logger.warning(f"{_CURRENT_PLAYER_ID}号玩家输入 prompt 过长。"
+                       + f"只取前 {_MAX_INPUT_TOKENS} 个 token 询问 LLM。")
 
     # 调LLM
     try:
@@ -136,7 +164,7 @@ def _fetch_LLM_reply(history, cur_prompt) -> str:
         messages=history + [{"role": "user", "content": cur_prompt}],
         stream=_USE_STREAM,
         temperature=_TEMPERATURE,
-        max_tokens=_MAX_TOKENS,
+        max_tokens=_MAX_OUTPUT_TOKENS,
         top_p=_TOP_P,
         presence_penalty=_PRESENCE_PENALTY,
         frequency_penalty=_FREQUENCY_PENALTY,
@@ -178,6 +206,7 @@ def _get_private_lib_content() -> dict:
 
 
 def _write_back_private(data: dict) -> None:
+    '''统一处理：写回私有库 JSON 文件'''
     # 构建私有数据文件路径
     private_file = os.path.join(
         _DATA_DIR, f"game_{_GAME_SESSION_ID}_player_{_CURRENT_PLAYER_ID}_private.json"

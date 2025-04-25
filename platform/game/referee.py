@@ -27,13 +27,16 @@ logger = logging.getLogger("Referee")
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # 确保导入成功
 try:
-    from game.avalon_game_helper import set_current_context
+    from game.avalon_game_helper import set_current_context, set_current_round
 except ImportError:
-    logger.error("Failed to import set_current_context from game.avalon_game_helper")
+    logger.error("Failed to import modules from game.avalon_game_helper")
 
     # 可以选择退出或提供默认实现
     def set_current_context(player_id: int, game_id: str):
         pass  # 空实现或记录错误
+
+    def set_current_round(round_: int):
+        pass
 
 
 # 角色常量
@@ -312,6 +315,7 @@ class AvalonReferee:
     def run_mission_round(self):
         """执行一轮任务"""
         self.current_round += 1
+        set_current_round(self.current_round)
         member_count = MISSION_MEMBER_COUNT[self.current_round - 1]
         vote_round = 0
         mission_success = None
