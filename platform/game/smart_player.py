@@ -1,7 +1,6 @@
 from game.avalon_game_helper import write_into_private, read_private_lib, askLLM
 import random
 from collections import defaultdict
-MAP_SIZE = 9
 
 # 这是一段用 DeepSeek-R1 增强的 Player.
 
@@ -19,7 +18,6 @@ class Player:
         self.assassination_target = None
         self.suspicion_level = defaultdict(int)
         self.players = [1, 2, 3, 4, 5, 6, 7]
-        self.player_positions = {}
 
     def set_player_index(self, index: int):
         self.index = index
@@ -40,9 +38,6 @@ class Player:
 
     def pass_map(self, game_map):
         self.map = game_map
-
-    def pass_position_data(self, player_positions: dict[int,tuple]):
-        self.player_positions = player_positions
 
     def pass_message(self, content: tuple[int, str]):
         """消息处理：动态更新信任模型"""
@@ -65,35 +60,7 @@ class Player:
             self.suspicion_level[speaker] += 3
 
     def walk(self) -> tuple:
-
-        origin_pos = self.player_positions[self.index] # tuple
-        x, y = origin_pos
-        others_pos = [self.player_positions[i] for i in range(1,8) if i != self.index]
-        step = 0
-        total_step = random.randint(1,3)
-        valid_moves = []
-
-        while step < total_step:
-            direction = random.choice(["Left", "Up", "Right", "Down"])
-
-            if direction == "Up" and x > 0 and (x - 1, y) not in others_pos:
-                x, y = x - 1, y
-                valid_moves.append("Up")
-                step += 1
-            elif direction == "Down" and x < MAP_SIZE - 1 and (x + 1, y) not in others_pos:
-                x, y = x + 1, y
-                valid_moves.append("Down")
-                step += 1
-            elif direction == "Left" and y > 0 and (x, y - 1) not in others_pos:
-                x, y = x, y - 1
-                valid_moves.append("Left")
-                step += 1
-            elif direction == "Right" and y < MAP_SIZE - 1 and (x, y + 1) not in others_pos:
-                x, y = x, y + 1
-                valid_moves.append("Right")
-                step += 1
-
-        return tuple(valid_moves)
+        return ("Up", "Left", "Right")
 
     def say(self) -> str:
         what_deepseek_says = askLLM("随便生成一句30字以内的玩7人《阿瓦隆》游戏时可能说的话。只给出话，不要别的信息。")
