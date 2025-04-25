@@ -41,7 +41,7 @@ OPENAI_MODEL_NAME=deepseek-v3-250324-64k-local
      - 保存对话历史到私有日志文件。
 4. **私有日志（private）**
    - 存储位置：`{AVALON_DATA_DIR}/game_<game_id>_player_<player_id>_private.json`
-   - 初始模板：`INIT_PRIVA_LOG_DICT = {logs: [], llm_history: [...]}`
+   - 初始模板：`INIT_PRIVA_LOG_DICT = {"logs": [], "llm_history": [...], "llm_call_counts": [...]}`
    - `read_private_lib() -> List[str]`：读取日志列表。
    - `write_into_private(content: str) -> None`：追加日志内容。
 5. **公有日志（public）**
@@ -56,6 +56,10 @@ OPENAI_MODEL_NAME=deepseek-v3-250324-64k-local
 | `read_public_lib`              | 无                                      | `List[dict]`     | 获取公有库内容           |
 | `read_private_lib`             | 无                                      | `List[str]`      | 获取私有库内容           |
 | `write_into_private`           | `content: str`                          | `None`           | 追加日志到私有库         |
+
+### 2.3 LLM 调用限制
+
+详见用户文档。
 
 ---
 

@@ -323,7 +323,8 @@
 ```json
 {
   "logs": [],
-  "llm_history": [{"role": "system", "content": "你是一个专家。"}]
+  "llm_history": [{"role": "system", "content": "你是一个专家。"}],
+  "llm_call_counts": [0, 0, 0, 0, 0, 0],
 }
 ```
 
@@ -374,8 +375,11 @@
       "role": "assistant",
       "content": "\"\u6d3e\u897f\u7ef4\u5c14\uff0c\u4f60\u5230\u5e95\u770b\u5230\u6885\u6797\u8fd8\u662f\u83ab\u5fb7\u96f7\u5fb7\u4e86\uff1f\u5feb\u51b3\u5b9a\u554a\uff01\""
     }
-  ]
+  ],
+  "llm_call_counts": [0, 1, 1, 1, 0, 0]
 }
 ```
 
 这样，用户在下一次调用LLM时，先前的聊天记录 (`context`) 会被自动导入。
+
+- **LLM 调用次数记录**：用户在第 `round` 轮调用一次 LLM， `llm_call_counts[round] += 1`。
