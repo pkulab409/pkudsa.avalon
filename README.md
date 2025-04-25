@@ -1,13 +1,18 @@
 # 《图灵阿瓦隆-Tuvalon》
 ## 基于游戏《阿瓦隆》的延伸作品<span style="font-size: smaller;">`pkudsa.avalon`</span>
 
-（2025年春季数算B课程大作业）
+- 2025年春季数算B课程大作业
+
+- [用户文档](documentation/document4users/README.md)
 
 ---
 
 ## 🔗参考游戏《阿瓦隆》玩法链接
+
 - [桌游《阿瓦隆(Avalon)》教学教程 完全指南](https://zhuanlan.zhihu.com/p/685062276)
+
 - [卡牌《阿瓦隆》攻略](https://zhuanlan.zhihu.com/p/546211143)
+
 - [不思议阿瓦隆攻略，阿瓦隆游戏攻略大全](https://www.youfanx.com/gonglue/202405/467216.html)
 
 ---
