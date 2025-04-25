@@ -146,30 +146,72 @@ def make_snapshot(self, event_type: str, event_data) -> None:
     """
 ```
 
-### 3.3 ⚠️玩家代码报错或返回值不合法时，中止游戏
+### 3.3 ⚠️代码报错或返回值不合法时，中止游戏
 
-目前能实现玩家代码报错时中止游戏，**但还需要经过测试debug**。
+目前能实现裁判/玩家代码报错时中止游戏（**统一调用 `AvalonReferee.suspend_game()` 函数**），**但还需要经过测试debug**。
 
-玩家代码报错中止游戏时，**公有库**添加一项：
+- 1. 玩家代码报错，中止游戏的同时：
 
-```json
-{
-  "type": "CRITICAL ERROR",
-  "error_code_pid": 1,  // 1~7
-  "error_code_method": "...",
-  "error_msg": "..."
-}
-````
-玩家代码返回值错误也将中止游戏，**公有库**添加一项：
+    - 游戏公有库添加一项
 
-```json
-{
-  "type": "player_return_ERROR",
-  "error_code_pid": 1,  // 1~7
-  "error_code_method": "...",
-  "error_msg": "..."
-}
-````
+    ```json
+    {
+      "type": "critical_player_ERROR",
+      "error_code_pid": 1,  // 1~7
+      "error_code_method": "...",
+      "error_msg": "..."
+    }
+    ```
+
+    - 给 observer 添加快照
+
+    ```python
+    self.battle_observer.make_snapshot(
+        "referee",
+        "Error executing Player .. method ..: ... Game suspended."
+    )
+    ```
+
+- 2. 玩家代码函数的返回值不符合要求（例如类型不对、数字越界等），中止游戏的同时：
+
+    ```json
+    {
+      "type": "player_return_ERROR",
+      "error_code_pid": 1,  // 1~7
+      "error_code_method": "...",
+      "error_msg": "..."
+    }
+    ```
+
+    - 给 observer 添加快照
+
+    ```python
+    self.battle_observer.make_snapshot(
+        "referee",
+        "Error executing Player .. method ..: ... Game suspended."
+    )
+    ```
+
+- 3. referee 报错，中止游戏的同时：
+
+    ```json
+    {
+      "type": "critical_referee_ERROR",
+      "error_code_pid": 0,  // 0 表示 referee
+      "error_code_method": "...",
+      "error_msg": "..."
+    }
+    ```
+
+    - 给 observer 添加快照
+
+    ```python
+    self.battle_observer.make_snapshot(
+        "referee",
+        "Referee error during ..: ... Game suspended."
+    )
+    ```
+
 ---
 
 ## 4. `battle_manager.py` 模块

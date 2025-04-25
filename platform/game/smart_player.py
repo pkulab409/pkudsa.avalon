@@ -109,8 +109,14 @@ class Player:
                            if sum(self.vote_history.get(p, [])) / max(len(self.vote_history[p]), 1) > 0.5]
             candidates = [self.index] if self.role not in ["Oberon"] else []
             candidates += random.sample(clean_players, min(team_size-len(candidates), len(clean_players)))
+
+        candidates = list(set(candidates))
+        while len(candidates) < team_size:
+            r = random.randint(1, 7)
+            if r not in candidates:
+                candidates.append(r)
         
-        return sorted(candidates)[:team_size]
+        return candidates[:team_size]
 
     def mission_vote1(self) -> bool:
         """第一阶段投票策略"""
