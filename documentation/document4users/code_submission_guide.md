@@ -80,6 +80,7 @@ class Player:
           self.role = None  # 角色类型
           # 地图
           self.map = None
+          self.player_positions = {}
           # 历史记录
           self.memory = {
               "speech": {},  # {player_index: [messages]}
@@ -143,7 +144,17 @@ class Player:
 - **使用建议**：
   - 存储在 `self.map`，用于导航、路径规划等逻辑。
 
-### 5. `pass_message(self, content: tuple[int, str])`
+### 5. `pass_position_data(self, player_positions: dict[int,tuple])`
+**功能**：获取其他玩家的位置信息。
+
+- **参数**：
+  - `player_positions`：字典，键为玩家编号，值为包含玩家位置信息的二元组`(x, y)`。
+- **返回值**：无。
+- **被调用时机**：每次地图更新时调用。
+- **使用建议**：
+  - 存储在 `self.player_positions`，用于导航、路径规划等逻辑。
+
+### 6. `pass_message(self, content: tuple[int, str])`
 **功能**：接收其他玩家的发言内容。
 
 - **参数**：
@@ -154,7 +165,7 @@ class Player:
   - 将发言记录到 `self.memory["speech"]` 中；
   - 针对关键词（如“破坏”、“成功”）进行简单文本分析，标记嫌疑对象。
 
-### 6. `pass_mission_members(self, leader: int, members: list[int])`
+### 7. `pass_mission_members(self, leader: int, members: list[int])`
 **功能**：告知本轮任务队长及选中队员列表。
 
 - **参数**：
@@ -166,7 +177,7 @@ class Player:
   - 保存 `self.last_leader`、`self.last_team` 并记录到历史队伍信息 `self.memory["teams"]`；
   - 检查自身是否在队伍中，以便在 `mission_vote2` 中区分投票逻辑。
 
-### 7. `decide_mission_member(self, team_size: int) -> list[int]`
+### 8. `decide_mission_member(self, team_size: int) -> list[int]`
 **功能**：由队长角色调用，选择本轮任务的执行成员。
 
 - **参数**：
@@ -176,7 +187,7 @@ class Player:
 - **使用建议**：
   - 根据游戏策略，选择合适人选。
 
-### 8. `walk(self) -> tuple[str, ...]`
+### 9. `walk(self) -> tuple[str, ...]`
 **功能**：执行移动行为，返回一组方向指令。
 
 - **参数**：无。
@@ -186,7 +197,7 @@ class Player:
   - 根据当前 `self.map` 与目标位置路径规划；
   - 返回尽可能有效的路径指令序列。
 
-### 9. `say(self) -> str`
+### 10. `say(self) -> str`
 **功能**：发言行为，返回文本内容供其他玩家接收。
 
 - **参数**：无。
@@ -196,7 +207,7 @@ class Player:
   - 可结合 `helper.read_public_lib()` 获取全局对局记录，构造 `askLLM` 的提示词生成发言；
   - 将重要推理写入私有存储，如 `helper.write_into_private()`，便于后续阅读。
 
-### 10. `mission_vote1(self) -> bool`
+### 11. `mission_vote1(self) -> bool`
 **功能**：对队长提案进行公投，决定是否通过队伍。
 
 - **参数**：无。
@@ -206,7 +217,7 @@ class Player:
   - 若队伍完全由信任玩家组成，返回 `True`；
   - 否则可按照风险度或概率方式投出 `True` 或 `False`。
 
-### 11. `mission_vote2(self) -> bool`
+### 12. `mission_vote2(self) -> bool`
 **功能**：在任务执行阶段决定任务结果。
 
 - **参数**：无。
@@ -216,7 +227,7 @@ class Player:
   - 红方角色（"Assassin","Morgana","Oberon"）可以返回 `False`，或可结合混淆策略，增加不可预测性。
   - 蓝方角色必须返回 `True` （如果不返回 `True` 将造成不可预料的后果）。
 
-### 12. `assass(self) -> int`
+### 13. `assass(self) -> int`
 **功能**：红方失败时刺杀操作，选择目标玩家编号。
 
 - **参数**：无。
