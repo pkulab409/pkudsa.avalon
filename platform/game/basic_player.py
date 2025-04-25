@@ -4,7 +4,7 @@ from game.avalon_game_helper import (
     askLLM, read_public_lib,
     read_private_lib, write_into_private
 )
-
+MAP_SIZE = 9
 
 class Player:
     def __init__(self):
@@ -19,6 +19,7 @@ class Player:
         }
         self.teammates = set()   # 推测的可信玩家编号
         self.suspects = set()    # 推测的红方编号
+        self.player_positions = {}
 
     def set_player_index(self, index: int):
         self.index = index
@@ -40,6 +41,9 @@ class Player:
 
     def pass_map(self, map_data: list[list[str]]):
         self.map = map_data
+
+    def pass_position_data(self, player_positions: dict[int,tuple]):
+        self.player_positions = player_positions
 
     def pass_message(self, content: tuple[int, str]):
         player_id, speech = content
@@ -71,10 +75,42 @@ class Player:
         # 记录历史队伍和队长，用于后续的推理
 
     def walk(self) -> tuple:
-        """
-        TODO 现在就是随便走
-        """
-        return "Left", "Up", "Right"
+
+        origin_pos = self.player_positions[self.index] # tuple
+        x, y = origin_pos
+        others_pos = [self.player_positions[i] for i in range(1,8) if i != self.index]
+        total_step = random.randint(0,3)
+
+        # 被包围的情况,开始前判定一次即可
+        if (((x-1,y) in others_pos or x == 0) 
+            and ((x+1,y) in others_pos or x == MAP_SIZE - 1)
+            and ((x,y-1) in others_pos or y == 0)
+            and ((x,y+1) in others_pos or y == MAP_SIZE - 1)):
+            total_step = 0
+        
+        valid_moves = []
+        step = 0
+        while step < total_step:
+            direction = random.choice(["Left", "Up", "Right", "Down"])
+
+            if direction == "Up" and x > 0 and (x - 1, y) not in others_pos:
+                x, y = x - 1, y
+                valid_moves.append("Up")
+                step += 1
+            elif direction == "Down" and x < MAP_SIZE - 1 and (x + 1, y) not in others_pos:
+                x, y = x + 1, y
+                valid_moves.append("Down")
+                step += 1
+            elif direction == "Left" and y > 0 and (x, y - 1) not in others_pos:
+                x, y = x, y - 1
+                valid_moves.append("Left")
+                step += 1
+            elif direction == "Right" and y < MAP_SIZE - 1 and (x, y + 1) not in others_pos:
+                x, y = x, y + 1
+                valid_moves.append("Right")
+                step += 1
+        
+        return tuple(valid_moves)
 
     def say(self) -> str:
         return "这轮信息太混乱，我还在观察。"
