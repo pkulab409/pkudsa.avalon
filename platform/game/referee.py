@@ -130,8 +130,10 @@ class AvalonReferee:
                 # 检查Player类是否存在
                 if not hasattr(module, "Player"):
                     logger.error(f"玩家 {player_id} 的代码已执行但未找到 'Player' 类")
-                    continue
-
+                    self.suspend_game(
+                        "critical_player_ERROR", player_id, "Player",
+                        f"玩家 {player_id} 的代码已执行但未找到 'Player' 类"
+                    )
                 # 存储模块
                 player_modules[player_id] = module
                 logger.info(f"玩家 {player_id} 代码加载成功")
@@ -169,12 +171,6 @@ class AvalonReferee:
                         exc_info=True
                     )
                     raise RuntimeError(e_)
-                    return {
-                        "error": f"Critical Error: {str(e)}",
-                        "public_log_file": os.path.join(
-                            self.data_dir, f"game_{self.game_id}_public.json"
-                        ),
-                    }
             
             # 分配编号
             self.safe_execute(player_id, "set_player_index", player_id)
@@ -567,6 +563,12 @@ class AvalonReferee:
                     self.map_data[x][y] = " "
 
         for player_id in ordered_players:
+            # 每个玩家分别循环一次
+
+            # 告知玩家当前地图情况
+            self.safe_execute(player_id, "pass_position_data", self.player_positions)
+            logger.debug("Sending current map to player {player_id}.")
+            
             # 获取当前位置
             current_pos = self.player_positions[player_id]
             logger.debug(
@@ -576,26 +578,43 @@ class AvalonReferee:
             # 获取移动方向
             directions = self.safe_execute(player_id, "walk")
 
-            if not isinstance(directions, tuple) and not isinstance(
-                directions, list
-            ):  # Allow list too
-                logger.warning(
+            if not isinstance(directions, tuple):
+                logger.error(
                     f"Player {player_id} returned invalid directions type: {type(directions)}. No movement."
                 )
-                directions = ()
+                self.suspend_game(
+                    "player_ruturn_ERROR", player_id, "walk",
+                    f"Returned invalid directions type: {type(directions)}"
+                    )
 
             # 最多移动3步
-            steps = min(len(directions), 3)
+            steps = len(directions)
+            if steps > 3:
+                logger.error(
+                    f"Player {player_id} returned invalid directions length: {len(directions)}. No movement."
+                )
+                self.suspend_game(
+                    "player_ruturn_ERROR", player_id, "walk",
+                    f"Returned invalid directions length: {len(directions)}"
+                )
+
             new_pos = current_pos
 
+            # 默认directions合法
+            # 保留valid_moves，最后用于格式化显示
             valid_moves = []
-            logger.debug(f"Player {player_id} requested moves: {directions[:steps]}")
+            logger.debug(f"Player {player_id} requested moves: {directions}")
             for i in range(steps):
-                if i >= len(directions):
-                    break
-
+                # 处理每个方向
                 direction = (
-                    directions[i].lower() if isinstance(directions[i], str) else ""
+                    directions[i].lower() if isinstance(directions[i], str) 
+                    else logger.error(
+                        f"Player {player_id} returned invalid direction type: {type(directions[i])}. i_index: {i}"
+                    ),
+                    self.suspend_game(
+                        "player_ruturn_ERROR", player_id, "walk",
+                        f"Returned invalid direction type: {type(directions[i])}. i_index: {i}"
+                    )
                 )
 
                 x, y = new_pos
@@ -612,8 +631,14 @@ class AvalonReferee:
                     new_pos = (x, y + 1)
                     valid_moves.append("right")
                 else:
-                    # 无效移动，跳过
-                    continue
+                    # 无效移动，报错
+                    logger.error(
+                        f"Player {player_id} attempted invalid move: {direction}. i_index: {i}"
+                    )
+                    self.suspend_game(
+                        "player_ruturn_ERROR", player_id, "walk",
+                        f"Attempted invalid move: {direction}. i_index: {i}"
+                    )
 
                 # 检查是否与其他玩家重叠
                 if new_pos in [
@@ -622,20 +647,19 @@ class AvalonReferee:
                     if pid != player_id
                 ]:
                     # 回退到上一个位置
-                    new_pos = (x, y)
-                    valid_moves.pop()  # 移除最后一个无效移动
-                    break
+                    logger.error(
+                        f"Player {player_id} attempted to move to occupied position: {new_pos}. i_index: {i}"
+                    )
+                    self.suspend_game(
+                        "player_ruturn_ERROR", player_id, "walk",
+                        f"Attempted to move to occupied position: {new_pos}. i_index: {i}"
+                    )
+
 
             # 更新玩家位置
-            if new_pos != current_pos:
-                logger.info(
-                    f"Movement - Player {player_id}: {current_pos} -> {new_pos} via {valid_moves}"
-                )
-            else:
-                logger.info(
-                    f"Movement - Player {player_id}: No valid movement from {current_pos} with request {directions[:steps]}"
-                )
-
+            logger.info(
+                f"Movement - Player {player_id}: {current_pos} -> {new_pos} via {valid_moves}"
+            )
             self.player_positions[player_id] = new_pos
             x, y = new_pos
             self.map_data[x][y] = str(player_id)  # Place marker after all checks
@@ -643,15 +667,17 @@ class AvalonReferee:
             movements.append(
                 {
                     "player_id": player_id,
-                    "requested_moves": list(directions[:steps]),  # Log requested moves
+                    "requested_moves": list(directions),  # Log requested moves
                     "executed_moves": valid_moves,  # Log executed moves
                     "final_position": new_pos,
                 }
             )
 
         # 更新所有玩家的地图
-        logger.debug("Updating all players with the new map state.")
+        logger.debug("Updating all players with the new map state and data of positions.")
         for player_id in range(1, PLAYER_COUNT + 1):
+            # 传递给玩家两种数据
+            self.safe_execute(player_id, "pass_position_data", self.player_positions)
             self.safe_execute(player_id, "pass_map", self.map_data)
 
         # 记录移动
@@ -892,6 +918,18 @@ class AvalonReferee:
                 "assass", f"Assassin returned invalid target: {target_id}"
             )
         # 不考虑刺客刺杀自己，因为无法改变游戏结果
+        # 我倒是觉得可以做个彩蛋，刺杀自己就是蠢蛋，而且刺杀自己属于代码问题，就是用户的bug
+        if target_id == assassin_id:
+            logger.error(
+                f"Assassin {assassin_id} targeted himself.",
+                exc_info=True,  # Include traceback in log
+                )
+            self.suspend_game(
+                "player_ruturn_ERROR", assassin_id, "assass",
+                f"""Assassin {assassin_id} targeted himself.  
+                    FOOL Assassin! FOOL Assassin! FOOL Assassin! FOOL Assassin!"""
+                )
+
 
         # 判断是否刺中梅林
         target_role = self.roles[target_id]
@@ -1035,7 +1073,7 @@ class AvalonReferee:
             logger.error(
                 f"Attempted to execute method '{method_name}' for non-existent player {player_id}"
             )
-            return None  # Or raise an error?
+            
 
         method = getattr(player, method_name, None)
         if not method or not callable(method):
@@ -1061,6 +1099,12 @@ class AvalonReferee:
                 return "..."
             if method_name == "walk":
                 return ()
+            if method_name == "pass_message":
+                return None
+            if method_name == "pass_map":
+                return None
+            if method_name == "pass_position_data":
+                return None
             return None
 
         try:
