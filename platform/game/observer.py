@@ -37,7 +37,7 @@ class Observer:
         """
         snapshot = {
             "battle_id": self.battle_id,
-            "timestamp": time.time(),
+            "timestamp": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
             "event_type": event_type, # 事件类型: referee, player{P}, move
             "event_data": event_data, # 事件数据，这里保存最后需要显示的内容
         }
