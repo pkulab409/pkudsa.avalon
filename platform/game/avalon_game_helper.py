@@ -19,15 +19,18 @@ logger = logging.getLogger("GameHelper")
 
 
 # 为LLM的API自动加载.env文件
-load_dotenv()
-# 在和avalon_game_helper相同目录下创建一个`.env`，包含两行：
-# OPENAI_API_KEY=sk-{{SECRET-KEY}} （在github里肯定不能展示对吧，但技术组手里都有）
+if not load_dotenv():
+    logger.error(f"Error when loading environment variables from `.env` at current file directory.")
+    # 这里只要有一个环境变量被读取成功就不会报错
+# 在和avalon_game_helper相同目录下创建一个`.env`文件，包含三行：
+# OPENAI_API_KEY={API_KEY}（需要填入）
 # OPENAI_BASE_URL=https://chat.noc.pku.edu.cn/v1
+# OPENAI_MODEL_NAME=deepseek-v3-250324-64k-local
 
 
 # openai初始配置
 try:
-    client = OpenAI()  # 自动读取环境变量
+    client = OpenAI()  # 自动读取（来自load_dotenv的）环境变量
     models = client.models.list()
     # 不出意外的话这里有三个模型：
     #   - deepseek-v3-250324
@@ -66,11 +69,11 @@ INIT_PRIVA_LOG_DICT = {
 
 def set_current_context(player_id: int, game_id: str) -> None:
     """
-    设置当前上下文 - 这个函数由游戏服务器在调用玩家代码前设置
+    设置当前上下文 - 这个函数由 referee 在调用玩家代码前设置
 
     参数:
-        player_id: 当前玩家ID
-        game_id: 当前游戏会话ID
+        player_id: 当前玩家 ID
+        game_id: 当前游戏会话 ID
     """
     global _CURRENT_PLAYER_ID, _GAME_SESSION_ID
     _CURRENT_PLAYER_ID = player_id
@@ -98,7 +101,7 @@ def askLLM(prompt: str) -> str:
 
     # 调LLM
     try:
-        _, reply = _fetch_LLM_reply(_player_chat_history, prompt)
+        reply = _fetch_LLM_reply(_player_chat_history, prompt)
     except Exception as e:
         return f"LLM调用错误: {str(e)}"
 
@@ -115,7 +118,7 @@ def askLLM(prompt: str) -> str:
     return reply
 
 
-def _fetch_LLM_reply(history, cur_prompt) -> Tuple[bool, str]:
+def _fetch_LLM_reply(history, cur_prompt) -> str:
     """
     从历史记录和当前提示中获取LLM回复。
 
@@ -127,7 +130,7 @@ def _fetch_LLM_reply(history, cur_prompt) -> Tuple[bool, str]:
         Tuple[bool, str]: 返回一个元组，第一个元素是布尔值，表示操作是否成功；
                           第二个元素是字符串，包含LLM的回复内容。
     """
-    model_name = os.environ.get("OPENAI_MODEL_NAME", "deepseek-chat")
+    model_name = os.environ.get("OPENAI_MODEL_NAME", None)
     completion = client.chat.completions.create(
         model=model_name,
         messages=history + [{"role": "user", "content": cur_prompt}],
@@ -139,18 +142,7 @@ def _fetch_LLM_reply(history, cur_prompt) -> Tuple[bool, str]:
         frequency_penalty=_FREQUENCY_PENALTY,
     )
 
-    # 如果使用流式输出：参照下面
-    # full_response = []
-    # for chunk in completion:
-    #     if chunk.choices:
-    #         delta = chunk.choices[0].delta
-    #         if delta.content:  # 过滤空内容
-    #             print(delta.content, end="", flush=True)
-    #             full_response.append(delta.content)
-    # final_answer = "".join(full_response)
-    # return True, final_answer
-
-    return True, completion.choices[0].message.content
+    return completion.choices[0].message.content
 
 
 def _get_private_lib_content() -> dict:
@@ -201,13 +193,17 @@ def _write_back_private(data: dict) -> None:
 
 def read_private_lib() -> List[str]:
     """从私有库中读取内容"""
-    private_data = _get_private_lib_content()
+    if _CURRENT_PLAYER_ID is None or not _GAME_SESSION_ID:
+        logger.error("尝试在无玩家ID或游戏ID上下文的情况下读取私有日志")
+        return
 
-    # 检查数据结构，返回日志内容
-    logs = private_data.get("logs", [])
+    try:
+        existing_data = _get_private_lib_content()  # 获取日志
 
-    # 只返回内容部分
-    return [log.get("content", "") for log in logs]
+        return existing_data["logs"]
+
+    except Exception as e:
+        logger.error(f"写入私有日志时出错: {str(e)}")
 
 
 def write_into_private(content: str) -> None:
@@ -217,21 +213,22 @@ def write_into_private(content: str) -> None:
     参数:
         content: 需要保存的文本内容
     """
-    # 获取当前私有库内容
-    private_data = _get_private_lib_content()
+    if _CURRENT_PLAYER_ID is None or not _GAME_SESSION_ID:
+        logger.error("尝试在无玩家ID或游戏ID上下文的情况下写入私有日志")
+        return
 
-    # 添加新记录
-    new_record = {"timestamp": time.time(), "content": content}
+    try:
+        # 获取日志
+        existing_data = _get_private_lib_content()
 
-    # 确保logs字段存在
-    if "logs" not in private_data:
-        private_data["logs"] = []
+        # 追加新日志
+        existing_data["logs"].append({"timestamp": time.time(), "content": content})
 
-    # 追加记录
-    private_data["logs"].append(new_record)
+        # 写回文件
+        _write_back_private(data=existing_data)
 
-    # 写回文件
-    _write_back_private(private_data)
+    except Exception as e:
+        logger.error(f"写入私有日志时出错: {str(e)}")
 
 
 def read_public_lib() -> Dict[str, Any]:
@@ -263,6 +260,6 @@ if __name__ == "__main__":
     print(
         _fetch_LLM_reply(  # 测试LLM
             history=[{"role": "system", "content": "你是一个专业助理"}],
-            cur_prompt="大气化学",
+            cur_prompt="L3自动驾驶自行车",
         )
     )

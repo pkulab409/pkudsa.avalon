@@ -14,10 +14,11 @@
   - `typing`：类型注解
   - `pathlib`、`os`、`sys`、`json`、`time`、`random` 等标准库
 
-目录中需包含一个 `.env` 文件（被 ignore 了，自己跑之前需要配置好）：
+目录中需包含一个 `.env` 文件，内含使用的大模型 API 信息（被 ignore 了，自己跑之前需要配置好）：
 ```dotenv
 OPENAI_API_KEY=sk-<YOUR_SECRET_KEY>
 OPENAI_BASE_URL=https://chat.noc.pku.edu.cn/v1
+OPENAI_MODEL_NAME=deepseek-v3-250324-64k-local
 ```
 
 ---
@@ -60,7 +61,7 @@ OPENAI_BASE_URL=https://chat.noc.pku.edu.cn/v1
 
 ## 3. `referee.py` 模块
 
-该模块实现了 `AvalonReferee` 类，负责主持阿瓦隆（Avalon）游戏的完整流程，包括角色分配、回合执行、日志记录与胜负判定。
+该模块实现了 `AvalonReferee` 类，负责主持阿瓦隆游戏的完整流程，包括角色分配、回合执行、日志记录与胜负判定。
 
 ### 3.1 核心类：`AvalonReferee`
 
@@ -92,7 +93,7 @@ class AvalonReferee:
 1. **模块加载 (`_load_codes` 函数)**
    1. 为每个玩家 ID 构建唯一模块名，格式为 `player_<id>_module_<timestamp>`。
    2. 使用 `importlib.util.spec_from_loader` 创建模块规范，并通过 `module_from_spec` 生成模块对象。
-   3. 将模块注册到 `sys.modules`，然后 `exec(code_content, module.__dict__)` 执行玩家提供的代码。
+   3. 将模块注册到 `sys.modules`，然后 `exec(code_content, module.__dict__)` 执行玩家提供的代码（**通过 restrictor 限制了 `__builtins__`**）。
    4. 校验模块中是否定义了 `Player` 类，若缺失则记录错误并跳过；否则保存该模块以供后续使用（**此时玩家的代码字符串成功被转化成一个模块**）。
 
 2. **类实例化、游戏开始 (`load_player_codes` 函数)**
@@ -144,6 +145,72 @@ def make_snapshot(self, event_type: str, event_data) -> None:
             例： {1: (1, 3), 2: (2, 5), 3: (4, 7), ...}
     """
 ```
+
+### 3.3 ⚠️代码报错或返回值不合法时，中止游戏
+
+目前能实现裁判/玩家代码报错时中止游戏（**统一调用 `AvalonReferee.suspend_game()` 函数**），**但还需要经过测试debug**。
+
+- 1. 玩家代码报错，中止游戏的同时：
+
+    - 游戏公有库添加一项
+
+    ```json
+    {
+      "type": "critical_player_ERROR",
+      "error_code_pid": 1,  // 1~7
+      "error_code_method": "...",
+      "error_msg": "..."
+    }
+    ```
+
+    - 给 observer 添加快照
+
+    ```python
+    self.battle_observer.make_snapshot(
+        "referee",
+        "Error executing Player .. method ..: ... Game suspended."
+    )
+    ```
+
+- 2. 玩家代码函数的返回值不符合要求（例如类型不对、数字越界等），中止游戏的同时：
+
+    ```json
+    {
+      "type": "player_return_ERROR",
+      "error_code_pid": 1,  // 1~7
+      "error_code_method": "...",
+      "error_msg": "..."
+    }
+    ```
+
+    - 给 observer 添加快照
+
+    ```python
+    self.battle_observer.make_snapshot(
+        "referee",
+        "Error executing Player .. method ..: ... Game suspended."
+    )
+    ```
+
+- 3. referee 报错，中止游戏的同时：
+
+    ```json
+    {
+      "type": "critical_referee_ERROR",
+      "error_code_pid": 0,  // 0 表示 referee
+      "error_code_method": "...",
+      "error_msg": "..."
+    }
+    ```
+
+    - 给 observer 添加快照
+
+    ```python
+    self.battle_observer.make_snapshot(
+        "referee",
+        "Referee error during ..: ... Game suspended."
+    )
+    ```
 
 ---
 
@@ -229,9 +296,17 @@ def make_snapshot(self, event_type: str, event_data) -> None:
 
 ---
 
-## 7. `main.py` 模块
+## 7. `restrictor.py` 模块
 
-### 7.1 方法
+- 提供一个**被限制**（或“阉割”）的 `__builtins__` ，记为对象 `RESTRICTED_BUILTINS` ：
+    - 限制 `exec` / `eval` / `open` 等 Python 系统功能
+    - 限制 `import` ，只能导入允许的 Python 库
+
+---
+
+## 8. `main.py` 模块
+
+### 8.1 方法
 
 - **`parse_arguments()`**
 
@@ -253,14 +328,10 @@ def make_snapshot(self, event_type: str, event_data) -> None:
 
 ---
 
-> 🚧**还未实现的功能**：用户代码报错，游戏随即终止。
-
----
-
 # 面向用户的 `main.py` 使用指南
 
 > 🚧施工中…
 
 ---
 
-**最后更新**：2025-04-23
+**最后更新**：2025-04-24

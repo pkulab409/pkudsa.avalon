@@ -1,74 +1,77 @@
 """
-阿瓦隆游戏 - 主程序入口 (命令行测试用)
+阿瓦隆游戏 - 主程序入口
 """
-
 import os
 import sys
 import argparse
 from typing import Dict, Any, List
 import time
-import json  # 导入 json
 
-# 假设 BattleManager 和 Observer 在 game 包下
-from game.battle_manager import BattleManager
-
-# from game.player_loader import load_baseline_code # 这个似乎不再需要
-from game.observer import Observer
-
-# 假设数据库模型和操作可以导入
-# 需要配置 Flask App Context 或独立 SQLAlchemy Session 才能在脚本中使用数据库
-# from database import create_battle as db_create_battle, get_ai_code_by_id, get_user_by_id
-# from database.models import User, AICode
-
-
-# 这是一个简化的示例，实际使用需要处理数据库交互和用户/AI选择
-def create_dummy_participant_data(num_players=7) -> List[Dict[str, str]]:
-    """为测试创建虚拟参与者数据 (需要配合数据库中的实际用户和AI)"""
-    # !!! 警告: 这里的 user_id 和 ai_code_id 需要替换为数据库中实际存在的值 !!!
-    # 例如，假设存在 user 'testuser1' (ID 'user-uuid-1') 和其 AI 'ai-code-uuid-1'
-    # 以及其他6个AI玩家
-    participants = []
-    # 示例: 第一个玩家是真实用户
-    participants.append({"user_id": "user-uuid-1", "ai_code_id": "ai-code-uuid-1"})
-    # 示例: 其他玩家是AI (假设存在用户 'ai_user_X' 和他们的激活AI)
-    for i in range(2, num_players + 1):
-        # 你需要从数据库查询或硬编码有效的 user_id 和 ai_code_id
-        participants.append(
-            {"user_id": f"ai-user-{i}-uuid", "ai_code_id": f"ai-code-{i}-uuid"}
-        )
-    print(f"警告: 使用虚拟参与者数据: {participants}")
-    print("请确保这些 ID 在数据库中有效!")
-    if len(participants) != num_players:
-        raise ValueError(f"需要 {num_players} 个参与者数据")
-    return participants
+from battle_manager import BattleManager
+from player_loader import load_baseline_code
+from observer import Observer
 
 
 def parse_arguments():
     """解析命令行参数"""
-    parser = argparse.ArgumentParser(description="运行阿瓦隆游戏对战")
-    parser.add_argument("-g", "--games", type=int, default=1, help="要运行的游戏场数")
-    # 移除 mode 参数，因为玩家选择现在通过 participant_data 处理
-    # parser.add_argument(
-    #     "-m", "--mode", type=str, default="basic_test", help="游戏模式 (影响AI选择)"
-    # )
-    # 移除 player_codes 参数，代码路径由 BattleManager 从数据库获取
-    # parser.add_argument(
-    #     "-p", "--player_codes", type=str, help="包含玩家代码路径的JSON文件"
-    # )
+    parser = argparse.ArgumentParser(description="阿瓦隆游戏系统")
+    parser.add_argument("--mode", choices=["basic_test", "smart_test", "mixed_test", "qualifying"], default="mixed_test",
+                        help="游戏模式: basic_test(基础AI), smart_test(智能AI), mixed_test(混合), qualifying(排位赛)")
+    parser.add_argument("--games", type=int, default=1, help="运行的游戏数量")
+    parser.add_argument("--data-dir", default="./data", help="数据存储目录")
+    # 添加命令行参数
+    parser.add_argument("--player-codes", type=str,
+                        help="指定玩家代码路径，JSON格式，每个键是player_id，值是.py文件路径")
     return parser.parse_args()
 
 
-# setup_environment 函数保持不变
 def setup_environment(args):
     """设置环境变量"""
-    data_dir = os.environ.get("AVALON_DATA_DIR", "./data")
-    os.makedirs(data_dir, exist_ok=True)
-    print(f"数据目录: {data_dir}")
+    os.environ["AVALON_DATA_DIR"] = args.data_dir
+    # 确保数据目录存在
+    os.makedirs(args.data_dir, exist_ok=True)
+    print(f"数据将存储在: {args.data_dir}")
 
 
-# create_player_codes 函数不再需要，由 BattleManager 处理
-# def create_player_codes(mode: str, player_codes={}) -> Dict[int, str]:
-#     ...
+def create_player_codes(mode: str, player_codes={}) -> Dict[int, str]:
+    """
+    创建玩家代码
+    参数:
+        mode: 对战模式
+        player_codes: 已指定的玩家代码字典 {player_id: code_content}，键值对数目不大于7
+    返回:
+        player_codes: 用ai策略补全的玩家代码字典，键值对数目7
+    """
+    print(f"[DEBUG] 初始传入的 player_codes: {list(player_codes.keys())}")
+    if mode == "basic_test":
+        # 所有玩家使用基础AI
+        basic_code = load_baseline_code("basic_player")
+        for i in range(1, 8):
+            if not i in player_codes:
+                player_codes[i] = basic_code
+
+    elif mode == "smart_test":
+        # 所有玩家使用智能AI
+        smart_code = load_baseline_code("smart_player")
+        for i in range(1, 8):
+            if not i in player_codes:
+                player_codes[i] = smart_code
+
+    elif mode == "mixed_test":
+        # 混合模式：一半基础AI，一半智能AI
+        basic_code = load_baseline_code("basic_player")
+        smart_code = load_baseline_code("smart_player")
+        import random
+        for i in range(1, 8):
+            if not i in player_codes:
+                player_codes[i] = smart_code if random.random(
+                ) <= 0.5 else basic_code
+
+    elif mode == "qualifying":  # <-- [等待匹配赛接入] ---
+        # 排位赛
+        pass
+
+    return player_codes
 
 
 def run_games(args):
@@ -77,100 +80,88 @@ def run_games(args):
     battle_manager = BattleManager()
 
     # 游戏结果统计
-    results_summary = {"blue_wins": 0, "red_wins": 0, "errors": 0}
+    results = {"blue_wins": 0, "red_wins": 0, "errors": 0}
     battle_ids = []
 
-    print(f"开始运行 {args.games} 场游戏")
+    print(f"开始运行 {args.games} 场游戏，模式: {args.mode}")
+
+    # 外部传入的玩家代码
+    if args.player_codes:
+        import json
+        with open(args.player_codes, "r") as f:
+            code_map = json.load(f)
+        player_codes = {}
+        for pid, filepath in code_map.items():
+            with open(filepath, "r") as f:
+                player_codes[int(pid)] = f.read()
+    else:
+        player_codes = {}
 
     # 创建并启动所有游戏
     for i in range(args.games):
-        print(f"\n--- 准备游戏 {i+1}/{args.games} ---")
-        # 1. 创建数据库 Battle 记录 (这里需要数据库操作)
-        # !!! 此处需要替换为实际的数据库创建逻辑 !!!
-        # participant_data = create_dummy_participant_data()
-        # battle = db_create_battle(participant_data, status="waiting")
-        # if not battle:
-        #     print(f"错误：无法在数据库中创建游戏 {i+1}")
-        #     results_summary["errors"] += 1
-        #     continue
-        # battle_id = battle.id
-        # print(f"数据库记录创建成功，Battle ID: {battle_id}")
-
-        # !!! 临时硬编码 Battle ID 和参与者数据用于测试，无数据库交互 !!!
-        battle_id = str(uuid.uuid4())  # 仅用于 BattleManager 内部跟踪
-        print(f"警告: 未创建数据库记录，使用临时 Battle ID: {battle_id}")
-        try:
-            participant_data = create_dummy_participant_data()
-        except ValueError as e:
-            print(f"错误: 无法创建参与者数据: {e}")
-            results_summary["errors"] += 1
-            continue
-        # 模拟数据库状态为 waiting
-        battle_manager.battle_status[battle_id] = "waiting"
-
-        # 2. 启动对战线程
-        print(f"尝试启动对战 {battle_id}...")
-        start_success = battle_manager.start_battle(battle_id, participant_data)
-
-        if start_success:
-            print(f"游戏 {i+1}/{args.games} 已启动，ID: {battle_id}")
-            battle_ids.append(battle_id)
-        else:
-            print(f"错误：启动游戏 {i+1} (ID: {battle_id}) 失败")
-            results_summary["errors"] += 1
-            # 状态可能已在 start_battle 内部被设为 error
+        player_codes = create_player_codes(args.mode, player_codes)
+        battle_id = battle_manager.create_battle(player_codes)
+        battle_ids.append(battle_id)
+        print(f"游戏 {i+1}/{args.games} 已启动，ID: {battle_id}")
 
     # 等待所有游戏完成
-    print("\n--- 等待所有游戏完成 ---")
     for i, battle_id in enumerate(battle_ids):
         print(f"等待游戏 {i+1}/{args.games} (ID: {battle_id}) 完成...")
 
-        # 轮询等待游戏完成
+        # 简单轮询等待游戏完成
         while True:
             status = battle_manager.get_battle_status(battle_id)
             if status in ["completed", "error"]:
-                print(f"游戏 {battle_id} 完成，状态: {status}")
                 break
-            time.sleep(1)  # 轮询间隔
+            time.sleep(0.5)
 
-        # 获取并打印快照 (可选)
-        # snapshots_queue = battle_manager.get_snapshots_queue(battle_id)
-        # print(f"游戏 {battle_id} 快照:")
-        # for snapshot in snapshots_queue:
-        #     print(snapshot)
+        snapshots_quene = battle_manager.get_snapshots_queue(battle_id)
+        for dict in snapshots_quene:
+            print(dict)
+        # List[Dict[str, Any]]消息队列，每个dict是一个快照
 
         # 获取游戏结果
         result = battle_manager.get_battle_result(battle_id)
-        print(f"游戏 {battle_id} 结果: {result}")
 
-        if result and "error" not in result:
-            winner = result.get("winner")  # 假设结果中有 'winner': 'blue' 或 'red'
-            if winner == "blue":
-                results_summary["blue_wins"] += 1
-            elif winner == "red":
-                results_summary["red_wins"] += 1
-            else:
-                print(f"警告: 游戏 {battle_id} 结果中未明确胜者")
-                results_summary["errors"] += 1  # 算作错误或未定
+        if "error" in result:
+            print(f"游戏 {i+1} 发生错误: {result['error']}")
+            results["errors"] += 1
         else:
-            results_summary["errors"] += 1
+            winner = result["winner"]
+            print(f"游戏 {i+1} 结果: {winner}方获胜")
 
-    # 打印最终统计
-    print("\n--- 所有游戏完成 ---")
-    print(f"总场数: {args.games}")
-    print(f"蓝方胜利: {results_summary['blue_wins']}")
-    print(f"红方胜利: {results_summary['red_wins']}")
-    print(f"错误/未定: {results_summary['errors']}")
+            if winner == "blue":
+                results["blue_wins"] += 1
+            else:
+                results["red_wins"] += 1
+
+            # 打印详细信息
+            print(f"  - 蓝队胜利: {result['blue_wins']} 轮")
+            print(f"  - 红队胜利: {result['red_wins']} 轮")
+            print(f"  - 角色分配: {result['roles']}")
+            print(f"  - 总共进行: {result['rounds_played']} 轮")
+
+    # 打印总结
+    print("\n=== 游戏结果总结 ===")
+    print(f"总场次: {args.games}")
+    print(
+        f"蓝队获胜: {results['blue_wins']} ({results['blue_wins']/args.games*100:.1f}%)")
+    print(
+        f"红队获胜: {results['red_wins']} ({results['red_wins']/args.games*100:.1f}%)")
+    print(f"错误场次: {results['errors']}")
 
 
 def main():
     """主函数"""
+    # 解析命令行参数
     args = parse_arguments()
+
+    # 设置环境
     setup_environment(args)
+
+    # 运行游戏
     run_games(args)
 
 
 if __name__ == "__main__":
-    # 确保 game 包在 Python 路径中
-    # sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     main()
