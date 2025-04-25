@@ -1,7 +1,17 @@
+# author: shihuaidexianyu (refactored by AI assistant)
+# date: 2025-04-25
+# status: done
+# description: 用户个人资料蓝图，包含用户资料和对战历史的路由。
+# 包含页面html: profile/profile.html, profile/battle_history.html
+
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from database.models import User, GameStats, Battle, db
-from database.action import get_user_battles
+from database.action import (
+    get_game_stats_by_user_id,
+    get_user_battle_history as db_get_user_battle_history,
+    get_user_by_username,
+)
 
 # 创建蓝图
 profile_bp = Blueprint("profile", __name__)
@@ -17,11 +27,16 @@ def profile(username=None):
             return redirect(url_for("auth.login"))
         user = current_user
     else:
-        # 查找指定用户名的用户
-        user = User.query.filter_by(username=username).first_or_404()
+        # 使用数据库函数查找用户
+        user = get_user_by_username(username)
+        if not user:
+            # 如果找不到用户，返回404错误
+            from flask import abort
 
-    # 查询用户的游戏统计数据
-    game_stats = GameStats.query.filter_by(user_id=user.id).first()
+            abort(404)
+
+    # 使用数据库函数查询用户的游戏统计数据
+    game_stats = get_game_stats_by_user_id(user.id)
 
     # 判断当前用户是否在查看自己的资料
     is_self = current_user.is_authenticated and current_user.id == user.id
@@ -29,7 +44,7 @@ def profile(username=None):
     return render_template(
         "profile/profile.html",
         user=user,
-        game_stats=game_stats,  # 现在是单个对象，不是列表
+        game_stats=game_stats,
         is_self=is_self,
     )
 
@@ -41,11 +56,11 @@ def battle_history():
     page = request.args.get("page", 1, type=int)
     per_page = 10
 
-    # 获取用户的对战记录
-    from database.action import get_user_battles
+    # 使用正确的数据库函数获取用户的对战记录 (此部分已在之前修改过，保持不变)
+    # from database.action import get_user_battle_history as db_get_user_battle_history # 移到文件顶部
 
-    battles, total = get_user_battles(
-        current_user.id, page=page, per_page=per_page, paginate=True
+    battles, total = db_get_user_battle_history(
+        current_user.id, page=page, per_page=per_page
     )
 
     # 计算总页数
@@ -54,7 +69,7 @@ def battle_history():
     return render_template(
         "profile/battle_history.html",
         battles=battles,
-        page=page,
-        total_pages=total,
+        current_page=page,
+        total_pages=total_pages,
         total_battles=total,
     )

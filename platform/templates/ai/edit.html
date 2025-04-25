@@ -1,20 +1,37 @@
 {% extends "base.html" %}
 {% block title %}
-  编辑AI代码 - 游戏平台
+  编辑AI代码 - {{ ai_code.name }}
 {% endblock title %}
 {% block content %}
-  <div class="container mt-5">
+  <div class="container mt-4">
     <div class="row justify-content-center">
       <div class="col-md-8">
-        <div class="card shadow">
+        <div class="card shadow-sm">
           <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">编辑AI代码</h4>
+            <h4 class="mb-0">编辑AI代码信息</h4>
           </div>
           <div class="card-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="alert alert-{{ category }} alert-dismissible fade show"
+                       role="alert">
+                    {{ message }}
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="alert"
+                            aria-label="Close"></button>
+                  </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
             <form method="post">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              {# 如果启用了CSRF #}
               <div class="mb-3">
-                <label for="name" class="form-label">AI名称</label>
+                <label for="name" class="form-label">
+                  AI名称 <span class="text-danger">*</span>
+                </label>
                 <input type="text"
                        class="form-control"
                        id="name"
@@ -23,22 +40,38 @@
                        required>
               </div>
               <div class="mb-3">
-                <label for="description" class="form-label">描述（可选）</label>
-                <textarea class="form-control" id="description" name="description" rows="3">{{ ai_code.description }}</textarea>
+                <label for="description" class="form-label">描述 (可选)</label>
+                <textarea class="form-control" id="description" name="description" rows="3">{{ ai_code.description | default('', true) }}</textarea>
               </div>
-              {% if not ai_code.is_active %}
-                <div class="mb-3 form-check">
-                  <input type="checkbox"
-                         class="form-check-input"
-                         id="make_active"
-                         name="make_active">
-                  <label class="form-check-label" for="make_active">设为当前活跃AI</label>
-                  <div class="form-text">如果选中，该AI将被用于自动对战</div>
-                </div>
-              {% endif %}
-              <div class="d-grid gap-2">
-                <button type="submit" class="btn btn-primary">保存更改</button>
+              <div class="mb-3">
+                <label class="form-label">文件名</label>
+                <input type="text"
+                       class="form-control"
+                       value="{{ ai_code.code_path.split('/')[-1] }}"
+                       disabled
+                       readonly>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">上传时间</label>
+                <input type="text"
+                       class="form-control"
+                       value="{{ ai_code.uploaded_at.strftime('%Y-%m-%d %H:%M:%S') }}"
+                       disabled
+                       readonly>
+              </div>
+              <div class="form-check mb-3">
+                <input class="form-check-input"
+                       type="checkbox"
+                       id="make_active"
+                       name="make_active"
+                       {% if ai_code.is_active %}checked{% endif %}>
+                <label class="form-check-label" for="make_active">设为当前活跃AI</label>
+              </div>
+              <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                 <a href="{{ url_for('ai.list_ai') }}" class="btn btn-outline-secondary">取消</a>
+                <button type="submit" class="btn btn-primary">
+                  <i class="bi bi-save me-1"></i> 保存更改
+                </button>
               </div>
             </form>
           </div>

@@ -1,3 +1,10 @@
+# author: shihuaidexianyu (refactored by AI assistant)
+# date: 2025-04-25
+# status: need to be modified
+# description: 用于用户认证的蓝图，包含登录、注册和登出功能。
+# 该蓝图使用 Flask-WTF 表单处理库来处理用户输入，并使用 Flask-Login 来管理用户会话。
+
+
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf import FlaskForm

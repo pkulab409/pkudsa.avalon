@@ -1,55 +1,53 @@
-{# filepath: /home/eric/platform/templates/index.html #}
 {% extends "base.html" %}
 {% block title %}
-  首页 - 游戏平台
+  首页 - 阿瓦隆AI对战平台
 {% endblock title %}
 {% block content %}
   <div class="container mt-5">
-    <div class="row justify-content-center">
-      <div class="col-md-10">
-        <div class="card shadow-lg">
-          <div class="card-body p-5">
-            <h1 class="display-4 text-center mb-4">欢迎来到游戏平台！</h1>
-            <p class="lead text-center mb-5">在这里，你可以找到各种有趣的游戏，与全球玩家一较高下。</p>
-            <div class="row text-center">
-              <div class="col-md-4 mb-4">
-                <div class="card h-100 border-primary">
-                  <div class="card-body">
-                    <i class="bi bi-controller display-3 text-primary mb-3"></i>
-                    <h5 class="card-title">游戏大厅</h5>
-                    <p class="card-text">浏览可用的游戏房间或创建你自己的房间。</p>
-                    <a href="{{ url_for('lobby.lobby') }}" class="btn btn-primary">进入大厅</a>
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-4 mb-4">
-                <div class="card h-100 border-success">
-                  <div class="card-body">
-                    <i class="bi bi-trophy display-3 text-success mb-3"></i>
-                    <h5 class="card-title">排行榜</h5>
-                    <p class="card-text">查看顶尖玩家的排名和你的战绩。</p>
-                    <a href="{{ url_for('ranking.show_ranking') }}" class="btn btn-success">查看排名</a>
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-4 mb-4">
-                <div class="card h-100 border-info">
-                  <div class="card-body">
-                    <i class="bi bi-person-circle display-3 text-info mb-3"></i>
-                    <h5 class="card-title">个人中心</h5>
-                    <p class="card-text">管理你的个人资料和游戏设置。</p>
-                    {% if current_user.is_authenticated %}
-                      <a href="{{ url_for('profile.profile') }}" class="btn btn-info">我的中心</a>
-                    {% else %}
-                      <a href="{{ url_for('auth.login') }}" class="btn btn-info">登录/注册</a>
-                    {% endif %}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+    <div class="p-5 mb-4 bg-light rounded-3 shadow-sm">
+      <div class="container-fluid py-5">
+        <h1 class="display-5 fw-bold">欢迎来到阿瓦隆AI对战平台</h1>
+        <p class="col-md-8 fs-4">在这里，你可以上传、测试和对战你的阿瓦隆AI，与他人一较高下。</p>
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('game.lobby') }}"
+             class="btn btn-primary btn-lg me-2"
+             type="button">进入游戏大厅</a>
+          <a href="{{ url_for('ai.list_ai') }}"
+             class="btn btn-outline-secondary btn-lg"
+             type="button">管理我的AI</a>
+        {% else %}
+          <a href="{{ url_for('auth.login') }}"
+             class="btn btn-primary btn-lg me-2"
+             type="button">登录</a>
+          <a href="{{ url_for('auth.register') }}"
+             class="btn btn-success btn-lg"
+             type="button">注册</a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="row align-items-md-stretch">
+      <div class="col-md-6 mb-4">
+        <div class="h-100 p-5 text-white bg-dark rounded-3 shadow">
+          <h2>排行榜</h2>
+          <p>查看顶尖玩家和他们的AI表现，了解当前战力格局。</p>
+          <a href="{{ url_for('ranking.show_ranking') }}"
+             class="btn btn-outline-light"
+             type="button">查看排行榜</a>
+        </div>
+      </div>
+      <div class="col-md-6 mb-4">
+        <div class="h-100 p-5 bg-light border rounded-3 shadow">
+          <h2>对局可视化</h2>
+          <p>上传或查看已完成的对局，通过可视化界面复盘精彩瞬间。</p>
+          <a href="{{ url_for('visualizer.upload_game_json') }}"
+             class="btn btn-outline-secondary me-2"
+             type="button">上传对局JSON</a>
+          <a href="{{ url_for('visualizer.game_replay', game_id='example') }}"
+             class="btn btn-outline-secondary"
+             type="button">查看示例回放</a>
         </div>
       </div>
     </div>
+    <!-- 可以添加更多介绍性内容或平台新闻 -->
   </div>
 {% endblock content %}

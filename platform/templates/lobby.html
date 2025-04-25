@@ -3,188 +3,74 @@
   游戏大厅 - 游戏平台
 {% endblock title %}
 {% block content %}
-  <div class="container mt-5">
-    <div class="row">
-      <div class="col-md-8">
-        <div class="card shadow mb-4">
-          <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">可用房间</h4>
-            <button type="button" class="btn btn-light btn-sm" id="createRoomBtn">
-              <i class="bi bi-plus-circle"></i> 创建房间
-            </button>
-          </div>
-          <div class="card-body">
-            <div class="table-responsive">
-              <table class="table table-hover" id="roomsTable">
-                <thead>
+  <div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2>游戏大厅</h2>
+      <a href="{{ url_for('game.create_battle_page') }}"
+         class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i> 创建对战
+      </a>
+    </div>
+    <div class="card shadow-sm">
+      <div class="card-header">
+        <h5 class="mb-0">最近对战</h5>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th scope="col">对战ID</th>
+                <th scope="col">状态</th>
+                <th scope="col">创建时间</th>
+                <th scope="col">结束时间</th>
+                <th scope="col">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if recent_battles %}
+                {% for battle in recent_battles %}
                   <tr>
-                    <th>房间名称</th>
-                    <th>房主</th>
-                    <th>人数</th>
-                    <th>创建时间</th>
-                    <th>操作</th>
+                    <td>
+                      <a href="{{ url_for('game.view_battle', battle_id=battle.id) }}">{{ battle.id[:8] }}...</a>
+                    </td>
+                    <td>
+                      {% if battle.status == 'completed' %}
+                        <span class="badge bg-success">已完成</span>
+                      {% elif battle.status == 'playing' %}
+                        <span class="badge bg-info">进行中</span>
+                      {% elif battle.status == 'waiting' %}
+                        <span class="badge bg-warning text-dark">等待中</span>
+                      {% elif battle.status == 'error' %}
+                        <span class="badge bg-danger">错误</span>
+                      {% elif battle.status == 'cancelled' %}
+                        <span class="badge bg-secondary">已取消</span>
+                      {% else %}
+                        <span class="badge bg-light text-dark">{{ battle.status }}</span>
+                      {% endif %}
+                    </td>
+                    <td>{{ battle.created_at.strftime("%Y-%m-%d %H:%M") if battle.created_at else '-' }}</td>
+                    <td>{{ battle.ended_at.strftime("%Y-%m-%d %H:%M") if battle.ended_at else '-' }}</td>
+                    <td>
+                      <a href="{{ url_for('game.view_battle', battle_id=battle.id) }}"
+                         class="btn btn-sm btn-outline-primary">查看详情</a>
+                      {% if battle.status == 'completed' %}
+                        <a href="{{ url_for('visualizer.game_replay', game_id=battle.id) }}"
+                           class="btn btn-sm btn-outline-info">查看回放</a>
+                      {% endif %}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {% if active_rooms %}
-                    {% for room in active_rooms %}
-                      <tr>
-                        <td>{{ room.room_name }}</td>
-                        <td>{{ room.host_name }}</td>
-                        <td>{{ room.current_players }}/{{ room.max_players }}</td>
-                        <td>{{ room.created_time }}</td>
-                        <td>
-                          <button class="btn btn-primary btn-sm join-room-btn"
-                                  data-room-id="{{ room.room_id }}">加入</button>
-                        </td>
-                      </tr>
-                    {% endfor %}
-                  {% else %}
-                    <tr>
-                      <td colspan="5" class="text-center">当前没有可用房间，点击"创建房间"创建一个新房间吧！</td>
-                    </tr>
-                  {% endif %}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="card shadow mb-4">
-          <div class="card-header bg-success text-white">
-            <h4 class="mb-0">游戏信息</h4>
-          </div>
-          <div class="card-body">
-            <p>在游戏大厅，您可以：</p>
-            <ul>
-              <li>查看所有可用的游戏房间</li>
-              <li>创建自己的游戏房间</li>
-              <li>加入其他玩家的房间</li>
-            </ul>
-          </div>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="5" class="text-center text-muted">暂无最近对战记录</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
+    <!-- 可以添加进行中/等待中对战列表 -->
   </div>
-  <!-- 删除创建房间模态框 -->
-  <!-- 保留加入房间状态模态框 -->
-  <div class="modal fade"
-       id="joinRoomModal"
-       tabindex="-1"
-       aria-hidden="true">
-    <div class="modal-dialog modal-sm">
-      <div class="modal-content">
-        <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title">加入房间</h5>
-          <button type="button"
-                  class="btn-close btn-close-white"
-                  data-bs-dismiss="modal"
-                  aria-label="Close"></button>
-        </div>
-        <div class="modal-body text-center">
-          <div class="spinner-border text-primary mb-3" role="status">
-            <span class="visually-hidden">加载中...</span>
-          </div>
-          <p id="joinRoomStatus">正在加入房间...</p>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- JavaScript -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // 修改创建房间按钮逻辑，直接发送请求
-        document.getElementById('createRoomBtn').addEventListener('click', function () {
-            // 显示加载提示
-            const loadingModal = new bootstrap.Modal(document.getElementById('joinRoomModal'));
-            loadingModal.show();
-            document.getElementById('joinRoomStatus').textContent = '正在创建房间...';
-            
-            fetch('/lobby/create_room', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token() }}'
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('joinRoomStatus').textContent = '房间创建成功，正在进入...';
-                    window.location.href = `/game/room/${data.room_id}`;  // 直接跳转到游戏房间
-                } else {
-                    document.getElementById('joinRoomStatus').textContent = '创建房间失败: ' + data.message;
-                    setTimeout(() => {
-                        loadingModal.hide();
-                    }, 2000);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                document.getElementById('joinRoomStatus').textContent = '创建房间时发生错误';
-                setTimeout(() => {
-                    loadingModal.hide();
-                }, 2000);
-            });
-        });
-
-        // 保留加入房间的逻辑
-        document.querySelectorAll('.join-room-btn').forEach(button => {
-            button.addEventListener('click', function () {
-                const roomId = this.getAttribute('data-room-id');
-                const joinModal = new bootstrap.Modal(document.getElementById('joinRoomModal'));
-                joinModal.show();
-
-                fetch(`/lobby/join_room/${roomId}`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': '{{ csrf_token() }}'
-                    }
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            document.getElementById('joinRoomStatus').textContent = data.message;
-                            setTimeout(() => {
-                                // 修改这里，直接跳转到游戏房间页面
-                                window.location.href = `/game/room/${roomId}`;
-                            }, 1500);
-                        } else {
-                            document.getElementById('joinRoomStatus').textContent = '加入失败: ' + data.message;
-                            setTimeout(() => {
-                                joinModal.hide();
-                            }, 2000);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        document.getElementById('joinRoomStatus').textContent = '加入房间时发生错误';
-                        setTimeout(() => {
-                            joinModal.hide();
-                        }, 2000);
-                    });
-            });
-        });
-
-        // 定时刷新房间列表
-        setInterval(function () {
-            fetch('/lobby/rooms')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // 此处可以实现动态更新房间列表
-                        // 为简化起见，这里不实现完整功能
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
-        }, 10000);
-    });
-  </script>
 {% endblock content %}

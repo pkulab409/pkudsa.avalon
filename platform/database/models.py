@@ -1,7 +1,7 @@
 # author: shihuaidexianyu
 # date: 2025-04-24
 # status: developing
-# description: 数据库模型定义
+# description: Database models
 
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash

@@ -21,8 +21,11 @@ import importlib.util
 from io import StringIO
 from contextlib import redirect_stdout, redirect_stderr
 from datetime import datetime
-from observer import Observer
-from avalon_game_helper import INIT_PRIVA_LOG_DICT
+from .observer import Observer
+from .avalon_game_helper import (
+    INIT_PRIVA_LOG_DICT,
+    set_current_context,
+)  # 确保导入 set_current_context
 
 # 配置日志
 logging.basicConfig(
@@ -32,16 +35,6 @@ logger = logging.getLogger("Referee")
 
 # 导入辅助模块
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# 确保导入成功
-try:
-    from game.avalon_game_helper import set_current_context
-except ImportError:
-    logger.error("Failed to import set_current_context from game.avalon_game_helper")
-
-    # 可以选择退出或提供默认实现
-    def set_current_context(player_id: int, game_id: str):
-        pass  # 空实现或记录错误
-
 
 # 角色常量
 BLUE_ROLES = ["Merlin", "Percival", "Knight"]  # 蓝方角色
@@ -66,7 +59,13 @@ HEARING_RANGE = {  # 听力范围（中心格周围的方格数）
 
 
 class AvalonReferee:
-    def __init__(self, game_id: str, battle_observer: Observer, data_dir: str = "./data"):
+    def __init__(
+        self,
+        game_id: str,
+        battle_observer: Observer,
+        data_dir: str = "./data",
+        player_code_paths: Dict[int, str] = None,  # 添加 player_code_paths 参数
+    ):
         self.game_id = game_id
         self.data_dir = data_dir
         self.players = {}  # 玩家对象字典 {1: player1, 2: player2, ...}
@@ -92,6 +91,15 @@ class AvalonReferee:
         # Observer实例
         self.battle_observer = battle_observer
 
+        # 加载玩家代码
+        if player_code_paths:
+            self._load_and_instantiate_players(player_code_paths)
+        else:
+            logger.error(
+                f"Game {game_id}: No player code paths provided during initialization."
+            )
+            # 可能需要抛出异常或设置错误状态
+
     def init_logs(self):
         """初始化游戏日志"""
         logger.info(f"Initializing logs for game {self.game_id}")
@@ -111,64 +119,82 @@ class AvalonReferee:
                 json.dump(INIT_PRIVA_LOG_DICT, f)
         logger.info(f"Public and private log files initialized in {self.data_dir}")
 
-    def _load_codes(self, player_codes):
-        player_modules = {}
-        
-        for player_id, code_content in player_codes.items():
-            # 创建唯一模块名
-            module_name = f"player_{player_id}_module_{int(time.time()*1000)}"
-            logger.info(f"为玩家 {player_id} 创建模块: {module_name}")
-            
+    def _load_and_instantiate_players(self, player_code_paths: Dict[int, str]):
+        """从文件路径加载、执行并实例化玩家代码"""
+        logger.info(f"Loading player codes for game {self.game_id}...")
+        loaded_count = 0
+        for player_id, code_path in player_code_paths.items():
+            module_name = (
+                f"player_{player_id}_game_{self.game_id}_{int(time.time()*1000)}"
+            )
+            logger.info(
+                f"Loading code for Player {player_id} from {code_path} into module {module_name}"
+            )
+
             try:
+                # 检查文件是否存在
+                if not os.path.exists(code_path):
+                    logger.error(
+                        f"Code file not found for Player {player_id}: {code_path}"
+                    )
+                    continue
+
+                # 读取代码内容
+                with open(code_path, "r", encoding="utf-8") as f:
+                    code_content = f.read()
+
                 # 创建模块规范
                 spec = importlib.util.spec_from_loader(module_name, loader=None)
                 if spec is None:
-                    logger.error(f"为 {module_name} 创建规范失败")
+                    logger.error(f"Failed to create spec for module {module_name}")
                     continue
-                    
+
                 # 从规范创建模块
                 module = importlib.util.module_from_spec(spec)
                 sys.modules[module_name] = module  # 注册模块
-                
-                # 执行代码
+
+                # 执行代码内容
                 exec(code_content, module.__dict__)
-                
+
                 # 检查Player类是否存在
                 if not hasattr(module, "Player"):
-                    logger.error(f"玩家 {player_id} 的代码已执行但未找到 'Player' 类")
+                    logger.error(
+                        f"Player class not found in code for Player {player_id} ({code_path})"
+                    )
                     continue
-                
-                # 存储模块
-                player_modules[player_id] = module
-                logger.info(f"玩家 {player_id} 代码加载成功")
-                
-            except Exception as e:
-                logger.error(f"加载玩家 {player_id} 代码时出错: {str(e)}")
-                traceback.print_exc()
-        
-        return player_modules
 
-    def load_player_codes(self, player_modules: Dict[int, Any]):
-        """
-        加载玩家代码模块
-        player_modules: {1: module1, 2: module2, ...}
-        """
-        logger.info(f"Loading player code for {len(player_modules)} players.")
-        for player_id, module in player_modules.items():
-            try:
                 # 实例化Player类
-                player_instance = module.Player()
+                # 传递 player_id 和 game_id 给 Player 构造函数 (如果需要)
+                # player_instance = module.Player(player_id=player_id, game_id=self.game_id)
+                player_instance = module.Player()  # 假设 Player 不需要参数
                 self.players[player_id] = player_instance
-                # 设置玩家编号
-                self.safe_execute(player_id, "set_player_index", player_id)
-                logger.info(f"Player {player_id} code loaded and instance created.")
+                logger.info(f"Successfully loaded and instantiated Player {player_id}")
+                loaded_count += 1
+
             except Exception as e:
-                logger.error(f"Error loading player {player_id} code: {str(e)}")
-                traceback.print_exc()
-                # Consider how to handle player load failure - maybe replace with a default bot?
+                logger.error(
+                    f"Error loading/instantiating code for Player {player_id} from {code_path}: {str(e)}",
+                    exc_info=True,
+                )
+
+        if loaded_count != PLAYER_COUNT:
+            logger.error(
+                f"Failed to load all players for game {self.game_id}. Expected {PLAYER_COUNT}, loaded {loaded_count}."
+            )
+            # 根据需要处理加载不完整的情况，例如抛出异常
+            # raise RuntimeError(f"Failed to load all players for game {self.game_id}")
 
     def init_game(self):
         """初始化游戏：分配角色、初始化地图"""
+        # 确保玩家已加载
+        if len(self.players) != PLAYER_COUNT:
+            logger.error(
+                f"Cannot init_game {self.game_id}: Not all players were loaded ({len(self.players)}/{PLAYER_COUNT})."
+            )
+            raise RuntimeError(
+                f"Cannot initialize game {self.game_id}: Players not loaded correctly."
+            )
+
         logger.info("Initializing game: Assigning roles and map.")
         # 随机分配角色
         all_roles = BLUE_ROLES.copy()
@@ -270,8 +296,8 @@ class AvalonReferee:
 
         # 记录夜晚阶段完成
         self.log_public_event({"type": "night_phase_complete"})
-        logger.info("Night Phase complete.") 
-        self.battle_observer.make_snapshot('referee', 'night')
+        logger.info("Night Phase complete.")
+        self.battle_observer.make_snapshot("referee", "night")
 
     def run_mission_round(self):
         """执行一轮任务"""
@@ -302,7 +328,9 @@ class AvalonReferee:
 
             # 1. 队长选择队员
             logger.info(f"Leader {self.leader_index} is proposing a team.")
-            self.battle_observer.make_snapshot('referee', f"Leader {self.leader_index} is proposing a team.")
+            self.battle_observer.make_snapshot(
+                "referee", f"Leader {self.leader_index} is proposing a team."
+            )
             mission_members = self.safe_execute(
                 self.leader_index, "decide_mission_member", member_count
             )
@@ -365,8 +393,9 @@ class AvalonReferee:
                     )
 
                 self.battle_observer.make_snapshot(  # snapshot
-                        'referee',
-                        f"Leader {self.leader_index} proposed team: {mission_members}")
+                    "referee",
+                    f"Leader {self.leader_index} proposed team: {mission_members}",
+                )
 
             # 通知所有玩家队伍组成
             logger.debug("Notifying all players of the proposed team.")
@@ -389,42 +418,54 @@ class AvalonReferee:
 
             # 2. 第一轮发言（全图广播）
             logger.info("Starting Global Speech phase.")
-            self.battle_observer.make_snapshot('referee', "Starting Global Speech phase.")
+            self.battle_observer.make_snapshot(
+                "referee", "Starting Global Speech phase."
+            )
             self.conduct_global_speech()
 
             # 3. 玩家移动
             logger.info("Starting Movement phase.")
-            self.battle_observer.make_snapshot('referee', "Starting Movement phase.")
+            self.battle_observer.make_snapshot("referee", "Starting Movement phase.")
             self.conduct_movement()
 
             # 4. 第二轮发言（有限听力范围）
             logger.info("Starting Limited Speech phase.")
-            self.battle_observer.make_snapshot('referee', "Starting Limited Speech phase.")
+            self.battle_observer.make_snapshot(
+                "referee", "Starting Limited Speech phase."
+            )
             self.conduct_limited_speech()
 
             # 5. 公投表决
             logger.info("Starting Public Vote phase.")
-            self.battle_observer.make_snapshot('referee', "Starting Public Vote phase.")
+            self.battle_observer.make_snapshot("referee", "Starting Public Vote phase.")
             approve_votes = self.conduct_public_vote(mission_members)
             logger.info(
                 f"Public vote result: {approve_votes} Approve vs {PLAYER_COUNT - approve_votes} Reject."
             )
-            self.battle_observer.make_snapshot('referee', f"Public vote result: {approve_votes} Approve vs {PLAYER_COUNT - approve_votes} Reject.")
+            self.battle_observer.make_snapshot(
+                "referee",
+                f"Public vote result: {approve_votes} Approve vs {PLAYER_COUNT - approve_votes} Reject.",
+            )
 
             if approve_votes >= (PLAYER_COUNT // 2 + 1):  # 过半数同意
                 logger.info("Team Approved. Executing mission.")
-                self.battle_observer.make_snapshot('referee',"Team Approved. Executing mission.")
+                self.battle_observer.make_snapshot(
+                    "referee", "Team Approved. Executing mission."
+                )
                 # 执行任务
                 mission_success = self.execute_mission(mission_members)
                 break  # Exit vote loop
             else:
                 logger.info("Team Rejected.")
-                self.battle_observer.make_snapshot('referee',"Team Rejected.")
+                self.battle_observer.make_snapshot("referee", "Team Rejected.")
                 # 否决，更换队长
                 old_leader = self.leader_index
                 self.leader_index = self.leader_index % PLAYER_COUNT + 1
                 logger.info(f"Leader changed from {old_leader} to {self.leader_index}.")
-                self.battle_observer.make_snapshot('referee',f"Leader changed from {old_leader} to {self.leader_index}.")
+                self.battle_observer.make_snapshot(
+                    "referee",
+                    f"Leader changed from {old_leader} to {self.leader_index}.",
+                )
 
                 # 记录否决
                 self.log_public_event(
@@ -442,7 +483,10 @@ class AvalonReferee:
                     logger.warning(
                         "Maximum vote rounds reached. Forcing mission execution with last proposed team."
                     )
-                    self.battle_observer.make_snapshot('referee',"Maximum vote rounds reached. Forcing mission execution with last proposed team.")
+                    self.battle_observer.make_snapshot(
+                        "referee",
+                        "Maximum vote rounds reached. Forcing mission execution with last proposed team.",
+                    )
                     self.log_public_event(
                         {"type": "consecutive_rejections", "round": self.current_round}
                     )
@@ -454,7 +498,10 @@ class AvalonReferee:
         logger.info(
             f"Mission {self.current_round} Result: {'Success' if mission_success else 'Fail'}"
         )
-        self.battle_observer.make_snapshot('referee',f"Mission {self.current_round} Result: {'Success' if mission_success else 'Fail'}")
+        self.battle_observer.make_snapshot(
+            "referee",
+            f"Mission {self.current_round} Result: {'Success' if mission_success else 'Fail'}",
+        )
         self.mission_results.append(mission_success)
 
         if mission_success:
@@ -480,7 +527,9 @@ class AvalonReferee:
                 }
             )
         logger.info(f"Score: Blue {self.blue_wins} - Red {self.red_wins}")
-        self.battle_observer.make_snapshot('referee',f"Score: Blue {self.blue_wins} - Red {self.red_wins}")
+        self.battle_observer.make_snapshot(
+            "referee", f"Score: Blue {self.blue_wins} - Red {self.red_wins}"
+        )
 
         # 更新队长 (Moved outside the loop, happens once per mission round end)
         # self.leader_index = self.leader_index % PLAYER_COUNT + 1 # Already updated on rejection, needs careful thought if approved
@@ -491,7 +540,9 @@ class AvalonReferee:
             f"Leader for next round will be {self.leader_index} (previous was {old_leader_for_next_round})"
         )
         logger.info(f"--- End of Mission Round {self.current_round} ---")
-        self.battle_observer.make_snapshot('referee',f"--- End of Mission Round {self.current_round} ---")
+        self.battle_observer.make_snapshot(
+            "referee", f"--- End of Mission Round {self.current_round} ---"
+        )
 
     def random_select_members(self, member_count: int) -> List[int]:
         """随机选择指定数量的队员"""
@@ -524,7 +575,10 @@ class AvalonReferee:
             logger.info(
                 f"Global Speech - Player {player_id}: {speech[:100]}{'...' if len(speech) > 100 else ''}"
             )
-            self.battle_observer.make_snapshot(f"player{player_id}", f"{speech[:100]}{'...' if len(speech) > 100 else ''}")
+            self.battle_observer.make_snapshot(
+                f"player{player_id}",
+                f"{speech[:100]}{'...' if len(speech) > 100 else ''}",
+            )
             speeches.append((player_id, speech))
 
             # 通知所有玩家发言内容
@@ -538,7 +592,7 @@ class AvalonReferee:
             {"type": "global_speech", "round": self.current_round, "speeches": speeches}
         )
         logger.info("Global Speech phase complete.")
-        self.battle_observer.make_snapshot("referee","Global Speech phase complete.")
+        self.battle_observer.make_snapshot("referee", "Global Speech phase complete.")
 
     def conduct_movement(self):
         """执行玩家移动"""
@@ -678,7 +732,10 @@ class AvalonReferee:
             logger.info(
                 f"Limited Speech - Player {speaker_id}: {speech[:100]}{'...' if len(speech) > 100 else ''}"
             )
-            self.battle_observer.make_snapshot(f"player{speaker_id}",f"{speech[:100]}{'...' if len(speech) > 100 else ''}")
+            self.battle_observer.make_snapshot(
+                f"player{speaker_id}",
+                f"{speech[:100]}{'...' if len(speech) > 100 else ''}",
+            )
             speeches.append((speaker_id, speech))
 
             # 确定能听到的玩家
@@ -743,7 +800,9 @@ class AvalonReferee:
             logger.debug(
                 f"Public Vote - Player {player_id}: {'Approve' if vote else 'Reject'}"
             )
-            self.battle_observer.make_snapshot(f"player{player_id}", f"{'Approve' if vote else 'Reject'}")
+            self.battle_observer.make_snapshot(
+                f"player{player_id}", f"{'Approve' if vote else 'Reject'}"
+            )
 
         # 统计支持票
         approve_count = sum(1 for v in votes.values() if v)
@@ -774,7 +833,10 @@ class AvalonReferee:
         logger.info(
             f"Executing Mission {self.current_round} with members: {mission_members}"
         )
-        self.battle_observer.make_snapshot("referee", f"Executing Mission {self.current_round} with members: {mission_members}")
+        self.battle_observer.make_snapshot(
+            "referee",
+            f"Executing Mission {self.current_round} with members: {mission_members}",
+        )
         logger.debug("Requesting mission execution votes (vote2).")
 
         for player_id in mission_members:
@@ -809,7 +871,10 @@ class AvalonReferee:
         logger.info(
             f"Mission Execution: {fail_votes} Fail votes submitted. Required fails for failure: {required_fails}. Result: {'Success' if mission_success else 'Fail'}"
         )
-        self.battle_observer.make_snapshot("referee", f"Mission Execution: {fail_votes} Fail votes submitted. Required fails for failure: {required_fails}. Result: {'Success' if mission_success else 'Fail'}")
+        self.battle_observer.make_snapshot(
+            "referee",
+            f"Mission Execution: {fail_votes} Fail votes submitted. Required fails for failure: {required_fails}. Result: {'Success' if mission_success else 'Fail'}",
+        )
         # 记录任务执行结果（匿名）
         self.log_public_event(
             {
@@ -827,7 +892,9 @@ class AvalonReferee:
         刺杀阶段，返回刺杀是否成功（刺中梅林）
         """
         logger.info("--- Starting Assassination Phase ---")
-        self.battle_observer.make_snapshot("referee","--- Starting Assassination Phase ---")
+        self.battle_observer.make_snapshot(
+            "referee", "--- Starting Assassination Phase ---"
+        )
         # 找到刺客
         assassin_id = None
         for player_id, role in self.roles.items():
@@ -840,7 +907,7 @@ class AvalonReferee:
             return False  # Cannot assassinate without an assassin
 
         logger.info(f"Assassin (Player {assassin_id}) is choosing a target.")
-        self.battle_observer.make_snapshot(f"player{assassin_id}","choosing a target.")
+        self.battle_observer.make_snapshot(f"player{assassin_id}", "choosing a target.")
         # 刺客选择目标
         target_id = self.safe_execute(assassin_id, "assass")
         logger.debug(f"Assassin {assassin_id} chose target: {target_id}")
@@ -889,7 +956,10 @@ class AvalonReferee:
         logger.info(
             f"Assassination: Player {assassin_id} targeted Player {target_id} ({target_role}). Result: {'Success' if success else 'Fail'}"
         )
-        self.battle_observer.make_snapshot(f"player{assassin_id}",f"Assassination: Player {assassin_id} targeted Player {target_id} ({target_role}). Result: {'Success' if success else 'Fail'}")
+        self.battle_observer.make_snapshot(
+            f"player{assassin_id}",
+            f"Assassination: Player {assassin_id} targeted Player {target_id} ({target_role}). Result: {'Success' if success else 'Fail'}",
+        )
 
         # 记录刺杀结果
         self.log_public_event(
@@ -926,11 +996,14 @@ class AvalonReferee:
 
             # 游戏结束判定
             logger.info("===== Game Over =====")
-            self.battle_observer.make_snapshot('referee','===== Game Over =====')
+            self.battle_observer.make_snapshot("referee", "===== Game Over =====")
             logger.info(
                 f"Final Score: Blue {self.blue_wins} - Red {self.red_wins} after {self.current_round} rounds."
             )
-            self.battle_observer.make_snapshot('referee',f"Final Score: Blue {self.blue_wins} - Red {self.red_wins} after {self.current_round} rounds.")
+            self.battle_observer.make_snapshot(
+                "referee",
+                f"Final Score: Blue {self.blue_wins} - Red {self.red_wins} after {self.current_round} rounds.",
+            )
 
             game_result = {
                 "blue_wins": self.blue_wins,
@@ -947,7 +1020,10 @@ class AvalonReferee:
                 logger.info(
                     "Blue team completed 3 missions. Proceeding to assassination."
                 )
-                self.battle_observer.make_snapshot('referee',"Blue team completed 3 missions. Proceeding to assassination.")
+                self.battle_observer.make_snapshot(
+                    "referee",
+                    "Blue team completed 3 missions. Proceeding to assassination.",
+                )
                 assassination_success = self.assassinate_phase()
 
                 if assassination_success:
@@ -955,7 +1031,9 @@ class AvalonReferee:
                     game_result["winner"] = "red"
                     game_result["win_reason"] = "assassination_success"
                     logger.info("Game Result: Red wins (Assassination Success)")
-                    self.battle_observer.make_snapshot('referee',"Game Result: Red wins (Assassination Success)")
+                    self.battle_observer.make_snapshot(
+                        "referee", "Game Result: Red wins (Assassination Success)"
+                    )
                 else:
                     # 刺杀失败，蓝方胜利
                     game_result["winner"] = "blue"
@@ -963,26 +1041,36 @@ class AvalonReferee:
                         "missions_complete_and_assassination_failed"
                     )
                     logger.info("Game Result: Blue wins (Assassination Failed)")
-                    self.battle_observer.make_snapshot('referee',"Game Result: Blue wins (Assassination Failed)")
+                    self.battle_observer.make_snapshot(
+                        "referee", "Game Result: Blue wins (Assassination Failed)"
+                    )
             elif self.red_wins >= 3:
                 # 红方直接胜利（3轮任务失败）
                 game_result["winner"] = "red"
                 game_result["win_reason"] = "missions_failed"
                 logger.info("Game Result: Red wins (3 Failed Missions)")
-                self.battle_observer.make_snapshot('referee',"Game Result: Red wins (3 Failed Missions)")
+                self.battle_observer.make_snapshot(
+                    "referee", "Game Result: Red wins (3 Failed Missions)"
+                )
             else:
                 # 达到最大轮数，根据胜利次数判定
                 logger.warning(
                     f"Max rounds ({MAX_MISSION_ROUNDS}) reached without 3 wins for either team."
                 )
-                self.battle_observer.make_snapshot('referee',f"Max rounds ({MAX_MISSION_ROUNDS}) reached without 3 wins for either team.")
+                self.battle_observer.make_snapshot(
+                    "referee",
+                    f"Max rounds ({MAX_MISSION_ROUNDS}) reached without 3 wins for either team.",
+                )
                 if self.blue_wins > self.red_wins:
                     game_result["winner"] = "blue"
                     game_result["win_reason"] = "more_successful_missions_at_max_rounds"
                     logger.info(
                         "Game Result: Blue wins (More missions succeeded at max rounds)"
                     )
-                    self.battle_observer.make_snapshot('referee',"Game Result: Blue wins (More missions succeeded at max rounds)")
+                    self.battle_observer.make_snapshot(
+                        "referee",
+                        "Game Result: Blue wins (More missions succeeded at max rounds)",
+                    )
                 else:  # Includes draw in mission wins, red wins draws
                     game_result["winner"] = "red"
                     game_result["win_reason"] = (
@@ -991,12 +1079,17 @@ class AvalonReferee:
                     logger.info(
                         "Game Result: Red wins (More or equal missions failed at max rounds)"
                     )
-                    self.battle_observer.make_snapshot('referee',"Game Result: Red wins (More or equal missions failed at max rounds)")
+                    self.battle_observer.make_snapshot(
+                        "referee",
+                        "Game Result: Red wins (More or equal missions failed at max rounds)",
+                    )
 
             # 记录游戏结果
             self.log_public_event({"type": "game_end", "result": game_result})
             logger.info(f"===== Game {self.game_id} Finished =====")
-            self.battle_observer.make_snapshot('referee',f"===== Game {self.game_id} Finished =====")
+            self.battle_observer.make_snapshot(
+                "referee", f"===== Game {self.game_id} Finished ====="
+            )
             return game_result
 
         except Exception as e:
@@ -1022,26 +1115,39 @@ class AvalonReferee:
         player = self.players.get(player_id)
         if not player:
             logger.error(
-                f"Attempted to execute method '{method_name}' for non-existent player {player_id}"
+                f"Attempted to execute method '{method_name}' for non-existent or unloaded player {player_id}"
             )
-            return None  # Or raise an error?
+            # 根据方法提供默认行为或返回 None/Error
+            # (保持现有逻辑)
+            if method_name == "mission_vote1":
+                return random.choice([True, False])
+            if method_name == "mission_vote2":
+                return self.roles.get(player_id) not in RED_ROLES
+            if method_name == "decide_mission_member":
+                return self.random_select_members(args[0])
+            if method_name == "assass":
+                return random.choice(
+                    [i for i in range(1, PLAYER_COUNT + 1) if i != player_id]
+                )
+            if method_name == "say":
+                return "..."
+            if method_name == "walk":
+                return ()
+            return None
 
         method = getattr(player, method_name, None)
         if not method or not callable(method):
             logger.error(
                 f"Method '{method_name}' not found or not callable in player {player_id} ({self.roles.get(player_id, 'Unknown Role')})"
             )
-            # Provide default behavior based on method?
+            # 根据方法提供默认行为或返回 None/Error
+            # (保持现有逻辑)
             if method_name == "mission_vote1":
                 return random.choice([True, False])
             if method_name == "mission_vote2":
-                return (
-                    self.roles.get(player_id) not in RED_ROLES
-                )  # Default based on role
+                return self.roles.get(player_id) not in RED_ROLES
             if method_name == "decide_mission_member":
-                return self.random_select_members(
-                    args[0]
-                )  # args[0] should be member_count
+                return self.random_select_members(args[0])
             if method_name == "assass":
                 return random.choice(
                     [i for i in range(1, PLAYER_COUNT + 1) if i != player_id]
@@ -1060,26 +1166,14 @@ class AvalonReferee:
             )
 
             start_time = time.time()
-            # Capture stdout/stderr from player code if needed
-            # stdout_capture = StringIO()
-            # stderr_capture = StringIO()
-            # with redirect_stdout(stdout_capture), redirect_stderr(stderr_capture):
             result = method(*args, **kwargs)
             execution_time = time.time() - start_time
-
-            # player_stdout = stdout_capture.getvalue()
-            # player_stderr = stderr_capture.getvalue()
-            # if player_stdout: logger.debug(f"Player {player_id} stdout: {player_stdout.strip()}")
-            # if player_stderr: logger.warning(f"Player {player_id} stderr: {player_stderr.strip()}")
 
             logger.debug(
                 f"Player {player_id}.{method_name} returned: {result} (took {execution_time:.4f}s)"
             )
 
-            # 检查执行时间
-            # Timeout logic should ideally be handled by a separate process supervisor
-            # This check is just a warning
-            if execution_time > 3:  # Lowered threshold for warning
+            if execution_time > 3:
                 logger.warning(
                     f"Player {player_id} ({self.roles.get(player_id)}) method {method_name} took {execution_time:.2f} seconds (potential timeout issue)"
                 )
@@ -1089,10 +1183,10 @@ class AvalonReferee:
         except Exception as e:
             logger.error(
                 f"Error executing Player {player_id} ({self.roles.get(player_id)}) method '{method_name}': {str(e)}",
-                exc_info=True,  # Include traceback in log
+                exc_info=True,
             )
-            # traceback.print_exc() # Already logged with exc_info=True
-            # Provide default behavior on error too
+            # 根据方法提供默认行为或返回 None/Error
+            # (保持现有逻辑)
             if method_name == "mission_vote1":
                 return random.choice([True, False])
             if method_name == "mission_vote2":
@@ -1107,7 +1201,7 @@ class AvalonReferee:
                 return f"[Error executing say: {str(e)}]"
             if method_name == "walk":
                 return ()
-            return None  # Default return on error for other methods
+            return None
 
     def log_public_event(self, event: Dict[str, Any]):
         """记录公共事件到日志"""
