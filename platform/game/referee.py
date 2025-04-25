@@ -605,17 +605,17 @@ class AvalonReferee:
             valid_moves = []
             logger.debug(f"Player {player_id} requested moves: {directions}")
             for i in range(steps):
-                # 处理每个方向
-                direction = (
-                    directions[i].lower() if isinstance(directions[i], str) 
-                    else logger.error(
+                # 处理每一步
+                if not isinstance(directions[i], str):
+                    logger.error(
                         f"Player {player_id} returned invalid direction type: {type(directions[i])}. i_index: {i}"
-                    ),
+                    )
                     self.suspend_game(
                         "player_ruturn_ERROR", player_id, "walk",
                         f"Returned invalid direction type: {type(directions[i])}. i_index: {i}"
                     )
-                )
+    
+                direction = directions[i].lower()
 
                 x, y = new_pos
                 if direction == "up" and x > 0:
