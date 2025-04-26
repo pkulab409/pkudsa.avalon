@@ -1,13 +1,11 @@
-admin:
-  emails:
-  - admin@example.com
-  
 csrf:
   ssl_strict: false
   time_limit: 3600
+
 database:
   track_modifications: False
   uri: platform.db
+
 session:
   cookie:
     httponly: true
@@ -18,24 +16,113 @@ session:
 logging:
   level: INFO
 
-redis:
-  url: "redis://localhost:6379/0"  # Redis连接URL
+# AI 代码上传目录
+AI_CODE_UPLOAD_FOLDER: uploads/
 
-# 游戏平台配置
-games:
-  default_type: "default"     # 默认游戏类型
-  default_type_name: "默认游戏" # 默认游戏类型显示名称
-  types:
-    - id: default
-      name: 默认游戏
-      players: 2  # 默认游戏需要2名玩家
-  matchmaking:
-    timeout: 60  # 匹配超时时间（秒）
-    interval: 5  # 匹配检查间隔（秒）
 
 # AI代码配置
 ai:
-  max_file_size: 524288  # 最大文件大小 (512 KB)
-  execution_timeout: 1000  # AI代码执行超时时间(毫秒)
-  memory_limit: 104857600  # 内存限制 (100 MB)
-  sandbox_enabled: true  # 是否启用沙箱执行
+  allowed_extensions: # 允许的文件扩展名
+    - .py
+
+# 初始用户配置
+initial_users:
+  # Smart AI 用户系列
+  - username: smart_user1
+    email: smart1@example.com
+    password: password123
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user2
+    email: smart2@example.com
+    password: password123
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user3
+    email: smart3@example.com
+    password: password123
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user4
+    email: smart4@example.com
+    password: password123
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user5
+    email: smart5@example.com
+    password: password123
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user6
+    email: smart6@example.com
+    password: password123
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+      
+  # Basic AI 用户系列
+  - username: basic_user1
+    email: basic1@example.com
+    password: password123
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user2
+    email: basic2@example.com
+    password: password123
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user3
+    email: basic3@example.com
+    password: password123
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user4
+    email: basic4@example.com
+    password: password123
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user5
+    email: basic5@example.com
+    password: password123
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user6
+    email: basic6@example.com
+    password: password123
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true

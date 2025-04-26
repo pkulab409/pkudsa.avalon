@@ -24,12 +24,19 @@ if not load_dotenv():
     # 这里只要有一个环境变量被读取成功就不会报错
 # 在和avalon_game_helper相同目录下创建一个`.env`文件，包含三行：
 # OPENAI_API_KEY={API_KEY}（需要填入）
+if not load_dotenv():
+    logger.error(f"Error when loading environment variables from `.env` at current file directory.")
+    # 这里只要有一个环境变量被读取成功就不会报错
+# 在和avalon_game_helper相同目录下创建一个`.env`文件，包含三行：
+# OPENAI_API_KEY={API_KEY}（需要填入）
 # OPENAI_BASE_URL=https://chat.noc.pku.edu.cn/v1
+# OPENAI_MODEL_NAME=deepseek-v3-250324-64k-local
 # OPENAI_MODEL_NAME=deepseek-v3-250324-64k-local
 
 
 # openai初始配置
 try:
+    client = OpenAI()  # 自动读取（来自load_dotenv的）环境变量
     client = OpenAI()  # 自动读取（来自load_dotenv的）环境变量
     models = client.models.list()
     # 不出意外的话这里有三个模型：
@@ -47,6 +54,7 @@ _CURRENT_PLAYER_ID = None  # 当前玩家ID
 _GAME_SESSION_ID = None  # 当前游戏会话ID
 _DATA_DIR = os.environ.get("AVALON_DATA_DIR", "./data")
 _CURRENT_ROUND = None
+_CURRENT_ROUND = None
 
 
 # LLM相关配置
@@ -57,7 +65,7 @@ _INIT_SYSTRM_PROMPT = """
 _TEMPERATURE = 1  # 创造性 (0-2, 默认1)
 _MAX_INPUT_TOKENS = 500  # 最大 prompt 长度
 _MAX_OUTPUT_TOKENS = 500  # 最大生成长度
-_MAX_CALL_COUNT_PER_ROUND = 1  # 一轮最多调用 LLM 次数
+_MAX_CALL_COUNT_PER_ROUND = 10  # 一轮最多调用 LLM 次数
 _TOP_P = 0.9  # 输出多样性控制
 _PRESENCE_PENALTY = 0.5  # 避免重复话题 (-2~2)
 _FREQUENCY_PENALTY = 0.5  # 避免重复用词 (-2~2)
@@ -68,20 +76,35 @@ INIT_PRIVA_LOG_DICT = {
     "logs": [],
     "llm_history": [{"role": "system", "content": _INIT_SYSTRM_PROMPT}],
     "llm_call_counts": [0 for _ in range(6)],  # 第 1~5 轮分别用了几次
+    "llm_call_counts": [0 for _ in range(6)],  # 第 1~5 轮分别用了几次
 }
 
 
 def set_current_context(player_id: int, game_id: str) -> None:
     """
     设置当前上下文 - 这个函数由 referee 在调用玩家代码前设置
+    设置当前上下文 - 这个函数由 referee 在调用玩家代码前设置
 
     参数:
+        player_id: 当前玩家 ID
+        game_id: 当前游戏会话 ID
         player_id: 当前玩家 ID
         game_id: 当前游戏会话 ID
     """
     global _CURRENT_PLAYER_ID, _GAME_SESSION_ID
     _CURRENT_PLAYER_ID = player_id
     _GAME_SESSION_ID = game_id
+
+
+def set_current_round(round_) -> None:
+    """
+    设置当前 ROUND 上下文 - 这个函数由 referee 在更改 ROUND 时设置
+
+    参数:
+        round: 当前游戏运行到第几轮
+    """
+    global _CURRENT_ROUND
+    _CURRENT_ROUND = round_
 
 
 def set_current_round(round_) -> None:
@@ -126,9 +149,23 @@ def askLLM(prompt: str) -> str:
         prompt = prompt[:_MAX_INPUT_TOKENS]  # 切断 prompt 至限制长度以内
         logger.warning(f"{_CURRENT_PLAYER_ID}号玩家输入 prompt 过长。"
                        + f"只取前 {_MAX_INPUT_TOKENS} 个 token 询问 LLM。")
+    # 获取LLM调用次数记录
+    _player_call_counts = existing_data["llm_call_counts"]
+
+    # 判断用户在这一轮已经调用几次 LLM，执行相应操作
+    if _player_call_counts[_CURRENT_ROUND] >= _MAX_CALL_COUNT_PER_ROUND:
+        raise RuntimeError(f"Maximum call count per round of player {_CURRENT_PLAYER_ID} exceeded")
+    else:
+        existing_data["llm_call_counts"][_CURRENT_ROUND] += 1
+
+    if len(prompt) > _MAX_INPUT_TOKENS:
+        prompt = prompt[:_MAX_INPUT_TOKENS]  # 切断 prompt 至限制长度以内
+        logger.warning(f"{_CURRENT_PLAYER_ID}号玩家输入 prompt 过长。"
+                       + f"只取前 {_MAX_INPUT_TOKENS} 个 token 询问 LLM。")
 
     # 调LLM
     try:
+        reply = _fetch_LLM_reply(_player_chat_history, prompt)
         reply = _fetch_LLM_reply(_player_chat_history, prompt)
     except Exception as e:
         return f"LLM调用错误: {str(e)}"
@@ -158,6 +195,7 @@ def _fetch_LLM_reply(history, cur_prompt) -> str:
         Tuple[bool, str]: 返回一个元组，第一个元素是布尔值，表示操作是否成功；
                           第二个元素是字符串，包含LLM的回复内容。
     """
+    model_name = os.environ.get("OPENAI_MODEL_NAME", None)
     model_name = os.environ.get("OPENAI_MODEL_NAME", None)
     completion = client.chat.completions.create(
         model=model_name,
@@ -206,6 +244,7 @@ def _get_private_lib_content() -> dict:
 
 
 def _write_back_private(data: dict) -> None:
+    '''统一处理：写回私有库 JSON 文件'''
     '''统一处理：写回私有库 JSON 文件'''
     # 构建私有数据文件路径
     private_file = os.path.join(
