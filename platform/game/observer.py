@@ -26,16 +26,37 @@ class Observer:
         """
         接收一次游戏事件并生成对应快照，加入内部消息队列中。
 
+        event_type: 类型，表示事件类型，具体如下：
+            Phase:Night、Global Speech、Move、Limited Speech、Public Vote、Mission。
+            Event:阶段中的事件, 如Mission Fail等
+            Action:指阶段中导致事件产生的玩家动作, 如Assass等
+            Sign:指每轮游戏、每轮中阶段的结束标识，如"Global Speech phase complete"
+            Information:过程中产生的信息, 如player_positions、票数比等
+            Big_Event:Game Over、Blue Win、Red Win 1、Red Win 2
+            Map:用于可视化地图变动
+            Bug:suspend_game模块内的快照
+
         event_type (str): 显示类型：
-            "referee" -- 显示成旁白
-            "player1" ~ "player7" -- 显示成玩家对话框气泡
-            "move" -- 显示成地图
+            "Phase" -- 显示当前阶段
+            "Event" -- 显示成旁白中的事件(可在聊天框中，也可单独显示)
+            "Action" -- 显示成玩家对话框气泡（说话，移动，刺杀）
+            "Sign" -- 显示成阶段结束标识
+            "Information" -- 显示成信息提示框内的信息(给观众看)
+            "Big_Event" -- 显示成游戏结束(可在聊天框中，也可单独显示)
+            "Map" -- 显示成地图
+            "Bug" -- 显示成bug信息
+
         event_data: 事件数据，数据类型语具体状况如下：
-            * 如果 event_type 是 "referee"： str 类型，表示旁白
-            * 如果 event_type 是 "player{P}"： str 类型，表示玩家行为
-            * 如果 event_type 是 "move"： dict 类型，表示不同玩家目前的位置
-                例： {1: (1, 3), 2: (2, 5), 3: (4, 7), ...}
+            "Phase" -- str
+            "Event" -- str
+            "Action" -- str
+            "Sign" -- str
+            "Information" -- str
+            "Big_Event" -- str
+            "Map" -- dict
+            "Bug" -- str
         """
+        
         snapshot = {
             "battle_id": self.battle_id,
             "timestamp": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
