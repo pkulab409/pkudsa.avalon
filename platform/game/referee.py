@@ -9,7 +9,6 @@ import random
 import importlib
 import traceback
 from typing import Dict, List, Any
-from typing import Dict, List, Any
 import time
 import logging
 import importlib.util
@@ -29,9 +28,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # 确保导入成功
 try:
     from game.avalon_game_helper import set_current_context, set_current_round
-    from game.avalon_game_helper import set_current_context, set_current_round
 except ImportError:
-    logger.error("Failed to import modules from game.avalon_game_helper")
     logger.error("Failed to import modules from game.avalon_game_helper")
 
     # 可以选择退出或提供默认实现
@@ -41,8 +38,6 @@ except ImportError:
     def set_current_round(round_: int):
         pass
 
-    def set_current_round(round_: int):
-        pass
 
 
 # 角色常量
@@ -328,7 +323,6 @@ class AvalonReferee:
         """执行一轮任务"""
         self.current_round += 1
         set_current_round(self.current_round)
-        set_current_round(self.current_round)
         member_count = MISSION_MEMBER_COUNT[self.current_round - 1]
         vote_round = 0
         mission_success = None
@@ -485,7 +479,6 @@ class AvalonReferee:
                 )
                 # 执行任务
                 mission_success = self.execute_mission(mission_members)
-                break  # 退出循环
                 break  # 退出循环
             else:
                 logger.info("Team Rejected.")
@@ -686,10 +679,7 @@ class AvalonReferee:
 
             # 默认directions合法
             # 保留valid_moves，最后用于格式化显示
-            # 默认directions合法
-            # 保留valid_moves，最后用于格式化显示
             valid_moves = []
-            logger.debug(f"Player {player_id} requested moves: {directions}")
             logger.debug(f"Player {player_id} requested moves: {directions}")
             for i in range(steps):
                 # 处理每个方向
@@ -771,7 +761,6 @@ class AvalonReferee:
                 {
                     "player_id": player_id,
                     "requested_moves": list(directions),  # Log requested moves
-                    "requested_moves": list(directions),  # Log requested moves
                     "executed_moves": valid_moves,  # Log executed moves
                     "final_position": new_pos,
                 }
@@ -782,8 +771,6 @@ class AvalonReferee:
             "Updating all players with the new map state and data of positions."
         )
         for player_id in range(1, PLAYER_COUNT + 1):
-            # 传递给玩家两种数据
-            self.safe_execute(player_id, "pass_position_data", self.player_positions)
             # 传递给玩家两种数据
             self.safe_execute(player_id, "pass_position_data", self.player_positions)
             self.safe_execute(player_id, "pass_map", self.map_data)
@@ -856,7 +843,6 @@ class AvalonReferee:
 
     def get_players_in_hearing_range(self, speaker_id: int) -> List[int]:
         """获取能听到指定玩家发言的所有玩家ID (修改版，原版的“曼哈顿距离”不符合游戏规则)"""
-        """获取能听到指定玩家发言的所有玩家ID (修改版，原版的“曼哈顿距离”不符合游戏规则)"""
         hearers = []
         speaker_x, speaker_y = self.player_positions[speaker_id]
 
@@ -865,16 +851,12 @@ class AvalonReferee:
 
             # 计算水平/垂直距离的最大值
             distance = max(abs(player_x - speaker_x), abs(player_y - speaker_y))
-            # 计算水平/垂直距离的最大值
-            distance = max(abs(player_x - speaker_x), abs(player_y - speaker_y))
 
             # 获取角色和对应的听力范围
             role = self.roles[player_id]
             hearing_range = HEARING_RANGE.get(role, 1)
-            hearing_range = HEARING_RANGE.get(role, 1)
 
             # 如果在听力范围内，加入听者列表
-            # 解释：如果上面的水平/垂直距离的最大值不大于对应角色的 HEARING_RANGE 那就可以听到
             # 解释：如果上面的水平/垂直距离的最大值不大于对应角色的 HEARING_RANGE 那就可以听到
             if distance <= hearing_range:
                 hearers.append(player_id)
@@ -1036,13 +1018,6 @@ class AvalonReferee:
                 break
 
         if not assassin_id:
-            logger.error(
-                f"No Assassin found!",
-                exc_info=True,  # Include traceback in log
-            )
-            self.suspend_game(
-                "critical_referee_ERROR", 0, "assassinate_phase", "no assassin found"
-            )
             logger.error(
                 f"No Assassin found!",
                 exc_info=True,  # Include traceback in log
@@ -1227,7 +1202,6 @@ class AvalonReferee:
             # traceback.print_exc() # Already logged with exc_info=True
             return {
                 "error": f"Critical Error: {str(e)}",
-                "error": f"Critical Error: {str(e)}",
                 "blue_wins": self.blue_wins,
                 "red_wins": self.red_wins,
                 "rounds_played": self.current_round,
@@ -1264,12 +1238,6 @@ class AvalonReferee:
                 return "..."
             if method_name == "walk":
                 return ()
-            if method_name == "pass_message":
-                return None
-            if method_name == "pass_map":
-                return None
-            if method_name == "pass_position_data":
-                return None
             if method_name == "pass_message":
                 return None
             if method_name == "pass_map":
@@ -1321,7 +1289,6 @@ class AvalonReferee:
     def log_public_event(self, event: Dict[str, Any]):
         """记录公共事件到日志"""
         # 添加时间戳
-        event["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
         event["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
         event["round"] = self.current_round  # Ensure round number is always present
 
