@@ -121,12 +121,13 @@ class AvalonReferee:
 
 #### 3.1.3 主要方法说明
 
-- `safe_execute`：包装玩家代码调用，捕获异常并提供默认行为。
+- `safe_execute`：包装玩家代码调用，捕获异常。
 - `conduct_global_speech` / `conduct_limited_speech`：分别处理全局与有限范围的发言。
 - `conduct_movement`：基于玩家 `walk()` 返回的方向，更新地图坐标并避免冲突。
 - `conduct_public_vote` / `execute_mission`：处理投票逻辑与任务成功判定。
 - `assassinate_phase`：蓝方完成任务后，刺客尝试刺杀 Merlin。
 - `run_game`：整合以上步骤，返回包含胜者、角色分配与日志文件路径的结果字典。
+- `suspend_game`：实现报错终止游戏，返回与日志记录报错信息。
 
 ### 3.2 同步对局数据到 Observer
 
@@ -321,11 +322,11 @@ def make_snapshot(self, event_type: str, event_data) -> None:
     设置环境变量，创建数据目录。
 
 - **`create_player_codes(mode, player_codes)`**
-    
+  
     根据预定义的游戏模式（basic_test(基础AI), smart_test(智能AI), mixed_test(混合), qualifying(排位赛)）创建7个玩家代码字典。
 
 - **`run_games(args)`**
-    
+  
     运行指定数量的游戏（调用`battle_manager.create_battle()`）并统计结果。
 
 > `main.py` 还需要经过修改后，封装成面向用户进行测试的模块。
