@@ -96,7 +96,7 @@ class Player:
         return tuple(valid_moves)
 
     def say(self) -> str:
-        what_deepseek_says = askLLM("随便生成一句30字以内的玩7人《阿瓦隆》游戏时可能说的话。只给出话，不要别的信息。")
+        what_deepseek_says = askLLM("随便生成一句90字以内的玩7人《阿瓦隆》游戏时可能说的话。只给出话，不要别的信息。")
         return what_deepseek_says
 
     def _generate_smart_param(self, template: str, current_round: int) -> str:

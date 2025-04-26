@@ -200,6 +200,15 @@ class BattleManager:
             return snapshots_queue
         logger.warning(f"尝试获取不存在的对战 {battle_id} 的快照")
         return []
+    
+    def get_snapshots_archive(self, battle_id: str) -> List[Dict[str, Any]]:
+        """获取本局所有游戏快照"""
+        battle_observer = self.battle_observers.get(battle_id)
+        if battle_observer:
+            snapshots_archive = battle_observer.get_archive()
+            return snapshots_archive
+        logger.warning(f"尝试获取不存在的对战 {battle_id} 的快照")
+        return []
 
     def get_battle_result(self, battle_id: str) -> Optional[Dict[str, Any]]:
         """获取对战结果 (优先从内存获取)"""

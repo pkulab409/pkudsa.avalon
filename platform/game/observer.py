@@ -19,6 +19,7 @@ class Observer:
         """
         self.battle_id = battle_id
         self.snapshots = []
+        self.archive = []
         self._lock = Lock()  # 添加线程锁
 
     def make_snapshot(self, event_type: str, event_data) -> None:
@@ -43,6 +44,7 @@ class Observer:
         }
         with self._lock:  # 加锁保护写操作
             self.snapshots.append(snapshot)
+            self.archive.append(snapshot)
 
     def pop_snapshots(self) -> List[Dict[str, Any]]:
         """
@@ -53,6 +55,14 @@ class Observer:
             self.snapshots = []
         return snapshots
     
+    def get_archive(self) -> List[Dict[str, Any]]:
+        """
+        对局结束时获取本局所有快照
+        """
+        with self._lock:
+            archive = self.archive
+            return archive
+
     # 下面的两个函数不需要用到
     def get_snapshots(self) -> List[Dict[str, Any]]:
         """

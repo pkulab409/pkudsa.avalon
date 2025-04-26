@@ -249,6 +249,8 @@ def get_game_status(battle_id):
                 elif battle:
                     result = {"message": "数据库中无详细结果"}
 
+            snapshots = battle_manager.get_snapshots_archive(battle_id)
+
         return jsonify(
             {
                 "success": True,
