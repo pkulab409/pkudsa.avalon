@@ -535,7 +535,7 @@ def get_leaderboard(limit=100, min_games_played=1):
 # 对战 (Battle) 及 对战参与者 (BattlePlayer) CRUD 操作
 
 
-def create_battle(participant_data_list, status="waiting", game_data=None):
+def create_battle(participant_data_list, status="waiting", section=0, game_data=None):
     """
     创建对战记录及关联的参与者记录。
 
@@ -544,6 +544,7 @@ def create_battle(participant_data_list, status="waiting", game_data=None):
                                       至少包含 'user_id' 和 'ai_code_id'。 # <--- 修改文档注释
                                       示例: [{'user_id': '...', 'ai_code_id': '...'}, ...] # <--- 修改文档注释
         status (str): 初始状态 (e.g., 'waiting', 'playing'). 默认为 'waiting'.
+        section (int): 分区类型：0=普通对局，1=预选赛，2=决赛，等. 默认为 0.
         game_data (dict, optional): 游戏初始数据。
 
     返回:
@@ -575,6 +576,7 @@ def create_battle(participant_data_list, status="waiting", game_data=None):
 
         battle = Battle(
             status=status,
+            section=section,  # 使用传入的分区类型
             created_at=datetime.datetime.now(),
             # started_at 在对战真正开始时设置
             # results 在对战结束时设置

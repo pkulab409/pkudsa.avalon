@@ -165,7 +165,8 @@ class Battle(db.Model):
     status = db.Column(
         db.String(20), default="waiting"
     )  # waiting, playing, completed, error, cancelled
-
+    # 分区类型：0=普通对局，1=预选赛，2=决赛，等
+    section = db.Column(db.Integer, default=0)  # 默认为普通对局
     # 游戏日志UUID (关联到存储游戏过程的日志文件或对象)
     game_log_uuid = db.Column(db.String(36), nullable=True)
 
