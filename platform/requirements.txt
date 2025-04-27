@@ -9,3 +9,5 @@ Werkzeug==2.2.3
 WTForms==2.3.3
 faker
 email_validator
+dotenv
+openai
