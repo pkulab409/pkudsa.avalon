@@ -36,7 +36,7 @@ def game_replay(game_id):
     try:
         # 构建游戏日志文件路径
         log_file = os.path.join(
-            Config._yaml_config.get("data_dir", "./data"), f"game_{game_id}_public.json"
+            Config._yaml_config.get("data_dir", "./data"), f"game_{game_id}_archive.json"
         )
 
         # 检查文件是否存在
@@ -94,7 +94,7 @@ def get_round_data(game_id, round_num):
     """获取特定回合的详细数据"""
     try:
         log_file = os.path.join(
-            Config._yaml_config.get("data_dir", "./data"), f"game_{game_id}_public.json"
+            Config._yaml_config.get("data_dir", "./data"), f"game_{game_id}_archive.json"
         )
 
         if not os.path.exists(log_file):
@@ -117,7 +117,7 @@ def get_movement_data(game_id):
     """获取所有玩家的移动轨迹数据"""
     try:
         log_file = os.path.join(
-            Config._yaml_config.get("data_dir", "./data"), f"game_{game_id}_public.json"
+            Config._yaml_config.get("data_dir", "./data"), f"game_{game_id}_archive.json"
         )
 
         if not os.path.exists(log_file):
@@ -172,7 +172,7 @@ def process_upload():
             os.makedirs(data_dir, exist_ok=True)
 
             # 保存文件
-            filename = f"game_{game_id}_public.json"
+            filename = f"game_{game_id}_archive.json"
             file_path = os.path.join(data_dir, filename)
             file.save(file_path)
 
@@ -203,7 +203,7 @@ def is_valid_game_json(json_data):
 
     # 检查第一个事件是否为game_start
     first_event = json_data[0]
-    if not isinstance(first_event, dict) or first_event.get("type") != "game_start":
+    if not isinstance(first_event, dict) or first_event.get("event_type") != "game_start":
         return False
 
     # 检查是否包含必要的字段
@@ -229,21 +229,26 @@ def extract_game_info(game_data):
 
     # 从游戏开始事件提取信息
     for event in game_data:
-        if event.get("type") == "game_start":
+        if event.get("event_type") == "GameStart":
             game_info["player_count"] = event.get("player_count", 0)
             game_info["map_size"] = event.get("map_size", 0)
             game_info["start_time"] = event.get("timestamp", "")
 
+        if event.get("event_type") == "RoleAssign":
+            game_info["roles"] = event.get("event_data", {})
+
         # 从游戏结束事件提取信息
-        if event.get("type") == "game_end":
+        if event.get("event_type") == "GameResult":
+            info = event.get("event_data", [])
             game_info["end_time"] = event.get("timestamp", "")
-            result = event.get("result", {})
-            game_info["winner"] = result.get("winner", "")
-            game_info["rounds_played"] = result.get("rounds_played", 0)
-            game_info["roles"] = result.get("roles", {})
-            game_info["win_reason"] = result.get("win_reason", "")
-            game_info["blue_wins"] = result.get("blue_wins", 0)
-            game_info["red_wins"] = result.get("red_wins", 0)
+            game_info["winner"] = info[0]
+            game_info["win_reason"] = info[1]
+        
+        if event.get("event_type") == "FinalScore":
+            info = event.get("event_data", [])
+            game_info["blue_wins"] = info[0]
+            game_info["red_wins"] = info[1]
+            game_info["rounds_played"] = info[0] + info[1]
 
     # 检查游戏是否异常终止 (没有game_end事件)
     if not game_info["end_time"]:
@@ -254,10 +259,17 @@ def extract_game_info(game_data):
         
         # 尝试从最后一个任务结果事件中获取部分信息
         for event in reversed(game_data):
-            if event.get("type") == "mission_result":
-                game_info["blue_wins"] = event.get("blue_wins", 0)
-                game_info["red_wins"] = event.get("red_wins", 0)
-                game_info["rounds_played"] = event.get("round", 0)
+            flag1,flag2 = 0,0
+            if event.get("event_type") == "MissionResult":
+                info = event.get("event_data", ())
+                game_info["rounds_played"] = info[0]
+                flag1 = 1
+            if event.get("event_type") == "ScoreBoard":
+                info = event.get("event_data", [])
+                game_info["blue_wins"] = info[0]
+                game_info["red_wins"] = info[1]
+                flag2 = 1
+            if flag1 and flag2:
                 break
 
     # 格式化时间戳
@@ -298,19 +310,23 @@ def process_game_events(game_data):
     events_by_round = {}
     # 特殊事件(不按回合分组)
     special_events = {
-        "assassination": None,
-        "game_end": None
+        "Assass": None,
+        "GameEnd": None
     }
-
+    
+    round_num = 0
     for event in game_data:
-        event_type = event.get("type")
+        event_type = event.get("event_type")
+        event_data = event.get("event_data")
         
         # 处理特殊事件
         if event_type in special_events:
             special_events[event_type] = event
             continue
             
-        round_num = event.get("round", 0)
+        if event_type == "RoundStart":
+            round_num = event_data
+
         if round_num not in events_by_round:
             events_by_round[round_num] = []
 
@@ -325,57 +341,79 @@ def process_game_events(game_data):
             "round": round_num,
             "leader": None,
             "team_members": [],
-            "speeches": [],
-            "vote_result": None,
+            "public_speeches": {},
+            "private_speeches": {},
+            "public_vote_result": {"votes":{}, "approve_count":0, "result":""},
+            "private_vote_result": None,
             "mission_result": None,
-            "movements": [],
+            "movements": {},
             "consecutive_rejections": False,
         }
 
         # 处理回合中的各种事件
         for event in round_events:
-            event_type = event.get("type")
+            event_type = event.get("event_type")
+            event_data = event.get("event_data")
 
-            if event_type == "mission_start":
-                round_info["leader"] = event.get("leader")
-                round_info["member_count"] = event.get("member_count")
+            if event_type == "Leader":
+                round_info["leader"] = event_data
+                
+            elif event_type == "TeamPropose":
+                round_info["team_members"] = event_data
+                round_info["member_count"] = len(round_info["team_members"])
 
-            elif event_type == "team_proposed":
-                round_info["team_members"] = event.get("members", [])
+            elif event_type == "PublicSpeech":
+                round_info["public_speeches"][event_data[0]] = event_data[1]
+                # {1:"blabla", "2":"blabla"}
 
-            elif event_type == "global_speech":
-                round_info["speeches"] = event.get("speeches", [])
+            elif event_type == "PrivateSpeech":
+                round_info["public_speeches"][event_data[0]] = event_data[1]
+                # {1:"blabla", "2":"blabla"}
 
-            elif event_type == "movement":
-                round_info["movements"] = event.get("movements", [])
 
-            elif event_type == "public_vote":
-                round_info["vote_result"] = {
-                    "votes": event.get("votes", {}),
-                    "approve_count": event.get("approve_count", 0),
-                    "result": event.get("result", ""),
-                }
-            
-            elif event_type == "team_rejected":
-                round_info["vote_result"] = {
-                    "result": "rejected",
-                    "reject_count": event.get("reject_count", 0)
-                }
+            elif event_type == "Positions":
+                round_info["movements"] = event_data
+                # dict 玩家位置
 
-            elif event_type == "consecutive_rejections":
+            elif event_type == "PublicVote":
+                round_info["vote_result"]["votes"][event_data[0]] = event_data[1]
+                #{1:"Approve", "2":"Reject"}
+
+            elif event_type == "PublicVoteResult":
+                round_info["vote_result"]["approve_count"] = event_data[0] 
+                round_info["vote_result"]["reject_count"] = event_data[1]
+                #int
+
+            elif event_type == "MissionApproved":
+                round_info["vote_result"]["result"] = True
+                
+            elif event_type == "MissionRejected":
+                round_info["vote_result"]["result"] = False
                 round_info["consecutive_rejections"] = True
 
-            elif event_type == "mission_execution":
+            elif event_type == "MissionVote":
+                fail_votes = 0
+                for i in event_data:
+                    if event_data[i] == False:
+                        fail_votes += 1
                 round_info["mission_execution"] = {
-                    "fail_votes": event.get("fail_votes", 0),
-                    "success": event.get("success", False),
+                    "fail_votes": fail_votes
                 }
 
-            elif event_type == "mission_result":
+            elif event_type == "MissionResult":
+                if event_data[1] == "Success":
+                    round_info["mission_execution"]["success"] = True
+                else:
+                    round_info["mission_execution"]["success"] = False
+
+            elif event_type == "MissionResult":
+                flag = False
+                if event_data[1] == "Success":
+                    flag = True
                 round_info["mission_result"] = {
-                    "result": event.get("result", ""),
-                    "blue_wins": event.get("blue_wins", 0),
-                    "red_wins": event.get("red_wins", 0),
+                    "result": flag,
+                    "blue_wins": int(flag),
+                    "red_wins": 1 - int(flag),
                 }
 
         # 只添加非零回合
@@ -385,11 +423,14 @@ def process_game_events(game_data):
     # 添加刺杀信息
     if special_events["assassination"]:
         assassination_event = special_events["assassination"]
+        flag = False
+        if assassination_event[3] == "Success":
+            flag = True
         assassination_info = {
-            "assassin": assassination_event.get("assassin"),
-            "target": assassination_event.get("target"),
-            "target_role": assassination_event.get("target_role"),
-            "success": assassination_event.get("success", False)
+            "assassin": assassination_event[0],
+            "target": assassination_event[1],
+            "target_role": assassination_event[2],
+            "success": flag
         }
         game_events.append({
             "round": "assassination",
@@ -404,34 +445,37 @@ def extract_player_movements(game_data):
     movements_by_player = {}
     player_positions = {}  # 用于跟踪玩家的当前位置
     
-    # 初始化玩家位置
     for event in game_data:
-        if event.get("type") == "game_start":
-            player_count = event.get("player_count", 0)
-            # 假设初始位置为地图中心, 需要根据实际游戏逻辑调整
-            default_position = [4, 4]  # 默认在9x9地图中心位置
-            
+        event_type = event.get("event_type")
+        event_data = event.get("event_data")
+
+        # 初始化玩家位置
+        if event_type == "DefaultPositions":
+            round_num = 1
+            player_positions = event_data
+            player_count = len(player_positions)
             for i in range(1, player_count + 1):
-                player_positions[i] = default_position.copy()
                 movements_by_player[i] = []
                 
-    # 记录每轮移动后的位置
-    for event in game_data:
-        if event.get("type") == "movement":
-            round_num = event.get("round", 0)
-            for movement in event.get("movements", []):
-                player_id = movement.get("player_id")
-                if player_id not in movements_by_player:
-                    movements_by_player[player_id] = []
-                
-                # 记录这个回合的位置
-                position = movement.get("final_position", player_positions.get(player_id, [0, 0]))
-                player_positions[player_id] = position  # 更新当前位置
-                
-                movements_by_player[player_id].append({
+        # 记录每轮移动后的位置
+        if event_type == "Move":
+            player_id = event_data[0]
+            movements_by_player[player_id].append({
                     "round": round_num,
-                    "position": position,
-                    "moves": movement.get("executed_moves", []),
+                    "position": event_data[1][1],
+                    "moves": event_data[1][0]
                 })
+            """
+            "Move" 
+                -- tuple(int, list), 
+                    int: 0表示开始,8表示结束,其他数字对应玩家编号
+                    list: [valid_moves, new_pos]
+            """
+
+        if event_type == "Positions":
+            round_num += 1
+            # 记录这个回合的位置
+            player_positions = event_data  # 更新当前位置
+                
 
     return movements_by_player
