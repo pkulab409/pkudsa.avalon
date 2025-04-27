@@ -11,7 +11,7 @@
 - 玩家通过从avalon_game_helper.py中调用`askLLM`函数进行AI辅助对战
 
 - **【调用次数】**
-  - 每轮最多调用一次  
+  - 每轮最多调用两次  
 
 - **【输入/输出限制】**
 
@@ -20,7 +20,7 @@
 
 - **【示例代码】**
 
-  ```
+  ```python
   # 调用LLM
   llm_reply = helper.askLLM(f"根据以下对话和任务结果，你觉得谁最可能是梅林？只返回数字编号。")
   supposed_merlin = int(re.findall(r'\d+', llm_reply)[0]) #从回答中匹配数字
