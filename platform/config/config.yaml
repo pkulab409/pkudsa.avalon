@@ -125,10 +125,10 @@ INITIAL_USERS:
       make_active: true
 
 
-DATA_DIR: /home/eric/dsa/pkudsa.avalon/platform/data/
+DATA_DIR: ./data
 
 # 示例回放设置
 EXAMPLE_REPLAY:
-  file_path: "../example/example_game_replay.json"  # 修改为正确的相对路径
+  file_path: "./example/example_game_replay.json"  # 修改为正确的相对路径
   # 添加这一行，提供有效ID避免系统查询不存在的battle_id
   battle_id: "example"  
