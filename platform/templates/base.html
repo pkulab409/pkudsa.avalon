@@ -75,6 +75,31 @@
         </div>
       </div>
     </nav>
+    <!-- Flash消息显示区域 - 固定在顶部 -->
+    <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3"
+         style="z-index: 1050">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="toast show fade"
+                 role="alert"
+                 aria-live="assertive"
+                 aria-atomic="true"
+                 data-bs-autohide="false">
+              <div class="toast-header bg-{{ category }}">
+                <strong class="me-auto text-white">系统通知</strong>
+                <small class="text-white countdown">3</small>
+                <button type="button"
+                        class="btn-close btn-close-white"
+                        data-bs-dismiss="toast"
+                        aria-label="Close"></button>
+              </div>
+              <div class="toast-body">{{ message }}</div>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    </div>
     <!-- 页面内容 -->
     <main>
       {% block content %}{% endblock %}
@@ -87,6 +112,39 @@
     </footer>
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- 替换原有的自动关闭Flash消息的脚本 -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // 获取所有toast元素
+        const toasts = document.querySelectorAll('.toast');
+        
+        toasts.forEach(function(toast) {
+          const countdownEl = toast.querySelector('.countdown');
+          let countdown = 3; // 3秒倒计时
+          
+          // 设置倒计时定时器
+          const timer = setInterval(function() {
+            countdown--;
+            if (countdownEl) countdownEl.textContent = countdown;
+            
+            if (countdown <= 0) {
+              clearInterval(timer);
+              // 使用Bootstrap的toast关闭方法
+              const bsToast = new bootstrap.Toast(toast);
+              bsToast.hide();
+            }
+          }, 1000); // 每秒更新一次
+          
+          // 点击关闭按钮时清除定时器
+          const closeBtn = toast.querySelector('.btn-close');
+          if (closeBtn) {
+            closeBtn.addEventListener('click', function() {
+              clearInterval(timer);
+            });
+          }
+        });
+      });
+    </script>
     {% block scripts %}{% endblock %}
   </body>
 </html>

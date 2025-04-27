@@ -149,7 +149,10 @@ class BattleManager:
                 # 5. 记录内存结果和状态
                 self.battle_results[battle_id] = result_data
                 self.battle_status[battle_id] = "completed"
-
+                self.get_snapshots_archive(battle_id)  # 保存快照
+                self.battle_service.log_info(
+                    f"对战 {battle_id} 结果已保存到 {self.data_dir}"
+                )  # 使用 service log
                 # 6. 处理游戏结果并更新数据库 (通过 service)
                 if self.battle_service.mark_battle_as_completed(battle_id, result_data):
                     self.battle_service.log_info(f"对战 {battle_id} 完成，结果已处理")
@@ -199,7 +202,7 @@ class BattleManager:
             return snapshots_queue
         logger.warning(f"尝试获取不存在的对战 {battle_id} 的快照")
         return []
-    
+
     def get_snapshots_archive(self, battle_id: str):
         """保存本局所有游戏快照"""
         battle_observer = self.battle_observers.get(battle_id)

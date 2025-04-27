@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-'''observer 模块：
+"""observer 模块：
 游戏观察者实例，用于记录指定游戏的快照。
 预留快照调用的接口，用于前端的游戏可视化。
-'''
+"""
 
 
 import time
@@ -14,6 +14,7 @@ from config.config import Config
 
 PLAYER_COUNT = 7
 MAP_SIZE = 9
+
 
 class Observer:
     def __init__(self, battle_id):
@@ -43,59 +44,59 @@ class Observer:
 
         event_type (str) -- event_data 对应关系
 
-            "GameStart" 
+            "GameStart"
                 -- str battle_id
 
             "GameEnd"
                 -- str battle_id
 
-            "RoleAssign" 
+            "RoleAssign"
                 -- dict 角色分配字典
-            
+
             "NightStart"
                 -- str, "Starting Night Phase."
-            
-            "NightEnd" 
+
+            "NightEnd"
                 -- str, "--- Night phase complete ---"
 
-            "RoundStart" 
+            "RoundStart"
                 -- int 轮数
 
-            "RoundEnd" 
+            "RoundEnd"
                 -- int 轮数
-            
+
             "TeamPropose"
                 -- list, 组员index
-            
-            "PublicSpeech" 
-                -- tuple(int, str), 
+
+            "PublicSpeech"
+                -- tuple(int, str),
                     int: 玩家编号
                     str: 发言内容
-            
-            "PrivateSpeech" 
-                -- tuple(int, str), 
+
+            "PrivateSpeech"
+                -- tuple(int, str),
                     int: 玩家编号
                     str: 发言内容
-            
-            "Positions" 
+
+            "Positions"
                 -- dict 玩家位置
 
             "DefaultPositions"
                 -- dict 玩家初始位置
 
-            "Move" 
-                -- tuple(int, list), 
+            "Move"
+                -- tuple(int, list),
                     int: 0表示开始,8表示结束,其他数字对应玩家编号
                     list: [valid_moves, new_pos]
-            
+
             "PublicVote"
-                -- tuple(int, str), 
+                -- tuple(int, str),
                     int: 0表示开始,8表示结束,其他数字对应玩家编号
                     str: 'Approve' if vote else 'Reject'
 
-            "PublicVoteResult" 
+            "PublicVoteResult"
                 -- list[int,int], 支持票数和反对票数
-            
+
             "MissionRejected"
                 -- str, "Team Rejected."
 
@@ -106,15 +107,15 @@ class Observer:
                 -- list[int, list]
                     int: 轮数
                     list: mission_members
-            
+
             "MissionForceExecute"
                 -- str, "Maximum vote rounds reached. Forcing mission execution with last proposed team."
-            
+
             "MissionVote"
                 -- dict[int, bool]
 
             "MissionResult"
-                -- tuple[int,str], 
+                -- tuple[int,str],
                     int: 当前轮数
                     str: "Success" or "Fail"
 
@@ -129,27 +130,29 @@ class Observer:
             "GameResult"
                 -- tuple[str, str]
                     队伍，原因
-            
+
             "Assass"
                 -- list: [assassin_id, target_id, target_role, ('Success' if success else 'Fail')]
 
 
-            "Information" 
+            "Information"
                 -- 显示成信息提示框内的信息(给观众看)
-            
-            "Bug" 
+
+            "Bug"
                 -- 显示成bug信息
 
-        
+
         """
-        
+
         snapshot = {
             "battle_id": self.battle_id,
             "player_count": PLAYER_COUNT,
             "map_size": MAP_SIZE,
-            "timestamp": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
-            "event_type": event_type, # 事件类型: referee, player{P}, move
-            "event_data": event_data, # 事件数据，这里保存最后需要显示的内容
+            "timestamp": time.strftime(
+                "%Y-%m-%d %H:%M:%S", time.localtime(time.time())
+            ),
+            "event_type": event_type,  # 事件类型: referee, player{P}, move
+            "event_data": event_data,  # 事件数据，这里保存最后需要显示的内容
         }
         with self._lock:  # 加锁保护写操作
             self.snapshots.append(snapshot)
@@ -163,17 +166,19 @@ class Observer:
             snapshots = self.snapshots
             self.snapshots = []
         return snapshots
-    
+
     def snapshots_to_json(self) -> None:
         """
         将当前的快照列表 snapshots 保存到 JSON 文件中，路径与 visualizer.py 保持一致。
         """
         file_path = os.path.join(
-            Config._yaml_config.get("data_dir", "./data"),
-            f"game_{self.battle_id}_archive.json"
+            Config._yaml_config.get("DATA_DIR", "./data"),
+            f"game_{self.battle_id}_archive.json",
         )
+        print(f"尝试写入文件到: {file_path}")
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
         with self._lock:
-            with open(file_path, 'w', encoding='utf-8') as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(self.archive, f, ensure_ascii=False, indent=4)
+            print(f"文件写入完成: {os.path.exists(file_path)}")

@@ -34,27 +34,81 @@ def game_index(game_id):
 def game_replay(game_id):
     """游戏对局重放页面"""
     try:
-        # 构建游戏日志文件路径
-        log_file = os.path.join(
-            Config._yaml_config.get("data_dir", "./data"), f"game_{game_id}_archive.json"
-        )
+        # 处理示例回放的特殊情况
+        if game_id == "example":
+            # 从配置中获取示例回放文件路径
+            data_dir = Config._yaml_config.get("DATA_DIR", "./data")
+            example_path = Config._yaml_config.get("EXAMPLE_REPLAY", {}).get(
+                "file_path", "examples/example_game_replay.json"
+            )
+
+            # 尝试直接从配置构建的路径读取
+            log_file = os.path.join(data_dir, example_path)
+
+            # 如果文件不存在，尝试其他可能的位置
+            if not os.path.exists(log_file):
+                # 尝试项目根目录下的example目录
+                alt_path = os.path.join(
+                    os.path.dirname(data_dir), "example", "example_game_replay.json"
+                )
+                if os.path.exists(alt_path):
+                    log_file = alt_path
+                else:
+                    flash("示例回放文件不存在，请确保已正确配置。", "warning")
+                    return render_template("error.html", message="示例回放文件不存在")
+        else:
+            # 原有的游戏日志文件路径构建逻辑
+            log_file = os.path.join(
+                Config._yaml_config.get("DATA_DIR", "./data"),
+                f"game_{game_id}_archive.json",
+            )
+
+        print(f"尝试读取文件: {log_file}")
+        print(f"文件存在: {os.path.exists(log_file)}")
 
         # 检查文件是否存在
         if not os.path.exists(log_file):
+            flash(f"错误：找不到对局记录文件 {os.path.basename(log_file)}", "danger")
             return render_template("error.html", message="对局记录不存在")
 
         # 读取游戏日志文件
         with open(log_file, "r", encoding="utf-8") as f:
-            game_data = json.load(f)
+            try:
+                game_data = json.load(f)
+            except json.JSONDecodeError as json_err:
+                flash(
+                    f"错误：无法解析对局记录文件 {log_file}。错误：{json_err}", "danger"
+                )
+                return render_template(
+                    "error.html", message=f"加载对局记录时出错: 无效的JSON文件"
+                )
+
+        # 验证JSON基本格式
+        if not isinstance(game_data, list) or not game_data:
+            flash(f"错误：对局记录文件 {log_file} 格式无效或为空。", "danger")
+            return render_template(
+                "error.html", message=f"加载对局记录时出错: 文件格式无效或为空"
+            )
 
         # 提取基本游戏信息
-        game_info = extract_game_info(game_data)
+        game_info = extract_game_info(game_data, game_id)
 
         # 处理游戏事件
         game_events = process_game_events(game_data)
 
         # 获取玩家轨迹数据
         player_movements = extract_player_movements(game_data)
+
+        # 检查提取的数据是否有效
+        if not game_info.get("map_size"):
+            flash(f"错误：无法从对局记录 {game_id} 中提取地图大小。", "danger")
+            # 尝试从第一个事件获取，如果存在
+            map_size_fallback = game_data[0].get("map_size", 0) if game_data else 0
+            if not map_size_fallback:
+                return render_template(
+                    "error.html", message=f"加载对局记录时出错: 无法确定地图大小"
+                )
+            game_info["map_size"] = map_size_fallback  # Use fallback
 
         return render_template(
             "visualizer/game_replay.html",
@@ -65,16 +119,23 @@ def game_replay(game_id):
             map_size=game_info["map_size"],
         )
     except Exception as e:
+        flash(f"加载对局记录时发生意外错误: {str(e)}", "danger")
+        # Log the full error for debugging
+        print(f"Error loading replay {game_id}: {e}")
+        import traceback
+
+        traceback.print_exc()
         return render_template("error.html", message=f"加载对局记录时出错: {str(e)}")
 
 
 @visualizer_bp.route("/api/replay/<game_id>")
 @login_required
 def game_replay_data(game_id):
-    """获取游戏对局数据API"""
+    """获取游戏对局数据API (此API似乎未使用，但保持原样)"""
     try:
         log_file = os.path.join(
-            Config._yaml_config.get("data_dir", "./data"), f"game_{game_id}_public.json"
+            Config._yaml_config.get("DATA_DIR", "./data"),
+            f"game_{game_id}_public.json",  # 注意：这里用的是 public.json
         )
 
         if not os.path.exists(log_file):
@@ -91,10 +152,11 @@ def game_replay_data(game_id):
 @visualizer_bp.route("/api/replay/<game_id>/round/<int:round_num>")
 @login_required
 def get_round_data(game_id, round_num):
-    """获取特定回合的详细数据"""
+    """获取特定回合的详细数据 (此API似乎未使用，但保持原样)"""
     try:
         log_file = os.path.join(
-            Config._yaml_config.get("data_dir", "./data"), f"game_{game_id}_archive.json"
+            Config._yaml_config.get("DATA_DIR", "./data"),
+            f"game_{game_id}_archive.json",
         )
 
         if not os.path.exists(log_file):
@@ -103,8 +165,17 @@ def get_round_data(game_id, round_num):
         with open(log_file, "r", encoding="utf-8") as f:
             game_data = json.load(f)
 
-        # 过滤特定回合的事件
-        round_events = [event for event in game_data if event.get("round") == round_num]
+        # 过滤特定回合的事件 (注意：需要根据 observer.py 的结构调整过滤逻辑)
+        round_events = []
+        current_round = 0
+        for event in game_data:
+            if event.get("event_type") == "RoundStart":
+                current_round = event.get("event_data")
+            if current_round == round_num:
+                round_events.append(event)
+            # Stop if round number increases beyond target
+            elif current_round > round_num:
+                break
 
         return jsonify({"success": True, "round": round_num, "events": round_events})
     except Exception as e:
@@ -114,10 +185,11 @@ def get_round_data(game_id, round_num):
 @visualizer_bp.route("/api/replay/<game_id>/movements")
 @login_required
 def get_movement_data(game_id):
-    """获取所有玩家的移动轨迹数据"""
+    """获取所有玩家的移动轨迹数据 (此API似乎未使用，但保持原样)"""
     try:
         log_file = os.path.join(
-            Config._yaml_config.get("data_dir", "./data"), f"game_{game_id}_archive.json"
+            Config._yaml_config.get("DATA_DIR", "./data"),
+            f"game_{game_id}_archive.json",
         )
 
         if not os.path.exists(log_file):
@@ -155,35 +227,66 @@ def process_upload():
 
     if file and allowed_json_file(file.filename):
         try:
-            # 验证JSON格式
-            json_data = json.loads(file.read())
-            file.seek(0)  # 重置文件指针
+            # 读取文件内容进行验证
+            file_content = file.read()
+            try:
+                json_data = json.loads(file_content)
+            except json.JSONDecodeError:
+                flash("无效的JSON文件", "danger")
+                return redirect(request.url)
+
+            file.seek(0)  # 重置文件指针以便保存
 
             # 验证是否符合游戏对局格式
             if not is_valid_game_json(json_data):
                 flash("上传的JSON文件格式不符合游戏对局要求", "danger")
                 return redirect(request.url)
 
-            # 为上传的文件生成唯一ID
-            game_id = str(uuid.uuid4())
+            # 为上传的文件生成唯一ID (使用原始文件名中的ID，如果存在且符合格式)
+            # 尝试从文件名提取 game_id
+            base_name = os.path.splitext(secure_filename(file.filename))[0]
+            if base_name.startswith("game_") and base_name.endswith("_archive"):
+                potential_id = base_name[len("game_") : -len("_archive")]
+                # 简单的UUID格式检查 (不严格)
+                if len(potential_id) > 10:  # Basic check
+                    game_id = potential_id
+                    filename = f"game_{game_id}_archive.json"
+                    print(f"Using game_id from filename: {game_id}")
+                else:
+                    game_id = str(uuid.uuid4())
+                    filename = f"game_{game_id}_archive.json"
+                    print(f"Generated new game_id: {game_id}")
+            else:
+                game_id = str(uuid.uuid4())
+                filename = f"game_{game_id}_archive.json"
+                print(f"Generated new game_id: {game_id}")
 
             # 确保目录存在
-            data_dir = Config._yaml_config.get("data_dir", "./data")
+            data_dir = Config._yaml_config.get("DATA_DIR", "./data")
             os.makedirs(data_dir, exist_ok=True)
 
             # 保存文件
-            filename = f"game_{game_id}_archive.json"
             file_path = os.path.join(data_dir, filename)
+
+            # 检查文件是否已存在
+            if os.path.exists(file_path):
+                flash(
+                    f"文件 {filename} 已存在。如果需要覆盖，请先删除旧文件。", "warning"
+                )
+                # 可以选择不覆盖并重定向，或者添加覆盖逻辑
+                return redirect(request.url)  # 重定向回上传页面
+
             file.save(file_path)
 
             flash("文件上传成功，正在跳转到可视化页面", "success")
             return redirect(url_for("visualizer.game_replay", game_id=game_id))
 
-        except json.JSONDecodeError:
-            flash("无效的JSON文件", "danger")
-            return redirect(request.url)
         except Exception as e:
             flash(f"上传失败: {str(e)}", "danger")
+            print(f"Upload error: {e}")
+            import traceback
+
+            traceback.print_exc()
             return redirect(request.url)
     else:
         flash("只允许上传JSON文件", "danger")
@@ -196,286 +299,397 @@ def allowed_json_file(filename):
 
 
 def is_valid_game_json(json_data):
-    """验证JSON是否符合游戏对局格式"""
-    # 基本验证：检查是否为列表且至少包含game_start事件
+    """验证JSON是否符合游戏对局格式 (基于 observer.py)"""
     if not isinstance(json_data, list) or len(json_data) == 0:
+        print("Validation failed: Not a list or empty.")
         return False
 
-    # 检查第一个事件是否为game_start
+    # 检查第一个事件是否为 GameStart
     first_event = json_data[0]
-    if not isinstance(first_event, dict) or first_event.get("event_type") != "game_start":
+    if (
+        not isinstance(first_event, dict)
+        or first_event.get("event_type") != "GameStart"
+    ):
+        print(
+            f"Validation failed: First event is not GameStart. Found: {first_event.get('event_type')}"
+        )
         return False
 
-    # 检查是否包含必要的字段
-    required_fields = ["game_id", "player_count", "map_size"]
-    return all(field in first_event for field in required_fields)
+    # 检查 GameStart 事件是否包含必要字段
+    required_fields = ["battle_id", "player_count", "map_size", "timestamp"]
+    if not all(field in first_event for field in required_fields):
+        print(
+            f"Validation failed: Missing fields in GameStart. Required: {required_fields}, Found: {first_event.keys()}"
+        )
+        return False
+
+    # 可以添加更多检查，例如是否存在 RoleAssign, RoundStart 等
+    has_role_assign = any(
+        event.get("event_type") == "RoleAssign" for event in json_data
+    )
+    if not has_role_assign:
+        print(
+            "Validation warning: Missing RoleAssign event."
+        )  # Warning, not necessarily invalid
+
+    return True
 
 
-def extract_game_info(game_data):
-    """从游戏数据中提取基本信息"""
+def extract_game_info(game_data, game_id_from_url):
+    """从游戏数据中提取基本信息 (基于 observer.py)"""
     game_info = {
+        "game_id": game_id_from_url,  # Use ID from URL/filename as primary
         "player_count": 0,
         "map_size": 0,
-        "start_time": "",
-        "end_time": "",
-        "winner": "",
+        "start_time": None,
+        "end_time": None,
+        "winner": "未知",
         "rounds_played": 0,
         "roles": {},
-        "win_reason": "",
+        "win_reason": "未知",
         "blue_wins": 0,
         "red_wins": 0,
-        "is_completed": True,  # 默认假设游戏正常完成
+        "is_completed": False,  # Assume not completed until GameResult is found
+        "start_time_formatted": "未知",
+        "end_time_formatted": "未知",
+        "duration": "未知",
     }
+    last_round_num = 0
+    last_scoreboard = None
 
     # 从游戏开始事件提取信息
     for event in game_data:
-        if event.get("event_type") == "GameStart":
+        event_type = event.get("event_type")
+        event_data = event.get("event_data")
+        timestamp = event.get("timestamp")  # Get timestamp from event
+
+        if event_type == "GameStart":
             game_info["player_count"] = event.get("player_count", 0)
             game_info["map_size"] = event.get("map_size", 0)
-            game_info["start_time"] = event.get("timestamp", "")
+            game_info["start_time"] = timestamp  # Use event timestamp
+            # Use battle_id from event if needed, but prefer URL one
+            # game_info["game_id"] = event.get("battle_id", game_id_from_url)
 
-        if event.get("event_type") == "RoleAssign":
-            game_info["roles"] = event.get("event_data", {})
+        elif event_type == "RoleAssign":
+            # Ensure keys are strings if they are numbers in JSON
+            game_info["roles"] = (
+                {str(k): v for k, v in event_data.items()}
+                if isinstance(event_data, dict)
+                else {}
+            )
+
+        elif event_type == "RoundStart":
+            if isinstance(event_data, int):
+                last_round_num = max(last_round_num, event_data)
+
+        elif event_type == "ScoreBoard":
+            if isinstance(event_data, list) and len(event_data) == 2:
+                last_scoreboard = event_data  # Store the latest scoreboard
 
         # 从游戏结束事件提取信息
-        if event.get("event_type") == "GameResult":
-            info = event.get("event_data", [])
-            game_info["end_time"] = event.get("timestamp", "")
-            game_info["winner"] = info[0]
-            game_info["win_reason"] = info[1]
-        
-        if event.get("event_type") == "FinalScore":
-            info = event.get("event_data", [])
-            game_info["blue_wins"] = info[0]
-            game_info["red_wins"] = info[1]
-            game_info["rounds_played"] = info[0] + info[1]
+        elif event_type == "GameResult":
+            if isinstance(event_data, (list, tuple)) and len(event_data) >= 2:
+                game_info["winner"] = event_data[
+                    0
+                ].lower()  # Ensure lowercase 'blue' or 'red'
+                game_info["win_reason"] = event_data[1]
+                game_info["end_time"] = timestamp  # Use event timestamp
+                game_info["is_completed"] = True
 
-    # 检查游戏是否异常终止 (没有game_end事件)
-    if not game_info["end_time"]:
-        game_info["is_completed"] = False
-        game_info["end_time"] = "游戏未正常结束"
-        game_info["winner"] = "未知"
-        game_info["win_reason"] = "游戏异常终止"
-        
-        # 尝试从最后一个任务结果事件中获取部分信息
-        for event in reversed(game_data):
-            flag1,flag2 = 0,0
-            if event.get("event_type") == "MissionResult":
-                info = event.get("event_data", ())
-                game_info["rounds_played"] = info[0]
-                flag1 = 1
-            if event.get("event_type") == "ScoreBoard":
-                info = event.get("event_data", [])
-                game_info["blue_wins"] = info[0]
-                game_info["red_wins"] = info[1]
-                flag2 = 1
-            if flag1 and flag2:
-                break
+        elif event_type == "FinalScore":
+            if isinstance(event_data, list) and len(event_data) == 2:
+                game_info["blue_wins"] = event_data[0]
+                game_info["red_wins"] = event_data[1]
+                game_info["rounds_played"] = (
+                    game_info["blue_wins"] + game_info["red_wins"]
+                )
+
+    # 如果游戏未正常结束 (没有 GameResult)
+    if not game_info["is_completed"]:
+        game_info["end_time_formatted"] = "游戏未正常结束"
+        game_info["win_reason"] = "游戏未记录结束状态"
+        # 使用最后记录的回合数和计分板（如果存在）
+        game_info["rounds_played"] = last_round_num
+        if last_scoreboard:
+            game_info["blue_wins"] = last_scoreboard[0]
+            game_info["red_wins"] = last_scoreboard[1]
+            # Try to infer winner based on last score if game didn't finish
+            if game_info["blue_wins"] >= 3:
+                game_info["winner"] = "blue"
+                game_info["win_reason"] = "游戏中断时蓝方已达3胜"
+            elif game_info["red_wins"] >= 3:
+                game_info["winner"] = "red"
+                game_info["win_reason"] = "游戏中断时红方已达3胜"
 
     # 格式化时间戳
-    if game_info["start_time"] and game_info["start_time"] != "游戏未正常结束":
-        try:
-            dt = datetime.strptime(game_info["start_time"], "%Y-%m-%d %H:%M:%S.%f")
-            game_info["start_time_formatted"] = dt.strftime("%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            game_info["start_time_formatted"] = game_info["start_time"]
+    time_format_in = "%Y-%m-%d %H:%M:%S"  # Format from observer
+    time_format_out = "%Y-%m-%d %H:%M"  # Shorter format for display
 
-    if game_info["end_time"] and game_info["end_time"] != "游戏未正常结束":
+    if game_info["start_time"]:
         try:
-            dt = datetime.strptime(game_info["end_time"], "%Y-%m-%d %H:%M:%S.%f")
-            game_info["end_time_formatted"] = dt.strftime("%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            game_info["end_time_formatted"] = game_info["end_time"]
+            # Handle potential fractional seconds if present
+            dt_start = datetime.strptime(
+                game_info["start_time"].split(".")[0], time_format_in
+            )
+            game_info["start_time_formatted"] = dt_start.strftime(time_format_out)
+        except (ValueError, TypeError):
+            game_info["start_time_formatted"] = str(game_info["start_time"])  # Fallback
+
+    if game_info["end_time"] and game_info["is_completed"]:
+        try:
+            dt_end = datetime.strptime(
+                game_info["end_time"].split(".")[0], time_format_in
+            )
+            game_info["end_time_formatted"] = dt_end.strftime(time_format_out)
+        except (ValueError, TypeError):
+            # Keep "游戏未正常结束" or fallback
+            if game_info["end_time_formatted"] == "未知":
+                game_info["end_time_formatted"] = str(game_info["end_time"])
 
     # 计算游戏时长
     if game_info["start_time"] and game_info["end_time"] and game_info["is_completed"]:
         try:
-            start = datetime.strptime(game_info["start_time"], "%Y-%m-%d %H:%M:%S.%f")
-            end = datetime.strptime(game_info["end_time"], "%Y-%m-%d %H:%M:%S.%f")
+            start = datetime.strptime(
+                game_info["start_time"].split(".")[0], time_format_in
+            )
+            end = datetime.strptime(game_info["end_time"].split(".")[0], time_format_in)
             duration = end - start
-            minutes = math.floor(duration.total_seconds() / 60)
-            seconds = math.floor(duration.total_seconds() % 60)
-            game_info["duration"] = f"{minutes}分{seconds}秒"
-        except ValueError:
-            game_info["duration"] = "未知"
-    else:
+            total_seconds = duration.total_seconds()
+            if total_seconds >= 0:
+                minutes = math.floor(total_seconds / 60)
+                seconds = math.floor(total_seconds % 60)
+                game_info["duration"] = f"{minutes}分{seconds}秒"
+            else:
+                game_info["duration"] = "时间戳错误"
+        except (ValueError, TypeError):
+            game_info["duration"] = "无法计算"
+    elif not game_info["is_completed"]:
         game_info["duration"] = "未完成"
+
+    # Ensure roles has string keys for template
+    game_info["roles"] = {str(k): v for k, v in game_info.get("roles", {}).items()}
 
     return game_info
 
 
 def process_game_events(game_data):
-    """处理游戏事件用于可视化"""
-    # 按回合分组事件
+    """处理游戏事件用于可视化 (基于 observer.py)"""
     events_by_round = {}
-    # 特殊事件(不按回合分组)
-    special_events = {
-        "Assass": None,
-        "GameEnd": None
-    }
-    
     round_num = 0
+    assassination_info = None
+
     for event in game_data:
         event_type = event.get("event_type")
         event_data = event.get("event_data")
-        
-        # 处理特殊事件
-        if event_type in special_events:
-            special_events[event_type] = event
-            continue
-            
+
+        # --- Special Events Handling ---
+        if event_type == "Assass":
+            if isinstance(event_data, list) and len(event_data) == 4:
+                assassination_info = {
+                    "assassin": str(event_data[0]),  # Ensure string ID
+                    "target": str(event_data[1]),  # Ensure string ID
+                    "target_role": event_data[2],
+                    "success": event_data[3] == "Success",
+                }
+            continue  # Processed special event
+
+        # --- Round Based Events Handling ---
         if event_type == "RoundStart":
-            round_num = event_data
+            if isinstance(event_data, int):
+                round_num = event_data
+                if round_num > 0 and round_num not in events_by_round:
+                    # Initialize round structure when RoundStart is encountered
+                    events_by_round[round_num] = {
+                        "round": round_num,
+                        "leader": None,
+                        "team_members": [],
+                        "speeches": [],  # Combined list: [(player_id_str, message)]
+                        "votes": {},  # {player_id_str: bool}
+                        "vote_result": None,  # {approved: bool, approve_count: int, reject_count: int}
+                        "mission_execution": None,  # {success: bool, fail_votes: int}
+                        "mission_result": None,  # {success: bool} - Simplified for badge
+                    }
+            continue  # Processed RoundStart
 
-        if round_num not in events_by_round:
-            events_by_round[round_num] = []
-
-        events_by_round[round_num].append(event)
-
-    # 整理每轮的关键信息
-    game_events = []
-
-    for round_num in sorted(events_by_round.keys()):
-        round_events = events_by_round[round_num]
-        round_info = {
-            "round": round_num,
-            "leader": None,
-            "team_members": [],
-            "public_speeches": {},
-            "private_speeches": {},
-            "public_vote_result": {"votes":{}, "approve_count":0, "result":""},
-            "private_vote_result": None,
-            "mission_result": None,
-            "movements": {},
-            "consecutive_rejections": False,
-        }
-
-        # 处理回合中的各种事件
-        for event in round_events:
-            event_type = event.get("event_type")
-            event_data = event.get("event_data")
+        # Only process other events if a valid round structure exists
+        if round_num > 0 and round_num in events_by_round:
+            current_round = events_by_round[round_num]
 
             if event_type == "Leader":
-                round_info["leader"] = event_data
-                
+                current_round["leader"] = str(event_data)  # Ensure string ID
             elif event_type == "TeamPropose":
-                round_info["team_members"] = event_data
-                round_info["member_count"] = len(round_info["team_members"])
-
+                # Ensure members are strings
+                current_round["team_members"] = (
+                    [str(m) for m in event_data] if isinstance(event_data, list) else []
+                )
             elif event_type == "PublicSpeech":
-                round_info["public_speeches"][event_data[0]] = event_data[1]
-                # {1:"blabla", "2":"blabla"}
-
+                if isinstance(event_data, (list, tuple)) and len(event_data) == 2:
+                    # 标记为公开发言
+                    current_round["speeches"].append(
+                        (str(event_data[0]), event_data[1], "public")
+                    )
             elif event_type == "PrivateSpeech":
-                round_info["public_speeches"][event_data[0]] = event_data[1]
-                # {1:"blabla", "2":"blabla"}
-
-
-            elif event_type == "Positions":
-                round_info["movements"] = event_data
-                # dict 玩家位置
-
+                if isinstance(event_data, (list, tuple)) and len(event_data) == 2:
+                    # 标记为有限范围发言
+                    current_round["speeches"].append(
+                        (str(event_data[0]), event_data[1], "private")
+                    )
             elif event_type == "PublicVote":
-                round_info["vote_result"]["votes"][event_data[0]] = event_data[1]
-                #{1:"Approve", "2":"Reject"}
-
+                if isinstance(event_data, (list, tuple)) and len(event_data) == 2:
+                    # Store vote as boolean, key as string
+                    current_round["votes"][str(event_data[0])] = (
+                        event_data[1] == "Approve"
+                    )
             elif event_type == "PublicVoteResult":
-                round_info["vote_result"]["approve_count"] = event_data[0] 
-                round_info["vote_result"]["reject_count"] = event_data[1]
-                #int
-
+                if isinstance(event_data, list) and len(event_data) == 2:
+                    # Initialize vote_result if not already done
+                    if current_round["vote_result"] is None:
+                        current_round["vote_result"] = {}
+                    current_round["vote_result"]["approve_count"] = event_data[0]
+                    current_round["vote_result"]["reject_count"] = event_data[1]
             elif event_type == "MissionApproved":
-                round_info["vote_result"]["result"] = True
-                
+                if current_round["vote_result"] is None:
+                    current_round["vote_result"] = {}
+                current_round["vote_result"]["approved"] = True
             elif event_type == "MissionRejected":
-                round_info["vote_result"]["result"] = False
-                round_info["consecutive_rejections"] = True
-
+                if current_round["vote_result"] is None:
+                    current_round["vote_result"] = {}
+                current_round["vote_result"]["approved"] = False
             elif event_type == "MissionVote":
-                fail_votes = 0
-                for i in event_data:
-                    if event_data[i] == False:
-                        fail_votes += 1
-                round_info["mission_execution"] = {
-                    "fail_votes": fail_votes
-                }
-
+                if isinstance(event_data, dict):
+                    fail_votes = sum(1 for vote in event_data.values() if not vote)
+                    # Initialize mission_execution if not already done
+                    if current_round["mission_execution"] is None:
+                        current_round["mission_execution"] = {}
+                    current_round["mission_execution"]["fail_votes"] = fail_votes
             elif event_type == "MissionResult":
-                if event_data[1] == "Success":
-                    round_info["mission_execution"]["success"] = True
-                else:
-                    round_info["mission_execution"]["success"] = False
+                if isinstance(event_data, (list, tuple)) and len(event_data) == 2:
+                    success = event_data[1] == "Success"
+                    if current_round["mission_execution"] is None:
+                        current_round["mission_execution"] = {}
+                    current_round["mission_execution"]["success"] = success
+                    # Also store simplified mission result for badge color
+                    current_round["mission_result"] = {"success": success}
 
-            elif event_type == "MissionResult":
-                flag = False
-                if event_data[1] == "Success":
-                    flag = True
-                round_info["mission_result"] = {
-                    "result": flag,
-                    "blue_wins": int(flag),
-                    "red_wins": 1 - int(flag),
-                }
+    # Convert dict to list and sort by round number
+    game_events_list = sorted(events_by_round.values(), key=lambda x: x["round"])
 
-        # 只添加非零回合
-        if round_num > 0:
-            game_events.append(round_info)
-    
-    # 添加刺杀信息
-    if special_events["assassination"]:
-        assassination_event = special_events["assassination"]
-        flag = False
-        if assassination_event[3] == "Success":
-            flag = True
-        assassination_info = {
-            "assassin": assassination_event[0],
-            "target": assassination_event[1],
-            "target_role": assassination_event[2],
-            "success": flag
-        }
-        game_events.append({
-            "round": "assassination",
-            "assassination": assassination_info
-        })
-    
-    return game_events
+    # Append assassination info at the end if it exists
+    if assassination_info:
+        game_events_list.append(
+            {
+                "round": "assassination",  # Special key for template logic
+                "assassination": assassination_info,
+            }
+        )
+
+    return game_events_list
 
 
 def extract_player_movements(game_data):
-    """提取玩家移动轨迹数据"""
-    movements_by_player = {}
-    player_positions = {}  # 用于跟踪玩家的当前位置
-    
+    """提取玩家移动轨迹数据 (基于 observer.py)"""
+    movements_by_player = (
+        {}
+    )  # {player_id_str: [{"round": int, "position": [r, c], "moves": []}]}
+    current_round_num = 0  # Start before round 1
+
+    # First pass: Initialize players from RoleAssign
+    for event in game_data:
+        if event.get("event_type") == "RoleAssign":
+            event_data = event.get("event_data")
+            if isinstance(event_data, dict):
+                player_ids = list(event_data.keys())
+                for player_id in player_ids:
+                    movements_by_player[str(player_id)] = (
+                        []
+                    )  # Initialize empty list, use string ID
+            break  # Found roles, no need to continue this pass
+
+    # Second pass: Process positions and movements
     for event in game_data:
         event_type = event.get("event_type")
         event_data = event.get("event_data")
 
-        # 初始化玩家位置
         if event_type == "DefaultPositions":
-            round_num = 1
-            player_positions = event_data
-            player_count = len(player_positions)
-            for i in range(1, player_count + 1):
-                movements_by_player[i] = []
-                
-        # 记录每轮移动后的位置
-        if event_type == "Move":
-            player_id = event_data[0]
-            movements_by_player[player_id].append({
-                    "round": round_num,
-                    "position": event_data[1][1],
-                    "moves": event_data[1][0]
-                })
-            """
-            "Move" 
-                -- tuple(int, list), 
-                    int: 0表示开始,8表示结束,其他数字对应玩家编号
-                    list: [valid_moves, new_pos]
-            """
+            # Record initial positions, associate with round 0
+            if isinstance(event_data, dict):
+                for player_id_str, pos in event_data.items():
+                    player_id_str = str(player_id_str)  # Ensure string key
+                    if player_id_str in movements_by_player:
+                        # Check if round 0 position already exists
+                        if not any(
+                            m["round"] == 0 for m in movements_by_player[player_id_str]
+                        ):
+                            movements_by_player[player_id_str].append(
+                                {
+                                    "round": 0,  # Assign to round 0
+                                    "position": (
+                                        pos
+                                        if isinstance(pos, list) and len(pos) == 2
+                                        else None
+                                    ),  # Basic validation
+                                    "moves": [],  # No moves for initial state
+                                }
+                            )
 
-        if event_type == "Positions":
-            round_num += 1
-            # 记录这个回合的位置
-            player_positions = event_data  # 更新当前位置
-                
+        elif event_type == "RoundStart":
+            if isinstance(event_data, int):
+                current_round_num = event_data  # Update current round number
+
+        elif event_type == "Move":
+            # event_data = (player_id, [valid_moves, new_pos])
+            if isinstance(event_data, (list, tuple)) and len(event_data) == 2:
+                player_id = event_data[0]
+                move_details = event_data[1]
+                player_id_str = str(player_id)  # Ensure string ID
+
+                if (
+                    player_id_str in movements_by_player
+                    and current_round_num > 0
+                    and isinstance(move_details, list)
+                    and len(move_details) == 2
+                ):
+                    new_pos = move_details[1]
+                    valid_moves = move_details[0]  # Optional to store
+
+                    # Add movement for the *current* round
+                    # Avoid duplicate entries for the same round if logic sends multiple moves
+                    if not any(
+                        m["round"] == current_round_num
+                        for m in movements_by_player[player_id_str]
+                    ):
+                        movements_by_player[player_id_str].append(
+                            {
+                                "round": current_round_num,
+                                "position": (
+                                    new_pos
+                                    if isinstance(new_pos, list) and len(new_pos) == 2
+                                    else None
+                                ),  # Basic validation
+                                "moves": (
+                                    valid_moves if isinstance(valid_moves, list) else []
+                                ),  # Store moves if needed
+                            }
+                        )
+                    else:
+                        # Update position if a move for this round already exists (e.g., correction)
+                        for move in movements_by_player[player_id_str]:
+                            if move["round"] == current_round_num:
+                                move["position"] = (
+                                    new_pos
+                                    if isinstance(new_pos, list) and len(new_pos) == 2
+                                    else None
+                                )
+                                move["moves"] = (
+                                    valid_moves if isinstance(valid_moves, list) else []
+                                )
+                                break
+
+        # "Positions" event is ignored as 'Move' events should capture the state changes per round.
+        # If 'Move' is unreliable, 'Positions' could be used as a fallback snapshot.
+
+    # Ensure all players have at least a round 0 position if DefaultPositions was missed
+    # This might happen if RoleAssign is present but DefaultPositions is not.
+    # It's safer to rely on DefaultPositions being present.
 
     return movements_by_player

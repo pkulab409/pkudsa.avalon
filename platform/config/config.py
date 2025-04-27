@@ -64,7 +64,7 @@ if yaml_config:  # 确保 yaml_config 已成功加载且不为空
         # 注意：这里假设 YAML 中的 key 与 Config 类属性名大小写一致或需要转换
         # 如果 YAML key 是小写下划线 (e.g., database_uri) 而类属性是大写 (e.g., DATABASE_URI)
         # 你可能需要转换: setattr(Config, key.upper(), value)
-        setattr(Config, key.upper(), value)  # 假设YAML key需要转为大写以匹配类属性
+        setattr(Config, key, value)  # 假设YAML key需要转为大写以匹配类属性
         # 如果 YAML key 和类属性大小写一致，则用 setattr(Config, key, value)
 
 # (可选) 将原始 yaml 配置也添加到 Config 类中，如果需要访问的话
