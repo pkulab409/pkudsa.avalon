@@ -1,161 +1,104 @@
 {% extends "base.html" %}
 {% block title %}
-  {{ user.username }}的个人资料 - 游戏平台
+  {{ user.username }} 的个人资料 - 游戏平台
 {% endblock title %}
 {% block content %}
-  <div class="container mt-5">
+  <div class="container mt-4">
     <div class="row">
-      <!-- 用户基本信息卡片 -->
-      <div class="col-md-4 mb-4">
-        <div class="card shadow-sm">
+      <div class="col-md-4">
+        <!-- 用户基本信息 -->
+        <div class="card shadow-sm mb-4">
           <div class="card-body text-center">
-            <h3 class="card-title">{{ user.username }}</h3>
+            <img src="{{ url_for('static', filename='images/default_avatar.png') }}"
+                 alt="用户头像"
+                 class="img-thumbnail rounded-circle mb-3"
+                 width="150">
+            <h4 class="card-title">{{ user.username }}</h4>
+            <p class="card-text text-muted">{{ user.email }}</p>
+            <p class="card-text">
+              <small class="text-muted">注册时间: {{ user.created_at.strftime("%Y-%m-%d") }}</small>
+            </p>
+            {% if is_self %}<!-- <a href="#" class="btn btn-sm btn-outline-primary">编辑资料</a> -->{% endif %}
           </div>
         </div>
       </div>
-      <!-- 游戏统计卡片 -->
-      <div class="col-md-8 mb-4">
-        <div class="card shadow-sm">
-          <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">游戏统计</h4>
+      <div class="col-md-8">
+        <!-- 游戏统计 -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">游戏统计</h5>
           </div>
           <div class="card-body">
             {% if game_stats %}
-              <div class="table-responsive">
-                <table class="table table-hover">
-                  <thead>
-                    <tr>
-                      <th>游戏</th>
-                      <th>分数</th>
-                      <th>胜</th>
-                      <th>负</th>
-                      <th>平</th>
-                      <th>总场次</th>
-                      <th>胜率</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for stat in game_stats %}
-                      <tr>
-                        <td>
-                          {% if stat.game_type == 'default' %}
-                            默认游戏
-                          {% else %}
-                            {{ stat.game_type }}
-                          {% endif %}
-                        </td>
-                        <td>{{ stat.score }}</td>
-                        <td>{{ stat.games_won }}</td>
-                        <td>{{ stat.games_lost }}</td>
-                        <td>{{ stat.games_draw }}</td>
-                        <td>{{ stat.games_played }}</td>
-                        <td>
-                          {{ "%.1f"|format(stat.games_won / stat.games_played * 100) if stat.games_played
-                          else 0 }}%
-                        </td>
-                      </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
+              <div class="row text-center">
+                <div class="col-4">
+                  <h5>分数 (Elo)</h5>
+                  <p class="fs-4">{{ game_stats.elo_score }}</p>
+                </div>
+                <div class="col-4">
+                  <h5>总场次</h5>
+                  <p class="fs-4">{{ game_stats.games_played }}</p>
+                </div>
+                <div class="col-4">
+                  <h5>胜率</h5>
+                  <p class="fs-4">
+                    {% if game_stats.games_played > 0 %}
+                      {{ "%.1f%%" | format(game_stats.wins * 100 / game_stats.games_played) }}
+                    {% else %}
+                      0.0%
+                    {% endif %}
+                  </p>
+                </div>
+              </div>
+              <hr>
+              <div class="row text-center">
+                <div class="col-4">
+                  <p class="text-success mb-0">胜场</p>
+                  <p class="fs-5">{{ game_stats.wins }}</p>
+                </div>
+                <div class="col-4">
+                  <p class="text-danger mb-0">负场</p>
+                  <p class="fs-5">{{ game_stats.losses }}</p>
+                </div>
+                <div class="col-4">
+                  <p class="text-secondary mb-0">平局</p>
+                  <p class="fs-5">{{ game_stats.draws }}</p>
+                </div>
               </div>
             {% else %}
-              <div class="alert alert-info">{{ user.username if not is_self else '您' }}尚未参与任何游戏。</div>
+              <p class="text-muted text-center">暂无游戏统计数据。</p>
             {% endif %}
           </div>
         </div>
-      </div>
-      <!-- AI代码管理卡片 -->
-      <div class="col-12 mb-4">
+        <!-- 最近对战历史 -->
         <div class="card shadow-sm">
-          <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">AI代码管理</h4>
-            <a href="{{ url_for('ai.list_ai') }}" class="btn btn-light btn-sm">
-              <i class="bi bi-robot"></i> 管理我的AI
-            </a>
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">最近对战</h5>
+            {% if is_self %}<a href="{{ url_for('profile.battle_history') }}">查看全部历史</a>{% endif %}
           </div>
-          <div class="card-body">
-            {% if is_self %}
-              <p>上传您的AI代码来参与游戏对战，与其他玩家的AI一较高下！</p>
-              <div class="d-grid gap-2 mt-3">
-                <a href="{{ url_for('ai.upload_ai') }}" class="btn btn-outline-info">上传新AI代码</a>
-              </div>
-            {% else %}
-              <p>查看{{ user.username }}的游戏战绩，挑战其AI！</p>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- 最近对战记录 -->
-    <div class="row">
-      <div class="col-12">
-        <div class="card shadow-sm">
-          <div class="card-header bg-success text-white">
-            <h4 class="mb-0">最近对战</h4>
-          </div>
-          <div class="card-body">
-            {% if recent_battles %}
-              <div class="table-responsive">
-                <table class="table table-hover">
-                  <thead>
-                    <tr>
-                      <th>日期</th>
-                      <th>游戏</th>
-                      <th>对手</th>
-                      <th>结果</th>
-                      <th>分数变化</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for battle in recent_battles %}
-                      <tr>
-                        <td>{{ battle.started_at.strftime("%Y-%m-%d %H:%M") }}</td>
-                        <td>
-                          {% if battle.game_type == 'default' %}
-                            默认游戏
-                          {% else %}
-                            {{ battle.game_type }}
-                          {% endif %}
-                        </td>
-                        <td>
-                          {% if battle.player1_id == user.id %}
-                            <a href="{{ url_for('profile.profile', username=battle.player2.username) }}">{{ battle.player2.username }}</a>
-                          {% else %}
-                            <a href="{{ url_for('profile.profile', username=battle.player1.username) }}">{{ battle.player1.username }}</a>
-                          {% endif %}
-                        </td>
-                        <td>
-                          {% if battle.is_draw %}
-                            <span class="badge bg-secondary">平局</span>
-                          {% elif (battle.winner_id == user.id) %}
-                            <span class="badge bg-success">胜利</span>
-                          {% else %}
-                            <span class="badge bg-danger">失败</span>
-                          {% endif %}
-                        </td>
-                        <td>
-                          {% if battle.is_draw %}
-                            <span class="text-secondary">+0</span>
-                          {% elif (battle.winner_id == user.id) %}
-                            <span class="text-success">+{{ battle.score_change or 10 }}</span>
-                          {% else %}
-                            <span class="text-danger">-{{ battle.score_change or 10 }}</span>
-                          {% endif %}
-                        </td>
-                      </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-            {% else %}
-              <div class="alert alert-info">{{ user.username if not is_self else '您' }}尚无对战记录。</div>
-            {% endif %}
-            {% if recent_battles and is_self %}
-              <div class="d-grid gap-2 mt-3">
-                <a href="{{ url_for('profile.battle_history') }}"
-                   class="btn btn-outline-success">查看完整对战历史</a>
-              </div>
-            {% endif %}
+          <div class="card-body p-0">
+            <!-- 这里可以嵌入最近几场对战的列表，需要后端传递数据 -->
+            <!-- 示例 -->
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item text-muted text-center">最近对战历史功能待添加</li>
+              {#
+              {% if recent_battles %}
+                {% for battle in recent_battles %}
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                      <a href="{{ url_for('game.view_battle', battle_id=battle.id) }}">对战 {{ battle.id[:8] }}...</a>
+                      <small class="d-block text-muted">{{ battle.ended_at.strftime('%Y-%m-%d %H:%M') if battle.ended_at else '进行中' }}</small>
+                    </div>
+                    <span class="badge {% if battle.result == 'win' %}bg-success{% elif battle.result == 'loss' %}bg-danger{% elif battle.result == 'draw' %}bg-secondary{% else %}bg-info{% endif %}">
+                      {{ battle.result | capitalize if battle.result else battle.status }}
+                    </span>
+                  </li>
+                {% endfor %}
+              {% else %}
+                <li class="list-group-item text-muted text-center">暂无最近对战记录</li>
+              {% endif %}
+              #}
+            </ul>
           </div>
         </div>
       </div>

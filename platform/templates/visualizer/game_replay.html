@@ -1,0 +1,749 @@
+{% extends "base.html" %}
+{% block title %}
+  对局重放 - {{ game_id }}
+{% endblock title %}
+{% block styles %}
+  {{ super() }}
+  <style>
+    /* 聊天容器样式 */
+    .chat-container {
+      height: calc(100vh - 250px);
+      overflow-y: auto;
+      padding: 1rem;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #dee2e6;
+    }
+    
+    /* 消息气泡基础样式 */
+    .message-bubble {
+      max-width: 100%; /* Bubble takes full width of its wrapper */
+      padding: 10px 15px;
+      border-radius: 18px; /* Use uniform radius */
+      position: relative;
+      word-break: break-word;
+    }
+    
+    /* 蓝方消息 */
+    .message-blue {
+      background-color: #cfe2ff;
+      border: 1px solid #9ec5fe;
+    }
+    
+    /* 红方消息 */
+    .message-red {
+      background-color: #f8d7da;
+      border: 1px solid #f5c2c7;
+    }
+    
+    /* 回合分隔线 */
+    .round-divider {
+      clear: both;
+      text-align: center;
+      margin: 20px 0;
+      position: relative;
+    }
+    
+    .round-divider:before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 50%;
+      width: 100%;
+      height: 1px;
+      background-color: #dee2e6;
+      z-index: 0;
+    }
+    
+    .round-divider span {
+      display: inline-block;
+      padding: 0 15px;
+      background-color: #fff;
+      position: relative;
+      z-index: 1;
+      font-weight: bold;
+      border-radius: 15px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    /* 玩家标签样式 */
+    .player-tag {
+      font-size: 0.85rem;
+      margin-bottom: 3px;
+      font-weight: bold;
+      padding: 0 5px; /* Optional: Add slight horizontal padding */
+    }
+    
+    /* 侧边栏样式 */
+    .sidebar {
+      overflow-y: auto;
+    }
+    
+    /* 地图样式保持不变 */
+    .game-map {
+      display: grid;
+      grid-template-columns: repeat({{ map_size }}, 1fr);
+      grid-template-rows: repeat({{ map_size }}, 1fr);
+      gap: 2px;
+      background-color: #f5f5f5;
+      padding: 8px;
+      border-radius: 8px;
+      max-width: 100%;
+      margin: 0 auto;
+    }
+    
+    .map-cell {
+      aspect-ratio: 1;
+      background-color: #fff;
+      border: 1px solid #ddd;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      font-weight: bold;
+    }
+    
+    .player-token {
+      width: 80%;
+      height: 80%;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+    
+    .player-blue {
+      background-color: #007bff;
+    }
+    
+    .player-red {
+      background-color: #dc3545;
+    }
+    
+    .player-unknown {
+      background-color: #6c757d;
+    }
+    
+    .timeline-item {
+      position: relative;
+      padding-left: 30px;
+      margin-bottom: 15px;
+    }
+    
+    .timeline-item:before {
+      content: '';
+      position: absolute;
+      left: 10px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background-color: #dee2e6;
+    }
+    
+    .timeline-dot {
+      position: absolute;
+      left: 4px;
+      top: 10px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background-color: #007bff;
+    }
+    
+    .map-controls {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 15px;
+    }
+    
+    .tooltip-icon {
+      margin-left: 5px;
+      cursor: help;
+    }
+    
+    .role-icon {
+      width: 24px;
+      height: 24px;
+      margin-right: 5px;
+    }
+    
+    .player-movement-path {
+      stroke-dasharray: 5;
+      stroke-width: 2;
+      fill: none;
+    }
+    
+    .player-history-position {
+      opacity: 0.3;
+    }
+
+    .bg-success-light {
+      background-color: #d1e7dd; /* Lighter shade of Bootstrap success */
+    }
+    .bg-danger-light {
+      background-color: #f8d7da; /* Lighter shade of Bootstrap danger */
+    }
+
+    /* NEW: Message Wrapper Styles */
+    .message-wrapper {
+      max-width: 75%;
+      margin-bottom: 10px; /* Spacing between full message blocks */
+      position: relative;
+    }
+    .message-wrapper-blue {
+      float: left;
+    }
+    .message-wrapper-red {
+      float: right;
+    }
+  </style>
+{% endblock styles %}
+{% block content %}
+  <div class="container-fluid mt-4">
+    <div class="row">
+      <!-- 左侧边栏：游戏信息和角色列表 -->
+      <div class="col-md-3">
+        <div class="sidebar">
+          <!-- 游戏信息卡片 -->
+          <div class="card shadow-sm mb-3">
+            <div class="card-header bg-primary text-white">
+              <h5 class="mb-0">对局信息</h5>
+            </div>
+            <div class="card-body">
+              <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  游戏ID
+                  <span class="badge bg-secondary">{{ game_id }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  状态
+                  <span class="badge {% if game_info.winner == 'blue' %}bg-info{% else %}bg-danger{% endif %}">
+                    {{ "蓝方胜利" if game_info.winner == "blue" else "红方胜利" }}
+                  </span>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <!-- 角色列表 (Moved from right sidebar) -->
+          <div class="card shadow-sm mb-3">
+            <div class="card-header bg-dark text-white">
+              <h5 class="mb-0">角色列表</h5>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>玩家</th>
+                      <th>角色</th>
+                      <th>阵营</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for player_id, role in game_info.roles.items() %}
+                      <tr>
+                        <td>{{ player_id }}</td>
+                        <td>
+                          {% set role_name = role %}
+                          {% if role == "Merlin" %}
+                            梅林
+                          {% elif role == "Percival" %}
+                            派西维尔
+                          {% elif role == "Knight" %}
+                            骑士
+                          {% elif role == "Assassin" %}
+                            刺客
+                          {% elif role == "Morgana" %}
+                            莫甘娜
+                          {% elif role == "Mordred" %}
+                            莫德雷德
+                          {% elif role == "Oberon" %}
+                            奥伯伦
+                          {% endif %}
+                          <span class="{{ 'text-primary' if role in ['Merlin', 'Percival', 'Knight'] else 'text-danger' }}">
+                            {{ role_name }}
+                          </span>
+                        </td>
+                        <td>
+                          {% if role in ["Merlin", "Percival", "Knight"] %}
+                            <span class="badge bg-info">蓝方</span>
+                          {% else %}
+                            <span class="badge bg-danger">红方</span>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 中央：聊天记录主体 -->
+      <div class="col-md-6">
+        <div class="card shadow-sm">
+          <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">对局对话</h4>
+          </div>
+          <div class="card-body p-0">
+            <div class="chat-container" id="chatContainer">
+              <!-- 初始化提示 -->
+              <div class="text-center my-5 text-muted">
+                <i class="bi bi-chat-dots" style="font-size: 2rem;"></i>
+                <p>加载对局对话中...</p>
+              </div>
+              <!-- 聊天内容将由JS动态生成 -->
+            </div>
+          </div>
+          <div class="card-footer">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <button class="btn btn-sm btn-outline-secondary" id="scrollToBottom">
+                  <i class="bi bi-arrow-down-circle"></i> 滚动到底部
+                </button>
+              </div>
+              <div>
+                <span class="badge bg-secondary" id="currentRoundBadge">初始状态</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 右侧：游戏地图 -->
+      <div class="col-md-3">
+        <div class="sidebar">
+          <!-- 地图卡片 -->
+          <div class="card shadow-sm mb-3">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+              <h5 class="mb-0">游戏地图</h5>
+              <span class="badge bg-light text-dark" id="mapCurrentRoundDisplay">第 0 轮</span> {# <-- Display current round #}
+            </div>
+            <div class="card-body">
+              <div class="game-map" id="gameMap">
+                <!-- 地图将由JS动态生成 -->
+              </div>
+            </div>
+            {# --- ADD THIS FOOTER --- #}
+            <div class="card-footer text-center">
+              <div class="btn-group w-100" role="group">
+                <button type="button"
+                        class="btn btn-sm btn-outline-secondary"
+                        id="mapPrevRoundBtn"
+                        disabled>
+                  <i class="bi bi-chevron-left"></i> 上一轮
+                </button>
+                <button type="button"
+                        class="btn btn-sm btn-outline-secondary"
+                        id="mapNextRoundBtn">
+                  下一轮 <i class="bi bi-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+            {# --- END ADDED FOOTER --- #}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock content %}
+{% block scripts %}
+  {{ super() }}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // 获取游戏数据
+      const gameEvents = {{ game_events|tojson }};
+      const playerMovements = {{ player_movements|tojson }};
+      const gameInfo = {{ game_info|tojson }};
+      const roles = {{ game_info.roles|tojson }};
+      const mapSize = {{ map_size }};
+      const maxRound = gameEvents.length > 0 ? gameEvents[gameEvents.length - 1].round : 0; // Determine max round
+
+      // 角色名称和阵营映射
+      const roleNames = {
+        "Merlin": "梅林",
+        "Percival": "派西维尔",
+        "Knight": "骑士",
+        "Assassin": "刺客",
+        "Morgana": "莫甘娜",
+        "Mordred": "莫德雷德",
+        "Oberon": "奥伯伦"
+      };
+      
+      const roleFactions = {
+        "Merlin": "blue",
+        "Percival": "blue",
+        "Knight": "blue",
+        "Assassin": "red",
+        "Morgana": "red",
+        "Mordred": "red",
+        "Oberon": "red"
+      };
+      
+      // DOM 元素
+      const chatContainer = document.getElementById('chatContainer');
+      const gameMapContainer = document.getElementById('gameMap');
+      const currentRoundBadge = document.getElementById('currentRoundBadge');
+      const scrollToBottomBtn = document.getElementById('scrollToBottom');
+      const mapPrevRoundBtn = document.getElementById('mapPrevRoundBtn');
+      const mapNextRoundBtn = document.getElementById('mapNextRoundBtn');
+      const mapCurrentRoundDisplay = document.getElementById('mapCurrentRoundDisplay');
+
+      let currentMapRound = 0; // Track the round displayed on the map
+
+      // --- Map Rendering Logic ---
+      function renderMap(roundNum) {
+        currentMapRound = roundNum; // Update global state
+        gameMapContainer.innerHTML = ''; // Clear previous map
+
+        // Update map round display
+        mapCurrentRoundDisplay.textContent = `第 ${roundNum} 轮`;
+        if (roundNum === 0) {
+            mapCurrentRoundDisplay.textContent = '初始状态';
+        }
+
+        // Enable/disable buttons
+        mapPrevRoundBtn.disabled = roundNum <= 0;
+        mapNextRoundBtn.disabled = roundNum >= maxRound;
+
+        // Create map cells
+        for (let r = 0; r < mapSize; r++) {
+          for (let c = 0; c < mapSize; c++) {
+            const cell = document.createElement('div');
+            cell.classList.add('map-cell');
+            cell.dataset.row = r;
+            cell.dataset.col = c;
+            gameMapContainer.appendChild(cell);
+          }
+        }
+
+        // Determine player positions for the given round
+        const currentPositions = {};
+        Object.keys(playerMovements).forEach(playerId => {
+          const movements = playerMovements[playerId];
+          let position = null;
+          // Find the last known position up to the current round
+          for (let i = movements.length - 1; i >= 0; i--) {
+             // Movement rounds are often 1-based, check if round 0 means initial state
+             const movementRound = movements[i].round;
+             if (movementRound <= roundNum) {
+                 position = movements[i].position;
+                 break; // Found the latest position for this round
+             }
+          }
+          // If no movement recorded up to this round, try finding initial position (assuming round 0 or before round 1)
+          if (position === null && movements.length > 0 && movements[0].round >= 0) {
+             // Check if there's an initial state recorded (e.g., round 0)
+             const initialState = movements.find(m => m.round === 0);
+             if (initialState && roundNum === 0) {
+                 position = initialState.position;
+             } else if (movements[0].round > roundNum) {
+                 // If the first recorded move is after the target round, use the position before that move if available
+                 // This logic might need refinement based on how initial positions are stored.
+                 // For simplicity, let's assume initial position is the first entry if round 0 exists or implied.
+                 const initialPosEntry = movements.find(m => m.round === 0) || movements[0];
+                 if (initialPosEntry) position = initialPosEntry.position; // Fallback to first known position
+             }
+          }
+
+
+          if (position) {
+            currentPositions[playerId] = position;
+          }
+        });
+
+
+        // Place player tokens
+        Object.keys(currentPositions).forEach(playerId => {
+          const pos = currentPositions[playerId];
+          if (pos && pos.length === 2) {
+            const [row, col] = pos;
+            const cell = gameMapContainer.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+            if (cell) {
+              const playerToken = document.createElement('div');
+              playerToken.classList.add('player-token');
+              const playerRole = roles[playerId];
+              const faction = roleFactions[playerRole] || 'unknown';
+              playerToken.classList.add(`player-${faction}`);
+              playerToken.textContent = playerId;
+              // Add tooltip for role if needed
+              playerToken.title = `${playerId}号 - ${roleNames[playerRole] || playerRole || '未知'}`;
+              cell.appendChild(playerToken);
+            }
+          }
+        });
+      }
+      // --- END: Map Rendering Logic ---
+
+      // 生成聊天记录
+      function generateChatHistory() {
+        let chatHtml = '';
+        
+        // 添加游戏开始系统消息
+        chatHtml += `
+          <div class="round-divider">
+            <span class="badge bg-secondary">游戏开始</span>
+          </div>
+          <div style="clear: both;" class="text-center mb-3">
+            <span class="badge bg-light text-dark">
+              ${gameInfo.start_time_formatted} 开始
+            </span>
+          </div>
+        `;
+        
+        // 遍历每个回合的事件
+        gameEvents.forEach((event, eventIndex) => {
+          // 添加回合分隔线
+          chatHtml += `
+            <div class="round-divider" id="round-${event.round}">
+              <span class="badge ${event.mission_result && event.mission_result.result === 'success' ? 'bg-info' : 'bg-danger'}">
+                第${event.round}轮任务
+              </span>
+            </div>
+          `;
+          
+          // 添加队长组队信息
+          if (event.leader) {
+            const leaderRole = roles[event.leader];
+            const leaderFaction = roleFactions[leaderRole] || 'unknown';
+            
+            chatHtml += `
+              <div style="clear: both;" class="text-center mb-3">
+                <span class="badge bg-warning text-dark">
+                  ${event.leader}号玩家 (${roleNames[leaderRole] || leaderRole || '未知'}) 成为队长
+                </span>
+              </div>
+              <div style="clear: both;" class="text-center mb-3">
+                <span class="badge bg-light text-dark">
+                  选择队员: ${event.team_members ? event.team_members.join(', ') : '未选择'}号玩家
+                </span>
+              </div>
+            `;
+          }
+          
+          // 添加玩家发言
+          if (event.speeches && event.speeches.length > 0) {
+            event.speeches.forEach(speech => {
+              const playerId = speech[0];
+              const message = speech[1];
+              const playerRole = roles[playerId];
+              const faction = roleFactions[playerRole] || 'unknown';
+              // Determine classes based on faction
+              const wrapperClass = faction === 'blue' ? 'message-wrapper-blue' : 'message-wrapper-red';
+              const tagAlignClass = faction === 'blue' ? 'text-start' : 'text-end'; // Bootstrap text alignment
+              const tagColorClass = faction === 'blue' ? 'text-primary' : 'text-danger';
+              const bubbleClass = `message-${faction}`; // e.g., message-blue or message-red
+
+              chatHtml += `
+                <div class="message-wrapper ${wrapperClass}">
+                  <div class="player-tag ${tagColorClass} ${tagAlignClass}">
+                    ${playerId}号玩家 (${roleNames[playerRole] || playerRole || '未知'})
+                  </div>
+                  <div class="message-bubble ${bubbleClass}">
+                    ${message}
+                  </div>
+                </div>
+                <div style="clear: both;"></div> {# Clear float after each message block #}
+              `;
+            });
+          }
+          
+          // 添加投票结果
+          if (event.vote_result) {
+            chatHtml += `
+              <div style="clear: both;" class="text-center mb-3 mt-3">
+                <span class="badge ${event.vote_result.result === 'approved' ? 'bg-success' : 'bg-warning text-dark'}">
+                  投票结果: ${event.vote_result.result === 'approved' ? '通过' : '拒绝'} 
+                  (赞成: ${event.vote_result.approve_count})
+                </span>
+              </div>
+            `;
+            
+            // 显示每个玩家投票
+            chatHtml += `<div style="clear: both;"><div class="d-flex flex-wrap justify-content-center mb-3">`;
+            
+            Object.entries(event.vote_result.votes).forEach(([playerId, vote]) => {
+              const playerRole = roles[playerId];
+              const faction = roleFactions[playerRole] || 'unknown';
+              
+              chatHtml += `
+                <div class="mx-1 mb-1">
+                  <span class="badge ${faction === 'blue' ? 'bg-info' : 'bg-danger'} me-1">
+                    ${playerId}号
+                  </span>
+                  <span class="badge ${vote ? 'bg-success' : 'bg-danger'}">
+                    ${vote ? '赞成' : '反对'}
+                  </span>
+                </div>
+              `;
+            });
+            
+            chatHtml += `</div></div>`;
+          }
+          
+          // 添加任务执行结果
+          if (event.mission_execution) {
+            chatHtml += `
+              <div style="clear: both;" class="text-center my-3">
+                <div class="alert ${event.mission_execution.success ? 'alert-info' : 'alert-danger'} d-inline-block">
+                  <strong>任务${event.round}结果:</strong> 
+                  ${event.mission_execution.success ? '成功' : '失败'} 
+                  ${!event.mission_execution.success && event.mission_execution.fail_votes ? 
+                    `(${event.mission_execution.fail_votes}票失败)` : ''}
+                </div>
+              </div>
+            `;
+          }
+
+          chatHtml += `
+            <div id="collapse${event.round}" class="accordion-collapse collapse ${eventIndex === 0 ? 'show' : ''}" aria-labelledby="heading${event.round}" data-bs-parent="#missionAccordion">
+              <div class="accordion-body">
+                <!-- 队长和团队 -->
+                <div class="mb-3 p-2 bg-light border rounded">
+                  <p class="mb-1">
+                    <i class="bi bi-person-badge"></i> <strong>队长:</strong> ${event.leader} 号玩家
+                  </p>
+                  <p class="mb-0">
+                    <i class="bi bi-people-fill"></i> <strong>队员:</strong>
+                    ${event.team_members.map(member => `<span class="badge bg-secondary">${member}</span>`).join(' ')}
+                  </p>
+                </div>
+
+                <!-- 事件流 (发言, 投票) - REMOVED event-stream div -->
+                <div>  {# <-- Was event-stream div #}
+                  ${event.speeches ? `
+                    <h6 class="text-muted mb-2"><i class="bi bi-chat-dots-fill"></i> 发言阶段</h6>
+                    ${event.speeches.map(speech => {
+                      const playerId = speech[0];
+                      const playerRole = roles[playerId];
+                      // Determine faction based on role for coloring
+                      const faction = roleFactions[playerRole] || 'unknown';
+                      const factionClass = faction === 'blue' ? 'text-primary' : (faction === 'red' ? 'text-danger' : 'text-muted');
+
+                      return `
+                        <div class="mb-2">
+                           <small class="${factionClass}">
+                             <strong>${playerId}号 ${playerRole ? `(${roleNames[playerRole] || playerRole})` : ''}:</strong>
+                           </small>
+                           ${speech[1]}
+                         </div>
+                      `;
+                    }).join('')}
+                  ` : ''}
+
+                  ${event.vote_result ? `
+                    <h6 class="text-muted mt-3 mb-2"><i class="bi bi-hand-thumbs-up-fill"></i> 投票阶段</h6>
+                    <p>
+                      <strong>结果:</strong>
+                      ${event.vote_result.result === "approved" ? `
+                        <span class="badge bg-success">通过</span>
+                      ` : `
+                        <span class="badge bg-warning text-dark">拒绝</span>
+                      `}
+                      <small class="text-muted">(赞成: ${event.vote_result.approve_count})</small>
+                    </p>
+                    <div class="d-flex flex-wrap">
+                      ${Object.entries(event.vote_result.votes).map(([playerId, vote]) => `
+                        <div class="me-2 mb-1">
+                          <span class="badge ${vote ? 'bg-success-light' : 'bg-danger-light'} border ${vote ? 'border-success' : 'border-danger'} text-dark">
+                            ${playerId}号: ${vote ? '<i class="bi bi-check-circle"></i> 赞成' : '<i class="bi bi-x-circle"></i> 反对'}
+                          </span>
+                        </div>
+                      `).join('')}
+                    </div>
+                  ` : ''}
+                </div>
+
+                <!-- 任务执行结果 -->
+                ${event.mission_execution ? `
+                  <div class="mt-3 pt-3 border-top">
+                    <h6 class="text-muted"><i class="bi bi-flag-fill"></i> 任务执行结果</h6>
+                    <p>
+                      ${event.mission_execution.success ? `
+                        <span class="badge bg-info fs-6">任务成功</span>
+                      ` : `
+                        <span class="badge bg-danger fs-6">任务失败</span>
+                        ${event.mission_execution.fail_votes !== undefined ? `<small class="text-muted">(失败票: ${event.mission_execution.fail_votes})</small>` : ''}
+                      `}
+                    </p>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          `;
+        });
+        
+        // 添加游戏结束信息
+        chatHtml += `
+          <div class="round-divider">
+            <span class="badge bg-dark">游戏结束</span>
+          </div>
+          <div style="clear: both;" class="text-center mb-3">
+            <div class="alert ${gameInfo.winner === 'blue' ? 'alert-info' : 'alert-danger'} d-inline-block">
+              <strong>${gameInfo.winner === 'blue' ? '蓝方胜利!' : '红方胜利!'}</strong><br>
+              胜利原因: ${gameInfo.win_reason}
+            </div>
+          </div>
+        `;
+        
+        // 更新聊天容器
+        chatContainer.innerHTML = chatHtml;
+        
+        // 滚动到底部
+        scrollToBottom();
+      }
+      
+      // 初始化滚动到底部
+      function scrollToBottom() {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+      
+      // 滚动到指定回合并更新地图
+      function updateDisplayForRound(round) {
+        currentMapRound = round; // Update the tracked round
+
+        // Update Map
+        renderMap(round);
+
+        // Update Chat Footer Badge
+        currentRoundBadge.textContent = round === 0 ? '初始状态' : `第${round}轮`;
+
+        // Scroll Chat View
+        const roundElement = document.getElementById(`round-${round}`);
+        if (roundElement) {
+          // Calculate position relative to the container, considering the header/padding
+          const containerRect = chatContainer.getBoundingClientRect();
+          const elementRect = roundElement.getBoundingClientRect();
+          const offset = elementRect.top - containerRect.top + chatContainer.scrollTop - 10; // Adjust 10 for padding/offset
+          chatContainer.scrollTo({ top: offset, behavior: 'smooth' });
+        } else if (round === 0) {
+            // Scroll to top for round 0
+            chatContainer.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }
+      
+      // 绑定事件
+      mapPrevRoundBtn.addEventListener('click', () => {
+        if (currentMapRound > 0) {
+          updateDisplayForRound(currentMapRound - 1);
+        }
+      });
+
+      mapNextRoundBtn.addEventListener('click', () => {
+        if (currentMapRound < maxRound) {
+          updateDisplayForRound(currentMapRound + 1);
+        }
+      });
+
+      scrollToBottomBtn.addEventListener('click', scrollToBottom);
+      
+      // 初始化聊天记录
+      generateChatHistory();
+      updateDisplayForRound(0); // Set initial state for map and chat scroll (Round 0)
+      
+      // 初始化其他功能...
+    });
+  </script>
+{% endblock scripts %}

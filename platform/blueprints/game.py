@@ -1,190 +1,297 @@
-from flask import Blueprint, render_template, jsonify, request, current_app
+# author: shihuaidexianyu (refactored by AI assistant)
+# date: 2025-04-25
+# status: need to be modified
+# description: 游戏相关的蓝图，包含对战大厅、创建对战、查看对战详情等功能。
+
+
+import logging, json
+from flask import (
+    Blueprint,
+    render_template,
+    request,
+    flash,
+    redirect,
+    url_for,
+    current_app,
+    jsonify,
+)
 from flask_login import login_required, current_user
-from flask_socketio import join_room, leave_room, emit
-import redis
-from config.config import Config
-import json
-from database.models import db
-import time
-from utils.redis_utils import get_redis_client
 
-# 创建蓝图
+# 导入新的数据库操作和模型
+from database import (
+    get_user_by_id,
+    get_ai_code_by_id,
+    get_user_active_ai_code,
+    create_battle as db_create_battle,
+    get_battle_by_id as db_get_battle_by_id,
+    get_recent_battles as db_get_recent_battles,
+    get_battle_players_for_battle as db_get_battle_players_for_battle,
+    get_user_ai_codes as db_get_user_ai_codes,
+)
+from database.models import Battle, BattlePlayer, User, AICode
+from utils.battle_manager_utils import get_battle_manager
+
 game_bp = Blueprint("game", __name__)
+logger = logging.getLogger(__name__)
+
+# =================== 页面路由 ===================
 
 
-@game_bp.route("/room/<room_id>")
+@game_bp.route("/lobby")
 @login_required
-def game_room(room_id):
-    """加载游戏房间页面"""
-    from database.models import User  # 添加这行导入
-
-    redis_client = get_redis_client()
-    room_key = f"room:{room_id}"
-    if not redis_client.exists(room_key):
-        return render_template("error.html", message="房间不存在")
-
-    # 获取房间数据
-    room_data = redis_client.hgetall(room_key)
-    room_info = room_data
-
-    # 检查玩家是否有权限进入房间
-    players_json = room_info.get("players", "[]")
-    players = json.loads(players_json)
-    if current_user.id not in players:
-        return render_template("error.html", message="您没有权限进入该房间")
-
-    # 获取房间中所有玩家的信息
-    player_info = []
-    for player_id in players:
-        user = User.query.get(player_id)
-        if user:
-            player_info.append(
-                {
-                    "id": user.id,
-                    "username": user.username,
-                }
-            )
-
-    game_type = room_info.get("game_type", "default")
-    # 添加这行：检查当前用户是否是房主
-    is_host = str(current_user.id) == room_info.get("host_id", "")
-
+def lobby():
+    """显示游戏大厅页面，列出最近的对战"""
+    recent_battles = db_get_recent_battles(limit=20)  # 获取最近完成的对战
+    # 可以考虑也获取正在等待或进行的对战
+    # waiting_battles = Battle.query.filter_by(status='waiting').order_by(Battle.created_at.desc()).limit(10).all()
+    # playing_battles = Battle.query.filter_by(status='playing').order_by(Battle.started_at.desc()).limit(10).all()
     return render_template(
-        "game_room.html",
-        room_id=room_id,
-        room_info=room_info,
-        player_info=player_info,
-        game_type=game_type,
-        is_host=is_host,  # 添加这个变量
+        "lobby.html", recent_battles=recent_battles
+    )  # 需要创建 lobby.html
+
+
+@game_bp.route("/create_battle_page")
+@login_required
+def create_battle_page():
+    """显示创建对战页面"""
+    # 获取当前用户的所有AI代码供选择
+    user_ai_codes = db_get_user_ai_codes(current_user.id)
+    # 获取所有用户（或一部分用户）作为潜在的AI对手
+    # 注意：实际应用中可能需要更复杂的对手选择机制，例如好友、排行榜用户等
+    potential_opponents = User.query.filter(User.id != current_user.id).limit(20).all()
+    return render_template(
+        "create_battle.html",  # 需要创建 create_battle.html
+        user_ai_codes=user_ai_codes,
+        potential_opponents=potential_opponents,
     )
 
 
-@game_bp.route("/game/start/<room_id>", methods=["POST"])
+@game_bp.route("/battle/<string:battle_id>")
 @login_required
-def start_game(room_id):
-    """开始游戏"""
-    redis_client = get_redis_client()
-    room_key = f"room:{room_id}"
+def view_battle(battle_id):
+    """显示对战详情页面（进行中或已完成）"""
+    battle = db_get_battle_by_id(battle_id)
+    if not battle:
+        flash("对战不存在", "danger")
+        return redirect(url_for("game.lobby"))
 
-    # 检查房间是否存在
-    if not redis_client.exists(room_key):
-        current_app.logger.error(f"游戏开始失败：房间 {room_id} 不存在或已过期")
-        return jsonify({"success": False, "message": "房间不存在或已过期"})
+    battle_players = db_get_battle_players_for_battle(battle_id)
 
-    # 获取房间信息
-    room_info = redis_client.hgetall(room_key)
+    # 检查当前用户是否参与了此对战，以决定是否显示私有信息（如果需要）
+    is_participant = any(bp.user_id == current_user.id for bp in battle_players)
 
-    # 检查是否是房主
-    if str(current_user.id) != room_info.get("host_id"):
-        current_app.logger.error(
-            f"游戏开始失败：用户 {current_user.id} 不是房间 {room_id} 的房主"
+    # 如果游戏已完成，可以传递结果给模板
+    game_result = None
+    if battle.status == "completed":
+        # battle.results 存储了JSON字符串
+        try:
+            game_result = json.loads(battle.results) if battle.results else {}
+        except json.JSONDecodeError:
+            logger.error(f"无法解析对战 {battle_id} 的结果JSON")
+            game_result = {"error": "结果解析失败"}
+
+    # 根据状态渲染不同模板或页面部分
+    if battle.status in ["waiting", "playing"]:
+        return render_template(
+            "battle_ongoing.html",
+            battle=battle,
+            battle_players=battle_players,
+            is_participant=is_participant,
+        )  # 需要创建 battle_ongoing.html
+    elif battle.status in ["completed", "error", "cancelled"]:
+        # 对于已完成的游戏，重定向到回放页面可能更好
+        # return redirect(url_for('visualizer.game_replay', battle_id=battle_id))
+        # 或者渲染一个包含结果摘要和回放链接的页面
+        return render_template(
+            "battle_completed.html",
+            battle=battle,
+            battle_players=battle_players,
+            game_result=game_result,
+        )  # 需要创建 battle_completed.html
+    else:
+        flash(f"未知的对战状态: {battle.status}", "warning")
+        return redirect(url_for("game.lobby"))
+
+
+# =================== API 路由 ===================
+
+
+@game_bp.route("/create_battle", methods=["POST"])
+@login_required
+def create_battle_action():
+    """处理创建对战的请求"""
+    try:
+        data = request.get_json()
+        # 添加日志记录收到的原始数据
+        current_app.logger.info(f"收到创建对战请求数据: {data}")
+
+        if not data:
+            current_app.logger.warning("创建对战请求未收到JSON数据")  # 修改日志记录器
+            return jsonify({"success": False, "message": "无效的请求数据"})
+
+        # participant_data: [{'user_id': '...', 'ai_code_id': '...'}, ...]
+        participant_data = data.get("participants")
+        # 添加日志记录解析后的参与者数据
+        current_app.logger.info(f"解析后的参与者数据: {participant_data}")
+
+        if not participant_data or not isinstance(participant_data, list):
+            current_app.logger.warning(
+                "创建对战请求缺少或格式错误的参与者信息"
+            )  # 修改日志记录器
+            return jsonify({"success": False, "message": "缺少参与者信息"})
+
+        # 验证参与者数据
+        # 至少需要当前用户
+        if not any(p.get("user_id") == current_user.id for p in participant_data):
+            current_app.logger.warning(
+                f"创建对战请求中不包含当前用户 {current_user.id}"
+            )  # 修改日志记录器
+            return jsonify({"success": False, "message": "当前用户必须参与对战"})
+
+        # 这里可以做初步检查
+        if len(participant_data) != 7:  # 阿瓦隆固定7人
+            current_app.logger.warning(
+                f"创建对战请求参与者数量不是7: {len(participant_data)}"
+            )  # 修改日志记录器
+            return jsonify({"success": False, "message": "阿瓦隆对战需要正好7位参与者"})
+
+        for p_data in participant_data:
+            if not p_data.get("user_id") or not p_data.get("ai_code_id"):
+                # 添加更详细的日志
+                current_app.logger.warning(
+                    f"创建对战请求中发现不完整的参与者数据: {p_data}"
+                )
+                return jsonify({"success": False, "message": "参与者信息不完整"})
+            # 可以在这里添加更多验证，例如检查AI代码是否属于对应用户
+
+        # 调用数据库操作创建 Battle 和 BattlePlayer 记录
+        # 使用 db_ 前缀以明确区分
+        battle = db_create_battle(participant_data, status="waiting")
+
+        if battle:
+            current_app.logger.info(
+                f"用户 {current_user.id} 创建对战 {battle.id} 成功"
+            )  # 修改日志记录器
+            # 对战创建成功后，可以立即开始，或者等待某种触发条件
+            # 这里我们假设创建后就尝试启动
+            battle_manager = get_battle_manager()
+            start_success = battle_manager.start_battle(battle.id, participant_data)
+
+            if start_success:
+                return jsonify(
+                    {
+                        "success": True,
+                        "battle_id": battle.id,
+                        "message": "对战已创建并开始",
+                    }
+                )
+            else:
+                # 如果启动失败，可能需要更新 battle 状态为 error 或 cancelled
+                # db_update_battle(battle, status='error', results=json.dumps({'error': '启动失败'}))
+                current_app.logger.error(
+                    f"对战 {battle.id} 创建成功但启动失败"
+                )  # 修改日志记录器
+                return jsonify(
+                    {
+                        "success": False,
+                        "battle_id": battle.id,
+                        "message": "对战创建成功但启动失败",
+                    }
+                )
+        else:
+            # db_create_battle 内部会记录详细错误
+            current_app.logger.error(
+                f"用户 {current_user.id} 创建对战数据库记录失败"
+            )  # 修改日志记录器
+            return jsonify({"success": False, "message": "创建对战数据库记录失败"})
+
+    except Exception as e:
+        current_app.logger.exception(
+            f"创建对战时发生未预料的错误: {e}"
+        )  # 修改日志记录器
+        return jsonify({"success": False, "message": f"服务器内部错误: {str(e)}"})
+
+
+@game_bp.route("/get_game_status/<string:battle_id>", methods=["GET"])
+@login_required
+def get_game_status(battle_id):
+    """获取游戏状态、快照和结果"""
+    try:
+        battle_manager = get_battle_manager()
+
+        # 获取对战状态
+        status = battle_manager.get_battle_status(battle_id)  # 需要进一步修改
+        if status is None:  # 注意：get_battle_status 可能返回 None
+            # 尝试从数据库获取状态，以防 battle_manager 重启丢失内存状态
+            battle = db_get_battle_by_id(battle_id)
+            if battle:
+                status = battle.status
+            else:
+                return jsonify({"success": False, "message": "对战不存在"})
+
+        # 获取对战快照 (只对进行中的游戏有意义)
+        snapshots = []
+        if status == "playing":  # 或者 'running' 取决于 battle_manager 的状态定义
+            snapshots = battle_manager.get_snapshots_queue(battle_id)
+
+        # 如果对战已完成，获取结果
+        result = None
+        if status == "completed":
+            result = battle_manager.get_battle_result(battle_id)
+            # 如果内存中没有结果，尝试从数据库加载
+            if result is None:
+                battle = db_get_battle_by_id(battle_id)
+                if battle and battle.results:
+                    try:
+                        result = json.loads(battle.results)
+                    except json.JSONDecodeError:
+                        result = {"error": "无法解析数据库中的结果"}
+                elif battle:
+                    result = {"message": "数据库中无详细结果"}
+
+            snapshots = battle_manager.get_snapshots_archive(battle_id)
+
+        return jsonify(
+            {
+                "success": True,
+                "status": status,
+                "snapshots": snapshots,
+                "result": result,
+            }
         )
-        return jsonify({"success": False, "message": "只有房主可以开始游戏"})
 
-    # 获取最新的玩家信息
-    players_json = room_info.get("players", "[]")
-    players = json.loads(players_json)
-    current_players = len(players)
-
-    # 更新玩家数量（保证数据一致性）
-    redis_client.hset(room_key, "current_players", str(current_players))
-
-    # 检查玩家数量
-    if current_players < 2:
-        current_app.logger.error(
-            f"游戏开始失败：房间 {room_id} 中的玩家数量 {current_players} 少于2"
-        )
-        return jsonify({"success": False, "message": "至少需要2名玩家才能开始游戏"})
-
-    # 更新房间状态
-    redis_client.hset(room_key, "status", "playing")
-
-    # 发布房间状态更新消息
-    room_update = {
-        "event": "game_started",
-        "data": {
-            "room_id": room_id,
-            "started_by": {"id": current_user.id, "username": current_user.username},
-        },
-    }
-    redis_client.publish("room_updates", json.dumps(room_update))
-
-    current_app.logger.info(f"游戏成功开始：房间 {room_id}，玩家数量 {current_players}")
-    return jsonify({"success": True, "message": "游戏已开始"})
+    except Exception as e:
+        current_app.logger.error(f"获取游戏状态失败: {str(e)}", exc_info=True)
+        return jsonify({"success": False, "message": f"获取游戏状态失败: {str(e)}"})
 
 
-# WebSocket事件处理
-def register_socket_events(socketio):
-    """注册所有游戏相关的Socket.IO事件处理函数"""
+# 可能需要添加获取对战列表的API
+@game_bp.route("/get_battles", methods=["GET"])
+@login_required
+def get_battles():
+    """获取对战列表（例如，最近的、进行中的）"""
+    # 可以根据需要组合不同状态的对战
+    recent_completed = db_get_recent_battles(limit=10)
+    # playing_battles = Battle.query.filter_by(status='playing').order_by(Battle.started_at.desc()).limit(10).all()
+    # waiting_battles = Battle.query.filter_by(status='waiting').order_by(Battle.created_at.desc()).limit(10).all()
 
-    @socketio.on("connect")
-    def handle_connect():
-        """客户端连接事件处理"""
-        print(
-            f"Client connected: {current_user.username if current_user.is_authenticated else 'Guest'}"
+    # 简化：只返回最近完成的
+    battles_data = []
+    for battle in recent_completed:
+        players_info = [
+            bp.to_dict() for bp in db_get_battle_players_for_battle(battle.id)
+        ]
+        battles_data.append(
+            {
+                "id": battle.id,
+                "status": battle.status,
+                "created_at": (
+                    battle.created_at.isoformat() if battle.created_at else None
+                ),
+                "ended_at": battle.ended_at.isoformat() if battle.ended_at else None,
+                "players": players_info,
+                # 可以添加获胜方等摘要信息
+            }
         )
 
-    @socketio.on("disconnect")
-    def handle_disconnect():
-        """客户端断开连接事件处理"""
-        print(
-            f"Client disconnected: {current_user.username if current_user.is_authenticated else 'Guest'}"
-        )
-
-    @socketio.on("join_room")
-    def handle_join_room(data):
-        """玩家加入房间"""
-        if not current_user.is_authenticated:
-            return {"success": False, "error": "Unauthorized"}
-
-        room_id = data.get("room_id")
-        if not room_id:
-            return {"success": False, "error": "No room_id provided"}
-
-        # 从Redis获取房间信息
-        redis_client = get_redis_client()
-        room_key = f"room:{room_id}"
-
-        if not redis_client.exists(room_key):
-            return {"success": False, "error": "Room does not exist"}
-
-        # 获取房间数据
-        room_data = redis_client.hgetall(room_key)
-        room_info = room_data  # 无需再手动解码
-
-        # 检查玩家是否属于这个房间
-        players_json = room_info.get("players", "[]")
-        players = json.loads(players_json)
-
-        if current_user.id not in players:
-            return {"success": False, "error": "You are not a member of this room"}
-
-        # 加入Socket.IO房间
-        join_room(room_id)
-
-        # 更新玩家状态
-        user_info = {
-            "user_id": current_user.id,
-            "username": current_user.username,
-        }
-
-        # 通知房间其他玩家有新玩家加入
-        emit("player_joined", user_info, room=room_id, include_self=False)
-
-        # 返回房间信息给加入的玩家
-        return {"success": True, "room_info": room_info, "current_user": user_info}
-
-    @socketio.on("leave")
-    def on_leave(data):
-        """玩家离开房间"""
-        room_id = data.get("room_id")
-        if not room_id:
-            return
-
-        leave_room(room_id)
-
-        emit(
-            "user_left",
-            {"user_id": current_user.id, "username": current_user.username},
-            room=room_id,
-        )
+    return jsonify({"success": True, "battles": battles_data})

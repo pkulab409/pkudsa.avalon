@@ -1,290 +1,1035 @@
+# author: shihuaidexianyu (refactored by AI assistant)
+# date: 2025-04-25
+# status: refactored
+# description: Database operations (CRUD)
+
 from .base import db
 import logging
 from sqlalchemy import select, update, or_, func
 import datetime
-from .models import User, Battle, GameStats
 import json
+import uuid
+from .models import (
+    User,
+    Battle,
+    GameStats,
+    AICode,
+    BattlePlayer,
+)  # 移除Room, RoomParticipant
 
+# 配置 Logger
 logger = logging.getLogger(__name__)
 
-# 需要实现安全提交函数
+# -----------------------------------------------------------------------------------------
+# 基础数据库工具函数
+
+
 def safe_commit():
-    """安全地提交数据库事务，出错时回滚"""
+    """
+    安全地提交数据库事务，出错时回滚并记录错误。
+
+    返回:
+        bool: 提交是否成功。
+    """
     try:
         db.session.commit()
         return True
     except Exception as e:
         db.session.rollback()
-        logger.error(f"数据库提交失败: {str(e)}")
+        logger.error(f"数据库提交失败: {e}", exc_info=True)  # 记录详细异常信息
         return False
 
-def create_battle(player_ids, game_type, room_id, **kwargs):
+
+def safe_add(instance):
     """
-    创建新的对战记录
+    安全地添加数据库记录并提交。
 
     参数:
-        player_ids: 玩家ID列表
-        game_type: 游戏类型
-        room_id: 房间ID
-        **kwargs: 其他参数
+        instance: SQLAlchemy 模型实例。
 
     返回:
-        Battle对象或None
+        bool: 添加并提交是否成功。
     """
     try:
-        battle_data = {
-            "player_ids": json.dumps(player_ids),
-            "game_type": game_type,
-            "room_id": room_id,
-            "started_at": datetime.datetime.now(),
-        }
+        db.session.add(instance)
+        return safe_commit()
+    except Exception as e:
+        logger.error(f"添加数据库记录失败: {e}", exc_info=True)
+        db.session.rollback()
+        return False
 
-        # 添加其他可选参数
-        for key, value in kwargs.items():
-            if hasattr(Battle, key):
-                battle_data[key] = value
 
-        battle = Battle(**battle_data)
-        db.session.add(battle)
+def safe_delete(instance):
+    """
+    安全地删除数据库记录并提交。
+
+    参数:
+        instance: SQLAlchemy 模型实例。
+
+    返回:
+        bool: 删除并提交是否成功。
+    """
+    try:
+        db.session.delete(instance)
+        return safe_commit()
+    except Exception as e:
+        logger.error(f"删除数据库记录失败: {e}", exc_info=True)
+        db.session.rollback()
+        return False
+
+
+# -----------------------------------------------------------------------------------------
+# 用户 (User) CRUD 操作
+
+
+def get_user_by_id(user_id):
+    """根据ID获取用户记录。"""
+    try:
+        return User.query.get(user_id)
+    except Exception as e:
+        logger.error(f"根据ID获取用户失败: {e}", exc_info=True)
+        return None
+
+
+def get_user_by_username(username):
+    """根据用户名获取用户记录。"""
+    try:
+        return User.query.filter_by(username=username).first()
+    except Exception as e:
+        logger.error(f"根据用户名获取用户失败: {e}", exc_info=True)
+        return None
+
+
+def get_user_by_email(email):
+    """根据邮箱获取用户记录。"""
+    try:
+        return User.query.filter_by(email=email).first()
+    except Exception as e:
+        logger.error(f"根据邮箱获取用户失败: {e}", exc_info=True)
+        return None
+
+
+def create_user(username, email, password):
+    """
+    创建新用户。
+
+    参数:
+        username (str): 用户名。
+        email (str): 邮箱。
+        password (str): 原始密码。
+
+    返回:
+        User: 创建成功的用户对象，失败则返回None。
+    """
+    try:
+        # 检查用户名和邮箱是否已存在
+        if get_user_by_username(username) or get_user_by_email(email):
+            logger.warning(f"创建用户失败: 用户名或邮箱已存在 ({username}, {email})")
+            return None
+
+        user = User(username=username, email=email)
+        user.set_password(password)  # 使用模型方法设置密码哈希
+
+        # 为新用户创建游戏统计记录，即使他们还没玩过游戏
+        game_stats = GameStats(user=user)  # 建立关系
+
+        db.session.add(user)
+        db.session.add(game_stats)  # 添加统计记录
+
         if safe_commit():
+            logger.info(f"用户 {username} 创建成功, ID: {user.id}")
+            return user
+        return None
+    except Exception as e:
+        logger.error(f"创建用户失败: {e}", exc_info=True)
+        db.session.rollback()
+        return None
+
+
+def update_user(user, **kwargs):
+    """
+    更新用户记录。
+
+    参数:
+        user (User): 要更新的用户对象。
+        **kwargs: 要更新的字段及其值。
+
+    返回:
+        bool: 更新是否成功。
+    """
+    if not user:
+        return False
+    try:
+        for key, value in kwargs.items():
+            if hasattr(user, key):
+                if key == "password":  # 特殊处理密码更新
+                    user.set_password(value)
+                elif key != "id":  # 不允许修改ID
+                    setattr(user, key, value)
+        user.updated_at = datetime.datetime.now()  # 更新时间戳
+        return safe_commit()
+    except Exception as e:
+        logger.error(f"更新用户 {user.id} 失败: {e}", exc_info=True)
+        db.session.rollback()
+        return False
+
+
+def delete_user(user):
+    """
+    删除用户记录。
+
+    参数:
+        user (User): 要删除的用户对象。
+
+    返回:
+        bool: 删除是否成功。
+    """
+    if not user:
+        return False
+    try:
+        # Related records (AICode, BattlePlayer, GameStats) will be handled by cascade rules
+        # or foreign key constraints depending on your __tablename__ definition and DB setup.
+        # Ensure ON DELETE CASCADE is used in migrations if using foreign keys directly,
+        # or configure cascades in relationships (like 'all, delete-orphan' for Battle to BattlePlayer).
+        # User -> AICode, User -> BattlePlayer via foreign keys: Often cascade on delete.
+        # User <-> GameStats via unique foreign key: Cascade on delete is typical.
+        # Or SQLAlchemy relationship cascades can be employed if foreign key cascades are not used.
+        # For simplicity, we rely on DB foreign key constraints with CASCADE or SQLAlchemy's relationship cascade if defined.
+        # Check your models carefully - they use backref but relationships defining cascade are needed.
+        # Example: db.relationship("AICode", backref="user", lazy="dynamic", cascade="all, delete-orphan")
+        # YOUR MODELS.PY LACKS CASCADE. You need to add cascade rules in models or rely on DB FK cascades.
+        # Assuming DB FK cascades are set up or you will add SQLAlchemy cascades in models for related tables...
+
+        return safe_delete(user)
+    except Exception as e:
+        logger.error(f"删除用户 {user.id} 失败: {e}", exc_info=True)
+        db.session.rollback()
+        return False
+
+
+# -----------------------------------------------------------------------------------------
+# AI 代码 (AICode) CRUD 操作
+
+
+def get_ai_code_by_id(ai_code_id):
+    """根据ID获取AI代码记录。"""
+    try:
+        return AICode.query.get(ai_code_id)
+    except Exception as e:
+        logger.error(f"根据ID获取AI代码失败: {e}", exc_info=True)
+        return None
+
+
+def get_user_ai_codes(user_id):
+    """获取用户的所有AI代码记录。"""
+    try:
+        return (
+            AICode.query.filter_by(user_id=user_id)
+            .order_by(AICode.created_at.desc())
+            .all()
+        )
+    except Exception as e:
+        logger.error(f"获取用户 {user_id} 的AI代码列表失败: {e}", exc_info=True)
+        return []
+
+
+def get_user_active_ai_code(user_id):
+    """获取用户当前激活的AI代码。"""
+    try:
+        return AICode.query.filter_by(user_id=user_id, is_active=True).first()
+    except Exception as e:
+        logger.error(f"获取用户 {user_id} 的激活AI失败: {e}", exc_info=True)
+        return None
+
+
+def create_ai_code(user_id, name, code_path, description=None):
+    """
+    创建新的AI代码记录。
+
+    参数:
+        user_id (str): 用户ID。
+        name (str): AI代码名称。
+        code_path (str): AI代码文件路径（相对于上传目录）。
+        description (str, optional): AI代码描述。
+
+    返回:
+        AICode: 创建成功的AI代码对象，失败则返回None。
+    """
+    try:
+        # Versioning: Find the latest version for this user and name, increment
+        latest_version = (
+            db.session.query(func.max(AICode.version))
+            .filter_by(user_id=user_id, name=name)
+            .scalar()
+            or 0
+        )
+        new_version = latest_version + 1
+
+        ai_code = AICode(
+            user_id=user_id,
+            name=name,
+            code_path=code_path,
+            description=description,
+            version=new_version,
+            is_active=False,  # 默认不激活
+        )
+        db.session.add(ai_code)
+        if safe_commit():
+            return ai_code  # 返回对象而不是布尔值
+        return None
+    except Exception as e:
+        logger.error(f"为用户 {user_id} 创建AI代码失败: {e}", exc_info=True)
+        db.session.rollback()
+        return None
+
+
+def update_ai_code(ai_code, **kwargs):
+    """
+    更新AI代码记录。
+
+    参数:
+        ai_code (AICode): 要更新的AI代码对象。
+        **kwargs: 要更新的字段及其值。
+
+    返回:
+        bool: 更新是否成功。
+    """
+    if not ai_code:
+        return False
+    try:
+        for key, value in kwargs.items():
+            if (
+                hasattr(ai_code, key)
+                and key != "id"
+                and key != "created_at"
+                and key != "user_id"
+                and key != "version"
+            ):  # 不允许修改ID, 创建日期, 用户ID, 版本
+                setattr(ai_code, key, value)
+        # AICode model doesn't have updated_at, you might add it if needed.
+        return safe_commit()
+    except Exception as e:
+        logger.error(f"更新AI代码 {ai_code.id} 失败: {e}", exc_info=True)
+        db.session.rollback()
+        return False
+
+
+def delete_ai_code(ai_code):
+    """
+    删除AI代码记录。
+
+    参数:
+        ai_code (AICode): 要删除的AI代码对象。
+
+    返回:
+        bool: 删除是否成功。
+    """
+    if not ai_code:
+        return False
+    try:
+        # Check if it's currently active for any user (though is_active is per user, only one can be active per user)
+        # or if it's referenced by any BattlePlayer records (if you restrict deleting used AI).
+        # For now, basic delete without complex checks.
+        # If BattlePlayer has ON DELETE SET NULL or CASCADE for selected_ai_code_id, deleting AICode is fine.
+        # YOUR MODELS.PY LACKS CASCADE/SET NULL for battle_players relationship from AICode. Add it.
+
+        return safe_delete(ai_code)
+    except Exception as e:
+        logger.error(f"删除AI代码 {ai_code.id} 失败: {e}", exc_info=True)
+        db.session.rollback()
+        return False
+
+
+def set_active_ai_code(user_id, ai_code_id):
+    """
+    为用户设置激活的AI代码。取消该用户当前所有AI的激活状态，并将指定AI设为激活。
+
+    参数:
+        user_id (str): 用户ID。
+        ai_code_id (str): 要激活的AI代码ID。
+
+    返回:
+        bool: 操作是否成功。
+    """
+    try:
+        # 检查AI是否存在且属于该用户
+        ai_to_activate = AICode.query.filter_by(id=ai_code_id, user_id=user_id).first()
+        if not ai_to_activate:
+            logger.warning(
+                f"用户 {user_id} 尝试激活不存在或不属于自己的AI代码 {ai_code_id}"
+            )
+            return False
+
+        # 取消该用户下所有AI的激活状态
+        AICode.query.filter_by(user_id=user_id, is_active=True).update(
+            {"is_active": False}, synchronize_session=False
+        )
+        db.session.flush()  # 同步更新到 session
+
+        # 激活指定的AI
+        ai_to_activate.is_active = True
+
+        return safe_commit()
+    except Exception as e:
+        logger.error(
+            f"为用户 {user_id} 设置激活AI {ai_code_id} 失败: {e}", exc_info=True
+        )
+        db.session.rollback()
+        return False
+
+
+def get_ai_code_path_full(ai_code_id):
+    """
+    根据ai_code_id获取AI代码文件在文件系统中的完整路径。
+
+    参数:
+        ai_code_id (str): AI代码ID。
+
+    返回:
+        str: 文件完整路径，找不到或出错则返回None。
+    """
+    try:
+        ai_code = get_ai_code_by_id(ai_code_id)
+        if not ai_code or not ai_code.code_path:
+            return None
+
+        from flask import current_app
+        import os
+
+        # 获取AI代码上传目录 (通常在 config 中设置或根据约定)
+        upload_dir = current_app.config.get(
+            "AI_CODE_UPLOAD_FOLDER"
+        )  # 假设配置中有这个key
+        if not upload_dir:
+            logger.error("Flask config 中未设置 'AI_CODE_UPLOAD_FOLDER'")
+            return None
+
+        # 构建完整文件路径
+        # 使用 secure_filename 可以在文件上传时保护，这里的 code_path 应该是已经处理过的安全路径 M
+        file_path = os.path.join(upload_dir, ai_code.code_path)
+
+        # 检查文件是否存在 (可选但推荐)
+        if not os.path.exists(file_path):
+            logger.warning(f"AI代码文件不存在: {file_path}")
+            return None
+
+        return file_path
+    except Exception as e:
+        logger.error(f"获取AI代码 {ai_code_id} 完整路径失败: {e}", exc_info=True)
+        return None
+
+
+# -----------------------------------------------------------------------------------------
+# 游戏统计 (GameStats) CRUD 操作
+
+
+def get_game_stats_by_user_id(user_id):
+    """
+    根据用户ID获取游戏统计记录。
+
+    参数:
+        user_id (str): 用户ID。
+
+    返回:
+        GameStats: 游戏统计对象，不存在则返回None。
+    """
+    try:
+        return GameStats.query.filter_by(user_id=user_id).first()
+    except Exception as e:
+        logger.error(f"获取用户 {user_id} 的游戏统计失败: {e}", exc_info=True)
+        return None
+
+
+def create_game_stats(user_id):
+    """
+    为指定用户创建游戏统计记录 (如果在用户创建时没有自动创建)。
+
+    参数:
+        user_id (str): 用户ID。
+
+    返回:
+        GameStats: 创建成功的统计对象，失败或已存在则返回None。
+    """
+    try:
+        existing_stats = get_game_stats_by_user_id(user_id)
+        if existing_stats:
+            logger.warning(f"用户 {user_id} 的游戏统计已存在，无需重复创建。")
+            return None
+
+        stats = GameStats(user_id=user_id)
+        if safe_add(stats):
+            logger.info(f"为用户 {user_id} 创建游戏统计成功。")
+            return stats
+        return None
+    except Exception as e:
+        logger.error(f"创建用户 {user_id} 的游戏统计失败: {e}", exc_info=True)
+        db.session.rollback()
+        return None
+
+
+def update_game_stats(stats, **kwargs):
+    """
+    更新游戏统计记录。主要用于手动修改 Elo 等，增加胜负场次应通过 battle 结束流程。
+
+    参数:
+        stats (GameStats): 要更新的统计对象。
+        **kwargs: 要更新的字段及其值。
+
+    返回:
+        bool: 更新是否成功。
+    """
+    if not stats:
+        return False
+    try:
+        for key, value in kwargs.items():
+            if hasattr(stats, key) and key not in [
+                "id",
+                "user_id",
+            ]:  # 不允许修改ID, 用户ID
+                setattr(stats, key, value)
+        return safe_commit()
+    except Exception as e:
+        logger.error(f"更新游戏统计 {stats.id} 失败: {e}", exc_info=True)
+        db.session.rollback()
+        return False
+
+
+def get_leaderboard(limit=100, min_games_played=1):
+    """
+    获取游戏排行榜。
+
+    参数:
+        limit (int): 返回数量限制。
+        min_games_played (int): 玩家至少参与的游戏场次。
+
+    返回:
+        list: 包含排行榜数据的字典列表。
+    """
+    try:
+        leaderboard_data = (
+            db.session.query(GameStats, User.username)
+            .join(User, GameStats.user_id == User.id)
+            .filter(GameStats.games_played >= min_games_played)
+            .order_by(GameStats.elo_score.desc())
+            .limit(limit)
+            .all()
+        )
+
+        result = []
+        for stats, username in leaderboard_data:
+            result.append(stats.to_dict())  # 使用 GameStats 的 to_dict 方法
+            result[-1]["username"] = username  # 添加用户名
+            result[-1]["win_rate"] = (
+                round(stats.wins / stats.games_played * 100, 2)
+                if stats.games_played > 0
+                else 0
+            )
+
+        return result
+    except Exception as e:
+        logger.error(f"获取排行榜失败: {e}", exc_info=True)
+        return []
+
+
+# -----------------------------------------------------------------------------------------
+# 对战 (Battle) 及 对战参与者 (BattlePlayer) CRUD 操作
+
+
+def create_battle(participant_data_list, status="waiting", section=0, game_data=None):
+    """
+    创建对战记录及关联的参与者记录。
+
+    参数:
+        participant_data_list (list): 参与者数据列表，每个元素应为字典，
+                                      至少包含 'user_id' 和 'ai_code_id'。 # <--- 修改文档注释
+                                      示例: [{'user_id': '...', 'ai_code_id': '...'}, ...] # <--- 修改文档注释
+        status (str): 初始状态 (e.g., 'waiting', 'playing'). 默认为 'waiting'.
+        section (int): 分区类型：0=普通对局，1=预选赛，2=决赛，等. 默认为 0.
+        game_data (dict, optional): 游戏初始数据。
+
+    返回:
+        Battle: 创建成功的对战对象，失败则返回None。
+    """
+    try:
+        if not participant_data_list:
+            logger.error("创建对战失败: 参与者列表为空。")
+            return None
+
+        # 确保所有参与者都存在且选择了AI (根据 BattlePlayer 模型 nullable=False 的定义)
+        for data in participant_data_list:
+            user = get_user_by_id(data.get("user_id"))
+            # 使用 'ai_code_id' 作为键
+            ai_code = get_ai_code_by_id(data.get("ai_code_id"))  # <--- 修改这里
+            if not user or not ai_code or ai_code.user_id != user.id:
+                # 记录更详细的错误原因
+                reason = ""
+                if not user:
+                    reason = "用户不存在"
+                elif not ai_code:
+                    reason = "AI代码不存在"
+                elif ai_code.user_id != user.id:
+                    reason = "AI代码不属于该用户"
+                logger.error(
+                    f"创建对战失败: 无效的参与者或AI代码数据 {data} (原因: {reason})"
+                )
+                return None
+
+        battle = Battle(
+            status=status,
+            section=section,  # 使用传入的分区类型
+            created_at=datetime.datetime.now(),
+            # started_at 在对战真正开始时设置
+            # results 在对战结束时设置
+            # game_log_uuid 在对战结束时设置
+        )
+        db.session.add(battle)
+        db.session.flush()  # 确保 battle 有了 ID
+
+        battle_players = []
+        for i, data in enumerate(participant_data_list):
+            # 获取玩家当前的ELO作为 initial_elo 快照
+            user_stats = get_game_stats_by_user_id(data["user_id"])
+            initial_elo = (
+                user_stats.elo_score if user_stats else 1200
+            )  # 默认或从 GameStats 获取
+
+            bp = BattlePlayer(
+                battle_id=battle.id,
+                user_id=data["user_id"],
+                # 使用 'ai_code_id' 作为键
+                selected_ai_code_id=data["ai_code_id"],  # <--- 修改这里
+                position=i + 1,  # 简单设置位置
+                initial_elo=initial_elo,
+                join_time=datetime.datetime.now(),
+            )
+            battle_players.append(bp)
+            db.session.add(bp)  # 添加BattlePlayer 记录
+
+        if safe_commit():
+            logger.info(
+                f"对战 {battle.id} 创建成功，包含 {len(battle_players)} 位玩家。"
+            )
             return battle
         return None
     except Exception as e:
+        logger.error(f"创建对战失败: {e}", exc_info=True)
         db.session.rollback()
-        logger.error(f"创建对战记录失败: {str(e)}")
         return None
 
-def end_battle(
-    battle_id,
-    winner_ids=None,
-    loser_ids=None,
-    is_draw=False,
-    game_data=None,
-    game_data_uuid=None,
-):
+
+def get_battle_by_id(battle_id):
     """
-    结束对战，更新结果
+    根据ID获取对战记录。
 
     参数:
-        battle_id: 对战ID
-        winner_ids: 胜者ID列表
-        loser_ids: 败者ID列表
-        is_draw: 是否平局
-        game_data: 游戏数据JSON字符串
-        game_data_uuid: 游戏数据文件UUID
+        battle_id (str): 对战ID。
 
     返回:
-        Battle对象或None
+        Battle: 对战对象，不存在则返回None。
     """
     try:
-        battle = db.session.get(Battle, battle_id)
-        if not battle:
-            return None
-
-        battle.ended_at = datetime.datetime.now()
-
-        if is_draw:
-            battle.is_draw = True
-            battle.winner_ids = None
-            battle.loser_ids = None
-        else:
-            if winner_ids:
-                battle.winner_ids = json.dumps(winner_ids)
-            if loser_ids:
-                battle.loser_ids = json.dumps(loser_ids)
-            battle.is_draw = False
-
-        if game_data:
-            battle.game_data = game_data
-
-        if game_data_uuid:
-            battle.game_data_uuid = game_data_uuid
-
-        # 更新玩家统计数据
-        update_player_stats(battle)
-
-        return battle if safe_commit() else None
-
+        # Lazy='dynamic' on battle.players means you might need to load them explicitly if accessed often
+        # e.g., battle = Battle.query.options(db.joinedload(Battle.players)).get(battle_id)
+        # Or access battle.players outside this function call, which will trigger the dynamic query.
+        return Battle.query.get(battle_id)
     except Exception as e:
-        db.session.rollback()
-        logger.error(f"结束对战失败: {str(e)}")
+        logger.error(f"获取对战 {battle_id} 失败: {e}", exc_info=True)
         return None
 
-def update_player_stats(battle):
+
+def update_battle(battle, **kwargs):
     """
-    根据对战结果更新玩家统计数据
+    更新对战记录 (Battle) 的通用方法。
 
     参数:
-        battle: Battle对象
-    """
-    try:
-        # 获取玩家列表
-        player_ids = json.loads(battle.player_ids)
-
-        # 获取或创建每个玩家的统计数据
-        player_stats = {}
-        for player_id in player_ids:
-            stat = GameStats.query.filter_by(
-                user_id=player_id, game_type=battle.game_type
-            ).first()
-
-            if not stat:
-                stat = GameStats(user_id=player_id, game_type=battle.game_type)
-                db.session.add(stat)
-
-            # 更新游戏计数和最后游戏时间
-            stat.games_played += 1
-            stat.last_played = battle.ended_at
-            player_stats[player_id] = stat
-
-        # 根据对战结果更新统计
-        if battle.is_draw:
-            # 平局情况
-            for stat in player_stats.values():
-                stat.games_draw += 1
-        else:
-            # 胜负情况
-            winner_ids = json.loads(battle.winner_ids) if battle.winner_ids else []
-            loser_ids = json.loads(battle.loser_ids) if battle.loser_ids else []
-
-            for player_id, stat in player_stats.items():
-                if player_id in winner_ids:
-                    stat.games_won += 1
-                elif player_id in loser_ids:
-                    stat.games_lost += 1
-
-        # 计算新的ELO分数 (仅对两人游戏)
-        if (
-            not battle.is_draw
-            and len(player_ids) == 2
-            and battle.winner_ids
-            and battle.loser_ids
-        ):
-            winner_ids = json.loads(battle.winner_ids)
-            loser_ids = json.loads(battle.loser_ids)
-
-            if len(winner_ids) == 1 and len(loser_ids) == 1:
-                winner_id = winner_ids[0]
-                loser_id = loser_ids[0]
-                update_elo_scores(
-                    player_stats[winner_id], player_stats[loser_id], winner_id
-                )
-
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"更新玩家统计失败: {str(e)}")
-
-def update_elo_scores(player1_stats, player2_stats, winner_id):
-    """
-    根据对战结果更新玩家ELO分数
-
-    参数:
-        player1_stats: 玩家1的GameStats对象
-        player2_stats: 玩家2的GameStats对象
-        winner_id: 获胜者ID
-    """
-    # ELO常数，控制分数变化幅度
-    K = 32
-
-    # 计算期望胜率
-    r1 = 10 ** (player1_stats.score / 400)
-    r2 = 10 ** (player2_stats.score / 400)
-
-    e1 = r1 / (r1 + r2)  # 玩家1的期望胜率
-    e2 = r2 / (r1 + r2)  # 玩家2的期望胜率
-
-    # 实际结果
-    s1 = 1 if winner_id == player1_stats.user_id else 0
-    s2 = 1 if winner_id == player2_stats.user_id else 0
-
-    # 计算新分数
-    player1_stats.score = int(player1_stats.score + K * (s1 - e1))
-    player2_stats.score = int(player2_stats.score + K * (s2 - e2))
-
-def get_player_stats(user_id, game_type=None):
-    """
-    获取玩家在特定游戏类型的统计数据
-
-    参数:
-        user_id: 用户ID
-        game_type: 游戏类型，不指定则获取所有类型
+        battle (Battle): 要更新的对战对象。
+        **kwargs: 要更新的字段及其值。
 
     返回:
-        GameStats对象列表
+        bool: 更新是否成功。
+    """
+    if not battle:
+        return False
+    try:
+        for key, value in kwargs.items():
+            if hasattr(battle, key) and key not in [
+                "id",
+                "created_at",
+            ]:  # 不允许修改ID, created_at
+                setattr(battle, key, value)
+
+        # Special handling for status transition
+        if "status" in kwargs:
+            new_status = kwargs["status"]
+            if new_status == "playing" and battle.started_at is None:
+                battle.started_at = datetime.datetime.now()
+            elif (
+                new_status in ["completed", "error", "cancelled"]
+                and battle.ended_at is None
+            ):
+                battle.ended_at = datetime.datetime.now()
+
+        return safe_commit()
+    except Exception as e:
+        logger.error(f"更新对战 {battle.id} 失败: {e}", exc_info=True)
+        db.session.rollback()
+        return False
+
+
+def delete_battle(battle):
+    """
+    删除对战记录。
+
+    参数:
+        battle (Battle): 要删除的对战对象。
+
+    返回:
+        bool: 删除是否成功。
+    """
+    if not battle:
+        return False
+    try:
+        # Due to cascade="all, delete-orphan" on Battle.players, deleting the Battle
+        # will automatically delete all associated BattlePlayer records. This is the desired behavior.
+        return safe_delete(battle)
+    except Exception as e:
+        logger.error(f"删除对战 {battle.id} 失败: {e}", exc_info=True)
+        db.session.rollback()
+        return False
+
+
+def get_battle_players_for_battle(battle_id):
+    """
+    获取指定对战的所有 BattlePlayer 参与者记录。
+
+    参数:
+        battle_id (str): 对战ID。
+
+    返回:
+        list: BattlePlayer 对象列表，出错则返回空列表。
     """
     try:
-        query = GameStats.query.filter_by(user_id=user_id)
-        if game_type:
-            query = query.filter_by(game_type=game_type)
-        return query.all()
+        # Because lazy='dynamic' on battle.players, Battle.query.get(battle_id).players
+        # returns a query. Executing .all() here fetches the list.
+        battle = get_battle_by_id(battle_id)
+        if battle:
+            return battle.players.all()  # Executes the dynamic query
+        return []
     except Exception as e:
-        logger.error(f"获取玩家统计数据失败: {str(e)}")
+        logger.error(f"获取对战 {battle_id} 的参与者失败: {e}", exc_info=True)
         return []
 
-def get_leaderboard(game_type, limit=100):
+
+def process_battle_results_and_update_stats(battle_id, results_data):
     """
-    获取特定游戏类型的排行榜
+    处理对战结果，更新 BattlePlayer 记录的 outcome，并更新玩家的游戏统计 (GameStats)。
+
+    这是一个核心逻辑函数，负责在游戏结束后根据结果更新数据库。
 
     参数:
-        game_type: 游戏类型
-        limit: 返回数量限制
+        battle_id (str): 已结束的对战ID。
+        results_data (dict): 包含对战结果的字典，例如
+                             {'outcomes': {'player_id_uuid1': 'win', 'player_id_uuid2': 'loss'},
+                              'winner_id': 'player_id_uuid1', # Winner is needed for ELO in 1v1
+                              'game_log_uuid': '...',
+                              'more_results': {...}
+                             }
+                             results_data['outcomes'] 是必须的，键是 user_id，值是 'win', 'loss', 'draw', 'error' 等。
 
     返回:
-        (GameStats, User)元组的列表，按分数降序排序
+        bool: 处理是否成功。
     """
     try:
+        battle = get_battle_by_id(battle_id)
+        if not battle:
+            logger.error(f"处理对战结果失败: 未找到对战 {battle_id}")
+            return False
+
+        if battle.status == "completed":
+            logger.warning(f"对战 {battle_id} 状态已是 completed，跳过二次处理。")
+            return True  # 幂等性考虑，如果已完成就返回成功
+
+        # 1. 更新 Battle 记录的全局结果和状态
+        battle.status = "completed"
+        battle.ended_at = datetime.datetime.now()
+        battle.results = json.dumps(results_data.get("more_results", {}))
+        battle.game_log_uuid = results_data.get("game_log_uuid")
+
+        # 2. 更新 BattlePlayer 记录的 outcome
+        battle_players = get_battle_players_for_battle(battle_id)
+        user_outcomes = results_data.get(
+            "outcomes", {}
+        )  # 获取玩家outcome字典 {user_id: outcome}
+        user_battle_players = {
+            bp.user_id: bp for bp in battle_players
+        }  # 映射 {user_id: BattlePlayer}
+
+        for user_id, outcome in user_outcomes.items():
+            bp = user_battle_players.get(user_id)
+            if bp:
+                bp.outcome = outcome.lower()  # 统一转小写
+                db.session.add(bp)  # 标记为修改
+
+        # 对于没有在 outcomes 中列出的玩家 (可能提前退出或错误)，可以默认为 'error' 或 'quit'
+        # 这里简化处理，只更新列出的玩家
+
+        db.session.flush()  # 同步 Battle 和 BattlePlayer 的更新
+
+        # 3. 更新玩家的 GameStats 并计算 ELO 变化
+        # 假设 outcomes 字典中包含了所有参与并有结果的玩家
+        involved_user_ids = list(user_outcomes.keys())
+        user_stats_map = {
+            stats.user_id: stats
+            for stats in GameStats.query.filter(
+                GameStats.user_id.in_(involved_user_ids)
+            ).all()
+        }
+
+        for user_id in involved_user_ids:
+            outcome = user_outcomes.get(user_id)
+            if not outcome:
+                continue  # 跳过没有 outcome 的玩家
+
+            stats = user_stats_map.get(user_id)
+            if not stats:
+                # 如果 GameStats 不存在 (不应该发生如果用户注册时创建)，则创建
+                stats = create_game_stats(user_id)
+                if not stats:
+                    logger.error(
+                        f"处理对战 {battle_id} 结果时为用户 {user_id} 创建统计失败。"
+                    )
+                    continue
+                user_stats_map[user_id] = stats  # 添加到映射
+
+            stats.games_played += 1
+            if outcome == "win":
+                stats.wins += 1
+            elif outcome == "loss":
+                stats.losses += 1
+            elif outcome == "draw":
+                stats.draws += 1
+            # 其他 outcome ('error', 'quit'等) 可以选择是否计入胜负平，或者只计入场次
+
+            db.session.add(stats)  # Mark for update
+
+        # ELO 更新：这里使用一个简化的 1v1 ELO 更新逻辑。
+        # 如果是多人游戏，需要更复杂的 ELO 或排名系统。
+        # 假设 results_data['winner_id'] 存在且只用于 1v1 计算
+        winner_id = results_data.get("winner_id")
+        # Check if it's a 1v1 battle and a winner is specified
+        is_1v1 = len(user_outcomes) == 2 and winner_id
+
+        if is_1v1:
+            loser_ids = [uid for uid in involved_user_ids if uid != winner_id]
+            if loser_ids:
+                loser_id = loser_ids[0]  # Assuming only one loser in 1v1
+
+                winner_stats = user_stats_map.get(winner_id)
+                loser_stats = user_stats_map.get(loser_id)
+
+                if winner_stats and loser_stats:
+                    winner_bp = user_battle_players.get(winner_id)
+                    loser_bp = user_battle_players.get(loser_id)
+
+                    if winner_bp and loser_bp:  # Ensure battle players exist
+                        winner_bp.initial_elo = (
+                            winner_stats.elo_score
+                        )  # Record ELO *before* update
+                        loser_bp.initial_elo = (
+                            loser_stats.elo_score
+                        )  # Record ELO *before* update
+
+                        # Calc and update ELO, returns change
+                        winner_change, loser_change = update_elo_scores(
+                            winner_stats, loser_stats
+                        )
+
+                        winner_bp.elo_change = round(winner_change)
+                        loser_bp.elo_change = round(loser_change)
+
+                        db.session.add(winner_stats)  # Mark stats for update
+                        db.session.add(loser_stats)
+                        db.session.add(winner_bp)  # Mark battle players for update
+                        db.session.add(loser_bp)
+                else:
+                    logger.warning(
+                        f"对战 {battle_id} 是 1v1 但未找到胜者或败者的 BattlePlayer 记录，跳过 ELO 计算。"
+                    )
+            else:
+                logger.warning(
+                    f"对战 {battle_id} 是 1v1 但未找到败者ID ({involved_user_ids}, winner={winner_id})，跳过 ELO 计算。"
+                )
+        elif len(user_outcomes) > 2:
+            # TODO: Implement more complex ELO or ranking system for multiplayer
+            logger.info(
+                f"对战 {battle_id} 是多人对战 ({len(user_outcomes)}人)，多人ELO计算逻辑待实现。"
+            )
+
+        # Final commit for all changes (Battle, BattlePlayers, GameStats)
+        if safe_commit():
+            logger.info(f"对战 {battle_id} 结果处理完成。")
+            return True
+        else:
+            logger.error(f"对战 {battle_id} 结果处理中提交数据库失败。")
+            db.session.rollback()  # Ensure rollback on final commit failure
+            return False
+
+    except Exception as e:
+        logger.error(f"处理对战 {battle_id} 结果时发生错误: {e}", exc_info=True)
+        db.session.rollback()  # Rollback everything if an error occurs
+        return False
+
+
+def update_elo_scores(winner_stats, loser_stats, k_factor=32):
+    """
+    根据胜败者 GameStats 对象更新 ELO 积分 (1v1)。
+
+    参数:
+        winner_stats (GameStats): 胜者的 GameStats 对象。
+        loser_stats (GameStats): 败者的 GameStats 对象。
+        k_factor (int): K 因子，影响积分变化幅度。
+
+    返回:
+        tuple: (胜者积分变化值, 败者积分变化值)。
+    """
+    # ELO 计算公式
+    expected_winner = 1 / (
+        1 + 10 ** ((loser_stats.elo_score - winner_stats.elo_score) / 400)
+    )
+    expected_loser = 1 / (
+        1 + 10 ** ((winner_stats.elo_score - loser_stats.elo_score) / 400)
+    )
+
+    winner_score_change = k_factor * (1 - expected_winner)
+    loser_score_change = k_factor * (0 - expected_loser)  # 败者得分为0
+
+    # 更新积分并四舍五入
+    winner_stats.elo_score += winner_score_change
+    loser_stats.elo_score += loser_score_change
+
+    # 确保积分不低于某个最小值 (可选)
+    winner_stats.elo_score = max(round(winner_stats.elo_score), 100)
+    loser_stats.elo_score = max(round(loser_stats.elo_score), 100)
+
+    return winner_score_change, loser_score_change
+
+
+def get_user_battle_history(user_id, page=1, per_page=10):
+    """
+    获取用户参与过的对战历史记录 (分页)。
+
+    参数:
+        user_id (str): 用户ID。
+        page (int): 当前页码 (从1开始)。
+        per_page (int): 每页记录数。
+
+    返回:
+        tuple: (对战列表, 总记录数)。出错返回 ([], 0)。
+    """
+    try:
+        # 查询 BattlePlayer 记录，筛选出指定用户的参与记录
+        # 然后加载关联的 Battle 和 User (为了获取用户名)
+        # 使用 joinedload 可以减少查询次数
+        query = (
+            BattlePlayer.query.filter_by(user_id=user_id)
+            .join(BattlePlayer.battle)
+            .order_by(Battle.created_at.desc())
+        )
+
+        # 获取总数
+        total = query.count()
+
+        # 应用分页
+        battle_players_page = query.offset((page - 1) * per_page).limit(per_page).all()
+
+        # 提取关联的 Battle 对象
+        # 使用 set 去重，因为一个 Battle 可能有多个 BattlePlayer (不是 1v1 的情况)
+        # 但实际上这里因为是按 BattlePlayer 查，每个 BattlePlayer 只对应一个 Battle。
+        # 转换为 battle 列表方便处理
+        battles = [bp.battle for bp in battle_players_page if bp.battle]
+
+        return battles, total
+    except Exception as e:
+        logger.error(f"获取用户 {user_id} 的对战历史失败: {e}", exc_info=True)
+        return [], 0
+
+
+def get_recent_battles(limit=20):
+    """
+    获取最近结束的对战列表。
+
+    参数:
+        limit (int): 返回数量限制。
+
+    返回:
+        list: Battle 对象列表。
+    """
+    try:
+        # 过滤已完成的对战，按结束时间降序排列
         return (
-            GameStats.query.filter_by(game_type=game_type)
-            .join(User, GameStats.user_id == User.id)
-            .order_by(GameStats.score.desc())
-            .with_entities(GameStats, User)
+            Battle.query.filter_by(status="completed")
+            .order_by(Battle.ended_at.desc())
             .limit(limit)
             .all()
         )
     except Exception as e:
-        logger.error(f"获取排行榜失败: {str(e)}")
+        logger.error(f"获取最近对战失败: {e}", exc_info=True)
         return []
 
-def get_user_battles(user_id, page=1, per_page=10, paginate=True):
+
+# -----------------------------------------------------------------------------------------
+# BattlePlayer 独立 CRUD 操作 (除了在 Battle 函数中创建/删除)
+# 这些通常在 Battle 函数内部调用，但提供独立的访问点以防需要
+
+
+def get_battle_player_by_id(battle_player_id):
+    """根据ID获取 BattlePlayer 记录。"""
+    try:
+        return BattlePlayer.query.get(battle_player_id)
+    except Exception as e:
+        logger.error(f"根据ID获取 BattlePlayer 失败: {e}", exc_info=True)
+        return None
+
+
+# create_battle_player 在 create_battle 内部实现
+# delete_battle_player 在 delete_battle 内部，通过 cascade 实现
+
+
+def update_battle_player(battle_player, **kwargs):
     """
-    获取用户的对战历史
+    更新 BattlePlayer 记录。
 
     参数:
-        user_id: 用户ID
-        page: 页码
-        per_page: 每页记录数
-        paginate: 是否进行分页并返回总数
+        battle_player (BattlePlayer): 要更新的 BattlePlayer 对象。
+        **kwargs: 要更新的字段及其值 (例如 outcome, elo_change)。
 
     返回:
-        paginate=True时: (对战列表, 总记录数)元组
-        paginate=False时: 对战列表
+        bool: 更新是否成功。
     """
+    if not battle_player:
+        return False
     try:
-        # 由于player_ids是JSON字符串，我们需要使用JSON搜索或文本搜索
-        user_id_str = str(user_id)
-        query = Battle.query.filter(
-            Battle.player_ids.like(f"%{user_id_str}%")
-        ).order_by(Battle.started_at.desc())
-
-        if paginate:
-            total = query.count()
-            battles = query.offset((page - 1) * per_page).limit(per_page).all()
-
-            # 进一步过滤结果，确保用户确实在player_ids中
-            filtered_battles = [
-                battle for battle in battles if user_id in json.loads(battle.player_ids)
-            ]
-            return filtered_battles, total
-        else:
-            # 不分页，直接返回限制数量的结果
-            battles = query.limit(per_page).all()
-
-            # 进一步过滤结果
-            filtered_battles = [
-                battle for battle in battles if user_id in json.loads(battle.player_ids)
-            ]
-            return filtered_battles
+        for key, value in kwargs.items():
+            if hasattr(battle_player, key) and key not in [
+                "id",
+                "battle_id",
+                "user_id",
+                "selected_ai_code_id",
+            ]:  # 不允许修改关联ID
+                setattr(battle_player, key, value)
+        return safe_commit()
     except Exception as e:
-        logger.error(f"获取用户对战历史失败: {str(e)}")
-        return ([], 0) if paginate else []
+        logger.error(f"更新 BattlePlayer {battle_player.id} 失败: {e}", exc_info=True)
+        db.session.rollback()
+        return False
+
+
+# -----------------------------------------------------------------------------------------
+# Flask-Login User 加载函数 (从 models.py 移到此处或其他合适的数据加载模块)
+
+# 用户加载函数 (用于 Flask-Login)
+# 如果您希望将数据加载逻辑集中在这里，可以把这个函数放在此处
+# @login_manager.user_loader # login_manager 需要在这里导入或从 base 中获取
+# def load_user(user_id):
+#     return get_user_by_id(user_id)
+# 注: 如果 login_manager 在 app/__init__.py 中初始化并配置了 user_loader，则无需此处再次定义。
