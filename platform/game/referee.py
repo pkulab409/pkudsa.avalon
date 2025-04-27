@@ -96,9 +96,8 @@ class AvalonReferee:
         self.battle_observer = battle_observer
 
         # 加载玩家代码
-        if player_code_paths:
-            player_modules = self._load_codes(player_code_paths)
-            self.load_player_codes(player_modules)
+        player_modules = self._load_codes(player_code_paths)
+        self.load_player_codes(player_modules)
 
     def init_logs(self):
         """初始化游戏日志"""
@@ -123,41 +122,41 @@ class AvalonReferee:
         player_modules = {}
 
         for player_id, code_path in player_codes.items():
-            # 创建唯一模块名
+            # 生成唯一模块名
             module_name = f"player_{player_id}_module_{int(time.time()*1000)}"
-            logger.info(f"为玩家 {player_id} 创建模块: {module_name}")
+            logger.info(f"尝试为玩家 {player_id} 创建临时模块: {module_name}")
+
+
+            # 检查code_path是否是文件路径
+            if isinstance(code_path, str) and os.path.exists(code_path):
+                # 如果是文件路径，读取文件内容
+                try:
+                    with open(code_path, "r", encoding="utf-8") as f:
+                        code_content = f.read()
+                    logger.info(f"从文件 {code_path} 加载玩家 {player_id} 代码")
+                except Exception as e:
+                    logger.error(f"读取玩家 {player_id} 代码文件时出错: {str(e)}")
+                    continue
+            else:
+                logger.error(f"路径 {code_path} 下找不到玩家 {player_id} 的代码")
+                raise RuntimeError(f"路径 {code_path} 下找不到玩家 {player_id} 的代码")
+
+
+            # 创建模块规范
+            spec = importlib.util.spec_from_loader(module_name, loader=None)
+            if spec is None:
+                logger.error(f"为 {module_name} 创建规范失败")
+                continue
+
+            # 从规范创建模块
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[module_name] = module  # 注册模块
 
 
             try:
-                # 检查code_path是否是文件路径
-                if isinstance(code_path, str) and os.path.exists(code_path):
-                    # 如果是文件路径，读取文件内容
-                    try:
-                        with open(code_path, "r", encoding="utf-8") as f:
-                            code_content = f.read()
-                        logger.info(f"从文件 {code_path} 加载玩家 {player_id} 代码")
-                    except Exception as e:
-                        logger.error(f"读取玩家 {player_id} 代码文件时出错: {str(e)}")
-                        continue
-                else:
-                    # 如果不是文件路径，假设是直接传递的代码内容
-                    code_content = code_path
-
-                # 创建模块规范
-                spec = importlib.util.spec_from_loader(module_name, loader=None)
-                if spec is None:
-                    logger.error(f"为 {module_name} 创建规范失败")
-                    continue
-
-
-                # 从规范创建模块
-                module = importlib.util.module_from_spec(spec)
-                sys.modules[module_name] = module  # 注册模块
-
                 # 执行代码（限制 builtins）
                 module.__dict__["__builtins__"] = RESTRICTED_BUILTINS
                 exec(code_content, module.__dict__)
-
 
                 # 检查Player类是否存在
                 if not hasattr(module, "Player"):
@@ -168,15 +167,14 @@ class AvalonReferee:
                         "Player",
                         f"玩家 {player_id} 的代码已执行但未找到 'Player' 类",
                     )
+
                 # 存储模块
                 player_modules[player_id] = module
                 logger.info(f"玩家 {player_id} 代码加载成功")
 
-
             except Exception as e:
                 logger.error(f"加载玩家 {player_id} 代码时出错: {str(e)}")
-                traceback.print_exc()
-
+                raise RuntimeError(e)
 
         return player_modules
 
@@ -1318,7 +1316,7 @@ class AvalonReferee:
     ):
         "一键中止游戏。代替前文反反复复出现的堆积如山的 raise RuntimeError。"
 
-        SUSPEND_BROADCAST_MSG = (
+        suspend_broadcast_msg = (
             (
                 f"Error executing Player {error_code_pid} method {error_code_method_name}: "
                 + error_msg
@@ -1341,10 +1339,10 @@ class AvalonReferee:
         )
 
         # 2. 给observer添加报错信息
-        self.battle_observer.make_snapshot("Bug", SUSPEND_BROADCAST_MSG)
+        self.battle_observer.make_snapshot("Bug", suspend_broadcast_msg)
 
         # 3. 抛出错误，终止游戏
-        raise RuntimeError(SUSPEND_BROADCAST_MSG)
+        raise RuntimeError(suspend_broadcast_msg)
 
     def random_select_members(self, member_count: int) -> List[int]:
         """

@@ -25,11 +25,12 @@ def _restricted_importer(name, globals=None, locals=None, fromlist=(), level=0):
             setattr(restricted_module, attr, getattr(helper_module, attr))
         return restricted_module
 
-    # Define the other allowed modules
+    # 白名单
     allowed_modules = {
         'random': __import__('random'),
         're': __import__('re'),
-        'collections': __import__('collections')
+        'collections': __import__('collections'),
+        'math': __import__('math'),
     }
 
     if name in allowed_modules:
@@ -98,6 +99,6 @@ RESTRICTED_BUILTINS = {
     "object": object,
     # 没有 open, globals, locals, eval, exec
     "__build_class__": __build_class__,
-    "__name__": "__main__",
+    "__name__": "platform",
     "__import__": _restricted_importer,
 }
