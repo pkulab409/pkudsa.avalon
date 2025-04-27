@@ -238,6 +238,7 @@ def get_game_status(battle_id):
         result = None
         if status == "completed":
             result = battle_manager.get_battle_result(battle_id)
+            # {"winner": "blue" / "red"}
             # 如果内存中没有结果，尝试从数据库加载
             if result is None:
                 battle = db_get_battle_by_id(battle_id)

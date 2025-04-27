@@ -3,6 +3,19 @@
 # status: refactored
 # description: Database operations (CRUD)
 
+# dmcnczy 25/4/27
+# 更新： action.py 文档，七人两队 ELO 操作 (删除原有的 1V1 代码)
+'''
+实现 CRUD 数据库操作，内含丰富的操作工具：
+- 【用户】 注册、登录、删除等
+- 【用户 AI 代码】 创建、更新、激活、删除等
+- 【游戏记录统计】 获取、游动更新更新，获取排行榜
+- 【对战功能】 创建对战、更新对战、对战用户管理、对战历史、*ELO*等
+- 备用：BattlePlayer 独立 CRUD 操作
+'''
+# 准备好后面一千多行的冲击吧！
+
+
 from .base import db
 import logging
 from sqlalchemy import select, update, or_, func
@@ -722,61 +735,103 @@ def get_battle_players_for_battle(battle_id):
 
 def process_battle_results_and_update_stats(battle_id, results_data):
     """
-    处理对战结果，更新 BattlePlayer 记录的 outcome，并更新玩家的游戏统计 (GameStats)。
-
-    这是一个核心逻辑函数，负责在游戏结束后根据结果更新数据库。
+    处理4v3对战结果，更新玩家对战记录及ELO评分。
 
     参数:
-        battle_id (str): 已结束的对战ID。
-        results_data (dict): 包含对战结果的字典，例如
-                             {'outcomes': {'player_id_uuid1': 'win', 'player_id_uuid2': 'loss'},
-                              'winner_id': 'player_id_uuid1', # Winner is needed for ELO in 1v1
-                              'game_log_uuid': '...',
-                              'more_results': {...}
-                             }
-                             results_data['outcomes'] 是必须的，键是 user_id，值是 'win', 'loss', 'draw', 'error' 等。
+        battle_id (str): 对战的唯一标识符
+        results_data (dict): 包含对战结果的数据，格式为:
+            {
+                "winner": "red"|"blue",  # 获胜队伍
+                # 其他可选字段（如game_log_uuid等）
+            }
 
     返回:
-        bool: 处理是否成功。
+        bool: 处理成功返回True，否则False
     """
+
+    RED_TEAM = "red"
+    BLUE_TEAM = "blue"
+    BLUE_ROLES = ["Merlin", "Percival", "Knight"]  # 蓝方角色
+    RED_ROLES = ["Morgana", "Assassin", "Oberon"]  # 红方角色
+
+    def _get_team_assignment(player_index: int) -> str:
+        """返回玩家的队伍 (player_index 取1-7)"""
+        if results_data["roles"][player_index] in RED_ROLES:
+            return RED_TEAM
+        else:
+            return BLUE_TEAM
+
     try:
+        # ----------------------------------
+        # 阶段1：获取基础数据并验证
+        # ----------------------------------
         battle = get_battle_by_id(battle_id)
         if not battle:
-            logger.error(f"处理对战结果失败: 未找到对战 {battle_id}")
+            logger.error(f"[Battle {battle_id}] 对战记录不存在")
             return False
 
         if battle.status == "completed":
-            logger.warning(f"对战 {battle_id} 状态已是 completed，跳过二次处理。")
-            return True  # 幂等性考虑，如果已完成就返回成功
+            logger.info(f"[Battle {battle_id}] 对战已处理，跳过重复操作")
+            return True  # 幂等性处理
 
-        # 1. 更新 Battle 记录的全局结果和状态
+        # 获取对战玩家记录（按加入顺序排列）
+        battle_players = get_battle_players_for_battle(battle_id)
+        if len(battle_players) != 7:
+            logger.error(f"[Battle {battle_id}] 玩家数量异常（预期7人，实际{len(battle_players)}人）")
+            return False
+
+        # ----------------------------------
+        # 阶段2：基础数据更新
+        # ----------------------------------
+        # 更新 Battle 记录的全局结果和状态
         battle.status = "completed"
         battle.ended_at = datetime.datetime.now()
-        battle.results = json.dumps(results_data.get("more_results", {}))
+        battle.results = json.dumps(results_data.get("custom_data", {}))
         battle.game_log_uuid = results_data.get("game_log_uuid")
 
-        # 2. 更新 BattlePlayer 记录的 outcome
-        battle_players = get_battle_players_for_battle(battle_id)
-        user_outcomes = results_data.get(
-            "outcomes", {}
-        )  # 获取玩家outcome字典 {user_id: outcome}
-        user_battle_players = {
-            bp.user_id: bp for bp in battle_players
-        }  # 映射 {user_id: BattlePlayer}
+        # ----------------------------------
+        # 阶段3：生成核心映射关系
+        # ----------------------------------
+        # 生成队伍映射：user_id是用户，idx+1是游戏中的1-7号玩家，team_map实现user_id -> "red"/"blue"
+        team_map = {
+            bp.user_id: _get_team_assignment(idx + 1)
+            for idx, bp in enumerate(battle_players)
+        }
 
-        for user_id, outcome in user_outcomes.items():
-            bp = user_battle_players.get(user_id)
-            if bp:
-                bp.outcome = outcome.lower()  # 统一转小写
-                db.session.add(bp)  # 标记为修改
+        # 生成队伍胜负结果
+        winner_team = results_data.get("winner")
+        if winner_team not in (RED_TEAM, BLUE_TEAM):
+            logger.error(f"[Battle {battle_id}] 无效的获胜队伍标识: {winner_team}")
+            return False
 
-        # 对于没有在 outcomes 中列出的玩家 (可能提前退出或错误)，可以默认为 'error' 或 'quit'
-        # 这里简化处理，只更新列出的玩家
+        team_outcomes = {
+            RED_TEAM: "win" if winner_team == RED_TEAM else "loss",
+            BLUE_TEAM: "win" if winner_team == BLUE_TEAM else "loss"
+        }
 
-        db.session.flush()  # 同步 Battle 和 BattlePlayer 的更新
+        # 生成玩家个人结果 (user_id -> "win"/"loss")
+        user_outcomes = {
+            user_id: team_outcomes[team]
+            for user_id, team in team_map.items()
+        }
 
-        # 3. 更新玩家的 GameStats 并计算 ELO 变化
-        # 假设 outcomes 字典中包含了所有参与并有结果的玩家
+        # ----------------------------------
+        # 阶段4：更新玩家对战记录
+        # ----------------------------------
+        for bp in battle_players:
+            outcome = user_outcomes.get(bp.user_id)
+            if outcome:
+                bp.outcome = outcome.lower()
+                db.session.add(bp)
+            else:
+                logger.warning(f"[Battle {battle_id}] 玩家 {bp.user_id} 无结果记录")
+
+        db.session.flush()
+
+        # ----------------------------------
+        # 阶段5：ELO评分计算
+        # ----------------------------------
+        # 获取所有涉及玩家的统计记录
         involved_user_ids = list(user_outcomes.keys())
         user_stats_map = {
             stats.user_id: stats
@@ -785,133 +840,83 @@ def process_battle_results_and_update_stats(battle_id, results_data):
             ).all()
         }
 
+        # 创建缺失的统计记录
         for user_id in involved_user_ids:
-            outcome = user_outcomes.get(user_id)
-            if not outcome:
-                continue  # 跳过没有 outcome 的玩家
-
-            stats = user_stats_map.get(user_id)
-            if not stats:
-                # 如果 GameStats 不存在 (不应该发生如果用户注册时创建)，则创建
-                stats = create_game_stats(user_id)
-                if not stats:
-                    logger.error(
-                        f"处理对战 {battle_id} 结果时为用户 {user_id} 创建统计失败。"
-                    )
-                    continue
-                user_stats_map[user_id] = stats  # 添加到映射
-
-            stats.games_played += 1
-            if outcome == "win":
-                stats.wins += 1
-            elif outcome == "loss":
-                stats.losses += 1
-            elif outcome == "draw":
-                stats.draws += 1
-            # 其他 outcome ('error', 'quit'等) 可以选择是否计入胜负平，或者只计入场次
-
-            db.session.add(stats)  # Mark for update
-
-        # ELO 更新：这里使用一个简化的 1v1 ELO 更新逻辑。
-        # 如果是多人游戏，需要更复杂的 ELO 或排名系统。
-        # 假设 results_data['winner_id'] 存在且只用于 1v1 计算
-        winner_id = results_data.get("winner_id")
-        # Check if it's a 1v1 battle and a winner is specified
-        is_1v1 = len(user_outcomes) == 2 and winner_id
-
-        if is_1v1:
-            loser_ids = [uid for uid in involved_user_ids if uid != winner_id]
-            if loser_ids:
-                loser_id = loser_ids[0]  # Assuming only one loser in 1v1
-
-                winner_stats = user_stats_map.get(winner_id)
-                loser_stats = user_stats_map.get(loser_id)
-
-                if winner_stats and loser_stats:
-                    winner_bp = user_battle_players.get(winner_id)
-                    loser_bp = user_battle_players.get(loser_id)
-
-                    if winner_bp and loser_bp:  # Ensure battle players exist
-                        winner_bp.initial_elo = (
-                            winner_stats.elo_score
-                        )  # Record ELO *before* update
-                        loser_bp.initial_elo = (
-                            loser_stats.elo_score
-                        )  # Record ELO *before* update
-
-                        # Calc and update ELO, returns change
-                        winner_change, loser_change = update_elo_scores(
-                            winner_stats, loser_stats
-                        )
-
-                        winner_bp.elo_change = round(winner_change)
-                        loser_bp.elo_change = round(loser_change)
-
-                        db.session.add(winner_stats)  # Mark stats for update
-                        db.session.add(loser_stats)
-                        db.session.add(winner_bp)  # Mark battle players for update
-                        db.session.add(loser_bp)
+            if user_id not in user_stats_map:
+                new_stats = create_game_stats(user_id)
+                if new_stats:
+                    user_stats_map[user_id] = new_stats
+                    db.session.add(new_stats)
                 else:
-                    logger.warning(
-                        f"对战 {battle_id} 是 1v1 但未找到胜者或败者的 BattlePlayer 记录，跳过 ELO 计算。"
-                    )
-            else:
-                logger.warning(
-                    f"对战 {battle_id} 是 1v1 但未找到败者ID ({involved_user_ids}, winner={winner_id})，跳过 ELO 计算。"
-                )
-        elif len(user_outcomes) > 2:
-            # TODO: Implement more complex ELO or ranking system for multiplayer
-            logger.info(
-                f"对战 {battle_id} 是多人对战 ({len(user_outcomes)}人)，多人ELO计算逻辑待实现。"
-            )
+                    logger.error(f"[Battle {battle_id}] 无法为玩家 {user_id} 创建统计记录")
 
-        # Final commit for all changes (Battle, BattlePlayers, GameStats)
+        # 计算队伍平均ELO
+        team_elos = {RED_TEAM: [], BLUE_TEAM: []}
+        for user_id, stats in user_stats_map.items():
+            team = team_map.get(user_id)
+            if team in team_elos:
+                team_elos[team].append(stats.elo_score)
+
+        team_avg = {
+            team: sum(scores)/len(scores)
+            for team, scores in team_elos.items()
+        }
+
+        # ELO计算参数
+        K_FACTOR = 32
+
+        # 计算期望胜率
+        red_expected = 1 / (1 + 10**((team_avg[BLUE_TEAM] - team_avg[RED_TEAM])/400))
+        blue_expected = 1 / (1 + 10**((team_avg[RED_TEAM] - team_avg[BLUE_TEAM])/400))
+
+        # 实际得分（胜队1分，败队0分）
+        actual_score = {
+            RED_TEAM: 1.0 if winner_team == RED_TEAM else 0.0,
+            BLUE_TEAM: 1.0 if winner_team == BLUE_TEAM else 0.0
+        }
+
+        # 更新所有玩家ELO
+        for user_id, stats in user_stats_map.items():
+            bp = next((p for p in battle_players if p.user_id == user_id), None)
+            if not bp:
+                continue
+
+            team = team_map[user_id]
+            expected = red_expected if team == RED_TEAM else blue_expected
+            delta = K_FACTOR * (actual_score[team] - expected)
+
+            # 更新统计记录
+            stats.games_played += 1
+            if team_outcomes[team] == "win":
+                stats.wins += 1
+            else:
+                stats.losses += 1
+            
+            # 更新ELO（最低100分）
+            new_elo = max(round(stats.elo_score + delta), 100)
+            bp.initial_elo = stats.elo_score
+            bp.elo_change = new_elo - stats.elo_score
+            stats.elo_score = new_elo
+            logger.info(f"更改ELO: {user_id} | {bp.initial_elo} -> {new_elo}")
+
+            db.session.add(stats)
+            db.session.add(bp)
+
+        # ----------------------------------
+        # 阶段6：最终提交
+        # ----------------------------------
         if safe_commit():
-            logger.info(f"对战 {battle_id} 结果处理完成。")
+            logger.info(f"[Battle {battle_id}] 处理成功")
             return True
         else:
-            logger.error(f"对战 {battle_id} 结果处理中提交数据库失败。")
-            db.session.rollback()  # Ensure rollback on final commit failure
+            db.session.rollback()
+            logger.error(f"[Battle {battle_id}] 数据库提交失败")
             return False
 
     except Exception as e:
-        logger.error(f"处理对战 {battle_id} 结果时发生错误: {e}", exc_info=True)
-        db.session.rollback()  # Rollback everything if an error occurs
+        db.session.rollback()
+        logger.error(f"[Battle {battle_id}] 处理异常: {str(e)}", exc_info=True)
         return False
-
-
-def update_elo_scores(winner_stats, loser_stats, k_factor=32):
-    """
-    根据胜败者 GameStats 对象更新 ELO 积分 (1v1)。
-
-    参数:
-        winner_stats (GameStats): 胜者的 GameStats 对象。
-        loser_stats (GameStats): 败者的 GameStats 对象。
-        k_factor (int): K 因子，影响积分变化幅度。
-
-    返回:
-        tuple: (胜者积分变化值, 败者积分变化值)。
-    """
-    # ELO 计算公式
-    expected_winner = 1 / (
-        1 + 10 ** ((loser_stats.elo_score - winner_stats.elo_score) / 400)
-    )
-    expected_loser = 1 / (
-        1 + 10 ** ((winner_stats.elo_score - loser_stats.elo_score) / 400)
-    )
-
-    winner_score_change = k_factor * (1 - expected_winner)
-    loser_score_change = k_factor * (0 - expected_loser)  # 败者得分为0
-
-    # 更新积分并四舍五入
-    winner_stats.elo_score += winner_score_change
-    loser_stats.elo_score += loser_score_change
-
-    # 确保积分不低于某个最小值 (可选)
-    winner_stats.elo_score = max(round(winner_stats.elo_score), 100)
-    loser_stats.elo_score = max(round(loser_stats.elo_score), 100)
-
-    return winner_score_change, loser_score_change
 
 
 def get_user_battle_history(user_id, page=1, per_page=10):
