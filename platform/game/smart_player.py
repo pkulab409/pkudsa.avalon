@@ -69,10 +69,17 @@ class Player:
         origin_pos = self.player_positions[self.index] # tuple
         x, y = origin_pos
         others_pos = [self.player_positions[i] for i in range(1,8) if i != self.index]
-        step = 0
-        total_step = random.randint(1,3)
-        valid_moves = []
+        total_step = random.randint(0,3)
 
+        # 被包围的情况,开始前判定一次即可
+        if (((x-1,y) in others_pos or x == 0) 
+            and ((x+1,y) in others_pos or x == MAP_SIZE - 1)
+            and ((x,y-1) in others_pos or y == 0)
+            and ((x,y+1) in others_pos or y == MAP_SIZE - 1)):
+            total_step = 0
+        
+        valid_moves = []
+        step = 0
         while step < total_step:
             direction = random.choice(["Left", "Up", "Right", "Down"])
 
@@ -92,7 +99,7 @@ class Player:
                 x, y = x, y + 1
                 valid_moves.append("Right")
                 step += 1
-
+        
         return tuple(valid_moves)
 
     def say(self) -> str:

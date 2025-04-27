@@ -24,11 +24,6 @@ if not load_dotenv():
     # 这里只要有一个环境变量被读取成功就不会报错
 # 在和avalon_game_helper相同目录下创建一个`.env`文件，包含三行：
 # OPENAI_API_KEY={API_KEY}（需要填入）
-if not load_dotenv():
-    logger.error(f"Error when loading environment variables from `.env` at current file directory.")
-    # 这里只要有一个环境变量被读取成功就不会报错
-# 在和avalon_game_helper相同目录下创建一个`.env`文件，包含三行：
-# OPENAI_API_KEY={API_KEY}（需要填入）
 # OPENAI_BASE_URL=https://chat.noc.pku.edu.cn/v1
 # OPENAI_MODEL_NAME=deepseek-v3-250324-64k-local
 # OPENAI_MODEL_NAME=deepseek-v3-250324-64k-local
@@ -36,7 +31,6 @@ if not load_dotenv():
 
 # openai初始配置
 try:
-    client = OpenAI()  # 自动读取（来自load_dotenv的）环境变量
     client = OpenAI()  # 自动读取（来自load_dotenv的）环境变量
     models = client.models.list()
     # 不出意外的话这里有三个模型：
@@ -53,7 +47,6 @@ else:
 _CURRENT_PLAYER_ID = None  # 当前玩家ID
 _GAME_SESSION_ID = None  # 当前游戏会话ID
 _DATA_DIR = os.environ.get("AVALON_DATA_DIR", "./data")
-_CURRENT_ROUND = None
 _CURRENT_ROUND = None
 
 
@@ -94,17 +87,6 @@ def set_current_context(player_id: int, game_id: str) -> None:
     global _CURRENT_PLAYER_ID, _GAME_SESSION_ID
     _CURRENT_PLAYER_ID = player_id
     _GAME_SESSION_ID = game_id
-
-
-def set_current_round(round_) -> None:
-    """
-    设置当前 ROUND 上下文 - 这个函数由 referee 在更改 ROUND 时设置
-
-    参数:
-        round: 当前游戏运行到第几轮
-    """
-    global _CURRENT_ROUND
-    _CURRENT_ROUND = round_
 
 
 def set_current_round(round_) -> None:
