@@ -11,20 +11,6 @@
             <h4 class="mb-0">上传新的AI代码</h4>
           </div>
           <div class="card-body">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-              {% if messages %}
-                {% for category, message in messages %}
-                  <div class="alert alert-{{ category }} alert-dismissible fade show"
-                       role="alert">
-                    {{ message }}
-                    <button type="button"
-                            class="btn-close"
-                            data-bs-dismiss="alert"
-                            aria-label="Close"></button>
-                  </div>
-                {% endfor %}
-              {% endif %}
-            {% endwith %}
             <form method="post" enctype="multipart/form-data">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               {# 如果启用了CSRF #}

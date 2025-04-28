@@ -5,14 +5,14 @@
 
 # dmcnczy 25/4/27
 # 更新： action.py 文档，七人两队 ELO 操作 (删除原有的 1V1 代码)
-'''
+"""
 实现 CRUD 数据库操作，内含丰富的操作工具：
 - 【用户】 注册、登录、删除等
 - 【用户 AI 代码】 创建、更新、激活、删除等
 - 【游戏记录统计】 获取、游动更新更新，获取排行榜
 - 【对战功能】 创建对战、更新对战、对战用户管理、对战历史、*ELO*等
 - 备用：BattlePlayer 独立 CRUD 操作
-'''
+"""
 # 准备好后面一千多行的冲击吧！
 
 
@@ -328,24 +328,40 @@ def update_ai_code(ai_code, **kwargs):
 
 
 def delete_ai_code(ai_code):
-    """
-    删除AI代码记录。
-
-    参数:
-        ai_code (AICode): 要删除的AI代码对象。
-
-    返回:
-        bool: 删除是否成功。
-    """
+    """删除AI代码记录"""
     if not ai_code:
         return False
     try:
-        # Check if it's currently active for any user (though is_active is per user, only one can be active per user)
-        # or if it's referenced by any BattlePlayer records (if you restrict deleting used AI).
-        # For now, basic delete without complex checks.
-        # If BattlePlayer has ON DELETE SET NULL or CASCADE for selected_ai_code_id, deleting AICode is fine.
-        # YOUR MODELS.PY LACKS CASCADE/SET NULL for battle_players relationship from AICode. Add it.
+        # 检查是否有BattlePlayer记录引用此AI
+        battle_players = BattlePlayer.query.filter_by(
+            selected_ai_code_id=ai_code.id
+        ).all()
 
+        if battle_players:
+            # 只在同一用户的AI代码中查找替代品
+            default_ai_code = AICode.query.filter(
+                AICode.user_id == ai_code.user_id,  # 限制为同一用户
+                AICode.id != ai_code.id,
+            ).first()
+
+            if not default_ai_code:
+                logger.error(
+                    f"删除AI代码 {ai_code.id} 失败: 该用户没有其他可用AI代码作为替代，但此AI已被用于对战"
+                )
+                return False
+
+            # 更新所有引用
+            for bp in battle_players:
+                bp.selected_ai_code_id = default_ai_code.id
+
+            # 提交更改
+            if not safe_commit():
+                logger.error(
+                    f"删除AI代码 {ai_code.id} 失败: 无法更新关联的BattlePlayer记录"
+                )
+                return False
+
+        # 删除AI代码
         return safe_delete(ai_code)
     except Exception as e:
         logger.error(f"删除AI代码 {ai_code.id} 失败: {e}", exc_info=True)
@@ -779,7 +795,9 @@ def process_battle_results_and_update_stats(battle_id, results_data):
         # 获取对战玩家记录（按加入顺序排列）
         battle_players = get_battle_players_for_battle(battle_id)
         if len(battle_players) != 7:
-            logger.error(f"[Battle {battle_id}] 玩家数量异常（预期7人，实际{len(battle_players)}人）")
+            logger.error(
+                f"[Battle {battle_id}] 玩家数量异常（预期7人，实际{len(battle_players)}人）"
+            )
             return False
 
         # 初始化错误处理相关变量
@@ -830,6 +848,7 @@ def process_battle_results_and_update_stats(battle_id, results_data):
             for idx, bp in enumerate(battle_players)
         }
 
+
         # 生成用户结果映射
         if "error" in results_data:
             user_outcomes = {
@@ -850,6 +869,7 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                 user_id: team_outcomes[team]
                 for user_id, team in team_map.items()
             }
+
 
         # ----------------------------------
         # 阶段4：更新玩家对战记录
@@ -882,7 +902,9 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                     user_stats_map[user_id] = new_stats
                     db.session.add(new_stats)
                 else:
-                    logger.error(f"[Battle {battle_id}] 无法为玩家 {user_id} 创建统计记录")
+                    logger.error(
+                        f"[Battle {battle_id}] 无法为玩家 {user_id} 创建统计记录"
+                    )
 
         # 错误处理分支
         if "error" in results_data:
@@ -897,6 +919,7 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                 team: sum(scores)/len(scores) if scores else 0
                 for team, scores in team_elos.items()
             }
+
 
             # 计算惩罚值
             reduction = 2 * abs(team_avg[BLUE_TEAM] - team_avg[RED_TEAM])
@@ -922,6 +945,7 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                     bp.elo_change = 0
                     stats.draws += 1
 
+
                 db.session.add(stats)
                 db.session.add(bp)
 
@@ -942,6 +966,7 @@ def process_battle_results_and_update_stats(battle_id, results_data):
             K_FACTOR = 32
             red_expected = 1 / (1 + 10**((team_avg[BLUE_TEAM] - team_avg[RED_TEAM])/400))
             blue_expected = 1 / (1 + 10**((team_avg[RED_TEAM] - team_avg[BLUE_TEAM])/400))
+
 
             actual_score = {
                 RED_TEAM: 1.0 if winner_team == RED_TEAM else 0.0,
