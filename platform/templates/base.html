@@ -42,6 +42,9 @@
             <li class="nav-item">
               <a class="nav-link" href="{{ url_for('ranking.show_ranking') }}">排行榜</a>
             </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('docs.index') }}">文档</a>
+            </li>
           </ul>
           <ul class="navbar-nav">
             {% if current_user.is_authenticated %}
