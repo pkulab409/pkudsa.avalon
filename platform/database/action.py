@@ -758,6 +758,8 @@ def process_battle_results_and_update_stats(battle_id, results_data):
         results_data (dict): 包含对战结果的数据，格式为:
             {
                 "winner": "red"|"blue",  # 获胜队伍
+                "error": bool,           # 新增错误标识（可选）
+                "public_log_file": str,  # 新增公共日志路径（可选）
                 # 其他可选字段（如game_log_uuid等）
             }
 
@@ -798,11 +800,42 @@ def process_battle_results_and_update_stats(battle_id, results_data):
             )
             return False
 
+        # 初始化错误处理相关变量
+        err_user_id = None
+        if "error" in results_data:
+            # 验证公共日志文件路径
+            PUBLIC_LIB_FILE_DIR = results_data.get("public_log_file")
+            if not PUBLIC_LIB_FILE_DIR:
+                logger.error(f"[Battle {battle_id}] 缺少公共日志文件路径")
+                return False
+
+            # 读取公共日志获取错误玩家
+            try:
+                with open(PUBLIC_LIB_FILE_DIR, "r", encoding="utf-8") as plib:
+                    data = json.load(plib)
+                    last_record = data[-1] if data else None
+                    if not last_record:
+                        logger.error(f"[Battle {battle_id}] 公有库无记录")
+                        return False
+                    error_pid_in_game = last_record.get("error_code_pid")
+                    if error_pid_in_game is None or not (1 <= error_pid_in_game <=7):
+                        logger.error(f"[Battle {battle_id}] 无效的错误玩家PID: {error_pid_in_game}")
+                        return False
+            except Exception as e:
+                logger.error(f"[Battle {battle_id}] 读取公共日志失败: {str(e)}", exc_info=True)
+                return False
+
+            # 获取错误玩家信息
+            err_player_index = error_pid_in_game - 1
+            if err_player_index >= len(battle_players):
+                logger.error(f"[Battle {battle_id}] 错误玩家索引超出范围")
+                return False
+            err_user_id = battle_players[err_player_index].user_id
+
         # ----------------------------------
         # 阶段2：基础数据更新
         # ----------------------------------
-        # 更新 Battle 记录的全局结果和状态
-        battle.status = "completed"
+        battle.status = "completed" if err_user_id is not None else "error"
         battle.ended_at = datetime.datetime.now()
         battle.results = json.dumps(results_data.get("custom_data", {}))
         battle.game_log_uuid = results_data.get("game_log_uuid")
@@ -810,27 +843,33 @@ def process_battle_results_and_update_stats(battle_id, results_data):
         # ----------------------------------
         # 阶段3：生成核心映射关系
         # ----------------------------------
-        # 生成队伍映射：user_id是用户，idx+1是游戏中的1-7号玩家，team_map实现user_id -> "red"/"blue"
         team_map = {
             bp.user_id: _get_team_assignment(idx + 1)
             for idx, bp in enumerate(battle_players)
         }
 
-        # 生成队伍胜负结果
-        winner_team = results_data.get("winner")
-        if winner_team not in (RED_TEAM, BLUE_TEAM):
-            logger.error(f"[Battle {battle_id}] 无效的获胜队伍标识: {winner_team}")
-            return False
 
-        team_outcomes = {
-            RED_TEAM: "win" if winner_team == RED_TEAM else "loss",
-            BLUE_TEAM: "win" if winner_team == BLUE_TEAM else "loss",
-        }
+        # 生成用户结果映射
+        if "error" in results_data:
+            user_outcomes = {
+                user_id: "loss" if user_id == err_user_id else "draw"
+                for user_id in team_map.keys()
+            }
+        else:
+            winner_team = results_data.get("winner")
+            if winner_team not in (RED_TEAM, BLUE_TEAM):
+                logger.error(f"[Battle {battle_id}] 无效的获胜队伍标识: {winner_team}")
+                return False
 
-        # 生成玩家个人结果 (user_id -> "win"/"loss")
-        user_outcomes = {
-            user_id: team_outcomes[team] for user_id, team in team_map.items()
-        }
+            team_outcomes = {
+                RED_TEAM: "win" if winner_team == RED_TEAM else "loss",
+                BLUE_TEAM: "win" if winner_team == BLUE_TEAM else "loss"
+            }
+            user_outcomes = {
+                user_id: team_outcomes[team]
+                for user_id, team in team_map.items()
+            }
+
 
         # ----------------------------------
         # 阶段4：更新玩家对战记录
@@ -842,13 +881,11 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                 db.session.add(bp)
             else:
                 logger.warning(f"[Battle {battle_id}] 玩家 {bp.user_id} 无结果记录")
-
         db.session.flush()
 
         # ----------------------------------
         # 阶段5：ELO评分计算
         # ----------------------------------
-        # 获取所有涉及玩家的统计记录
         involved_user_ids = list(user_outcomes.keys())
         user_stats_map = {
             stats.user_id: stats
@@ -869,60 +906,96 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                         f"[Battle {battle_id}] 无法为玩家 {user_id} 创建统计记录"
                     )
 
-        # 计算队伍平均ELO
-        team_elos = {RED_TEAM: [], BLUE_TEAM: []}
-        for user_id, stats in user_stats_map.items():
-            team = team_map.get(user_id)
-            if team in team_elos:
-                team_elos[team].append(stats.elo_score)
+        # 错误处理分支
+        if "error" in results_data:
+            # 计算队伍平均ELO
+            team_elos = {RED_TEAM: [], BLUE_TEAM: []}
+            for user_id, stats in user_stats_map.items():
+                team = team_map.get(user_id)
+                if team in team_elos:
+                    team_elos[team].append(stats.elo_score)
 
-        team_avg = {
-            team: sum(scores) / len(scores) for team, scores in team_elos.items()
-        }
+            team_avg = {
+                team: sum(scores)/len(scores) if scores else 0
+                for team, scores in team_elos.items()
+            }
 
-        # ELO计算参数
-        K_FACTOR = 32
 
-        # 计算期望胜率
-        red_expected = 1 / (
-            1 + 10 ** ((team_avg[BLUE_TEAM] - team_avg[RED_TEAM]) / 400)
-        )
-        blue_expected = 1 / (
-            1 + 10 ** ((team_avg[RED_TEAM] - team_avg[BLUE_TEAM]) / 400)
-        )
+            # 计算惩罚值
+            reduction = 2 * abs(team_avg[BLUE_TEAM] - team_avg[RED_TEAM])
 
-        # 实际得分（胜队1分，败队0分）
-        actual_score = {
-            RED_TEAM: 1.0 if winner_team == RED_TEAM else 0.0,
-            BLUE_TEAM: 1.0 if winner_team == BLUE_TEAM else 0.0,
-        }
+            # 更新所有玩家数据
+            for user_id, stats in user_stats_map.items():
+                bp = next((p for p in battle_players if p.user_id == user_id), None)
+                if not bp:
+                    continue
 
-        # 更新所有玩家ELO
-        for user_id, stats in user_stats_map.items():
-            bp = next((p for p in battle_players if p.user_id == user_id), None)
-            if not bp:
-                continue
+                # 通用更新
+                stats.games_played += 1
+                bp.initial_elo = stats.elo_score
 
-            team = team_map[user_id]
-            expected = red_expected if team == RED_TEAM else blue_expected
-            delta = K_FACTOR * (actual_score[team] - expected)
+                # 错误玩家特殊处理
+                if user_id == err_user_id:
+                    stats.losses += 1
+                    new_elo = max(round(stats.elo_score - reduction), 100)
+                    bp.elo_change = new_elo - stats.elo_score
+                    stats.elo_score = new_elo
+                    logger.info(f"[ERROR] 扣除ELO: {user_id} | {bp.initial_elo} -> {new_elo}")
+                else:
+                    bp.elo_change = 0
+                    stats.draws += 1
 
-            # 更新统计记录
-            stats.games_played += 1
-            if team_outcomes[team] == "win":
-                stats.wins += 1
-            else:
-                stats.losses += 1
 
-            # 更新ELO（最低100分）
-            new_elo = max(round(stats.elo_score + delta), 100)
-            bp.initial_elo = stats.elo_score
-            bp.elo_change = new_elo - stats.elo_score
-            stats.elo_score = new_elo
-            logger.info(f"更改ELO: {user_id} | {bp.initial_elo} -> {new_elo}")
+                db.session.add(stats)
+                db.session.add(bp)
 
-            db.session.add(stats)
-            db.session.add(bp)
+        # 正常处理分支
+        else:
+            # 原ELO计算逻辑
+            team_elos = {RED_TEAM: [], BLUE_TEAM: []}
+            for user_id, stats in user_stats_map.items():
+                team = team_map.get(user_id)
+                if team in team_elos:
+                    team_elos[team].append(stats.elo_score)
+
+            team_avg = {
+                team: sum(scores)/len(scores)
+                for team, scores in team_elos.items()
+            }
+
+            K_FACTOR = 32
+            red_expected = 1 / (1 + 10**((team_avg[BLUE_TEAM] - team_avg[RED_TEAM])/400))
+            blue_expected = 1 / (1 + 10**((team_avg[RED_TEAM] - team_avg[BLUE_TEAM])/400))
+
+
+            actual_score = {
+                RED_TEAM: 1.0 if winner_team == RED_TEAM else 0.0,
+                BLUE_TEAM: 1.0 if winner_team == BLUE_TEAM else 0.0
+            }
+
+            for user_id, stats in user_stats_map.items():
+                bp = next((p for p in battle_players if p.user_id == user_id), None)
+                if not bp:
+                    continue
+
+                team = team_map[user_id]
+                expected = red_expected if team == RED_TEAM else blue_expected
+                delta = K_FACTOR * (actual_score[team] - expected)
+
+                stats.games_played += 1
+                if team_outcomes[team] == "win":
+                    stats.wins += 1
+                else:
+                    stats.losses += 1
+                
+                new_elo = max(round(stats.elo_score + delta), 100)
+                bp.initial_elo = stats.elo_score
+                bp.elo_change = new_elo - stats.elo_score
+                stats.elo_score = new_elo
+                logger.info(f"更新ELO: {user_id} | {bp.initial_elo} -> {new_elo}")
+
+                db.session.add(stats)
+                db.session.add(bp)
 
         # ----------------------------------
         # 阶段6：最终提交
