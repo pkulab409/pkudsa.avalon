@@ -77,13 +77,13 @@
                 </tr>
               </thead>
               <tbody>
-                {% for player in battle_players %}
-                  {% set player_id_str = player.player_index | string %}
-                  {% set role = game_result.roles.get(player_id_str, '未知') %}
+                {% for i in range(7) %}
+                  {% set player = battle_players[i] %}
+                  {% set role = game_result.roles[(i + 1) | string] | default("未知") %}
                   <tr>
                     <td>
                       <a href="{{ url_for('profile.profile', username=player.user.username) }}">{{ player.user.username }}</a>
-                      ({{ player.player_index }}号)
+                      ({{ i + 1 }}号)
                     </td>
                     <td>
                       {% if role == "Merlin" %}
