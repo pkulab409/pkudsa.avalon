@@ -835,9 +835,9 @@ def process_battle_results_and_update_stats(battle_id, results_data):
         # ----------------------------------
         # 阶段2：基础数据更新
         # ----------------------------------
-        battle.status = "completed" if err_user_id is not None else "error"
+        battle.status = "completed" if err_user_id is None else "error"
         battle.ended_at = datetime.datetime.now()
-        battle.results = json.dumps(results_data.get("custom_data", {}))
+        battle.results = json.dumps(results_data)
         battle.game_log_uuid = results_data.get("game_log_uuid")
 
         # ----------------------------------

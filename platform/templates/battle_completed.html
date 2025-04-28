@@ -65,7 +65,7 @@
               <strong>任务成功/失败:</strong> {{ game_result.blue_wins | default("?") }} / {{ game_result.red_wins | default("?") }}
             </p>
           </div>
-          <h6>角色分配</h6>
+          <h6>玩家信息</h6>
           <div class="table-responsive mb-3">
             <table class="table table-sm table-bordered">
               <thead class="table-light">
@@ -73,6 +73,7 @@
                   <th>玩家</th>
                   <th>角色</th>
                   <th>阵营</th>
+                  <th>ELO</th>
                 </tr>
               </thead>
               <tbody>
@@ -110,6 +111,14 @@
                         <span class="badge bg-danger">红方</span>
                       {% else %}
                         <span class="badge bg-secondary">未知</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {{ player.initial_elo }} → {{ player.initial_elo + player.elo_change }}
+                      {% if player.elo_change >= 0 %}
+                        <span class="text-primary">+{{ player.elo_change }}</span>
+                      {% else %}
+                        <span class="text-danger">{{ player.elo_change }}</span>
                       {% endif %}
                     </td>
                   </tr>
