@@ -114,11 +114,13 @@
                       {% endif %}
                     </td>
                     <td>
-                      {{ player.initial_elo }} → {{ player.initial_elo + player.elo_change }}
-                      {% if player.elo_change >= 0 %}
-                        <span class="text-primary">+{{ player.elo_change }}</span>
-                      {% else %}
-                        <span class="text-danger">{{ player.elo_change }}</span>
+                      {% if player.initial_elo and player.elo_change %}
+                        {{ player.initial_elo }} → {{ player.initial_elo + player.elo_change }}
+                        {% if player.elo_change >= 0 %}
+                          <span class="text-primary">+{{ player.elo_change }}</span>
+                        {% else %}
+                          <span class="text-danger">{{ player.elo_change }}</span>
+                        {% endif %}
                       {% endif %}
                     </td>
                   </tr>
