@@ -489,6 +489,8 @@ class AvalonReferee:
                     "MissionRejected",
                     "Team Rejected.")
                 # 否决，更换队长
+                from .avalon_game_helper import reset_llm_limit
+                reset_llm_limit(self.current_round)
                 old_leader = self.leader_index
                 self.leader_index = self.leader_index % PLAYER_COUNT + 1
                 logger.info(f"Leader changed from {old_leader} to {self.leader_index}.")
