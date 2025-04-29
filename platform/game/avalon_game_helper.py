@@ -60,6 +60,7 @@ _MAX_CALL_COUNT_PER_ROUND = 3  # 一轮最多调用 LLM 次数
 _TOP_P = 0.9  # 输出多样性控制
 _PRESENCE_PENALTY = 0.5  # 避免重复话题 (-2~2)
 _FREQUENCY_PENALTY = 0.5  # 避免重复用词 (-2~2)
+_CALL_COUNT_ADDED = 0
 
 
 # 初始用户库JSON
@@ -81,6 +82,17 @@ def set_current_context(player_id: int, game_id: str) -> None:
     global _CURRENT_PLAYER_ID, _GAME_SESSION_ID
     _CURRENT_PLAYER_ID = player_id
     _GAME_SESSION_ID = game_id
+
+
+def reset_llm_limit(round_) -> None:
+    """
+    公投未通过，重置本轮llm调用限制
+    """
+    # 获取日志
+    existing_data = _get_private_lib_content()
+    # 获取LLM调用次数记录
+    _player_call_counts = existing_data["llm_call_counts"][_CURRENT_ROUND]
+    _CALL_COUNT_ADDED += _player_call_counts
 
 
 def set_current_round(round_) -> None:
@@ -116,7 +128,7 @@ def askLLM(prompt: str) -> str:
     _player_call_counts = existing_data["llm_call_counts"]
 
     # 判断用户在这一轮已经调用几次 LLM，执行相应操作
-    if _player_call_counts[_CURRENT_ROUND] >= _MAX_CALL_COUNT_PER_ROUND:
+    if _player_call_counts[_CURRENT_ROUND] >= _MAX_CALL_COUNT_PER_ROUND + _CALL_COUNT_ADDED:
         raise RuntimeError(f"Maximum call count per round of player {_CURRENT_PLAYER_ID} exceeded")
     else:
         existing_data["llm_call_counts"][_CURRENT_ROUND] += 1
