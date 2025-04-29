@@ -82,11 +82,48 @@ def view_battle(battle_id):
 
     # 如果游戏已完成，可以传递结果给模板
     game_result = None
-    if battle.status == "completed":
+    error_info = {}
+    if battle.status == "completed" or battle.status == "error":
         # battle.results 存储了JSON字符串
         try:
             game_result = json.loads(battle.results) if battle.results else {}
-        except json.JSONDecodeError:
+            if battle.status == "error":
+                # 验证公共日志文件路径
+                PUBLIC_LIB_FILE_DIR = game_result.get("public_log_file")
+                if not PUBLIC_LIB_FILE_DIR:
+                    logger.error(f"[Battle {battle_id}] 缺少公共日志文件路径")
+
+                # 读取公共日志获取错误玩家
+                try:
+                    with open(PUBLIC_LIB_FILE_DIR, "r", encoding="utf-8") as plib:
+                        data = json.load(plib)
+                        last_record = data[-1] if data else None
+                        if not last_record:
+                            logger.error(f"[Battle {battle_id}] 公有库无记录")
+                        error_pid_in_game = last_record.get("error_code_pid")
+                        if error_pid_in_game is None or not (1 <= error_pid_in_game <= 7):
+                            logger.error(f"[Battle {battle_id}] 无效的错误玩家PID: {error_pid_in_game}")
+                        error_type = last_record.get("type")
+                        error_code_method = last_record.get("error_code_method")
+                        error_msg = last_record.get("error_msg")
+                except Exception as e:
+                    logger.error(f"[Battle {battle_id}] 读取公共日志失败: {str(e)}", exc_info=True)
+
+                # 获取错误玩家信息
+                err_player_index = error_pid_in_game - 1
+                if err_player_index >= len(battle_players):
+                    logger.error(f"[Battle {battle_id}] 错误玩家索引超出范围")
+                    return False
+                err_user_id = battle_players[err_player_index].user_id
+
+                # 包装错误信息
+                error_info["error_type"] = error_type
+                error_info["error_user_id"] = err_user_id
+                error_info["error_pid_in_game"] = error_pid_in_game
+                error_info["error_code_method"] = error_code_method
+                error_info["error_msg"] = error_msg
+
+        except Exception:
             logger.error(f"无法解析对战 {battle_id} 的结果JSON")
             game_result = {"error": "结果解析失败"}
 
@@ -107,6 +144,7 @@ def view_battle(battle_id):
             battle=battle,
             battle_players=battle_players,
             game_result=game_result,
+            error_info=error_info,  # 如果没有报错， error_info 是空字典
         )  # 需要创建 battle_completed.html
     else:
         flash(f"未知的对战状态: {battle.status}", "warning")
