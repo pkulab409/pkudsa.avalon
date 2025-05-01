@@ -202,7 +202,16 @@
       background-color: rgba(200, 200, 200, 0.3); /* 稍微透明背景 */
     }
 
-    .speech-badge {
+
+    /* 确保标签在同一行显示 */
+    .player-tag {
+      display: flex; /* 让子元素使用 flex 布局 */
+      align-items: center; /* 垂直居中 */
+    }
+
+    .speech-badge, .hearers-tags {
+      display: inline-block; /* 保证它们在同一行 */
+      margin-right: 2px; /* 给它们加点间距 */
       font-size: 0.65rem;
       margin-left: 5px;
       vertical-align: middle;
@@ -585,10 +594,11 @@
           // Speeches
           if (event.speeches && event.speeches.length > 0) {
             event.speeches.forEach(speech => {
-              // speech 现在是三元组: [playerId, message, speechType]
+              // speech 现在是四元组: [playerId, message, speechType, hearers]
               const playerId = speech[0];
               const message = speech[1];
-              const speechType = speech.length > 2 ? speech[2] : "public"; // 默认为public
+              const speechType = speech.length > 3 ? speech[2] : "public"; // 默认为public
+              const hearers = speech[3]
 
               const playerInfo = getPlayerInfo(playerId);
               const wrapperClass = playerInfo.faction === 'blue' ? 'message-wrapper-blue' : 'message-wrapper-red';
@@ -599,11 +609,15 @@
               const speechBadge = speechType === "private" 
                   ? '<span class="badge bg-secondary speech-badge">有限范围</span>'
                   : '<span class="badge bg-info text-dark speech-badge">公开</span>';
+              
+              const hearersTags = speechType === "private" && hearers
+                  ? `<span class="badge bg-secondary speech-badge">${hearers}</span>`
+                  : '';
 
               chatHtml += `
                 <div class="message-wrapper ${wrapperClass}">
                   <div class="player-tag ${tagColorClass}">
-                     ${playerInfo.id}号 (${playerInfo.name}) ${speechBadge}
+                     ${playerInfo.id}号 (${playerInfo.name}) ${speechBadge} ${hearersTags ? `<div class="hearers-tags">${hearersTags}</div>` : ""}                     
                   </div>
                   <div class="message-bubble ${bubbleClass}">
                     ${message}

@@ -526,13 +526,13 @@ def process_game_events(game_data):
                 if isinstance(event_data, (list, tuple)) and len(event_data) == 2:
                     # 标记为公开发言
                     current_round["speeches"].append(
-                        (str(event_data[0]), event_data[1], "public")
+                        (str(event_data[0]), event_data[1], "public", ["ALL"])
                     )
             elif event_type == "PrivateSpeech":
-                if isinstance(event_data, (list, tuple)) and len(event_data) == 2:
+                if isinstance(event_data, (list, tuple)) and len(event_data) == 3:
                     # 标记为有限范围发言
                     current_round["speeches"].append(
-                        (str(event_data[0]), event_data[1], "private")
+                        (str(event_data[0]), event_data[1], "private", event_data[2])
                     )
             elif event_type == "PublicVote":
                 if isinstance(event_data, (list, tuple)) and len(event_data) == 2:

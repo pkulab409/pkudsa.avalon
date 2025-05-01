@@ -808,10 +808,7 @@ class AvalonReferee:
             logger.info(
                 f"Limited Speech - Player {speaker_id}: {speech[:100]}{'...' if len(speech) > 100 else ''}"
             )
-            self.battle_observer.make_snapshot(
-                "PrivateSpeech",
-                (speaker_id, speech[:100] + ("..." if len(speech) > 100 else "")),
-            )
+            
             speeches.append((speaker_id, speech))
 
             # 确定能听到的玩家
@@ -822,6 +819,13 @@ class AvalonReferee:
             for hearer_id in hearers:
                 if hearer_id != speaker_id:  # 不需要通知发言者自己
                     self.safe_execute(hearer_id, "pass_message", (speaker_id, speech))
+            
+            self.battle_observer.make_snapshot(
+                "PrivateSpeech",
+                (speaker_id, 
+                 speech[:100] + ("..." if len(speech) > 100 else ""),
+                 " ".join(map(str,hearers)))
+            )
 
         # 记录有限范围发言
         self.log_public_event(

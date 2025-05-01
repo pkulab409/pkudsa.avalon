@@ -74,9 +74,10 @@ class Observer:
                     str: 发言内容
 
             "PrivateSpeech"
-                -- tuple(int, str),
+                -- tuple(int, str, list),
                     int: 玩家编号
                     str: 发言内容
+                    list: 接收者index
 
             "Positions"
                 -- dict 玩家位置
