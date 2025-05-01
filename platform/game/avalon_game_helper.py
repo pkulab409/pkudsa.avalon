@@ -56,7 +56,6 @@ _MAX_CALL_COUNT_PER_ROUND = 3  # 一轮最多调用 LLM 次数
 _TOP_P = 0.9  # 输出多样性控制
 _PRESENCE_PENALTY = 0.5  # 避免重复话题 (-2~2)
 _FREQUENCY_PENALTY = 0.5  # 避免重复用词 (-2~2)
-_CALL_COUNT_ADDED = 0  # 本轮追加llm调用次数
 
 
 # 初始用户库JSON
