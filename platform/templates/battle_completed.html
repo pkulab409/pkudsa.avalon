@@ -130,8 +130,12 @@
           </div>
           <div class="text-center">
             <a href="{{ url_for('visualizer.game_replay', game_id=battle.id) }}"
-               class="btn btn-lg btn-info">
+                class="btn btn-lg btn-info">
               <i class="bi bi-play-btn-fill me-1"></i> 查看详细回放
+            </a>
+            <a href="{{ url_for('game.download_logs', battle_id=battle.id) }}" 
+                class="btn btn-lg btn-secondary ms-3">
+              <i class="bi bi-download me-1"></i> 下载日志文件
             </a>
           </div>
         {% elif battle.status == 'error' %}
@@ -215,7 +219,15 @@
                       </tr>
                     {% endfor %}
                   </tbody>
-                </table></div>
+                </table>
+              </div>
+              <!-- 添加下载日志按钮 -->
+              <div class="text-center mt-4">
+                <a href="{{ url_for('game.download_logs', battle_id=battle.id) }}" 
+                  class="btn btn-lg btn-secondary">
+                  <i class="bi bi-download me-1"></i> 下载日志文件
+                </a>
+              </div>
         {% elif battle.status == 'cancelled' %}
           <div class="alert alert-secondary" role="alert">
             <h5 class="alert-heading">
