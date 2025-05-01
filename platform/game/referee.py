@@ -60,6 +60,7 @@ HEARING_RANGE = {  # 听力范围（中心格周围的方格数）
     "Assassin": 1,
     "Oberon": 2,  # 奥伯伦听力更大
 }
+MAX_EXECUTION_TIME = 100
 
 
 class AvalonReferee:
@@ -1264,11 +1265,11 @@ class AvalonReferee:
 
             # 检查执行时间
             # This check is just a warning
-            if execution_time > 3:  # Lowered threshold for warning
-                logger.warning(
-                    f"Player {player_id} ({self.roles.get(player_id)}) method {method_name} took {execution_time:.2f} seconds (potential timeout issue)"
+            if execution_time > MAX_EXECUTION_TIME:  # Lowered threshold for warning
+                logger.error(
+                    f"Player {player_id} ({self.roles.get(player_id)}) method {method_name} took {execution_time:.2f} seconds (timeout)"
                 )
-
+                self.suspend_game("critical_player_ERROR", player_id, method_name, str(e))
             return result
 
         except Exception as e:  # 玩家代码运行过程中报错
