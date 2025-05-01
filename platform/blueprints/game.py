@@ -14,9 +14,10 @@ from flask import (
     url_for,
     current_app,
     jsonify,
-    send_from_directory
+    send_file
 )
 from flask_login import login_required, current_user
+
 
 # 导入新的数据库操作和模型
 from database import (
@@ -337,11 +338,6 @@ def get_battles():
     return jsonify({"success": True, "battles": battles_data})
 
     
-import os
-# 确保下面这些 Flask 相关的导入都已存在
-from flask import current_app, redirect, url_for, flash, send_file # Flask helpers for sending files from directory
-from flask_login import login_required # 或者你的 login_required 装饰器是从哪里导入的
-
 @game_bp.route('/download_logs/<battle_id>', methods=["GET"])
 @login_required
 def download_logs(battle_id):
