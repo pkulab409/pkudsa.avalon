@@ -595,7 +595,7 @@ class AvalonReferee:
                 )
 
             logger.info(
-                f"Global Speech - Player {player_id}: {speech[:100]}{'...' if len(speech) > 100 else ''}"
+                f"Global Speech - Player {player_id}: {speech}"
             )
             self.battle_observer.make_snapshot(
                 "PublicSpeech",
@@ -806,7 +806,7 @@ class AvalonReferee:
                 )
 
             logger.info(
-                f"Limited Speech - Player {speaker_id}: {speech[:100]}{'...' if len(speech) > 100 else ''}"
+                f"Limited Speech - Player {speaker_id}: {speech}"
             )
             
             speeches.append((speaker_id, speech))
