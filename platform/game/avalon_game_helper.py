@@ -75,6 +75,7 @@ class GameHelper:
         self.data_dir = data_dir or os.environ.get("AVALON_DATA_DIR", "./data")
         self.current_round = None
         self.call_count_added = 0
+        self.tokens = [{"input": 0, "output": 0} for i in range(7)]
 
     def set_current_context(self, player_id: int, game_id: str) -> None:
         """
@@ -142,12 +143,12 @@ class GameHelper:
         else:
             existing_data["llm_call_counts"][self.current_round] += 1
 
-        if len(prompt) > _MAX_INPUT_TOKENS:
-            prompt = prompt[:_MAX_INPUT_TOKENS]  # 切断 prompt 至限制长度以内
-            logger.warning(
-                f"{self.current_player_id}号玩家输入 prompt 过长。"
-                + f"只取前 {_MAX_INPUT_TOKENS} 个 token 询问 LLM。"
-            )
+        # if len(prompt) > _MAX_INPUT_TOKENS:
+        #     prompt = prompt[:_MAX_INPUT_TOKENS]  # 切断 prompt 至限制长度以内
+        #     logger.warning(
+        #         f"{self.current_player_id}号玩家输入 prompt 过长。"
+        #         + f"只取前 {_MAX_INPUT_TOKENS} 个 token 询问 LLM。"
+        #     )
 
         # 调LLM
         try:
@@ -164,6 +165,10 @@ class GameHelper:
 
         # 写回私有库文件
         self._write_back_private(data=existing_data)
+
+        # 更新token统计
+        token = len(prompt)
+        self.tokens[self.current_player_id]["input"] += token
 
         return reply
 
@@ -184,11 +189,15 @@ class GameHelper:
             messages=history + [{"role": "user", "content": cur_prompt}],
             stream=_USE_STREAM,
             temperature=_TEMPERATURE,
-            max_tokens=_MAX_OUTPUT_TOKENS,
+            # max_tokens=_MAX_OUTPUT_TOKENS,
             top_p=_TOP_P,
             presence_penalty=_PRESENCE_PENALTY,
             frequency_penalty=_FREQUENCY_PENALTY,
         )
+
+        # 更新token统计
+        token = len(completion.choices[0].message.content)
+        self.tokens[self.current_player_id]["input"] += token
 
         return completion.choices[0].message.content
 
@@ -302,6 +311,8 @@ class GameHelper:
             logger.error(f"读取游戏历史时出错: {str(e)}")
             return {"error": str(e), "events": []}
 
+    def get_tokens(self) -> List[Dict[str, int]]:
+        return self.tokens
 
 _thread_local = threading.local()
 
