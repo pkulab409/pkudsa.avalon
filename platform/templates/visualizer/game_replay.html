@@ -358,11 +358,18 @@
           <div class="card-footer py-2">
             <div class="d-flex justify-content-between align-items-center">
               <small class="text-muted">滚动查看完整流程</small>
-              <button class="btn btn-sm btn-outline-secondary"
-                      id="scrollToBottomBtn"
-                      title="滚动到底部">
-                <i class="bi bi-arrow-down-circle"></i>
-              </button>
+              <div>
+                <button class="btn btn-sm btn-outline-secondary"
+                        id="scrollToBottomBtn"
+                        title="滚动到底部">
+                  <i class="bi bi-arrow-down-circle"></i>
+                </button>
+                <button type="button" 
+                        class="btn btn-sm btn-outline-primary ms-2" 
+                        id="autoplayBtnFlow">
+                  <i class="bi bi-play-fill"></i> 自动播放
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -440,12 +447,112 @@
       const chatContainer = document.getElementById('chatContainer');
       const gameMapContainer = document.getElementById('gameMap');
       const currentRoundBadge = document.getElementById('currentRoundBadge');
+      const autoplayBtnFlow = document.getElementById('autoplayBtnFlow');
       const scrollToBottomBtn = document.getElementById('scrollToBottomBtn');
       const mapPrevRoundBtn = document.getElementById('mapPrevRoundBtn');
       const mapNextRoundBtn = document.getElementById('mapNextRoundBtn');
       const mapCurrentRoundDisplay = document.getElementById('mapCurrentRoundDisplay');
 
       let currentMapRound = 0; // Track the round displayed on the map/chat badge
+      let scrollAnimationId = null; // 用于存储 requestAnimationFrame 返回的 ID
+      let isSmoothScrolling = false; // 标记是否正在平滑滚动
+      const scrollSpeed = 1; // 滚动速度（像素/帧），可以调整这个值
+
+      // --- Smooth Scrolling Functions ---
+      function startSmoothScroll() {
+              // 如果已经在滚动，或者内容不足以滚动，则不执行
+              if (isSmoothScrolling || chatContainer.scrollHeight <= chatContainer.clientHeight) {
+                  return;
+              }
+
+              // 可选：每次开始时都从顶部开始滚动
+              // chatContainer.scrollTop = 0;
+
+              isSmoothScrolling = true;
+              autoplayBtnFlow.innerHTML = '<i class="bi bi-pause-fill"></i> 暂停滚动';
+              autoplayBtnFlow.classList.remove('btn-outline-primary');
+              autoplayBtnFlow.classList.add('btn-outline-warning');
+
+              // 定义滚动步骤函数
+              function step() {
+                  const currentScroll = chatContainer.scrollTop;
+                  const maxScroll = chatContainer.scrollHeight - chatContainer.clientHeight;
+
+                  if (currentScroll < maxScroll) {
+                      // 增加滚动位置
+                      chatContainer.scrollTop += scrollSpeed;
+                      // 请求下一帧动画
+                      scrollAnimationId = requestAnimationFrame(step);
+                  } else {
+                      // 到达底部，停止滚动
+                      stopSmoothScroll();
+                      // 确保精确滚动到底部
+                      chatContainer.scrollTop = maxScroll;
+                  }
+              }
+
+              // 开始动画循环
+              scrollAnimationId = requestAnimationFrame(step);
+          }
+
+          function stopSmoothScroll() {
+              if (!isSmoothScrolling) return;
+
+              cancelAnimationFrame(scrollAnimationId); // 取消动画帧请求
+              scrollAnimationId = null;
+              isSmoothScrolling = false;
+              autoplayBtnFlow.innerHTML = '<i class="bi bi-play-fill"></i> 自动播放';
+              autoplayBtnFlow.classList.remove('btn-outline-warning');
+              autoplayBtnFlow.classList.add('btn-outline-primary');
+          }
+
+          // --- Event Listeners ---
+          if (autoplayBtnFlow) {
+              autoplayBtnFlow.addEventListener('click', () => {
+                  if (isSmoothScrolling) {
+                      stopSmoothScroll();
+                  } else {
+                      startSmoothScroll();
+                  }
+              });
+          }
+
+          // 当用户手动滚动时，停止自动滚动
+          if (chatContainer) {
+              chatContainer.addEventListener('scroll', () => {
+                  // 检查是否是用户手动触发的滚动（这是一个简化判断，可能不够完美）
+                  // 如果正在自动滚动，并且 scrollAnimationId 存在，说明可能是程序触发的
+                  // 但如果用户快速滚动，也可能触发此事件，所以简单处理：只要用户滚动就停止自动播放
+                  if (isSmoothScrolling && !scrollAnimationId) {
+                      // A more robust check might be needed if scrollSpeed is high
+                      // or if other programmatic scrolls happen.
+                      // For now, any scroll event while isSmoothScrolling is true
+                      // but *after* the animation frame has potentially finished
+                      // could indicate user interaction. A simpler approach:
+                      // stopSmoothScroll(); // Uncomment this line if you want *any* scroll event to stop autoplay
+                  }
+                  // 更简单的逻辑：如果用户手动滚动（非程序触发），则停止自动滚动
+                  // 这个判断比较困难，一个常用策略是设置一个标记，在程序滚动前后设置/取消
+                  // 或者简单地：如果用户点击了滚动条或使用了滚轮，就停止。
+                  // 最简单的方式：只要滚动事件发生且不是由 requestAnimationFrame 触发的瞬间，就停止
+                  // (这个实现有点复杂，暂时省略，先实现基础功能)
+
+                  // 替代方案：如果用户点击了“滚动到底部”按钮，也停止自动滚动
+                  if (scrollToBottomBtn) {
+                      scrollToBottomBtn.addEventListener('click', () => {
+                          stopSmoothScroll();
+                          // 执行原有的滚动到底部逻辑
+                          chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+                      });
+                  }
+                  // 如果用户点击了聊天区域内部（可能意图是选中文字或暂停），也停止
+                  chatContainer.addEventListener('mousedown', stopSmoothScroll); // 鼠标按下时停止
+                  chatContainer.addEventListener('wheel', stopSmoothScroll);    // 滚轮滚动时停止
+                  chatContainer.addEventListener('touchstart', stopSmoothScroll); // 触摸开始时停止
+
+              }, { passive: true }); // Use passive listener for better scroll performance
+          }
+
 
       // --- Helper Functions ---
       function getPlayerInfo(playerId) {
