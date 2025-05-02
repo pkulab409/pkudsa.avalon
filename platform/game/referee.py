@@ -599,7 +599,7 @@ class AvalonReferee:
             )
             self.battle_observer.make_snapshot(
                 "PublicSpeech",
-                (player_id, speech[:100] + ("..." if len(speech) > 100 else "")),
+                (player_id, speech),
             )
             speeches.append((player_id, speech))
 
@@ -823,7 +823,7 @@ class AvalonReferee:
             self.battle_observer.make_snapshot(
                 "PrivateSpeech",
                 (speaker_id, 
-                 speech[:100] + ("..." if len(speech) > 100 else ""),
+                 speech,
                  " ".join(map(str,hearers)))
             )
 
