@@ -36,33 +36,20 @@ def game_replay(game_id):
     try:
         # 处理示例回放的特殊情况
         if game_id == "example":
-            try:
-                # --- 推荐的修改：基于当前文件位置计算路径 ---
-                # 获取 visualizer.py 文件所在的目录
-                current_dir = os.path.dirname(os.path.abspath(__file__))
-                # 构建相对于 visualizer.py 的 example replay 文件路径
-                # visualizer.py 在 platform/blueprints/
-                # 目标文件在 platform/example/
-                # 需要向上走一层 (..) 到 platform/，再进入 example/
-                example_replay_path = os.path.join(current_dir, '..', 'example', 'example_game_replay.json')
-                # 标准化路径 (例如，处理 '..')
-                log_file = os.path.normpath(example_replay_path)
+            # 获取 visualizer.py 文件所在的目录
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            # 构建相对于 visualizer.py 的 example replay 文件路径
+            # visualizer.py 在 platform/blueprints/
+            # 目标文件在 platform/example/
+            # 需要向上走一层 (..) 到 platform/，再进入 example/
+            example_replay_path = os.path.join(current_dir, '..', 'example', 'example_game_replay.json')
+            # 标准化路径 (例如，处理 '..')
+            log_file = os.path.normpath(example_replay_path)
 
-                # 检查计算出的路径是否存在
-                if not os.path.exists(log_file):
-                    flash("示例回放文件不存在，请确保已正确配置。", "warning")
-                    return render_template("error.html", message="示例回放文件不存在")
-                # --- 修改结束 ---
-
-            except Exception as e:
-                flash("加载示例回放时出错。", "warning")
-                return render_template("error.html", message="示例回放文件失败")
-            if game_id == "example":
-                # 从配置中获取示例回放文件路径
-                data_dir = Config._yaml_config.get("DATA_DIR", "./data")
-                example_path = Config._yaml_config.get("EXAMPLE_REPLAY", {}).get(
-                    "file_path", "examples/example_game_replay.json"
-                )
+            # 检查计算出的路径是否存在
+            if not os.path.exists(log_file):
+                flash("示例回放文件不存在，请确保已正确配置。", "warning")
+                return render_template("error.html", message="示例回放文件不存在")
 
         else:
             # 原有的游戏日志文件路径构建逻辑
