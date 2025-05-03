@@ -13,7 +13,33 @@
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css"
           rel="stylesheet">
-    {% block styles %}{% endblock %}
+    {% block styles %}
+    <!-- 内联 CSS 样式 -->
+    <style>
+      html {
+        height: 100%;
+      }
+
+      body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+      }
+
+      /* 选择你的主内容容器，例如 <main> */
+      main {
+          flex-grow: 1;
+      }
+      /* 或者用 class 选择器 .content-wrapper */
+      /* .content-wrapper { flex-grow: 1; } */
+
+      /* 如果不用 Bootstrap 的 mt-auto 类，则需要下面这行 */
+      /* .footer { margin-top: auto; } */
+
+      /* 你其他的页面特定样式也可以放在这里 */
+
+    </style>
+    {% endblock %}
   </head>
   <body>
     <!-- 导航栏 -->
@@ -41,6 +67,9 @@
             {% endif %}
             <li class="nav-item">
               <a class="nav-link" href="{{ url_for('ranking.show_ranking') }}">排行榜</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('docs.index') }}">文档</a>
             </li>
           </ul>
           <ul class="navbar-nav">
@@ -75,18 +104,76 @@
         </div>
       </div>
     </nav>
+    <!-- Flash消息显示区域 - 固定在顶部 -->
+    <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3"
+         style="z-index: 1050">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="toast show fade"
+                 role="alert"
+                 aria-live="assertive"
+                 aria-atomic="true"
+                 data-bs-autohide="false">
+              <div class="toast-header bg-{{ category }}">
+                <strong class="me-auto text-white">系统通知</strong>
+                <small class="text-white countdown">3</small>
+                <button type="button"
+                        class="btn-close btn-close-white"
+                        data-bs-dismiss="toast"
+                        aria-label="Close"></button>
+              </div>
+              <div class="toast-body">{{ message }}</div>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    </div>
     <!-- 页面内容 -->
     <main>
       {% block content %}{% endblock %}
     </main>
     <!-- 页脚 -->
-    <footer class="footer mt-5 py-3 bg-light">
+    <footer class="footer mt-auto py-3 bg-light">
       <div class="container text-center">
         <span class="text-muted">© DSA 2025</span>
       </div>
     </footer>
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- 替换原有的自动关闭Flash消息的脚本 -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // 获取所有toast元素
+        const toasts = document.querySelectorAll('.toast');
+        
+        toasts.forEach(function(toast) {
+          const countdownEl = toast.querySelector('.countdown');
+          let countdown = 3; // 3秒倒计时
+          
+          // 设置倒计时定时器
+          const timer = setInterval(function() {
+            countdown--;
+            if (countdownEl) countdownEl.textContent = countdown;
+            
+            if (countdown <= 0) {
+              clearInterval(timer);
+              // 使用Bootstrap的toast关闭方法
+              const bsToast = new bootstrap.Toast(toast);
+              bsToast.hide();
+            }
+          }, 1000); // 每秒更新一次
+          
+          // 点击关闭按钮时清除定时器
+          const closeBtn = toast.querySelector('.btn-close');
+          if (closeBtn) {
+            closeBtn.addEventListener('click', function() {
+              clearInterval(timer);
+            });
+          }
+        });
+      });
+    </script>
     {% block scripts %}{% endblock %}
   </body>
 </html>

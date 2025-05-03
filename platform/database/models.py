@@ -95,8 +95,8 @@ class AICode(db.Model):
     description = db.Column(db.Text, nullable=True)
     is_active = db.Column(db.Boolean, default=False)  # 用户当前激活的AI代码标记
     created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     version = db.Column(db.Integer, default=1)
-
     # 关系:
     # user: 哪个用户拥有这个AI (backref="user" 在 User 模型中定义)
     # battle_players: 哪些 BattlePlayer 记录使用了这个AI (一对多 AICode -> BattlePlayer)

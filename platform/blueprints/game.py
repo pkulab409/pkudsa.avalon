@@ -4,7 +4,7 @@
 # description: 游戏相关的蓝图，包含对战大厅、创建对战、查看对战详情等功能。
 
 
-import logging, json
+import logging, json, os
 from flask import (
     Blueprint,
     render_template,
@@ -14,8 +14,10 @@ from flask import (
     url_for,
     current_app,
     jsonify,
+    send_file
 )
 from flask_login import login_required, current_user
+
 
 # 导入新的数据库操作和模型
 from database import (
@@ -82,11 +84,48 @@ def view_battle(battle_id):
 
     # 如果游戏已完成，可以传递结果给模板
     game_result = None
-    if battle.status == "completed":
+    error_info = {}
+    if battle.status == "completed" or battle.status == "error":
         # battle.results 存储了JSON字符串
         try:
             game_result = json.loads(battle.results) if battle.results else {}
-        except json.JSONDecodeError:
+            if battle.status == "error":
+                # 验证公共日志文件路径
+                PUBLIC_LIB_FILE_DIR = game_result.get("public_log_file")
+                if not PUBLIC_LIB_FILE_DIR:
+                    logger.error(f"[Battle {battle_id}] 缺少公共日志文件路径")
+
+                # 读取公共日志获取错误玩家
+                try:
+                    with open(PUBLIC_LIB_FILE_DIR, "r", encoding="utf-8") as plib:
+                        data = json.load(plib)
+                        last_record = data[-1] if data else None
+                        if not last_record:
+                            logger.error(f"[Battle {battle_id}] 公有库无记录")
+                        error_pid_in_game = last_record.get("error_code_pid")
+                        if error_pid_in_game is None or not (1 <= error_pid_in_game <= 7):
+                            logger.error(f"[Battle {battle_id}] 无效的错误玩家PID: {error_pid_in_game}")
+                        error_type = last_record.get("type")
+                        error_code_method = last_record.get("error_code_method")
+                        error_msg = last_record.get("error_msg")
+                except Exception as e:
+                    logger.error(f"[Battle {battle_id}] 读取公共日志失败: {str(e)}", exc_info=True)
+
+                # 获取错误玩家信息
+                err_player_index = error_pid_in_game - 1
+                if err_player_index >= len(battle_players):
+                    logger.error(f"[Battle {battle_id}] 错误玩家索引超出范围")
+                    return False
+                err_user_id = battle_players[err_player_index].user_id
+
+                # 包装错误信息
+                error_info["error_type"] = error_type
+                error_info["error_user_id"] = err_user_id
+                error_info["error_pid_in_game"] = error_pid_in_game
+                error_info["error_code_method"] = error_code_method
+                error_info["error_msg"] = error_msg
+
+        except Exception:
             logger.error(f"无法解析对战 {battle_id} 的结果JSON")
             game_result = {"error": "结果解析失败"}
 
@@ -107,6 +146,7 @@ def view_battle(battle_id):
             battle=battle,
             battle_players=battle_players,
             game_result=game_result,
+            error_info=error_info,  # 如果没有报错， error_info 是空字典
         )  # 需要创建 battle_completed.html
     else:
         flash(f"未知的对战状态: {battle.status}", "warning")
@@ -238,6 +278,7 @@ def get_game_status(battle_id):
         result = None
         if status == "completed":
             result = battle_manager.get_battle_result(battle_id)
+            # {"winner": "blue" / "red"}
             # 如果内存中没有结果，尝试从数据库加载
             if result is None:
                 battle = db_get_battle_by_id(battle_id)
@@ -295,3 +336,40 @@ def get_battles():
         )
 
     return jsonify({"success": True, "battles": battles_data})
+
+    
+@game_bp.route('/download_logs/<battle_id>', methods=["GET"])
+@login_required
+def download_logs(battle_id):
+    """下载对战日志"""
+    log_file_full_path = "path_not_calculated_yet"
+    try:
+        # 1. 获取当前文件所在的目录 (例如 /Users/ceciliaguo/Desktop/Tuvalon/pkudsa.avalon/platform/blueprints)
+        current_file_dir = os.path.dirname(__file__)
+
+        # 2. 计算 'data' 目录的路径
+        data_directory_path = os.path.abspath(os.path.join(current_file_dir, '..', '..', 'data'))
+
+        # 3. 构造日志文件名
+        log_file_name = f"game_{battle_id}_archive.json"
+
+        # 4. 构造完整的日志文件路径，用于检查文件是否存在
+        log_file_full_path = os.path.join(data_directory_path, log_file_name)
+
+        # 打印出我们实际正在检查和试图访问的路径，用于调试验证
+        current_app.logger.info(f"[INFO] Attempting to access log at: {log_file_full_path}")
+
+        # 检查日志文件是否存在于计算出的正确路径
+        if not os.path.exists(log_file_full_path):
+            flash(f"对战 {battle_id} 的日志文件不存在", "danger")
+            current_app.logger.warning(f"对战 {battle_id} 的日志文件不存在，路径为: {log_file_full_path}")
+            return redirect(url_for('game.view_battle', battle_id=battle_id))
+
+        # 使用 send_file 而不是 send_from_directory
+        return send_file(log_file_full_path, as_attachment=True)
+
+    except Exception as e:
+        # 在错误日志中包含我们计算的路径，帮助排查
+        current_app.logger.error(f"下载对战 {battle_id} 日志失败 from path {log_file_full_path}: {str(e)}", exc_info=True)
+        flash("下载日志失败", "danger")
+        return redirect(url_for('game.view_battle', battle_id=battle_id))

@@ -1,13 +1,19 @@
 #!/usr/bin/env python
-'''observer 模块：
+"""observer 模块：
 游戏观察者实例，用于记录指定游戏的快照。
 预留快照调用的接口，用于前端的游戏可视化。
-'''
+"""
 
 
 import time
 from typing import Any, Dict, List
 from threading import Lock
+import json
+import os
+from config.config import Config
+
+PLAYER_COUNT = 7
+MAP_SIZE = 9
 
 
 class Observer:
@@ -36,32 +42,118 @@ class Observer:
             Map:用于可视化地图变动
             Bug:suspend_game模块内的快照
 
-        event_type (str): 显示类型：
-            "Phase" -- 显示当前阶段
-            "Event" -- 显示成旁白中的事件(可在聊天框中，也可单独显示)
-            "Action" -- 显示成玩家对话框气泡（说话，移动，刺杀）
-            "Sign" -- 显示成阶段结束标识
-            "Information" -- 显示成信息提示框内的信息(给观众看)
-            "Big_Event" -- 显示成游戏结束(可在聊天框中，也可单独显示)
-            "Map" -- 显示成地图
-            "Bug" -- 显示成bug信息
+        event_type (str) -- event_data 对应关系
 
-        event_data: 事件数据，数据类型语具体状况如下：
-            "Phase" -- str
-            "Event" -- str
-            "Action" -- str
-            "Sign" -- str
-            "Information" -- str
-            "Big_Event" -- str
-            "Map" -- dict
-            "Bug" -- str
+            "GameStart"
+                -- str battle_id
+
+            "GameEnd"
+                -- str battle_id
+
+            "RoleAssign"
+                -- dict 角色分配字典
+
+            "NightStart"
+                -- str, "Starting Night Phase."
+
+            "NightEnd"
+                -- str, "--- Night phase complete ---"
+
+            "RoundStart"
+                -- int 轮数
+
+            "RoundEnd"
+                -- int 轮数
+
+            "TeamPropose"
+                -- list, 组员index
+
+            "PublicSpeech"
+                -- tuple(int, str),
+                    int: 玩家编号
+                    str: 发言内容
+
+            "PrivateSpeech"
+                -- tuple(int, str, list),
+                    int: 玩家编号
+                    str: 发言内容
+                    list: 接收者index
+
+            "Positions"
+                -- dict 玩家位置
+
+            "DefaultPositions"
+                -- dict 玩家初始位置
+
+            "Move"
+                -- tuple(int, list),
+                    int: 0表示开始,8表示结束,其他数字对应玩家编号
+                    list: [valid_moves, new_pos]
+
+            "PublicVote"
+                -- tuple(int, str),
+                    int: 0表示开始,8表示结束,其他数字对应玩家编号
+                    str: 'Approve' if vote else 'Reject'
+
+            "PublicVoteResult"
+                -- list[int,int], 支持票数和反对票数
+
+            "MissionRejected"
+                -- str, "Team Rejected."
+
+            "Leader"
+                -- int, 新队长编号
+
+            "MissionApproved"
+                -- list[int, list]
+                    int: 轮数
+                    list: mission_members
+
+            "MissionForceExecute"
+                -- str, "Maximum vote rounds reached. Forcing mission execution with last proposed team."
+
+            "MissionVote"
+                -- dict[int, bool]
+
+            "MissionResult"
+                -- tuple[int,str],
+                    int: 当前轮数
+                    str: "Success" or "Fail"
+
+            "ScoreBoard"
+                -- list[int, int]
+                    蓝：红
+
+            "FinalScore"
+                -- list[int, int]
+                    蓝：红
+
+            "GameResult"
+                -- tuple[str, str]
+                    队伍，原因
+
+            "Assass"
+                -- list: [assassin_id, target_id, target_role, ('Success' if success else 'Fail')]
+
+
+            "Information"
+                -- 显示成信息提示框内的信息(给观众看)
+
+            "Bug"
+                -- 显示成bug信息
+
+
         """
-        
+
         snapshot = {
             "battle_id": self.battle_id,
-            "timestamp": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
-            "event_type": event_type, # 事件类型: referee, player{P}, move
-            "event_data": event_data, # 事件数据，这里保存最后需要显示的内容
+            "player_count": PLAYER_COUNT,
+            "map_size": MAP_SIZE,
+            "timestamp": time.strftime(
+                "%Y-%m-%d %H:%M:%S", time.localtime(time.time())
+            ),
+            "event_type": event_type,  # 事件类型: referee, player{P}, move
+            "event_data": event_data,  # 事件数据，这里保存最后需要显示的内容
         }
         with self._lock:  # 加锁保护写操作
             self.snapshots.append(snapshot)
@@ -75,25 +167,19 @@ class Observer:
             snapshots = self.snapshots
             self.snapshots = []
         return snapshots
-    
-    def get_archive(self) -> List[Dict[str, Any]]:
+
+    def snapshots_to_json(self) -> None:
         """
-        对局结束时获取本局所有快照
+        将当前的快照列表 snapshots 保存到 JSON 文件中，路径与 visualizer.py 保持一致。
         """
+        file_path = os.path.join(
+            Config._yaml_config.get("DATA_DIR", "./data"),
+            f"game_{self.battle_id}_archive.json",
+        )
+        print(f"尝试写入文件到: {file_path}")
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
         with self._lock:
-            archive = self.archive
-            return archive
-
-    # 下面的两个函数不需要用到
-    def get_snapshots(self) -> List[Dict[str, Any]]:
-        """
-        获取当前已记录的所有游戏快照，读取时不删除。
-        返回一个按时间顺序排列的列表。
-        """
-        return self.snapshots
-
-    def get_latest_snapshot(self) -> Dict[str, Any]:
-        """
-        获取最近的一条游戏快照记录。如果尚无记录，则返回空字典。
-        """
-        return self.snapshots[-1] if self.snapshots else {}
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(self.archive, f, ensure_ascii=False, indent=4)
+            print(f"文件写入完成: {os.path.exists(file_path)}")

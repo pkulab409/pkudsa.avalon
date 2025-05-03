@@ -40,6 +40,7 @@ def create_app(config_object=Config):
     from blueprints.profile import profile_bp
     from blueprints.ai import ai_bp
     from blueprints.visualizer import visualizer_bp
+    from blueprints.docs import docs_bp
 
     # 将蓝图注册到应用
     app.register_blueprint(main_bp)
@@ -51,6 +52,7 @@ def create_app(config_object=Config):
     app.register_blueprint(profile_bp, url_prefix="/profile")
     app.register_blueprint(ai_bp, url_prefix="/ai")
     app.register_blueprint(visualizer_bp, url_prefix="/visualizer")
+    app.register_blueprint(docs_bp, url_prefix="/docs")
 
     # 确保在应用上下文中创建所有表
     with app.app_context():
