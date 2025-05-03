@@ -17,6 +17,7 @@ from flask import (
     send_file
 )
 from flask_login import login_required, current_user
+from admin import admin_required
 
 
 # 导入新的数据库操作和模型
@@ -167,14 +168,14 @@ def view_battle(battle_id):
 
 
 @game_bp.route("/start_auto_match", methods=["GET", "POST"])
-# @admin_required
+@admin_required
 def start_auto_match():
     automatch = get_automatch()
     automatch.start()
 
 
 @game_bp.route("/stop_auto_match", methods=["GET", "POST"])
-# @admin_required
+@admin_required
 def stop_auto_match():
     automatch = get_automatch()
     automatch.stop()
