@@ -20,14 +20,28 @@ logging:
 AI_CODE_UPLOAD_FOLDER: uploads/
 
 
-
+# AI代码配置
+ai:
+  allowed_extensions: # 允许的文件扩展名
+    - .py
 
 # 初始用户配置
-INITIAL_USERS:
+initial_users:
+  # admin 用户
+  - username: admin
+    email: admin@avalon.com
+    password: Tuavalon
+    is_admin: True
+    ai_code:
+      name: Admin Console
+      description: 管理员控制台
+      file_path: null
+      make_active: false
   # Smart AI 用户系列
   - username: smart_user1
     email: smart1@example.com
     password: password123
+    is_admin: False
     ai_code:
       name: Smart AI
       description: DeepSeek增强型AI玩家
@@ -36,6 +50,7 @@ INITIAL_USERS:
   - username: smart_user2
     email: smart2@example.com
     password: password123
+    is_admin: False
     ai_code:
       name: Smart AI
       description: DeepSeek增强型AI玩家
@@ -44,6 +59,7 @@ INITIAL_USERS:
   - username: smart_user3
     email: smart3@example.com
     password: password123
+    is_admin: False
     ai_code:
       name: Smart AI
       description: DeepSeek增强型AI玩家
@@ -52,6 +68,7 @@ INITIAL_USERS:
   - username: smart_user4
     email: smart4@example.com
     password: password123
+    is_admin: False
     ai_code:
       name: Smart AI
       description: DeepSeek增强型AI玩家
@@ -60,6 +77,7 @@ INITIAL_USERS:
   - username: smart_user5
     email: smart5@example.com
     password: password123
+    is_admin: False
     ai_code:
       name: Smart AI
       description: DeepSeek增强型AI玩家
@@ -68,6 +86,7 @@ INITIAL_USERS:
   - username: smart_user6
     email: smart6@example.com
     password: password123
+    is_admin: False
     ai_code:
       name: Smart AI
       description: DeepSeek增强型AI玩家
@@ -78,6 +97,7 @@ INITIAL_USERS:
   - username: basic_user1
     email: basic1@example.com
     password: password123
+    is_admin: False
     ai_code:
       name: Baseline AI
       description: 基础AI玩家
@@ -86,6 +106,7 @@ INITIAL_USERS:
   - username: basic_user2
     email: basic2@example.com
     password: password123
+    is_admin: False
     ai_code:
       name: Baseline AI
       description: 基础AI玩家
@@ -94,6 +115,7 @@ INITIAL_USERS:
   - username: basic_user3
     email: basic3@example.com
     password: password123
+    is_admin: False
     ai_code:
       name: Baseline AI
       description: 基础AI玩家
@@ -102,6 +124,7 @@ INITIAL_USERS:
   - username: basic_user4
     email: basic4@example.com
     password: password123
+    is_admin: False
     ai_code:
       name: Baseline AI
       description: 基础AI玩家
@@ -110,6 +133,7 @@ INITIAL_USERS:
   - username: basic_user5
     email: basic5@example.com
     password: password123
+    is_admin: False
     ai_code:
       name: Baseline AI
       description: 基础AI玩家
@@ -118,17 +142,9 @@ INITIAL_USERS:
   - username: basic_user6
     email: basic6@example.com
     password: password123
+    is_admin: False
     ai_code:
       name: Baseline AI
       description: 基础AI玩家
       file_path: game/basic_player.py
       make_active: true
-
-
-DATA_DIR: ./data
-
-# 示例回放设置
-EXAMPLE_REPLAY:
-  file_path: "./example/example_game_replay.json"  # 修改为正确的相对路径
-  # 添加这一行，提供有效ID避免系统查询不存在的battle_id
-  battle_id: "example"  

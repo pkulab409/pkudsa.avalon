@@ -13,6 +13,7 @@ from .db_utils import (
 
 # 从 battle_manager_utils 导入函数
 from .battle_manager_utils import get_battle_manager
+from .automatch_utils import get_automatch
 
 # 定义 __all__ 以便 `from utils import *` 使用
 __all__ = [
@@ -24,4 +25,6 @@ __all__ = [
     "ensure_data_directories",
     # battle_manager_utils functions
     "get_battle_manager",
+    # automatch functions
+    "get_automatch",
 ]

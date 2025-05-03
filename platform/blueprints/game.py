@@ -17,6 +17,7 @@ from flask import (
     send_file
 )
 from flask_login import login_required, current_user
+from .admin import admin_required
 
 
 # 导入新的数据库操作和模型
@@ -32,6 +33,7 @@ from database import (
 )
 from database.models import Battle, BattlePlayer, User, AICode
 from utils.battle_manager_utils import get_battle_manager
+from utils.automatch_utils import get_automatch
 
 game_bp = Blueprint("game", __name__)
 logger = logging.getLogger(__name__)
@@ -66,6 +68,15 @@ def create_battle_page():
         user_ai_codes=user_ai_codes,
         potential_opponents=potential_opponents,
     )
+
+
+@game_bp.route('/api/battle/<int:battle_id>/status')
+@login_required
+def check_battle_status(battle_id):
+    battle = db_get_battle_by_id(battle_id)
+    if not battle:
+        return jsonify({'error': 'Battle not found'}), 404
+    return jsonify({'status': battle.status})
 
 
 @game_bp.route("/battle/<string:battle_id>")
@@ -154,6 +165,21 @@ def view_battle(battle_id):
 
 
 # =================== API 路由 ===================
+
+
+@game_bp.route("/start_auto_match", methods=["GET", "POST"])
+@admin_required
+def start_auto_match():
+    automatch = get_automatch()
+    automatch.start()
+
+
+@game_bp.route("/stop_auto_match", methods=["GET", "POST"])
+@admin_required
+def stop_auto_match():
+    automatch = get_automatch()
+    automatch.stop()
+    return "Automatch Stopped."
 
 
 @game_bp.route("/create_battle", methods=["POST"])
