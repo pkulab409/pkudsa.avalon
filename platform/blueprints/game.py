@@ -17,7 +17,7 @@ from flask import (
     send_file
 )
 from flask_login import login_required, current_user
-from admin import admin_required
+from .admin import admin_required
 
 
 # 导入新的数据库操作和模型
