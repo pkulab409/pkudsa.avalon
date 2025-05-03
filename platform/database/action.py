@@ -886,6 +886,15 @@ def process_battle_results_and_update_stats(battle_id, results_data):
         # ----------------------------------
         # 阶段5：ELO评分计算
         # ----------------------------------
+
+        # 这里获取对局token数
+        with open(PUBLIC_LIB_FILE_DIR, "r", encoding="utf-8") as plib:
+            data = json.load(plib)
+            for line in data[::-1]:
+                if line.get("type") == "tokens":
+                    tokens = line.get("result") # [{"input": 0, "output": 0} for i in range(7)]
+                    break
+        
         involved_user_ids = list(user_outcomes.keys())
         user_stats_map = {
             stats.user_id: stats

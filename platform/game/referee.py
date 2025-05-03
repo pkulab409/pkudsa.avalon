@@ -1191,6 +1191,7 @@ class AvalonReferee:
             #         self.battle_observer.make_snapshot('referee',"Game Result: Red wins (More or equal missions failed at max rounds)")
 
             # 记录游戏结果
+            self.log_public_event({"type": "tokens", "result": self.game_helper.get_tokens()})
             self.log_public_event({"type": "game_end", "result": game_result})
             logger.info(f"===== Game {self.game_id} Finished =====")
             self.battle_observer.make_snapshot("GameEnd", self.game_id)
@@ -1348,6 +1349,7 @@ class AvalonReferee:
         )
 
         # 1. 给公有库添加报错信息
+        self.log_public_event({"type": "tokens", "result": self.game_helper.get_tokens()})
         self.log_public_event(
             {
                 "type": game_error_type,
