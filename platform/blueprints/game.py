@@ -32,6 +32,7 @@ from database import (
 )
 from database.models import Battle, BattlePlayer, User, AICode
 from utils.battle_manager_utils import get_battle_manager
+from utils.automatch_utils import get_automatch
 
 game_bp = Blueprint("game", __name__)
 logger = logging.getLogger(__name__)
@@ -163,6 +164,21 @@ def view_battle(battle_id):
 
 
 # =================== API 路由 ===================
+
+
+@game_bp.route("/start_auto_match", methods=["GET", "POST"])
+# @admin_required
+def start_auto_match():
+    automatch = get_automatch()
+    automatch.start()
+
+
+@game_bp.route("/stop_auto_match", methods=["GET", "POST"])
+# @admin_required
+def stop_auto_match():
+    automatch = get_automatch()
+    automatch.stop()
+    return "Automatch Stopped."
 
 
 @game_bp.route("/create_battle", methods=["POST"])
