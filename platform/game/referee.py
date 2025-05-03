@@ -17,6 +17,8 @@ from .observer import Observer
 from .avalon_game_helper import INIT_PRIVA_LOG_DICT
 from .restrictor import RESTRICTED_BUILTINS
 from .avalon_game_helper import GameHelper
+from database.models import Battle
+from database.base import db
 
 # 配置日志
 logging.basicConfig(
@@ -595,11 +597,11 @@ class AvalonReferee:
                 )
 
             logger.info(
-                f"Global Speech - Player {player_id}: {speech}"
+                f"Global Speech - Player {player_id}: {speech[:100]}{'...' if len(speech) > 100 else ''}"
             )
             self.battle_observer.make_snapshot(
                 "PublicSpeech",
-                (player_id, speech),
+                (player_id, speech[:100] + ("..." if len(speech) > 100 else "")),
             )
             speeches.append((player_id, speech))
 
@@ -806,7 +808,7 @@ class AvalonReferee:
                 )
 
             logger.info(
-                f"Limited Speech - Player {speaker_id}: {speech}"
+                f"Limited Speech - Player {speaker_id}: {speech[:100]}{'...' if len(speech) > 100 else ''}"
             )
             
             speeches.append((speaker_id, speech))
@@ -823,7 +825,7 @@ class AvalonReferee:
             self.battle_observer.make_snapshot(
                 "PrivateSpeech",
                 (speaker_id, 
-                 speech,
+                 speech[:100] + ("..." if len(speech) > 100 else ""),
                  " ".join(map(str,hearers)))
             )
 
@@ -1071,6 +1073,21 @@ class AvalonReferee:
         # 刺杀结束快照
         return success
 
+    def _is_battle_playing(self) -> bool:
+        """
+        检查数据库中该 game 对应的 battle 是否仍然处于 playing 状态。
+        """
+        battle = db.query(Battle).filter(Battle.id == self.game_id).first()
+        if battle is None:
+            logger.warning(f"Battle {self.game_id} not found in database. Terminating game.")
+            return False
+
+        if battle.status != 'playing':
+            logger.warning(f"Battle status changed to '{battle.status}', terminating game.")
+            return False
+
+        return True
+
     def run_game(self) -> Dict[str, Any]:
         """
         运行游戏，返回游戏结果
@@ -1090,6 +1107,9 @@ class AvalonReferee:
                 and self.red_wins < 3
                 and self.current_round < MAX_MISSION_ROUNDS
             ):
+                if not self._is_battle_playing():
+                    raise RuntimeError("Battle status changed. Game forcibly terminated.")
+
                 self.run_mission_round()
 
             # 游戏结束判定

@@ -192,6 +192,7 @@ class BattleManager:
 
     def get_battle_status(self, battle_id: str) -> Optional[str]:
         """获取对战状态 (优先从内存获取)"""
+        '''可以实时实现与数据库的交汇，清理其余标记的残余记录'''
         return self.battle_status.get(battle_id)
 
     def get_snapshots_queue(self, battle_id: str) -> List[Dict[str, Any]]:

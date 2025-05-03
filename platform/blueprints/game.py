@@ -68,6 +68,15 @@ def create_battle_page():
     )
 
 
+@game_bp.route('/api/battle/<int:battle_id>/status')
+@login_required
+def check_battle_status(battle_id):
+    battle = db_get_battle_by_id(battle_id)
+    if not battle:
+        return jsonify({'error': 'Battle not found'}), 404
+    return jsonify({'status': battle.status})
+
+
 @game_bp.route("/battle/<string:battle_id>")
 @login_required
 def view_battle(battle_id):

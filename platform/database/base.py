@@ -7,7 +7,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 
-# 创建 SQLAlchemy 实例
+# 创建 SQLAlchemy 实例(关注此处数据库的命名)
 db = SQLAlchemy()
 
 # 创建 LoginManager 实例

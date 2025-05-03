@@ -1,107 +1,94 @@
+<!-- profile.html -->
 {% extends "base.html" %}
-{% block title %}
-  {{ user.username }} 的个人资料 - 游戏平台
-{% endblock title %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+{% endblock %}
+
 {% block content %}
-  <div class="container mt-4">
-    <div class="row">
-      <div class="col-md-4">
-        <!-- 用户基本信息 -->
-        <div class="card shadow-sm mb-4">
-          <div class="card-body text-center">
-            <img src="{{ url_for('static', filename='images/default_avatar.png') }}"
-                 alt="用户头像"
-                 class="img-thumbnail rounded-circle mb-3"
-                 width="150">
-            <h4 class="card-title">{{ user.username }}</h4>
-            <p class="card-text text-muted">{{ user.email }}</p>
-            <p class="card-text">
-              <small class="text-muted">注册时间: {{ user.created_at.strftime("%Y-%m-%d") }}</small>
-            </p>
-            {% if is_self %}<!-- <a href="#" class="btn btn-sm btn-outline-primary">编辑资料</a> -->{% endif %}
-          </div>
-        </div>
+<style>
+  .profile-container {
+    max-width: 1000px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #f8f9fa;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .user-card {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    position: relative;
+  }
+
+  .user-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .user-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: #786fa6;
+  }
+
+  .admin-entry {
+    margin-top: 2rem;
+    text-align: center;
+  }
+
+  .admin-button {
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 8px;
+    background: #786fa6;
+    color: white;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .admin-button:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+  }
+</style>
+
+<div class="profile-container">
+  <div class="user-card">
+    <div class="user-header">
+      <div class="user-avatar">
+        <i class="fas fa-user-astronaut"></i>
       </div>
-      <div class="col-md-8">
-        <!-- 游戏统计 -->
-        <div class="card shadow-sm mb-4">
-          <div class="card-header">
-            <h5 class="mb-0">游戏统计</h5>
-          </div>
-          <div class="card-body">
-            {% if game_stats %}
-              <div class="row text-center">
-                <div class="col-4">
-                  <h5>分数 (Elo)</h5>
-                  <p class="fs-4">{{ game_stats.elo_score }}</p>
-                </div>
-                <div class="col-4">
-                  <h5>总场次</h5>
-                  <p class="fs-4">{{ game_stats.games_played }}</p>
-                </div>
-                <div class="col-4">
-                  <h5>胜率</h5>
-                  <p class="fs-4">
-                    {% if game_stats.games_played > 0 %}
-                      {{ "%.1f%%" | format(game_stats.wins * 100 / game_stats.games_played) }}
-                    {% else %}
-                      0.0%
-                    {% endif %}
-                  </p>
-                </div>
-              </div>
-              <hr>
-              <div class="row text-center">
-                <div class="col-4">
-                  <p class="text-success mb-0">胜场</p>
-                  <p class="fs-5">{{ game_stats.wins }}</p>
-                </div>
-                <div class="col-4">
-                  <p class="text-danger mb-0">负场</p>
-                  <p class="fs-5">{{ game_stats.losses }}</p>
-                </div>
-                <div class="col-4">
-                  <p class="text-secondary mb-0">平局</p>
-                  <p class="fs-5">{{ game_stats.draws }}</p>
-                </div>
-              </div>
-            {% else %}
-              <p class="text-muted text-center">暂无游戏统计数据。</p>
-            {% endif %}
-          </div>
-        </div>
-        <!-- 最近对战历史 -->
-        <div class="card shadow-sm">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">最近对战</h5>
-            {% if is_self %}<a href="{{ url_for('profile.battle_history') }}">查看全部历史</a>{% endif %}
-          </div>
-          <div class="card-body p-0">
-            <!-- 这里可以嵌入最近几场对战的列表，需要后端传递数据 -->
-            <!-- 示例 -->
-            <ul class="list-group list-group-flush">
-              <li class="list-group-item text-muted text-center">最近对战历史功能待添加</li>
-              {#
-              {% if recent_battles %}
-                {% for battle in recent_battles %}
-                  <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
-                      <a href="{{ url_for('game.view_battle', battle_id=battle.id) }}">对战 {{ battle.id[:8] }}...</a>
-                      <small class="d-block text-muted">{{ battle.ended_at.strftime('%Y-%m-%d %H:%M') if battle.ended_at else '进行中' }}</small>
-                    </div>
-                    <span class="badge {% if battle.result == 'win' %}bg-success{% elif battle.result == 'loss' %}bg-danger{% elif battle.result == 'draw' %}bg-secondary{% else %}bg-info{% endif %}">
-                      {{ battle.result | capitalize if battle.result else battle.status }}
-                    </span>
-                  </li>
-                {% endfor %}
-              {% else %}
-                <li class="list-group-item text-muted text-center">暂无最近对战记录</li>
-              {% endif %}
-              #}
-            </ul>
-          </div>
-        </div>
+      <div>
+        <h1>{{ current_user.username }}</h1>
+        <p><i class="fas fa-envelope"></i> {{ current_user.email }}</p>
+        <p><i class="fas fa-chart-line"></i> Elo 分数：{{ current_user.stats.elo_score if current_user.stats else 'N/A' }}</p>
       </div>
     </div>
+
+    {% if current_user.is_admin %}
+    <div class="admin-entry">
+      <a href="{{ url_for('admin.admin_dashboard') }}" class="admin-button">
+        <i class="fas fa-tools"></i>进入管理员面板
+      </a>
+    </div>
+    {% endif %}
   </div>
-{% endblock content %}
+</div>
+{% endblock %}

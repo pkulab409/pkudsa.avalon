@@ -1,0 +1,301 @@
+<!-- dashboard.html -->
+{% extends "base.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+<style>
+  .dashboard-container {
+    max-width: 1300px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #f8f9fa;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .admin-panel {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .admin-section {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+  }
+
+  .admin-form {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+
+  .admin-input {
+    padding: 0.8rem;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 1rem;
+  }
+
+  .admin-button {
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .delete-button { background-color: #ff6b6b; color: white; }
+  .setelo-button { background-color: #4ecdc4; color: white; }
+  .terminate-button { background-color: #ff9f43; color: white; }
+  .delete-game-button { background-color: #8395a7; color: white; }
+  .admin-toggle-button { background-color: #786fa6; color: white; }
+
+  .user-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+  }
+
+  .user-table th,
+  .user-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #e9ecef;
+    vertical-align: middle;
+  }
+
+  @media (max-width: 768px) {
+    .admin-form {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="dashboard-container">
+  <div class="admin-panel">
+    <h1 style="display: flex; align-items: center; gap: 1rem;">
+      <i class="fas fa-tools"></i>管理员控制面板
+    </h1>
+
+    <!-- 修改位置：用户管理标题下方，表格上方 -->
+    <div class="admin-section">
+      <h2><i class="fas fa-users-cog"></i> 用户管理</h2>
+      <!-- 添加搜索框 -->
+      <div style="margin-bottom: 1rem;">
+        <input type="text" id="searchInput" placeholder="搜索用户名">
+        <button onclick="searchUser()">搜索</button>
+      </div>
+      <table class="user-table">
+        <thead>
+          <tr>
+            <th>用户名</th>
+            <th>用户ID</th>
+            <th>ELO分数</th>
+            <th>管理员</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+          <tr>
+            <td>{{ user.username }}</td>
+            <td>{{ user.id }}</td>
+            <td>{{ user.game_stats.elo_score if user.game_stats else 'N/A' }}</td>
+            <td>{{ '✅' if user.is_admin else '❌' }}</td>
+            <td>
+              <button class="admin-button delete-button"
+                      onclick="handleUserDeletion('{{ user.id }}', '{{ user.username }}')">
+                <i class="fas fa-trash-alt"></i>删除
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 系统工具 -->
+    <div class="admin-section">
+      <h2><i class="fas fa-toolbox"></i> 系统工具</h2>
+      <div class="admin-form">
+        <!-- 权限管理 -->
+        <form onsubmit="handleToggleAdmin(event)">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input class="admin-input" type="text" name="user_id" placeholder="输入用户ID" required>
+          <button class="admin-button admin-toggle-button" type="submit">
+            <i class="fas fa-sync-alt"></i>切换权限
+          </button>
+        </form>
+
+        <!-- Elo设置 -->
+        <form onsubmit="handleSetElo(event)">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input class="admin-input" type="text" name="user_id" placeholder="用户ID" required>
+          <input class="admin-input" type="number" name="elo" placeholder="新Elo值" required>
+          <button class="admin-button setelo-button" type="submit">
+            <i class="fas fa-sync"></i>设置Elo
+          </button>
+        </form>
+
+        <!-- 终止对局 -->
+        <form onsubmit="handleTerminateGame(event)">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input class="admin-input" type="text" name="game_id" placeholder="输入对局ID" required>
+          <button class="admin-button terminate-button" type="submit">
+            <i class="fas fa-ban"></i>终止对局
+          </button>
+        </form>
+
+        <!-- 删除对局 -->
+        <form onsubmit="handleDeleteGame(event)">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input class="admin-input" type="text" name="game_id" placeholder="输入对局ID" required>
+          <button class="admin-button delete-game-button" type="submit">
+            <i class="fas fa-eraser"></i>删除记录
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  //搜索功能
+  async function searchUser() {
+    const searchInput = document.getElementById('searchInput').value;
+    if (!searchInput) {
+      window.location.reload();
+      return;
+    }
+    try {
+      const csrfToken = document.querySelector('[name="csrf_token"]').value;
+      const res = await fetch(`/admin/search_user?username=${encodeURIComponent(searchInput)}`, {
+        method: 'GET',
+        headers: { 'X-CSRFToken': csrfToken }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const tableBody = document.querySelector('.user-table tbody');
+        tableBody.innerHTML = '';
+        data.users.forEach(user => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${user.username}</td>
+            <td>${user.id}</td>
+            <td>${user.elo !== 0 ? user.elo : 'N/A'}</td>
+            <td>${user.is_admin ? '✅' : '❌'}</td>
+            <td><button class="admin-button delete-button" onclick="handleUserDeletion('${user.id}', '${user.username}')"><i class="fas fa-trash-alt"></i>删除</button></td>
+          `;
+          tableBody.appendChild(row);
+        });
+      } else {
+        alert(`错误: ${data.message}`);
+      }
+    } catch (error) {
+      alert(`错误: ${error.message}`);
+    }
+  }
+  async function handleResponse(res) {
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || '操作失败');
+    return data;
+  }
+
+  async function handleUserDeletion(userId, username) {
+    if (!confirm(`确认删除用户 ${username}？`)) return;
+    try {
+      const csrfToken = document.querySelector('[name="csrf_token"]').value;
+      const res = await fetch(`/admin/delete_user/${userId}`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken }
+      });
+      await handleResponse(res);
+      alert('删除成功');
+      window.location.reload();
+    } catch (error) {
+      alert(`错误: ${error.message}`);
+    }
+  }
+
+  async function handleToggleAdmin(e) {
+    e.preventDefault();
+    const form = e.target;
+    try {
+      const res = await fetch(`/admin/toggle_admin/${form.user_id.value}`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': form.csrf_token.value }
+      });
+      const data = await handleResponse(res);
+      alert(`${data.message}，当前状态：${data.is_admin ? '管理员' : '普通用户'}`);
+      form.reset();
+      window.location.reload();
+    } catch (error) {
+      alert(`错误: ${error.message}`);
+    }
+  }
+
+  async function handleSetElo(e) {
+    e.preventDefault();
+    const form = e.target;
+    try {
+      const res = await fetch(`/admin/set_elo/${form.user_id.value}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': form.csrf_token.value
+        },
+        body: JSON.stringify({ elo: parseInt(form.elo.value) })
+      });
+      await handleResponse(res);
+      alert('Elo更新成功');
+      form.reset();
+      window.location.reload();
+    } catch (error) {
+      alert(`错误: ${error.message}`);
+    }
+  }
+
+  async function handleTerminateGame(e) {
+    e.preventDefault();
+    const form = e.target;
+    try {
+      const res = await fetch(`/admin/terminate_game/${form.game_id.value}`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': form.csrf_token.value }
+      });
+      await handleResponse(res);
+      alert('对局已终止');
+      form.reset();
+    } catch (error) {
+      alert(`错误: ${error.message}`);
+    }
+  }
+
+  async function handleDeleteGame(e) {
+    e.preventDefault();
+    const form = e.target;
+    try {
+      const res = await fetch(`/admin/delete_game/${form.game_id.value}`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': form.csrf_token.value }
+      });
+      await handleResponse(res);
+      alert('对局已删除');
+      form.reset();
+    } catch (error) {
+      alert(`错误: ${error.message}`);
+    }
+  }
+</script>
+{% endblock %}

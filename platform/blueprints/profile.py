@@ -41,11 +41,15 @@ def profile(username=None):
     # 判断当前用户是否在查看自己的资料
     is_self = current_user.is_authenticated and current_user.id == user.id
 
+    # 检查当前用户是否为管理员
+    is_admin = current_user.is_authenticated and current_user.is_admin
+
     return render_template(
         "profile/profile.html",
         user=user,
         game_stats=game_stats,
         is_self=is_self,
+        is_admin=is_admin,
     )
 
 

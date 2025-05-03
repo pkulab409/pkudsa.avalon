@@ -13,33 +13,7 @@
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css"
           rel="stylesheet">
-    {% block styles %}
-    <!-- 内联 CSS 样式 -->
-    <style>
-      html {
-        height: 100%;
-      }
-
-      body {
-        display: flex;
-        flex-direction: column;
-        min-height: 100%;
-      }
-
-      /* 选择你的主内容容器，例如 <main> */
-      main {
-          flex-grow: 1;
-      }
-      /* 或者用 class 选择器 .content-wrapper */
-      /* .content-wrapper { flex-grow: 1; } */
-
-      /* 如果不用 Bootstrap 的 mt-auto 类，则需要下面这行 */
-      /* .footer { margin-top: auto; } */
-
-      /* 你其他的页面特定样式也可以放在这里 */
-
-    </style>
-    {% endblock %}
+    {% block styles %}{% endblock %}
   </head>
   <body>
     <!-- 导航栏 -->
@@ -134,7 +108,7 @@
       {% block content %}{% endblock %}
     </main>
     <!-- 页脚 -->
-    <footer class="footer mt-auto py-3 bg-light">
+    <footer class="footer mt-5 py-3 bg-light">
       <div class="container text-center">
         <span class="text-muted">© DSA 2025</span>
       </div>
