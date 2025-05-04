@@ -78,7 +78,7 @@
       <div>
         <h1>{{ current_user.username }}</h1>
         <p><i class="fas fa-envelope"></i> {{ current_user.email }}</p>
-        <p><i class="fas fa-chart-line"></i> Elo 分数：{{ current_user.stats.elo_score if current_user.stats else 'N/A' }}</p>
+        <p><i class="fas fa-chart-line"></i> Elo 分数：{{ current_user.get_elo_score()}}</p>
       </div>
     </div>
 
