@@ -3,6 +3,22 @@
   游戏大厅 - 游戏平台
 {% endblock title %}
 {% block content %}
+<style>
+  .info-box {
+    background-color: #093da5;
+    border-radius: 5px;
+    border: 2px;
+    border-color: #7914dd;
+    margin: 10px 0;
+    padding: 20px;
+    text-align: center;
+    display: flex;
+    color: red;
+    align-items: center;
+    justify-content: center;
+    height: 50px;
+  }
+</style>
   <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h2>游戏大厅</h2>
@@ -11,6 +27,11 @@
         <i class="bi bi-plus-circle me-1"></i> 创建对战
       </a>
     </div>
+    {% if automatch_is_on %}
+    <div class="info-box">
+      ⚠️ 后台自动对战正在进行中！</h4>
+    </div>
+    {% endif %}
     <div class="card shadow-sm">
       <div class="card-header">
         <h5 class="mb-0">最近对战</h5>

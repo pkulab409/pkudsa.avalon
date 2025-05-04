@@ -52,7 +52,7 @@
     font-weight: 500;
     transition: all 0.2s;
     display: flex;
-    align-items: center;
+    text-align: center;
     gap: 0.5rem;
   }
 
@@ -61,6 +61,9 @@
   .terminate-button { background-color: #ff9f43; color: white; }
   .delete-game-button { background-color: #8395a7; color: white; }
   .admin-toggle-button { background-color: #786fa6; color: white; }
+  .am-start-button { background-color: #05d73a; color: white; }
+  .am-stop-button { background-color: #d73a0a; color: white; }
+  .am-terminate-button { background-color: #6c5ce7; color: white; }
 
   .user-table {
     width: 100%;
@@ -165,6 +168,32 @@
             <i class="fas fa-eraser"></i>删除记录
           </button>
         </form>
+
+        <div>
+          <!-- 启动自动对战 -->
+          <form onsubmit="handleStartAutoMatch(event)">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="admin-button am-start-button" type="submit">
+              <i class="fas fa-robot"></i>启动自动对战
+            </button>
+          </form>
+
+          <!-- 停止自动对战 -->
+          <form onsubmit="handleStopAutoMatch(event)">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="admin-button am-stop-button" type="submit">
+              <i class="fas fa-robot"></i>停止自动对战
+            </button>
+          </form>
+
+          <!-- 终止并重置自动对战 -->
+          <form onsubmit="handleTerminateAutoMatch(event)">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="admin-button am-terminate-button" type="submit">
+              <i class="fas fa-robot"></i>终止自动对战
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   </div>
@@ -206,6 +235,7 @@
       alert(`错误: ${error.message}`);
     }
   }
+
   async function handleResponse(res) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || '操作失败');
@@ -293,6 +323,51 @@
       await handleResponse(res);
       alert('对局已删除');
       form.reset();
+    } catch (error) {
+      alert(`错误: ${error.message}`);
+    }
+  }
+
+  async function handleStartAutoMatch(e) {
+    e.preventDefault();
+    const form = e.target;
+    try {
+      const res = await fetch('/admin/start_auto_match', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': form.csrf_token.value }
+      });
+      const data = await handleResponse(res);
+      alert(data.message || '自动对战已启动');
+    } catch (error) {
+      alert(`错误: ${error.message}`);
+    }
+  }
+
+  async function handleStopAutoMatch(e) {
+    e.preventDefault();
+    const form = e.target;
+    try {
+      const res = await fetch('/admin/stop_auto_match', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': form.csrf_token.value }
+      });
+      const data = await handleResponse(res);
+      alert(data.message || '自动对战已停止');
+    } catch (error) {
+      alert(`错误: ${error.message}`);
+    }
+  }
+
+  async function handleTerminateAutoMatch(e) {
+    e.preventDefault();
+    const form = e.target;
+    try {
+      const res = await fetch('/admin/terminate_auto_match', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': form.csrf_token.value }
+      });
+      const data = await handleResponse(res);
+      alert(data.message || '自动对战已终止并重置');
     } catch (error) {
       alert(`错误: ${error.message}`);
     }

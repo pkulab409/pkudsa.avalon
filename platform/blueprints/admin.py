@@ -8,6 +8,7 @@ from functools import wraps
 from sqlalchemy.orm import joinedload
 from database.models import User, Battle, GameStats, AICode, BattlePlayer
 from database import db
+from utils.automatch_utils import get_automatch
 
 # 管理员蓝图
 admin_bp = Blueprint("admin", __name__)
@@ -199,6 +200,49 @@ def delete_game(game_id):
         db.session.rollback()
         logging.error(f"删除对局失败: {str(e)}")
         abort(500, description=f"删除对局失败: {str(e)}")
+
+
+@admin_bp.route("/admin/start_auto_match", methods=['POST'])
+@admin_required
+def start_auto_match():
+    automatch = get_automatch()
+    if automatch.start():
+        return jsonify({
+            "status": "success",
+            "message": "后台自动对战已启动",
+        }), 200
+    else:
+        return jsonify({
+            "status": "error",
+            "message": f"后台自动对战已在运行."
+        }), 500
+
+
+@admin_bp.route("/admin/stop_auto_match", methods=['POST'])
+@admin_required
+def stop_auto_match():
+    automatch = get_automatch()
+    if automatch.stop():
+        return jsonify({
+            "status": "success",
+            "message": "后台自动对战已停止",
+        }), 200
+    else:
+        return jsonify({
+            "status": "error",
+            "message": f"后台自动对战未在运行."
+        }), 500
+
+
+@admin_bp.route("/admin/terminate_auto_match", methods=['POST'])
+@admin_required
+def terminate_auto_match():
+    automatch = get_automatch()
+    automatch.terminate()
+    return jsonify({
+        "status": "success",
+        "message": "后台自动对战已终止并重置",
+    }), 200
 
 
 @admin_bp.route('/admin/toggle_admin/<string:user_id>', methods=['POST'])

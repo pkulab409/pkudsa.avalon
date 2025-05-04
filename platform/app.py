@@ -8,6 +8,7 @@ import logging
 import os
 import shutil
 from utils.battle_manager_utils import init_battle_manager_utils
+from utils.automatch_utils import init_automatch_utils
 
 from database.base import db, login_manager
 from database import initialize_database
@@ -216,6 +217,9 @@ def create_app(config_object=Config):
 
     # 初始化对战管理器
     init_battle_manager_utils(app)
+
+    # 初始化自动对战管理器
+    init_automatch_utils(app)
 
     app.logger.info("Flask应用初始化完成")
     return app

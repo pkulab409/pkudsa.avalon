@@ -26,7 +26,7 @@ ai:
     - .py
 
 # 初始用户配置
-initial_users:
+INITIAL_USERS:
   # admin 用户
   - username: admin
     email: admin@avalon.com
