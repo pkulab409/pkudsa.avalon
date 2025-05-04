@@ -161,6 +161,12 @@ def create_app(config_object=Config):
     # 初始化 CSRF 保护
     csrf.init_app(app)
 
+    @app.template_filter('color_hash')
+    def color_hash(username):
+        """生成基于用户名的HSL颜色"""
+        hue = hash(username) % 360  # 确保色相值在0-359之间
+        return f"hsl({hue}, 70%, 45%)"
+
     # 初始化数据库
     initialize_database(app)
 
