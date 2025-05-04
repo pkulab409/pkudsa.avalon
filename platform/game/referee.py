@@ -1073,21 +1073,6 @@ class AvalonReferee:
         # 刺杀结束快照
         return success
 
-    def _is_battle_playing(self) -> bool:
-        """
-        检查数据库中该 game 对应的 battle 是否仍然处于 playing 状态。
-        """
-        battle = db.query(Battle).filter(Battle.id == self.game_id).first()
-        if battle is None:
-            logger.warning(f"Battle {self.game_id} not found in database. Terminating game.")
-            return False
-
-        if battle.status != 'playing':
-            logger.warning(f"Battle status changed to '{battle.status}', terminating game.")
-            return False
-
-        return True
-
     def run_game(self) -> Dict[str, Any]:
         """
         运行游戏，返回游戏结果
@@ -1107,9 +1092,6 @@ class AvalonReferee:
                 and self.red_wins < 3
                 and self.current_round < MAX_MISSION_ROUNDS
             ):
-                if not self._is_battle_playing():
-                    raise RuntimeError("Battle status changed. Game forcibly terminated.")
-
                 self.run_mission_round()
 
             # 游戏结束判定
