@@ -168,7 +168,7 @@ class GameHelper:
 
         # 更新token统计
         token = len(prompt)
-        self.tokens[self.current_player_id]["input"] += token
+        self.tokens[self.current_player_id-1]["input"] += token
 
         return reply
 
@@ -197,7 +197,7 @@ class GameHelper:
 
         # 更新token统计
         token = len(completion.choices[0].message.content)
-        self.tokens[self.current_player_id]["input"] += token
+        self.tokens[self.current_player_id-1]["input"] += token
 
         return completion.choices[0].message.content
 

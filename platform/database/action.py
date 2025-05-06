@@ -888,6 +888,7 @@ def process_battle_results_and_update_stats(battle_id, results_data):
         # ----------------------------------
 
         # 这里获取对局token数
+        PUBLIC_LIB_FILE_DIR = results_data.get("public_log_file")
         with open(PUBLIC_LIB_FILE_DIR, "r", encoding="utf-8") as plib:
             data = json.load(plib)
             for line in data[::-1]:
