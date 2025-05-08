@@ -95,7 +95,9 @@
 
     {% if current_user.is_admin %}
     <div class="admin-entry">
-      <a href="{{ url_for('admin.admin_dashboard') }}" class="admin-button">
+      <a href="{{ url_for('admin.admin_dashboard') }}" 
+         class="admin-button"
+         style="text-decoration: none">
         <i class="fas fa-tools"></i>进入管理员面板
       </a>
     </div>
