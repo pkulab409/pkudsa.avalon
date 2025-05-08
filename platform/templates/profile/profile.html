@@ -85,6 +85,14 @@
       </div>
     </div>
 
+    <!-- 新增对战历史入口 -->
+  <div class="mt-4 text-center">
+    <a href="{{ url_for('profile.battle_history') }}" 
+       class="btn btn-primary btn-lg">
+      <i class="fas fa-history me-2"></i>查看对战历史
+    </a>
+  </div>
+
     {% if current_user.is_admin %}
     <div class="admin-entry">
       <a href="{{ url_for('admin.admin_dashboard') }}" class="admin-button">
