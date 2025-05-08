@@ -5,6 +5,7 @@
 import os
 import sys
 import json
+import copy
 import random
 import importlib
 import traceback
@@ -268,7 +269,7 @@ class AvalonReferee:
         # 通知所有玩家地图信息
         for player_id in range(1, PLAYER_COUNT + 1):
             logger.debug(f"Sending map data to player {player_id}")
-            self.safe_execute(player_id, "pass_map", self.map_data)
+            self.safe_execute(player_id, "pass_map", copy.deepcopy(self.map_data))
         logger.info("Map initialized and sent to players.")
 
     def night_phase(self):
@@ -740,7 +741,7 @@ class AvalonReferee:
 
                 # 快照记录每一步移动与地图
                 self.battle_observer.make_snapshot(
-                    "Move", (player_id, [valid_moves, new_pos])
+                    "Move", (player_id, [list(valid_moves), new_pos]) # 或者 valid_moves.copy()
                 )
 
             # 更新玩家位置
@@ -768,7 +769,7 @@ class AvalonReferee:
         for player_id in range(1, PLAYER_COUNT + 1):
             # 传递给玩家两种数据
             self.safe_execute(player_id, "pass_position_data", self.player_positions)
-            self.safe_execute(player_id, "pass_map", self.map_data)
+            self.safe_execute(player_id, "pass_map", copy.deepcopy(self.map_data))
 
         # 记录移动
         self.log_public_event(
