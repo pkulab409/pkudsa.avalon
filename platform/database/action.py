@@ -1077,7 +1077,7 @@ def get_recent_battles(limit=20):
     try:
         # 过滤已完成的对战，按结束时间降序排列
         return (
-            Battle.query.filter_by(status="completed")
+            Battle.query
             .order_by(Battle.ended_at.desc())
             .limit(limit)
             .all()
