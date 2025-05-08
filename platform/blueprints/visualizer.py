@@ -263,15 +263,16 @@ def process_upload():
             # 保存文件
             file_path = os.path.join(data_dir, filename)
 
-            # 检查文件是否已存在
-            if os.path.exists(file_path):
-                flash(
-                    f"文件 {filename} 已存在。如果需要覆盖，请先删除旧文件。", "warning"
-                )
-                # 可以选择不覆盖并重定向，或者添加覆盖逻辑
-                return redirect(request.url)  # 重定向回上传页面
+            # # 检查文件是否已存在
+            # if os.path.exists(file_path):
+            #     flash(
+            #         f"文件 {filename} 已存在。如果需要覆盖，请先删除旧文件。", "warning"
+            #     )
+            #     # 可以选择不覆盖并重定向，或者添加覆盖逻辑
+            #     return redirect(request.url)  # 重定向回上传页面
 
-            file.save(file_path)
+            if not os.path.exists(file_path):
+                file.save(file_path)
 
             flash("文件上传成功，正在跳转到可视化页面", "success")
             return redirect(url_for("visualizer.game_replay", game_id=game_id))
@@ -630,55 +631,40 @@ def extract_player_movements(game_data):
         elif event_type == "RoundStart":
             if isinstance(event_data, int):
                 current_round_num = event_data  # Update current round number
+            for i in range(1,8):
+                movements_by_player[str(i)].append(
+                    {
+                        "round": current_round_num,  
+                        "position": (
+                           movements_by_player[str(i)][-1]['position'] 
+                        ),  # Basic validation
+                        "moves": [],  # No moves for initial state
+                    })
 
         elif event_type == "Move":
             # event_data = (player_id, [valid_moves, new_pos])
-            if isinstance(event_data, (list, tuple)) and len(event_data) == 2:
-                player_id = event_data[0]
-                move_details = event_data[1]
-                player_id_str = str(player_id)  # Ensure string ID
+            player_id = event_data[0]
+            move_details = event_data[1]
+            player_id_str = str(player_id)  # Ensure string ID
 
-                if (
-                    player_id_str in movements_by_player
-                    and current_round_num > 0
-                    and isinstance(move_details, list)
-                    and len(move_details) == 2
-                ):
-                    new_pos = move_details[1]
-                    valid_moves = move_details[0]  # Optional to store
+            new_pos = move_details[1]
+            valid_moves = move_details[0]  # Optional to store
 
-                    # Add movement for the *current* round
-                    # Avoid duplicate entries for the same round if logic sends multiple moves
-                    if not any(
-                        m["round"] == current_round_num
-                        for m in movements_by_player[player_id_str]
-                    ):
-                        movements_by_player[player_id_str].append(
-                            {
-                                "round": current_round_num,
-                                "position": (
-                                    new_pos
-                                    if isinstance(new_pos, list) and len(new_pos) == 2
-                                    else None
-                                ),  # Basic validation
-                                "moves": (
-                                    valid_moves if isinstance(valid_moves, list) else []
-                                ),  # Store moves if needed
-                            }
-                        )
-                    else:
-                        # Update position if a move for this round already exists (e.g., correction)
-                        for move in movements_by_player[player_id_str]:
-                            if move["round"] == current_round_num:
-                                move["position"] = (
-                                    new_pos
-                                    if isinstance(new_pos, list) and len(new_pos) == 2
-                                    else None
-                                )
-                                move["moves"] = (
-                                    valid_moves if isinstance(valid_moves, list) else []
-                                )
-                                break
+            # for move in movements_by_player[player_id_str]:
+            #     if move["round"] == current_round_num:
+            #         move["position"] = (
+            #             new_pos
+            #             if isinstance(new_pos, list) and len(new_pos) == 2
+            #             else None
+            #         )
+            #         move["moves"] = (
+            #             valid_moves if isinstance(valid_moves, list) else []
+            #         )
+            #         break
+            movements_by_player[player_id_str][current_round_num]["position"] = new_pos
+            movements_by_player[player_id_str][current_round_num]["moves"] = valid_moves
+
+            
 
         # "Positions" event is ignored as 'Move' events should capture the state changes per round.
         # If 'Move' is unreliable, 'Positions' could be used as a fallback snapshot.
@@ -686,5 +672,5 @@ def extract_player_movements(game_data):
     # Ensure all players have at least a round 0 position if DefaultPositions was missed
     # This might happen if RoleAssign is present but DefaultPositions is not.
     # It's safer to rely on DefaultPositions being present.
-
+    print(movements_by_player)
     return movements_by_player

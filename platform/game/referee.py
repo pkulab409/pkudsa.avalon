@@ -747,9 +747,7 @@ class AvalonReferee:
             logger.info(
                 f"Movement - Player {player_id}: {current_pos} -> {new_pos} via {valid_moves}"
             )
-            logger.info(
-                f"Movement - Player {player_id}: {current_pos} -> {new_pos} via {valid_moves}"
-            )
+            
             self.player_positions[player_id] = new_pos
             x, y = new_pos
             self.map_data[x][y] = str(player_id)  # Place marker after all checks
