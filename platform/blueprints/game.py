@@ -383,3 +383,56 @@ def download_logs(battle_id):
         current_app.logger.error(f"下载对战 {battle_id} 日志失败 from path {log_file_full_path}: {str(e)}", exc_info=True)
         flash("下载日志失败", "danger")
         return redirect(url_for('game.view_battle', battle_id=battle_id))
+
+
+@game_bp.route("/cancel_battle/<string:battle_id>", methods=["POST"])
+@login_required
+def cancel_battle(battle_id):
+    """取消正在进行的对战"""
+    try:
+        # 验证对战是否存在
+        battle = db_get_battle_by_id(battle_id)
+        if not battle:
+            current_app.logger.warning(f"尝试取消不存在的对战: {battle_id}")
+            return jsonify({"success": False, "message": "对战不存在"})
+
+        # 验证对战状态是否允许取消
+        if battle.status not in ["waiting", "playing"]:
+            current_app.logger.warning(f"尝试取消状态为 {battle.status} 的对战: {battle_id}")
+            return jsonify({"success": False, "message": f"对战状态为 {battle.status}，无法取消"})
+
+        # 验证用户权限（可选：仅允许参与者或管理员取消）
+        battle_players = db_get_battle_players_for_battle(battle_id)
+        is_participant = any(bp.user_id == current_user.id for bp in battle_players)
+        if not is_participant and not current_user.is_admin:
+            current_app.logger.warning(f"用户 {current_user.id} 尝试取消非本人参与的对战: {battle_id}")
+            return jsonify({"success": False, "message": "您没有权限取消此对战"})
+
+        # 获取取消原因（可选）
+        data = request.get_json() or {}
+        reason = data.get("reason", f"由用户 {current_user.username} 手动取消")
+
+        # 调用battle_manager取消对战
+        battle_manager = get_battle_manager()
+        if battle_manager.cancel_battle(battle_id, reason):
+            current_app.logger.info(f"对战 {battle_id} 已成功取消: {reason}")
+            return jsonify({
+                "success": True,
+                "message": "对战已成功取消",
+                "battle_id": battle_id
+            })
+        else:
+            current_app.logger.error(f"取消对战 {battle_id} 失败")
+            return jsonify({
+                "success": False,
+                "message": "取消对战失败，请稍后再试",
+                "battle_id": battle_id
+            })
+
+    except Exception as e:
+        current_app.logger.exception(f"取消对战 {battle_id} 时发生错误: {str(e)}")
+        return jsonify({
+            "success": False,
+            "message": f"服务器内部错误: {str(e)}",
+            "battle_id": battle_id
+        })
