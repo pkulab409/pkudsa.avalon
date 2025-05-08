@@ -14,6 +14,7 @@ import os
 from datetime import datetime
 from config.config import Config
 import math
+from copy import deepcopy
 import uuid
 from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
@@ -620,7 +621,7 @@ def extract_player_movements(game_data):
                                 {
                                     "round": 0,  # Assign to round 0
                                     "position": (
-                                        pos
+                                        deepcopy(pos)
                                         if isinstance(pos, list) and len(pos) == 2
                                         else None
                                     ),  # Basic validation
@@ -635,12 +636,10 @@ def extract_player_movements(game_data):
                 movements_by_player[str(i)].append(
                     {
                         "round": current_round_num,  
-                        "position": (
-                           movements_by_player[str(i)][-1]['position'] 
-                        ),  # Basic validation
+                        "position": deepcopy(movements_by_player[str(i)][-1]['position']),
                         "moves": [],  # No moves for initial state
                     })
-
+                
         elif event_type == "Move":
             # event_data = (player_id, [valid_moves, new_pos])
             player_id = event_data[0]
@@ -650,27 +649,8 @@ def extract_player_movements(game_data):
             new_pos = move_details[1]
             valid_moves = move_details[0]  # Optional to store
 
-            # for move in movements_by_player[player_id_str]:
-            #     if move["round"] == current_round_num:
-            #         move["position"] = (
-            #             new_pos
-            #             if isinstance(new_pos, list) and len(new_pos) == 2
-            #             else None
-            #         )
-            #         move["moves"] = (
-            #             valid_moves if isinstance(valid_moves, list) else []
-            #         )
-            #         break
-            movements_by_player[player_id_str][current_round_num]["position"] = new_pos
-            movements_by_player[player_id_str][current_round_num]["moves"] = valid_moves
+            movements_by_player[player_id_str][current_round_num]["position"] = deepcopy(new_pos)
+            movements_by_player[player_id_str][current_round_num]["moves"] = deepcopy(valid_moves)
 
-            
-
-        # "Positions" event is ignored as 'Move' events should capture the state changes per round.
-        # If 'Move' is unreliable, 'Positions' could be used as a fallback snapshot.
-
-    # Ensure all players have at least a round 0 position if DefaultPositions was missed
-    # This might happen if RoleAssign is present but DefaultPositions is not.
-    # It's safer to rely on DefaultPositions being present.
     print(movements_by_player)
     return movements_by_player
