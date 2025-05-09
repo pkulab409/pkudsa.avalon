@@ -1,67 +1,67 @@
 {% extends "base.html" %}
 {% block title %}
-  上传AI代码 - 游戏平台
+    上传AI代码 - 游戏平台
 {% endblock title %}
 {% block content %}
-  <div class="container mt-4">
-    <div class="row justify-content-center">
-      <div class="col-md-8">
-        <div class="card shadow-sm">
-          <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">上传新的AI代码</h4>
-          </div>
-          <div class="card-body">
-            <form method="post" enctype="multipart/form-data">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              {# 如果启用了CSRF #}
-              <div class="mb-3">
-                <label for="name" class="form-label">
-                  AI名称 <span class="text-danger">*</span>
-                </label>
-                <input type="text"
-                       class="form-control"
-                       id="name"
-                       name="name"
-                       placeholder="例如：我的第一个AI"
-                       required>
-              </div>
-              <div class="mb-3">
-                <label for="description" class="form-label">描述 (可选)</label>
-                <textarea class="form-control"
-                          id="description"
-                          name="description"
-                          rows="3"
-                          placeholder="简要描述你的AI策略"></textarea>
-              </div>
-              <div class="mb-3">
-                <label for="ai_code" class="form-label">
-                  选择AI代码文件 (.py) <span class="text-danger">*</span>
-                </label>
-                <input type="file"
-                       class="form-control"
-                       id="ai_code"
-                       name="ai_code"
-                       accept=".py"
-                       required>
-                <div class="form-text">请上传包含 `Player` 类的Python文件。</div>
-              </div>
-              <div class="form-check mb-3">
-                <input class="form-check-input"
-                       type="checkbox"
-                       id="make_active"
-                       name="make_active">
-                <label class="form-check-label" for="make_active">上传后设为当前活跃AI</label>
-              </div>
-              <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                <a href="{{ url_for('ai.list_ai') }}" class="btn btn-outline-secondary">取消</a>
-                <button type="submit" class="btn btn-primary">
-                  <i class="bi bi-cloud-upload me-1"></i> 上传AI
-                </button>
-              </div>
-            </form>
-          </div>
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">上传新的AI代码</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            {# 如果启用了CSRF #}
+                            <div class="mb-3">
+                                <label for="name" class="form-label">
+                                    AI名称 <span class="text-danger">*</span>
+                                </label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="name"
+                                       name="name"
+                                       placeholder="例如：我的第一个AI"
+                                       required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="description" class="form-label">描述 (可选)</label>
+                                <textarea class="form-control"
+                                          id="description"
+                                          name="description"
+                                          rows="3"
+                                          placeholder="简要描述你的AI策略"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="ai_code" class="form-label">
+                                    选择AI代码文件 (.py) <span class="text-danger">*</span>
+                                </label>
+                                <input type="file"
+                                       class="form-control"
+                                       id="ai_code"
+                                       name="ai_code"
+                                       accept=".py"
+                                       required>
+                                <div class="form-text">请上传包含 `Player` 类的Python文件。</div>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       id="make_active"
+                                       name="make_active">
+                                <label class="form-check-label" for="make_active">上传后设为当前活跃AI</label>
+                            </div>
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <a href="{{ url_for("ai.list_ai") }}" class="btn btn-outline-secondary">取消</a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-cloud-upload me-1"></i> 上传AI
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
 {% endblock content %}

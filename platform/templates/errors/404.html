@@ -1,26 +1,26 @@
 {% extends "base.html" %}
 {% block title %}
-  404 - 页面未找到
+    404 - 页面未找到
 {% endblock title %}
 {% block content %}
-  <div class="container mt-5">
-    <div class="row justify-content-center">
-      <div class="col-md-8">
-        <div class="card shadow">
-          <div class="card-header bg-danger text-white">
-            <h3 class="mb-0">404 - 页面未找到</h3>
-          </div>
-          <div class="card-body">
-            <div class="text-center mb-4">
-              <i class="bi bi-exclamation-triangle icon-large"></i>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow">
+                    <div class="card-header bg-danger text-white">
+                        <h3 class="mb-0">404 - 页面未找到</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-4">
+                            <i class="bi bi-exclamation-triangle icon-large"></i>
+                        </div>
+                        <p class="card-text text-center">很抱歉，您要访问的页面不存在或已被移除。</p>
+                        <div class="d-grid gap-2 mt-4">
+                            <a href="{{ url_for("main.home") }}" class="btn btn-primary">返回首页</a>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <p class="card-text text-center">很抱歉，您要访问的页面不存在或已被移除。</p>
-            <div class="d-grid gap-2 mt-4">
-              <a href="{{ url_for('main.home') }}" class="btn btn-primary">返回首页</a>
-            </div>
-          </div>
         </div>
-      </div>
     </div>
-  </div>
 {% endblock content %}

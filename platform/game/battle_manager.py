@@ -159,8 +159,12 @@ class BattleManager:
                     )
 
                     # 正常结束，更新数据库状态为 completed
-                    if self.battle_service.mark_battle_as_completed(battle_id, result_data):
-                        self.battle_service.log_info(f"对战 {battle_id} 完成，结果已处理")
+                    if self.battle_service.mark_battle_as_completed(
+                        battle_id, result_data
+                    ):
+                        self.battle_service.log_info(
+                            f"对战 {battle_id} 完成，结果已处理"
+                        )
                     else:
                         # Service 内部已记录错误，BattleManager 只记录内存状态
                         self.battle_service.log_error(
@@ -213,7 +217,7 @@ class BattleManager:
 
     def get_battle_status(self, battle_id: str) -> Optional[str]:
         """获取对战状态 (优先从内存获取)"""
-        '''可以实时实现与数据库的交汇，清理其余标记的残余记录'''
+        """可以实时实现与数据库的交汇，清理其余标记的残余记录"""
         return self.battle_status.get(battle_id)
 
     def get_snapshots_queue(self, battle_id: str) -> List[Dict[str, Any]]:

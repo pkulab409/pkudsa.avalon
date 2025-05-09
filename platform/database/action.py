@@ -833,10 +833,14 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                         return False
                     error_pid_in_game = last_record.get("error_code_pid")
                     if error_pid_in_game is None or not (1 <= error_pid_in_game <= 7):
-                        logger.error(f"[Battle {battle_id}] 无效的错误玩家PID: {error_pid_in_game}")
+                        logger.error(
+                            f"[Battle {battle_id}] 无效的错误玩家PID: {error_pid_in_game}"
+                        )
                         return False
             except Exception as e:
-                logger.error(f"[Battle {battle_id}] 读取公共日志失败: {str(e)}", exc_info=True)
+                logger.error(
+                    f"[Battle {battle_id}] 读取公共日志失败: {str(e)}", exc_info=True
+                )
                 return False
 
             # 获取错误玩家信息
@@ -873,11 +877,15 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                     pid = int(pid_str) if isinstance(pid_str, str) else pid_str
                     player_roles[pid] = role
                 except (ValueError, TypeError):
-                    logger.warning(f"[Battle {battle_id}] 无法解析角色数据键: {pid_str}")
+                    logger.warning(
+                        f"[Battle {battle_id}] 无法解析角色数据键: {pid_str}"
+                    )
 
         # 如果无法从结果数据中获取角色信息，我们将基于最终获胜方推断队伍
         if not player_roles and "winner" in results_data:
-            logger.warning(f"[Battle {battle_id}] 无法从结果中获取角色信息，将基于最终胜负推断队伍")
+            logger.warning(
+                f"[Battle {battle_id}] 无法从结果中获取角色信息，将基于最终胜负推断队伍"
+            )
 
             # 根据最终获胜方分配角色（简化处理）
             winner_team = results_data.get("winner")
@@ -931,11 +939,10 @@ def process_battle_results_and_update_stats(battle_id, results_data):
 
             team_outcomes = {
                 RED_TEAM: "win" if winner_team == RED_TEAM else "loss",
-                BLUE_TEAM: "win" if winner_team == BLUE_TEAM else "loss"
+                BLUE_TEAM: "win" if winner_team == BLUE_TEAM else "loss",
             }
             user_outcomes = {
-                user_id: team_outcomes[team]
-                for user_id, team in team_map.items()
+                user_id: team_outcomes[team] for user_id, team in team_map.items()
             }
 
         # ----------------------------------
@@ -962,7 +969,9 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                 data = json.load(plib)
                 for line in data[::-1]:
                     if line.get("type") == "tokens":
-                        tokens = line.get("result", [])  # [{"input": 0, "output": 0} for i in range(7)]
+                        tokens = line.get(
+                            "result", []
+                        )  # [{"input": 0, "output": 0} for i in range(7)]
                         break
             logger.info(f"[Battle {battle_id}] 获取到的tokens数据: {tokens}")
         except Exception as e:
@@ -1023,7 +1032,9 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                     new_elo = max(round(stats.elo_score - reduction), 100)
                     bp.elo_change = new_elo - stats.elo_score
                     stats.elo_score = new_elo
-                    logger.info(f"[ERROR] 扣除ELO: {user_id} | {bp.initial_elo} -> {new_elo}")
+                    logger.info(
+                        f"[ERROR] 扣除ELO: {user_id} | {bp.initial_elo} -> {new_elo}"
+                    )
                 else:
                     bp.elo_change = 0
                     stats.draws += 1
@@ -1034,7 +1045,7 @@ def process_battle_results_and_update_stats(battle_id, results_data):
         # 正常处理分支
         else:
             # ELO计算逻辑
-            # 看玩家tokens数占全局tokens比例proportion, 
+            # 看玩家tokens数占全局tokens比例proportion,
             # 若proportion<1,按照1计算，>1,
             # 则胜率 = min{1, 胜率 * (1 + (max{proportion,1} - 1) / 3)}
             team_elos = {RED_TEAM: [], BLUE_TEAM: []}
@@ -1043,24 +1054,35 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                 if team in team_elos:
                     team_elos[team].append(stats.elo_score)
 
-            tokens_standard = [(tokens[ui - 1]["input"] + 3 * tokens[ui - 1]["output"])/4 for ui in range(1,8)] #一倍输入和三倍输出的和
+            tokens_standard = [
+                (tokens[ui - 1]["input"] + 3 * tokens[ui - 1]["output"]) / 4
+                for ui in range(1, 8)
+            ]  # 一倍输入和三倍输出的和
 
-            tokens_avg = max(MAX_TOKEN_ALLOWED, sum(tokens_standard) / 7)  #均值, 该常量以下必不惩罚
+            tokens_avg = max(
+                MAX_TOKEN_ALLOWED, sum(tokens_standard) / 7
+            )  # 均值, 该常量以下必不惩罚
 
-            proportion = [token / tokens_avg for token in tokens_standard]  #比例
+            proportion = [token / tokens_avg for token in tokens_standard]  # 比例
 
             team_avg = {
-                team: (len(scores)/sum([min(1, 1/score) for score in scores])) #防止分母为0
+                team: (
+                    len(scores) / sum([min(1, 1 / score) for score in scores])
+                )  # 防止分母为0
                 for team, scores in team_elos.items()
             }  # 这里改为调和平均，给有大蠢蛋参与队伍的强者发点补助
 
             K_FACTOR = 32
-            red_expected = 1 / (1 + 10 ** ((team_avg[BLUE_TEAM] - team_avg[RED_TEAM]) / 400))
-            blue_expected = 1 / (1 + 10 ** ((team_avg[RED_TEAM] - team_avg[BLUE_TEAM]) / 400))
+            red_expected = 1 / (
+                1 + 10 ** ((team_avg[BLUE_TEAM] - team_avg[RED_TEAM]) / 400)
+            )
+            blue_expected = 1 / (
+                1 + 10 ** ((team_avg[RED_TEAM] - team_avg[BLUE_TEAM]) / 400)
+            )
 
             actual_score = {
                 RED_TEAM: 1.0 if results_data.get("winner") == RED_TEAM else 0.0,
-                BLUE_TEAM: 1.0 if results_data.get("winner") == BLUE_TEAM else 0.0
+                BLUE_TEAM: 1.0 if results_data.get("winner") == BLUE_TEAM else 0.0,
             }
 
             for user_id, stats in user_stats_map.items():
@@ -1070,7 +1092,10 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                 idx = bp.position - 1  # position为1~7，proportion下标为0~6
                 team = team_map[user_id]
                 expected = red_expected if team == RED_TEAM else blue_expected
-                delta = K_FACTOR * (actual_score[team] - min(1, expected * (0.9 + (max(proportion[idx] - 1, 0) / 3))))
+                delta = K_FACTOR * (
+                    actual_score[team]
+                    - min(1, expected * (0.9 + (max(proportion[idx] - 1, 0) / 3)))
+                )
 
                 stats.games_played += 1
                 if team_outcomes[team] == "win":
@@ -1234,7 +1259,9 @@ def mark_battle_as_cancelled(battle_id, cancellation_reason=None):
         # 检查对战状态，只允许取消特定状态的对战
         allowed_states = ["waiting", "playing"]
         if battle.status not in allowed_states:
-            logger.warning(f"无法取消对战 {battle_id}: 当前状态 '{battle.status}' 不允许取消")
+            logger.warning(
+                f"无法取消对战 {battle_id}: 当前状态 '{battle.status}' 不允许取消"
+            )
             return False
 
         # 更新对战状态
@@ -1251,10 +1278,14 @@ def mark_battle_as_cancelled(battle_id, cancellation_reason=None):
                     battle.results = json.dumps(results_data)
                 except (json.JSONDecodeError, TypeError):
                     # 如果 battle.results 不是有效的 JSON，则创建新的
-                    battle.results = json.dumps({"cancellation_reason": cancellation_reason})
+                    battle.results = json.dumps(
+                        {"cancellation_reason": cancellation_reason}
+                    )
             else:
                 # 如果没有结果，则创建新的
-                battle.results = json.dumps({"cancellation_reason": cancellation_reason})
+                battle.results = json.dumps(
+                    {"cancellation_reason": cancellation_reason}
+                )
 
         if safe_commit():
             logger.info(f"对战 {battle_id} 已标记为已取消")
@@ -1309,9 +1340,16 @@ def handle_cancelled_battle_stats(battle_id):
         # 系统故障取消 vs 用户主动取消 vs 管理员取消等情况可能有不同处理
         # 修改这里：检查 cancellation_reason 的类型
         is_system_error = False
-        if isinstance(cancellation_reason, str) and "system" in cancellation_reason.lower():
+        if (
+            isinstance(cancellation_reason, str)
+            and "system" in cancellation_reason.lower()
+        ):
             is_system_error = True
-        elif isinstance(cancellation_reason, dict) and cancellation_reason.get("error") and "system" in str(cancellation_reason.get("error")).lower():
+        elif (
+            isinstance(cancellation_reason, dict)
+            and cancellation_reason.get("error")
+            and "system" in str(cancellation_reason.get("error")).lower()
+        ):
             is_system_error = True
 
         # 更新所有参与者的对战记录
@@ -1340,6 +1378,8 @@ def handle_cancelled_battle_stats(battle_id):
         logger.error(f"处理已取消对战统计失败: {e}", exc_info=True)
         db.session.rollback()
         return False
+
+
 # -----------------------------------------------------------------------------------------
 # Flask-Login User 加载函数 (从 models.py 移到此处或其他合适的数据加载模块)
 

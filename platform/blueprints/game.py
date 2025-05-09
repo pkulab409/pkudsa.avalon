@@ -14,7 +14,7 @@ from flask import (
     url_for,
     current_app,
     jsonify,
-    send_file
+    send_file,
 )
 from flask_login import login_required, current_user
 
@@ -49,7 +49,9 @@ def lobby():
     # waiting_battles = Battle.query.filter_by(status='waiting').order_by(Battle.created_at.desc()).limit(10).all()
     # playing_battles = Battle.query.filter_by(status='playing').order_by(Battle.started_at.desc()).limit(10).all()
     return render_template(
-        "lobby.html", recent_battles=recent_battles, automatch_is_on=get_automatch().is_on
+        "lobby.html",
+        recent_battles=recent_battles,
+        automatch_is_on=get_automatch().is_on,
     )  # 需要创建 lobby.html
 
 
@@ -69,13 +71,13 @@ def create_battle_page():
     )
 
 
-@game_bp.route('/api/battle/<int:battle_id>/status')
+@game_bp.route("/api/battle/<int:battle_id>/status")
 @login_required
 def check_battle_status(battle_id):
     battle = db_get_battle_by_id(battle_id)
     if not battle:
-        return jsonify({'error': 'Battle not found'}), 404
-    return jsonify({'status': battle.status})
+        return jsonify({"error": "Battle not found"}), 404
+    return jsonify({"status": battle.status})
 
 
 @game_bp.route("/battle/<string:battle_id>")
@@ -113,13 +115,20 @@ def view_battle(battle_id):
                         if not last_record:
                             logger.error(f"[Battle {battle_id}] 公有库无记录")
                         error_pid_in_game = last_record.get("error_code_pid")
-                        if error_pid_in_game is None or not (1 <= error_pid_in_game <= 7):
-                            logger.error(f"[Battle {battle_id}] 无效的错误玩家PID: {error_pid_in_game}")
+                        if error_pid_in_game is None or not (
+                            1 <= error_pid_in_game <= 7
+                        ):
+                            logger.error(
+                                f"[Battle {battle_id}] 无效的错误玩家PID: {error_pid_in_game}"
+                            )
                         error_type = last_record.get("type")
                         error_code_method = last_record.get("error_code_method")
                         error_msg = last_record.get("error_msg")
                 except Exception as e:
-                    logger.error(f"[Battle {battle_id}] 读取公共日志失败: {str(e)}", exc_info=True)
+                    logger.error(
+                        f"[Battle {battle_id}] 读取公共日志失败: {str(e)}",
+                        exc_info=True,
+                    )
 
                 # 获取错误玩家信息
                 err_player_index = error_pid_in_game - 1
@@ -347,8 +356,8 @@ def get_battles():
 
     return jsonify({"success": True, "battles": battles_data})
 
-    
-@game_bp.route('/download_logs/<battle_id>', methods=["GET"])
+
+@game_bp.route("/download_logs/<battle_id>", methods=["GET"])
 @login_required
 def download_logs(battle_id):
     """下载对战日志"""
@@ -358,7 +367,9 @@ def download_logs(battle_id):
         current_file_dir = os.path.dirname(__file__)
 
         # 2. 计算 'data' 目录的路径
-        data_directory_path = os.path.abspath(os.path.join(current_file_dir, '..', 'data'))
+        data_directory_path = os.path.abspath(
+            os.path.join(current_file_dir, "..", "data")
+        )
 
         # 3. 构造日志文件名
         log_file_name = f"game_{battle_id}_archive.json"
@@ -367,25 +378,32 @@ def download_logs(battle_id):
         log_file_full_path = os.path.join(data_directory_path, log_file_name)
 
         # 打印出我们实际正在检查和试图访问的路径，用于调试验证
-        current_app.logger.info(f"[INFO] Attempting to access log at: {log_file_full_path}")
+        current_app.logger.info(
+            f"[INFO] Attempting to access log at: {log_file_full_path}"
+        )
 
         # 检查日志文件是否存在于计算出的正确路径
         if not os.path.exists(log_file_full_path):
             flash(f"对战 {battle_id} 的日志文件不存在", "danger")
-            current_app.logger.warning(f"对战 {battle_id} 的日志文件不存在，路径为: {log_file_full_path}")
-            return redirect(url_for('game.view_battle', battle_id=battle_id))
+            current_app.logger.warning(
+                f"对战 {battle_id} 的日志文件不存在，路径为: {log_file_full_path}"
+            )
+            return redirect(url_for("game.view_battle", battle_id=battle_id))
 
         # 使用 send_file 而不是 send_from_directory
         return send_file(log_file_full_path, as_attachment=True)
 
     except Exception as e:
         # 在错误日志中包含我们计算的路径，帮助排查
-        current_app.logger.error(f"下载对战 {battle_id} 日志失败 from path {log_file_full_path}: {str(e)}", exc_info=True)
+        current_app.logger.error(
+            f"下载对战 {battle_id} 日志失败 from path {log_file_full_path}: {str(e)}",
+            exc_info=True,
+        )
         flash("下载日志失败", "danger")
-        return redirect(url_for('game.view_battle', battle_id=battle_id))
+        return redirect(url_for("game.view_battle", battle_id=battle_id))
 
 
-@game_bp.route('/download_private/<battle_id>', methods=["GET"])
+@game_bp.route("/download_private/<battle_id>", methods=["GET"])
 @login_required
 def download_private(battle_id):
     """下载对战私有日志"""
@@ -395,7 +413,9 @@ def download_private(battle_id):
         current_file_dir = os.path.dirname(__file__)
 
         # 2. 计算 'data' 目录的路径
-        data_directory_path = os.path.abspath(os.path.join(current_file_dir, '..', 'data'))
+        data_directory_path = os.path.abspath(
+            os.path.join(current_file_dir, "..", "data")
+        )
 
         # 3'. 找人
         battle = db_get_battle_by_id(battle_id)
@@ -406,8 +426,10 @@ def download_private(battle_id):
             player_idx = players_id.index(current_user.id) + 1
         else:
             flash(f"您没有参与这场对战，不能下载私有库", "danger")
-            current_app.logger.warning(f"{current_user.id} 访问其没有参与的对战 {battle_id}私有库被拒")
-            return redirect(url_for('game.view_battle', battle_id=battle_id))
+            current_app.logger.warning(
+                f"{current_user.id} 访问其没有参与的对战 {battle_id}私有库被拒"
+            )
+            return redirect(url_for("game.view_battle", battle_id=battle_id))
 
         # 3. 构造日志文件名
         log_file_name = f"game_{battle_id}_player_{player_idx}_private.json"
@@ -416,22 +438,29 @@ def download_private(battle_id):
         log_file_full_path = os.path.join(data_directory_path, log_file_name)
 
         # 打印出我们实际正在检查和试图访问的路径，用于调试验证
-        current_app.logger.info(f"[INFO] Attempting to access log at: {log_file_full_path}")
+        current_app.logger.info(
+            f"[INFO] Attempting to access log at: {log_file_full_path}"
+        )
 
         # 检查日志文件是否存在于计算出的正确路径
         if not os.path.exists(log_file_full_path):
             flash(f"对战 {battle_id} 的 {player_idx} 号玩家私有库不存在", "danger")
-            current_app.logger.warning(f"对战 {battle_id} 的 {player_idx} 号玩家私有库不存在，路径为: {log_file_full_path}")
-            return redirect(url_for('game.view_battle', battle_id=battle_id))
+            current_app.logger.warning(
+                f"对战 {battle_id} 的 {player_idx} 号玩家私有库不存在，路径为: {log_file_full_path}"
+            )
+            return redirect(url_for("game.view_battle", battle_id=battle_id))
 
         # 使用 send_file 而不是 send_from_directory
         return send_file(log_file_full_path, as_attachment=True)
 
     except Exception as e:
         # 在错误日志中包含我们计算的路径，帮助排查
-        current_app.logger.error(f"下载对战 {battle_id} 日志失败 from path {log_file_full_path}: {str(e)}", exc_info=True)
+        current_app.logger.error(
+            f"下载对战 {battle_id} 日志失败 from path {log_file_full_path}: {str(e)}",
+            exc_info=True,
+        )
         flash("下载日志失败", "danger")
-        return redirect(url_for('game.view_battle', battle_id=battle_id))
+        return redirect(url_for("game.view_battle", battle_id=battle_id))
 
 
 @game_bp.route("/cancel_battle/<string:battle_id>", methods=["POST"])
@@ -447,14 +476,20 @@ def cancel_battle(battle_id):
 
         # 验证对战状态是否允许取消
         if battle.status not in ["waiting", "playing"]:
-            current_app.logger.warning(f"尝试取消状态为 {battle.status} 的对战: {battle_id}")
-            return jsonify({"success": False, "message": f"对战状态为 {battle.status}，无法取消"})
+            current_app.logger.warning(
+                f"尝试取消状态为 {battle.status} 的对战: {battle_id}"
+            )
+            return jsonify(
+                {"success": False, "message": f"对战状态为 {battle.status}，无法取消"}
+            )
 
         # 验证用户权限（可选：仅允许参与者或管理员取消）
         battle_players = db_get_battle_players_for_battle(battle_id)
         is_participant = any(bp.user_id == current_user.id for bp in battle_players)
         if not is_participant and not current_user.is_admin:
-            current_app.logger.warning(f"用户 {current_user.id} 尝试取消非本人参与的对战: {battle_id}")
+            current_app.logger.warning(
+                f"用户 {current_user.id} 尝试取消非本人参与的对战: {battle_id}"
+            )
             return jsonify({"success": False, "message": "您没有权限取消此对战"})
 
         # 获取取消原因（可选）
@@ -465,23 +500,25 @@ def cancel_battle(battle_id):
         battle_manager = get_battle_manager()
         if battle_manager.cancel_battle(battle_id, reason):
             current_app.logger.info(f"对战 {battle_id} 已成功取消: {reason}")
-            return jsonify({
-                "success": True,
-                "message": "对战已成功取消",
-                "battle_id": battle_id
-            })
+            return jsonify(
+                {"success": True, "message": "对战已成功取消", "battle_id": battle_id}
+            )
         else:
             current_app.logger.error(f"取消对战 {battle_id} 失败")
-            return jsonify({
-                "success": False,
-                "message": "取消对战失败，请稍后再试",
-                "battle_id": battle_id
-            })
+            return jsonify(
+                {
+                    "success": False,
+                    "message": "取消对战失败，请稍后再试",
+                    "battle_id": battle_id,
+                }
+            )
 
     except Exception as e:
         current_app.logger.exception(f"取消对战 {battle_id} 时发生错误: {str(e)}")
-        return jsonify({
-            "success": False,
-            "message": f"服务器内部错误: {str(e)}",
-            "battle_id": battle_id
-        })
+        return jsonify(
+            {
+                "success": False,
+                "message": f"服务器内部错误: {str(e)}",
+                "battle_id": battle_id,
+            }
+        )

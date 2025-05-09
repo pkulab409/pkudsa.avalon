@@ -44,7 +44,8 @@ def game_replay(game_id):
             # 目标文件在 platform/example/
             # 需要向上走一层 (..) 到 platform/，再进入 example/
             example_replay_path = os.path.join(
-                current_dir, '..', 'example', 'example_game_replay.json')
+                current_dir, "..", "example", "example_game_replay.json"
+            )
             # 标准化路径 (例如，处理 '..')
             log_file = os.path.normpath(example_replay_path)
 
@@ -100,8 +101,7 @@ def game_replay(game_id):
         if not game_info.get("map_size"):
             flash(f"错误：无法从对局记录 {game_id} 中提取地图大小。", "danger")
             # 尝试从第一个事件获取，如果存在
-            map_size_fallback = game_data[0].get(
-                "map_size", 0) if game_data else 0
+            map_size_fallback = game_data[0].get("map_size", 0) if game_data else 0
             if not map_size_fallback:
                 return render_template(
                     "error.html", message=f"加载对局记录时出错: 无法确定地图大小"
@@ -244,7 +244,7 @@ def process_upload():
             # 尝试从文件名提取 game_id
             base_name = os.path.splitext(secure_filename(file.filename))[0]
             if base_name.startswith("game_") and base_name.endswith("_archive"):
-                potential_id = base_name[len("game_"): -len("_archive")]
+                potential_id = base_name[len("game_") : -len("_archive")]
                 # 简单的UUID格式检查 (不严格)
                 if len(potential_id) > 10:  # Basic check
                     game_id = potential_id
@@ -430,11 +430,9 @@ def extract_game_info(game_data, game_id_from_url):
             dt_start = datetime.strptime(
                 game_info["start_time"].split(".")[0], time_format_in
             )
-            game_info["start_time_formatted"] = dt_start.strftime(
-                time_format_out)
+            game_info["start_time_formatted"] = dt_start.strftime(time_format_out)
         except (ValueError, TypeError):
-            game_info["start_time_formatted"] = str(
-                game_info["start_time"])  # Fallback
+            game_info["start_time_formatted"] = str(game_info["start_time"])  # Fallback
 
     if game_info["end_time"] and game_info["is_completed"]:
         try:
@@ -453,8 +451,7 @@ def extract_game_info(game_data, game_id_from_url):
             start = datetime.strptime(
                 game_info["start_time"].split(".")[0], time_format_in
             )
-            end = datetime.strptime(
-                game_info["end_time"].split(".")[0], time_format_in)
+            end = datetime.strptime(game_info["end_time"].split(".")[0], time_format_in)
             duration = end - start
             total_seconds = duration.total_seconds()
             if total_seconds >= 0:
@@ -469,8 +466,7 @@ def extract_game_info(game_data, game_id_from_url):
         game_info["duration"] = "未完成"
 
     # Ensure roles has string keys for template
-    game_info["roles"] = {
-        str(k): v for k, v in game_info.get("roles", {}).items()}
+    game_info["roles"] = {str(k): v for k, v in game_info.get("roles", {}).items()}
 
     return game_info
 
@@ -527,8 +523,7 @@ def process_game_events(game_data):
             elif event_type == "TeamPropose":
                 # Ensure members are strings
                 current_round["team_members"] = (
-                    [str(m) for m in event_data] if isinstance(
-                        event_data, list) else []
+                    [str(m) for m in event_data] if isinstance(event_data, list) else []
                 )
             elif event_type == "PublicSpeech":
                 if isinstance(event_data, (list, tuple)) and len(event_data) == 2:
@@ -540,8 +535,7 @@ def process_game_events(game_data):
                 if isinstance(event_data, (list, tuple)) and len(event_data) == 3:
                     # 标记为有限范围发言
                     current_round["speeches"].append(
-                        (str(event_data[0]), event_data[1],
-                         "private", event_data[2])
+                        (str(event_data[0]), event_data[1], "private", event_data[2])
                     )
             elif event_type == "PublicVote":
                 if isinstance(event_data, (list, tuple)) and len(event_data) == 2:
@@ -566,8 +560,7 @@ def process_game_events(game_data):
                 current_round["vote_result"]["approved"] = False
             elif event_type == "MissionVote":
                 if isinstance(event_data, dict):
-                    fail_votes = sum(
-                        1 for vote in event_data.values() if not vote)
+                    fail_votes = sum(1 for vote in event_data.values() if not vote)
                     # Initialize mission_execution if not already done
                     if current_round["mission_execution"] is None:
                         current_round["mission_execution"] = {}
@@ -582,8 +575,7 @@ def process_game_events(game_data):
                     current_round["mission_result"] = {"success": success}
 
     # Convert dict to list and sort by round number
-    game_events_list = sorted(events_by_round.values(),
-                              key=lambda x: x["round"])
+    game_events_list = sorted(events_by_round.values(), key=lambda x: x["round"])
 
     # Append assassination info at the end if it exists
     if assassination_info:
@@ -624,12 +616,19 @@ def extract_player_movements(game_data):
                     if player_id_str not in movements_by_player:
                         movements_by_player[player_id_str] = []
                     # 添加第0轮的位置（仅当不存在时）
-                    if not any(entry["round"] == 0 for entry in movements_by_player[player_id_str]):
-                        movements_by_player[player_id_str].append({
-                            "round": 0,
-                            "position": deepcopy(pos) if isinstance(pos, list) else None,
-                            "moves": []
-                        })
+                    if not any(
+                        entry["round"] == 0
+                        for entry in movements_by_player[player_id_str]
+                    ):
+                        movements_by_player[player_id_str].append(
+                            {
+                                "round": 0,
+                                "position": (
+                                    deepcopy(pos) if isinstance(pos, list) else None
+                                ),
+                                "moves": [],
+                            }
+                        )
 
     # 3. 处理回合和移动事件
     for event in game_data:
@@ -648,16 +647,14 @@ def extract_player_movements(game_data):
                         new_entry = {
                             "round": current_round_num,
                             "position": deepcopy(last_entry["position"]),
-                            "moves": []
+                            "moves": [],
                         }
                         entries.append(new_entry)
                 else:
                     # 若玩家无任何条目（异常情况），初始化一个空位置
-                    entries.append({
-                        "round": current_round_num,
-                        "position": None,
-                        "moves": []
-                    })
+                    entries.append(
+                        {"round": current_round_num, "position": None, "moves": []}
+                    )
 
         elif event_type == "Move":
             if isinstance(event_data, list) and len(event_data) >= 2:
