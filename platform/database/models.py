@@ -34,15 +34,12 @@ class User(db.Model, UserMixin):
     # ai_codes: 用户撰写的AI代码 (一对多 User -> AICode)
     ai_codes = db.relationship("AICode", backref="user", lazy="dynamic")
     # battle_participations: 用户参与过的对战 (一对多 User -> BattlePlayer)
-    # BattlePlayer 记录包含了用户在每次对战中的详情，包括结果 (outcome) (一对多 User -> BattlePlayer)
     battle_participations = db.relationship(
         "BattlePlayer", backref="user", lazy="dynamic"
     )
-    # game_stats: 用户的游戏统计 (一对一 User <-> GameStats)
-    # 使用 db.backref 并指定 uselist=False 表示这是一对一关系
-    game_stats = db.relationship(
-        "GameStats", backref=db.backref("user", uselist=False), uselist=False
-    )
+    # game_stats: 用户的游戏统计 (一对多 User -> GameStats)
+    # 使用 db.backref 并指定 uselist=True (或省略) 表示这是一对多关系
+    game_stats_entries = db.relationship("GameStats", backref="user", lazy="dynamic")
     # battles_won: 获取用户赢得的对战列表 (通过查询 BattlePlayer 实现，关系定义在 BattlePlayer 中)
     # 无需在这里明确定义 `relationship` 如果是通过 BattlePlayer 筛选
 
@@ -63,11 +60,14 @@ class User(db.Model, UserMixin):
         # 使用 .first() 获取单个激活的AI，一个用户只有一个激活的AI
         return AICode.query.filter_by(user_id=self.id, is_active=True).first()
 
-    def get_elo_score(self):
-        """获取用户的ELO分数"""
-        # 通过 User.game_stats 关系访问
-        # 如果用户还没有统计记录，返回默认分数 1200
-        return self.game_stats.elo_score if self.game_stats else 1200
+    def get_game_stats(self, ranking_id=0):
+        """获取用户在特定排行榜上的游戏统计数据"""
+        return self.game_stats_entries.filter_by(ranking_id=ranking_id).first()
+
+    def get_elo_score(self, ranking_id=0):
+        """获取用户在特定排行榜上的ELO分数"""
+        stats = self.get_game_stats(ranking_id)
+        return stats.elo_score if stats else 1200
 
     def get_battles_won(self):
         """获取用户赢得的所有对战的 Battle 对象列表"""
@@ -126,11 +126,14 @@ class AICode(db.Model):
 # 玩家游戏统计
 class GameStats(db.Model):
     __tablename__ = "game_stats"
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "ranking_id", name="uq_user_ranking"),
+    )
 
     id = db.Column(db.String(36), primary_key=True, default=generate_uuid)
     user_id = db.Column(
-        db.String(36), db.ForeignKey("users.id"), nullable=False, unique=True
-    )  # unique=True 强制一对一关系
+        db.String(36), db.ForeignKey("users.id"), nullable=False
+    )  # unique=True 移除
 
     # 游戏统计
     elo_score = db.Column(db.Integer, default=1200)
@@ -138,6 +141,7 @@ class GameStats(db.Model):
     wins = db.Column(db.Integer, default=0)
     losses = db.Column(db.Integer, default=0)
     draws = db.Column(db.Integer, default=0)
+    ranking_id = db.Column(db.Integer, nullable=False, default=0)  # 新增 ranking_id
 
     # 关系:
     # user: 哪个用户的统计数据 (backref="user" 在 User 模型中定义)
@@ -166,8 +170,7 @@ class Battle(db.Model):
     status = db.Column(
         db.String(20), default="waiting"
     )  # waiting, playing, completed, error, cancelled
-    # 分区类型：0=普通对局，1=预选赛，2=决赛，等
-    section = db.Column(db.Integer, default=0)  # 默认为普通对局
+    ranking_id = db.Column(db.Integer, nullable=False, default=0)  # 新增 ranking_id
     # 游戏日志UUID (关联到存储游戏过程的日志文件或对象)
     game_log_uuid = db.Column(db.String(36), nullable=True)
 

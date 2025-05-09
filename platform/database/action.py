@@ -154,7 +154,7 @@ def create_user(username, email, password):
         user.set_password(password)  # 使用模型方法设置密码哈希
 
         # 为新用户创建游戏统计记录，即使他们还没玩过游戏
-        game_stats = GameStats(user=user)  # 建立关系
+        game_stats = GameStats(user_id=user.id, ranking_id=0)  # 显式设置 ranking_id
 
         db.session.add(user)
         db.session.add(game_stats)  # 添加统计记录
@@ -471,46 +471,56 @@ def get_ai_code_path_full(ai_code_id):
 # 游戏统计 (GameStats) CRUD 操作
 
 
-def get_game_stats_by_user_id(user_id):
+def get_game_stats_by_user_id(user_id, ranking_id=0):
     """
-    根据用户ID获取游戏统计记录。
+    根据用户ID和排行榜ID获取游戏统计记录。
 
     参数:
         user_id (str): 用户ID。
+        ranking_id (int): 排行榜ID。
 
     返回:
         GameStats: 游戏统计对象，不存在则返回None。
     """
     try:
-        return GameStats.query.filter_by(user_id=user_id).first()
+        return GameStats.query.filter_by(user_id=user_id, ranking_id=ranking_id).first()
     except Exception as e:
-        logger.error(f"获取用户 {user_id} 的游戏统计失败: {e}", exc_info=True)
+        logger.error(
+            f"获取用户 {user_id} 在排行榜 {ranking_id} 的游戏统计失败: {e}",
+            exc_info=True,
+        )
         return None
 
 
-def create_game_stats(user_id):
+def create_game_stats(user_id, ranking_id=0):
     """
-    为指定用户创建游戏统计记录 (如果在用户创建时没有自动创建)。
+    为指定用户在特定排行榜创建游戏统计记录。
 
     参数:
         user_id (str): 用户ID。
+        ranking_id (int): 排行榜ID。
 
     返回:
         GameStats: 创建成功的统计对象，失败或已存在则返回None。
     """
     try:
-        existing_stats = get_game_stats_by_user_id(user_id)
+        existing_stats = get_game_stats_by_user_id(user_id, ranking_id)
         if existing_stats:
-            logger.warning(f"用户 {user_id} 的游戏统计已存在，无需重复创建。")
+            logger.warning(
+                f"用户 {user_id} 在排行榜 {ranking_id} 的游戏统计已存在，无需重复创建。"
+            )
             return None
 
-        stats = GameStats(user_id=user_id)
+        stats = GameStats(user_id=user_id, ranking_id=ranking_id)
         if safe_add(stats):
-            logger.info(f"为用户 {user_id} 创建游戏统计成功。")
+            logger.info(f"为用户 {user_id} 在排行榜 {ranking_id} 创建游戏统计成功。")
             return stats
         return None
     except Exception as e:
-        logger.error(f"创建用户 {user_id} 的游戏统计失败: {e}", exc_info=True)
+        logger.error(
+            f"创建用户 {user_id} 在排行榜 {ranking_id} 的游戏统计失败: {e}",
+            exc_info=True,
+        )
         db.session.rollback()
         return None
 
@@ -542,11 +552,12 @@ def update_game_stats(stats, **kwargs):
         return False
 
 
-def get_leaderboard(limit=100, min_games_played=1):
+def get_leaderboard(ranking_id=0, limit=100, min_games_played=1):
     """
-    获取游戏排行榜。
+    获取指定排行榜的游戏排行榜。
 
     参数:
+        ranking_id (int): 排行榜ID。
         limit (int): 返回数量限制。
         min_games_played (int): 玩家至少参与的游戏场次。
 
@@ -557,7 +568,10 @@ def get_leaderboard(limit=100, min_games_played=1):
         leaderboard_data = (
             db.session.query(GameStats, User.username)
             .join(User, GameStats.user_id == User.id)
-            .filter(GameStats.games_played >= min_games_played)
+            .filter(
+                GameStats.ranking_id == ranking_id,
+                GameStats.games_played >= min_games_played,
+            )
             .order_by(GameStats.elo_score.desc())
             .limit(limit)
             .all()
@@ -583,16 +597,18 @@ def get_leaderboard(limit=100, min_games_played=1):
 # 对战 (Battle) 及 对战参与者 (BattlePlayer) CRUD 操作
 
 
-def create_battle(participant_data_list, status="waiting", section=0, game_data=None):
+def create_battle(
+    participant_data_list, ranking_id=0, status="waiting", game_data=None
+):
     """
     创建对战记录及关联的参与者记录。
 
     参数:
         participant_data_list (list): 参与者数据列表，每个元素应为字典，
-                                      至少包含 'user_id' 和 'ai_code_id'。 # <--- 修改文档注释
-                                      示例: [{'user_id': '...', 'ai_code_id': '...'}, ...] # <--- 修改文档注释
+                                      至少包含 'user_id' 和 'ai_code_id'。
+                                      示例: [{'user_id': '...', 'ai_code_id': '...'}, ...]
+        ranking_id (int): 对战所属的排行榜ID。默认为0。
         status (str): 初始状态 (e.g., 'waiting', 'playing'). 默认为 'waiting'.
-        section (int): 分区类型：0=普通对局，1=预选赛，2=决赛，等. 默认为 0.
         game_data (dict, optional): 游戏初始数据。
 
     返回:
@@ -624,7 +640,7 @@ def create_battle(participant_data_list, status="waiting", section=0, game_data=
 
         battle = Battle(
             status=status,
-            section=section,  # 使用传入的分区类型
+            ranking_id=ranking_id,
             created_at=datetime.datetime.now(),
             # started_at 在对战真正开始时设置
             # results 在对战结束时设置
@@ -636,7 +652,7 @@ def create_battle(participant_data_list, status="waiting", section=0, game_data=
         battle_players = []
         for i, data in enumerate(participant_data_list):
             # 获取玩家当前的ELO作为 initial_elo 快照
-            user_stats = get_game_stats_by_user_id(data["user_id"])
+            user_stats = get_game_stats_by_user_id(data["user_id"], ranking_id)
             initial_elo = (
                 user_stats.elo_score if user_stats else 1200
             )  # 默认或从 GameStats 获取
@@ -776,6 +792,7 @@ def process_battle_results_and_update_stats(battle_id, results_data):
     1. 更准确地识别玩家错误
     2. 基于错误类型和方法实现差异化的ELO惩罚
     3. 提供更详细的日志记录
+    4. 支持多排行榜 (ranking_id)
 
     参数:
         battle_id (str): 对战的唯一标识符
@@ -805,6 +822,8 @@ def process_battle_results_and_update_stats(battle_id, results_data):
         if not battle:
             logger.error(f"[Battle {battle_id}] 对战记录不存在")
             return False
+
+        battle_ranking_id = battle.ranking_id  # 获取对战的排行榜ID
 
         if battle.status == "completed":
             logger.info(f"[Battle {battle_id}] 对战已处理，跳过重复操作")
@@ -1047,14 +1066,17 @@ def process_battle_results_and_update_stats(battle_id, results_data):
         user_stats_map = {
             stats.user_id: stats
             for stats in GameStats.query.filter(
-                GameStats.user_id.in_(involved_user_ids)
+                GameStats.user_id.in_(involved_user_ids),
+                GameStats.ranking_id == battle_ranking_id,  # 使用对战的排行榜ID
             ).all()
         }
 
         # 创建缺失的统计记录
         for user_id in involved_user_ids:
             if user_id not in user_stats_map:
-                new_stats = create_game_stats(user_id)
+                new_stats = create_game_stats(
+                    user_id, battle_ranking_id
+                )  # 使用对战的排行榜ID
                 if new_stats:
                     user_stats_map[user_id] = new_stats
                     db.session.add(new_stats)
@@ -1400,6 +1422,7 @@ def handle_cancelled_battle_stats(battle_id):
     1. 不计入玩家游戏统计
     2. 或标记为"取消"而非输赢
     3. 或在特定情况下给予部分ELO补偿
+    4. 支持多排行榜 (ranking_id)
 
     参数:
         battle_id (str): 已取消对战的ID。
@@ -1412,6 +1435,8 @@ def handle_cancelled_battle_stats(battle_id):
         if not battle:
             logger.error(f"处理已取消对战统计失败: 对战 {battle_id} 不存在")
             return False
+
+        battle_ranking_id = battle.ranking_id  # 获取对战的排行榜ID
 
         if battle.status != "cancelled":
             logger.warning(f"对战 {battle_id} 不是已取消状态，无法处理取消统计")
@@ -1459,7 +1484,9 @@ def handle_cancelled_battle_stats(battle_id):
             # 例如：系统故障导致的取消不计入玩家的游戏场次
             if not is_system_error:
                 # 获取用户统计
-                stats = get_game_stats_by_user_id(bp.user_id)
+                stats = get_game_stats_by_user_id(
+                    bp.user_id, battle_ranking_id
+                )  # 使用对战的排行榜ID
                 if stats:
                     # 更新取消的对战计数（假设模型中有canceled_games字段）
                     # 如果模型中没有，可以添加，或者选择不记录
