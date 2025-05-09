@@ -67,8 +67,10 @@ HEARING_RANGE = {  # 听力范围（中心格周围的方格数）
 }
 MAX_EXECUTION_TIME = 100
 
+
 class GameTerminationError(Exception):
     """Exception raised when game needs to be terminated due to battle status change"""
+
     pass
 
 
@@ -106,12 +108,15 @@ class BattleStatusChecker:
             # 方法1: 通过battle_manager获取（如果可访问）
             try:
                 from utils.battle_manager_utils import get_battle_manager
+
                 battle_manager = get_battle_manager()
                 if battle_manager:
                     status = battle_manager.get_battle_status(self.battle_id)
                     if status:
                         self.last_known_status = status
-                        logger.debug(f"从battle_manager获取对战 {self.battle_id} 状态: {status}")
+                        logger.debug(
+                            f"从battle_manager获取对战 {self.battle_id} 状态: {status}"
+                        )
                         return status
             except Exception as e:
                 logger.debug(f"无法从battle_manager获取状态: {str(e)}")
@@ -126,7 +131,9 @@ class BattleStatusChecker:
                 "./platform/database.sqlite",
                 "../database.sqlite",
                 "../../database.sqlite",
-                os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../database.sqlite")
+                os.path.join(
+                    os.path.dirname(os.path.abspath(__file__)), "../../database.sqlite"
+                ),
             ]
 
             db_path = None
@@ -171,6 +178,8 @@ class BattleStatusChecker:
             logger.warning(f"检测到对战 {self.battle_id} 状态为 '{status}'，将中止游戏")
 
         return should_stop
+
+
 class AvalonReferee:
     def __init__(
         self,
@@ -455,11 +464,20 @@ class AvalonReferee:
         # 检查对战状态
         def check_battle_status():
             """检查对战状态，如果不是playing或waiting则抛出异常"""
-            if hasattr(self, 'battle_status_checker') and self.battle_status_checker is not None:
+            if (
+                hasattr(self, "battle_status_checker")
+                and self.battle_status_checker is not None
+            ):
                 if self.battle_status_checker.should_abort():
-                    battle_status = self.battle_status_checker.get_battle_status(force=True)
-                    logger.warning(f"Mission round aborted: Battle state changed to '{battle_status}'")
-                    raise GameTerminationError(f"Battle status changed to '{battle_status}'")
+                    battle_status = self.battle_status_checker.get_battle_status(
+                        force=True
+                    )
+                    logger.warning(
+                        f"Mission round aborted: Battle state changed to '{battle_status}'"
+                    )
+                    raise GameTerminationError(
+                        f"Battle status changed to '{battle_status}'"
+                    )
 
         # 初始状态检查
         try:
@@ -754,11 +772,18 @@ class AvalonReferee:
     def conduct_global_speech(self):
         """进行全局发言（所有玩家都能听到）"""
         # 添加状态检查
-        if hasattr(self, 'battle_status_checker') and self.battle_status_checker is not None:
+        if (
+            hasattr(self, "battle_status_checker")
+            and self.battle_status_checker is not None
+        ):
             if self.battle_status_checker.should_abort():
                 battle_status = self.battle_status_checker.get_battle_status(force=True)
-                logger.warning(f"Global speech aborted: Battle state changed to '{battle_status}'")
-                raise GameTerminationError(f"Battle status changed to '{battle_status}'")
+                logger.warning(
+                    f"Global speech aborted: Battle state changed to '{battle_status}'"
+                )
+                raise GameTerminationError(
+                    f"Battle status changed to '{battle_status}'"
+                )
 
         speeches = []
 
@@ -771,11 +796,20 @@ class AvalonReferee:
 
         for player_id in ordered_players:
             # 每个玩家发言前检查状态
-            if hasattr(self, 'battle_status_checker') and self.battle_status_checker is not None:
+            if (
+                hasattr(self, "battle_status_checker")
+                and self.battle_status_checker is not None
+            ):
                 if self.battle_status_checker.should_abort():
-                    battle_status = self.battle_status_checker.get_battle_status(force=True)
-                    logger.warning(f"Global speech interrupted: Battle state changed to '{battle_status}'")
-                    raise GameTerminationError(f"Battle status changed to '{battle_status}'")
+                    battle_status = self.battle_status_checker.get_battle_status(
+                        force=True
+                    )
+                    logger.warning(
+                        f"Global speech interrupted: Battle state changed to '{battle_status}'"
+                    )
+                    raise GameTerminationError(
+                        f"Battle status changed to '{battle_status}'"
+                    )
 
             logger.debug(f"Requesting speech from Player {player_id}")
             speech = self.safe_execute(player_id, "say")
@@ -816,11 +850,18 @@ class AvalonReferee:
     def conduct_movement(self):
         """执行玩家移动"""
         # 添加状态检查
-        if hasattr(self, 'battle_status_checker') and self.battle_status_checker is not None:
+        if (
+            hasattr(self, "battle_status_checker")
+            and self.battle_status_checker is not None
+        ):
             if self.battle_status_checker.should_abort():
                 battle_status = self.battle_status_checker.get_battle_status(force=True)
-                logger.warning(f"Movement phase aborted: Battle state changed to '{battle_status}'")
-                raise GameTerminationError(f"Battle status changed to '{battle_status}'")
+                logger.warning(
+                    f"Movement phase aborted: Battle state changed to '{battle_status}'"
+                )
+                raise GameTerminationError(
+                    f"Battle status changed to '{battle_status}'"
+                )
 
         # 从队长开始，按编号顺序移动
         ordered_players = [
@@ -839,11 +880,20 @@ class AvalonReferee:
 
         for player_id in ordered_players:
             # 每个玩家移动前检查状态
-            if hasattr(self, 'battle_status_checker') and self.battle_status_checker is not None:
+            if (
+                hasattr(self, "battle_status_checker")
+                and self.battle_status_checker is not None
+            ):
                 if self.battle_status_checker.should_abort():
-                    battle_status = self.battle_status_checker.get_battle_status(force=True)
-                    logger.warning(f"Movement interrupted: Battle state changed to '{battle_status}'")
-                    raise GameTerminationError(f"Battle status changed to '{battle_status}'")
+                    battle_status = self.battle_status_checker.get_battle_status(
+                        force=True
+                    )
+                    logger.warning(
+                        f"Movement interrupted: Battle state changed to '{battle_status}'"
+                    )
+                    raise GameTerminationError(
+                        f"Battle status changed to '{battle_status}'"
+                    )
 
             # 告知玩家当前地图情况
             self.safe_execute(player_id, "pass_position_data", self.player_positions)
@@ -969,11 +1019,18 @@ class AvalonReferee:
             )
 
         # 再次检查状态
-        if hasattr(self, 'battle_status_checker') and self.battle_status_checker is not None:
+        if (
+            hasattr(self, "battle_status_checker")
+            and self.battle_status_checker is not None
+        ):
             if self.battle_status_checker.should_abort():
                 battle_status = self.battle_status_checker.get_battle_status(force=True)
-                logger.warning(f"Movement completion aborted: Battle state changed to '{battle_status}'")
-                raise GameTerminationError(f"Battle status changed to '{battle_status}'")
+                logger.warning(
+                    f"Movement completion aborted: Battle state changed to '{battle_status}'"
+                )
+                raise GameTerminationError(
+                    f"Battle status changed to '{battle_status}'"
+                )
 
         # 更新所有玩家的地图
         logger.debug(
@@ -996,11 +1053,18 @@ class AvalonReferee:
     def conduct_limited_speech(self):
         """进行有限范围发言（只有在听力范围内的玩家能听到）"""
         # 添加状态检查
-        if hasattr(self, 'battle_status_checker') and self.battle_status_checker is not None:
+        if (
+            hasattr(self, "battle_status_checker")
+            and self.battle_status_checker is not None
+        ):
             if self.battle_status_checker.should_abort():
                 battle_status = self.battle_status_checker.get_battle_status(force=True)
-                logger.warning(f"Limited speech aborted: Battle state changed to '{battle_status}'")
-                raise GameTerminationError(f"Battle status changed to '{battle_status}'")
+                logger.warning(
+                    f"Limited speech aborted: Battle state changed to '{battle_status}'"
+                )
+                raise GameTerminationError(
+                    f"Battle status changed to '{battle_status}'"
+                )
 
         # 从队长开始，按编号顺序发言
         ordered_players = [
@@ -1012,11 +1076,20 @@ class AvalonReferee:
         speeches = []
         for speaker_id in ordered_players:
             # 每个玩家发言前检查状态
-            if hasattr(self, 'battle_status_checker') and self.battle_status_checker is not None:
+            if (
+                hasattr(self, "battle_status_checker")
+                and self.battle_status_checker is not None
+            ):
                 if self.battle_status_checker.should_abort():
-                    battle_status = self.battle_status_checker.get_battle_status(force=True)
-                    logger.warning(f"Limited speech interrupted: Battle state changed to '{battle_status}'")
-                    raise GameTerminationError(f"Battle status changed to '{battle_status}'")
+                    battle_status = self.battle_status_checker.get_battle_status(
+                        force=True
+                    )
+                    logger.warning(
+                        f"Limited speech interrupted: Battle state changed to '{battle_status}'"
+                    )
+                    raise GameTerminationError(
+                        f"Battle status changed to '{battle_status}'"
+                    )
 
             logger.debug(f"Requesting limited speech from Player {speaker_id}")
             speech = self.safe_execute(speaker_id, "say")
@@ -1050,9 +1123,11 @@ class AvalonReferee:
 
             self.battle_observer.make_snapshot(
                 "PrivateSpeech",
-                (speaker_id,
-                 speech[:100] + ("..." if len(speech) > 100 else ""),
-                 " ".join(map(str, hearers)))
+                (
+                    speaker_id,
+                    speech[:100] + ("..." if len(speech) > 100 else ""),
+                    " ".join(map(str, hearers)),
+                ),
             )
 
         # 记录有限范围发言
@@ -1093,22 +1168,38 @@ class AvalonReferee:
         返回支持票数
         """
         # 添加状态检查
-        if hasattr(self, 'battle_status_checker') and self.battle_status_checker is not None:
+        if (
+            hasattr(self, "battle_status_checker")
+            and self.battle_status_checker is not None
+        ):
             if self.battle_status_checker.should_abort():
                 battle_status = self.battle_status_checker.get_battle_status(force=True)
-                logger.warning(f"Public vote aborted: Battle state changed to '{battle_status}'")
-                raise GameTerminationError(f"Battle status changed to '{battle_status}'")
+                logger.warning(
+                    f"Public vote aborted: Battle state changed to '{battle_status}'"
+                )
+                raise GameTerminationError(
+                    f"Battle status changed to '{battle_status}'"
+                )
 
         votes = {}
         logger.debug(f"Requesting public votes for team: {mission_members}")
         for player_id in range(1, PLAYER_COUNT + 1):
             # 每个玩家投票前检查状态
-            if hasattr(self,
-                       'battle_status_checker') and self.battle_status_checker is not None and player_id % 3 == 0:  # 每3个玩家检查一次状态
+            if (
+                hasattr(self, "battle_status_checker")
+                and self.battle_status_checker is not None
+                and player_id % 3 == 0
+            ):  # 每3个玩家检查一次状态
                 if self.battle_status_checker.should_abort():
-                    battle_status = self.battle_status_checker.get_battle_status(force=True)
-                    logger.warning(f"Public vote interrupted: Battle state changed to '{battle_status}'")
-                    raise GameTerminationError(f"Battle status changed to '{battle_status}'")
+                    battle_status = self.battle_status_checker.get_battle_status(
+                        force=True
+                    )
+                    logger.warning(
+                        f"Public vote interrupted: Battle state changed to '{battle_status}'"
+                    )
+                    raise GameTerminationError(
+                        f"Battle status changed to '{battle_status}'"
+                    )
 
             vote = self.safe_execute(player_id, "mission_vote1")
 
@@ -1334,7 +1425,10 @@ class AvalonReferee:
         def check_abort():
             """检查是否需要中止游戏，若需要则返回中止结果"""
             # 如果无法获取battle状态检查器，跳过检查
-            if not hasattr(self, 'battle_status_checker') or self.battle_status_checker is None:
+            if (
+                not hasattr(self, "battle_status_checker")
+                or self.battle_status_checker is None
+            ):
                 return None
 
             # 检查对战状态
@@ -1343,7 +1437,7 @@ class AvalonReferee:
 
                 # 确保返回的角色信息是JSON可序列化的字典，而不是Python对象
                 roles_dict = {}
-                if hasattr(self, 'roles') and self.roles:
+                if hasattr(self, "roles") and self.roles:
                     # 将角色字典中的整数键转换为字符串键，确保可以在模板中访问
                     for player_id, role in self.roles.items():
                         roles_dict[str(player_id)] = role
@@ -1353,9 +1447,11 @@ class AvalonReferee:
                     "red_wins": self.red_wins,
                     "rounds_played": self.current_round,
                     "roles": roles_dict,  # 使用转换后的角色字典
-                    "public_log_file": os.path.join(self.data_dir, f"game_{self.game_id}_public.json"),
+                    "public_log_file": os.path.join(
+                        self.data_dir, f"game_{self.game_id}_public.json"
+                    ),
                     "winner": None,
-                    "win_reason": f"aborted_due_to_battle_state_{battle_status}"
+                    "win_reason": f"aborted_due_to_battle_state_{battle_status}",
                 }
                 logger.info(f"Game aborted: Battle state is '{battle_status}'")
                 self.log_public_event({"type": "game_aborted", "result": game_result})
@@ -1378,9 +1474,9 @@ class AvalonReferee:
 
             # 任务阶段
             while (
-                    self.blue_wins < 3
-                    and self.red_wins < 3
-                    and self.current_round < MAX_MISSION_ROUNDS
+                self.blue_wins < 3
+                and self.red_wins < 3
+                and self.current_round < MAX_MISSION_ROUNDS
             ):
                 try:
                     self.run_mission_round()
@@ -1393,7 +1489,7 @@ class AvalonReferee:
                     else:
                         # 如果check_abort没有返回结果，我们仍然需要处理终止
                         roles_dict = {}
-                        if hasattr(self, 'roles') and self.roles:
+                        if hasattr(self, "roles") and self.roles:
                             for player_id, role in self.roles.items():
                                 roles_dict[str(player_id)] = role
 
@@ -1406,7 +1502,7 @@ class AvalonReferee:
                                 self.data_dir, f"game_{self.game_id}_public.json"
                             ),
                             "winner": None,
-                            "win_reason": "terminated_due_to_status_change"
+                            "win_reason": "terminated_due_to_status_change",
                         }
 
                 # 每轮结束后检查状态
@@ -1426,7 +1522,7 @@ class AvalonReferee:
 
             # 确保返回的角色信息是JSON可序列化的字典，而不是Python对象
             roles_dict = {}
-            if hasattr(self, 'roles') and self.roles:
+            if hasattr(self, "roles") and self.roles:
                 # 将角色字典中的整数键转换为字符串键，确保可以在模板中访问
                 for player_id, role in self.roles.items():
                     roles_dict[str(player_id)] = role
@@ -1443,33 +1539,41 @@ class AvalonReferee:
 
             # 蓝方需要刺杀阶段
             if self.blue_wins >= 3:
-                logger.info("Blue team completed 3 missions. Proceeding to assassination.")
+                logger.info(
+                    "Blue team completed 3 missions. Proceeding to assassination."
+                )
                 abort_result = check_abort()
                 if abort_result:
                     return abort_result  # 进入刺杀阶段前检查
 
                 assassination_success = self.assassinate_phase()
                 if assassination_success:
-                    game_result.update({
-                        "winner": "red",
-                        "win_reason": "assassination_success"
-                    })
-                    self.battle_observer.make_snapshot("GameResult", ["Red", "Assassination Success"])
+                    game_result.update(
+                        {"winner": "red", "win_reason": "assassination_success"}
+                    )
+                    self.battle_observer.make_snapshot(
+                        "GameResult", ["Red", "Assassination Success"]
+                    )
                 else:
-                    game_result.update({
-                        "winner": "blue",
-                        "win_reason": "missions_complete_and_assassination_failed"
-                    })
-                    self.battle_observer.make_snapshot("GameResult", ["Blue", "Assassination Failed"])
+                    game_result.update(
+                        {
+                            "winner": "blue",
+                            "win_reason": "missions_complete_and_assassination_failed",
+                        }
+                    )
+                    self.battle_observer.make_snapshot(
+                        "GameResult", ["Blue", "Assassination Failed"]
+                    )
             elif self.red_wins >= 3:
-                game_result.update({
-                    "winner": "red",
-                    "win_reason": "missions_failed"
-                })
-                self.battle_observer.make_snapshot("GameResult", ["Red", "3 Failed Missions"])
+                game_result.update({"winner": "red", "win_reason": "missions_failed"})
+                self.battle_observer.make_snapshot(
+                    "GameResult", ["Red", "3 Failed Missions"]
+                )
 
             # 记录最终结果
-            self.log_public_event({"type": "tokens", "result": self.game_helper.get_tokens()})
+            self.log_public_event(
+                {"type": "tokens", "result": self.game_helper.get_tokens()}
+            )
             self.log_public_event({"type": "game_end", "result": game_result})
             logger.info(f"===== Game {self.game_id} Finished =====")
             self.battle_observer.make_snapshot("GameEnd", self.game_id)
@@ -1480,7 +1584,7 @@ class AvalonReferee:
 
             # 确保返回的角色信息是JSON可序列化的字典，而不是Python对象
             roles_dict = {}
-            if hasattr(self, 'roles') and self.roles:
+            if hasattr(self, "roles") and self.roles:
                 # 将角色字典中的整数键转换为字符串键，确保可以在模板中访问
                 for player_id, role in self.roles.items():
                     roles_dict[str(player_id)] = role
@@ -1494,14 +1598,16 @@ class AvalonReferee:
                     self.data_dir, f"game_{self.game_id}_public.json"
                 ),
                 "winner": None,
-                "win_reason": "terminated_due_to_status_change"
+                "win_reason": "terminated_due_to_status_change",
             }
         except Exception as e:
-            logger.error(f"Critical error during game {self.game_id}: {str(e)}", exc_info=True)
+            logger.error(
+                f"Critical error during game {self.game_id}: {str(e)}", exc_info=True
+            )
 
             # 确保返回的角色信息是JSON可序列化的字典，而不是Python对象
             roles_dict = {}
-            if hasattr(self, 'roles') and self.roles:
+            if hasattr(self, "roles") and self.roles:
                 # 将角色字典中的整数键转换为字符串键，确保可以在模板中访问
                 for player_id, role in self.roles.items():
                     roles_dict[str(player_id)] = role
@@ -1598,7 +1704,9 @@ class AvalonReferee:
                 logger.error(
                     f"Player {player_id} ({self.roles.get(player_id)}) method {method_name} took {execution_time:.2f} seconds (timeout)"
                 )
-                self.suspend_game("critical_player_ERROR", player_id, method_name, str(e))
+                self.suspend_game(
+                    "critical_player_ERROR", player_id, method_name, str(e)
+                )
             return result
 
         except Exception as e:  # 玩家代码运行过程中报错
@@ -1653,7 +1761,9 @@ class AvalonReferee:
         )
 
         # 1. 给公有库添加报错信息
-        self.log_public_event({"type": "tokens", "result": self.game_helper.get_tokens()})
+        self.log_public_event(
+            {"type": "tokens", "result": self.game_helper.get_tokens()}
+        )
         self.log_public_event(
             {
                 "type": game_error_type,

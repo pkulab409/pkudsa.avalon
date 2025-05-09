@@ -24,8 +24,8 @@ class BattleManager:
     _instance = None
     _lock = threading.Lock()
 
-    # 修改 __new__ 以接受 battle_service (虽然通常在 __init__ 中处理依赖)
-    def __new__(cls, battle_service: BattleService = None):
+    # 修改 __new__ 以接受 battle_service 和 app
+    def __new__(cls, battle_service: BattleService = None, app=None):
         with cls._lock:
             if cls._instance is None:
                 if battle_service is None:
@@ -34,11 +34,11 @@ class BattleManager:
                         "BattleService instance is required to create BattleManager"
                     )
                 cls._instance = super(BattleManager, cls).__new__(cls)
-                # 将 service 存储在实例上，以便 __init__ 可以访问
+                # 将 service 和 app 存储在实例上，以便 __init__ 可以访问
                 cls._instance._battle_service = battle_service
+                cls._instance._app = app
                 cls._instance._initialized = False
             # 如果实例已存在，确保 service 一致性或忽略新的 service？
-            # 或者不允许传递 service 给已存在的实例
             elif (
                 battle_service is not None
                 and cls._instance._battle_service is not battle_service
@@ -48,14 +48,13 @@ class BattleManager:
                 )
             return cls._instance
 
-    def __init__(
-        self, battle_service: BattleService = None
-    ):  # battle_service 参数保留以明确依赖
+    def __init__(self, battle_service: BattleService = None, app=None):  # 添加 app 参数
         if hasattr(self, "_initialized") and self._initialized:
             return
 
-        # 从 _instance 获取 service
+        # 从 _instance 获取 service 和 app
         self.battle_service: BattleService = self._instance._battle_service
+        self.app = self._instance._app  # 存储Flask应用实例或上下文
 
         # 初始化对战管理器
         self.battles: Dict[str, threading.Thread] = {}
@@ -138,9 +137,13 @@ class BattleManager:
                     f"对战 {battle_id} 线程开始执行"
                 )  # 使用 service log
 
-                # 3. 初始化裁判
+                # 3. 初始化裁判 - 修改这里，传递应用上下文给裁判
                 referee = AvalonReferee(
-                    battle_id, battle_observer, self.data_dir, player_code_paths
+                    battle_id,
+                    battle_observer,
+                    self.data_dir,
+                    player_code_paths,
+                    # app_context=self.app,  # 传递Flask应用上下文给裁判 # Removed app_context
                 )
 
                 # 4. 运行游戏
@@ -159,8 +162,12 @@ class BattleManager:
                     )
 
                     # 正常结束，更新数据库状态为 completed
-                    if self.battle_service.mark_battle_as_completed(battle_id, result_data):
-                        self.battle_service.log_info(f"对战 {battle_id} 完成，结果已处理")
+                    if self.battle_service.mark_battle_as_completed(
+                        battle_id, result_data
+                    ):
+                        self.battle_service.log_info(
+                            f"对战 {battle_id} 完成，结果已处理"
+                        )
                     else:
                         # Service 内部已记录错误，BattleManager 只记录内存状态
                         self.battle_service.log_error(
@@ -213,7 +220,7 @@ class BattleManager:
 
     def get_battle_status(self, battle_id: str) -> Optional[str]:
         """获取对战状态 (优先从内存获取)"""
-        '''可以实时实现与数据库的交汇，清理其余标记的残余记录'''
+        """可以实时实现与数据库的交汇，清理其余标记的残余记录"""
         return self.battle_status.get(battle_id)
 
     def get_snapshots_queue(self, battle_id: str) -> List[Dict[str, Any]]:

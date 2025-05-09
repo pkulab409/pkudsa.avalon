@@ -20,6 +20,16 @@ logging:
 AI_CODE_UPLOAD_FOLDER: uploads/
 
 
+
+# LLM 相关配置
+OPENAI_API_KEY: "sk-ChenBin_KnMMX4C9yC64"
+OPENAI_API_BASE: "https://chat.noc.pku.edu.cn/v1" # or your proxy
+DEFAULT_LLM_PROVIDER: "openai"
+DEFAULT_LLM_MODEL: "deepseek-v3-250324-64k-local"
+DEFAULT_LLM_TEMPERATURE: 0.7
+DEFAULT_LLM_MAX_OUTPUT_TOKENS: 500
+DEFAULT_LLM_TIMEOUT: 60.0 # API client-side timeout in seconds
+
 # AI代码配置
 ai:
   allowed_extensions: # 允许的文件扩展名
