@@ -61,7 +61,7 @@ def create_battle_page():
     user_ai_codes = db_get_user_ai_codes(current_user.id)
     # 获取所有用户（或一部分用户）作为潜在的AI对手
     # 注意：实际应用中可能需要更复杂的对手选择机制，例如好友、排行榜用户等
-    potential_opponents = User.query.filter(User.id != current_user.id).limit(20).all()
+    potential_opponents = User.query.filter(User.id != current_user.id).all()
     return render_template(
         "create_battle.html",  # 需要创建 create_battle.html
         user_ai_codes=user_ai_codes,
