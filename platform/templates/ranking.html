@@ -4,13 +4,28 @@
 {% endblock title %}
 {% block content %}
     <div class="container mt-4">
-        <h2 class="mb-4">玩家排行榜</h2>
-        <!-- 可以添加排序选项 -->
-        <!-- <div class="mb-3">
-      <a href="{{ url_for('ranking.show_ranking', sort_by='score') }}" class="btn btn-sm {% if sort_by == 'score' %}btn-primary{% else %}btn-outline-primary{% endif %}">按分数排序</a>
-      <a href="{{ url_for('ranking.show_ranking', sort_by='wins') }}" class="btn btn-sm {% if sort_by == 'wins' %}btn-primary{% else %}btn-outline-primary{% endif %}">按胜场排序</a>
-      <a href="{{ url_for('ranking.show_ranking', sort_by='win_rate') }}" class="btn btn-sm {% if sort_by == 'win_rate' %}btn-primary{% else %}btn-outline-primary{% endif %}">按胜率排序</a>
-    </div> -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">玩家排行榜</h2>
+        </div>
+        <!-- 标签页导航 -->
+        <ul class="nav nav-tabs mb-3">
+            <li class="nav-item">
+                <a class="nav-link {% if current_ranking_id == 0 %}active{% endif %}"
+                   href="{{ url_for('ranking.show_ranking', ranking_id=0) }}">主排行榜</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if current_ranking_id == 1 %}active{% endif %}"
+                   href="{{ url_for('ranking.show_ranking', ranking_id=1) }}">天梯赛S1 (示例)</a>
+            </li>
+            {# 在这里可以动态添加更多排行榜的标签页 #}
+            {# 例如，如果有一个排行榜列表传递到模板中:
+      {% for rank_info in available_rankings %}
+      <li class="nav-item">
+        <a class="nav-link {% if current_ranking_id == rank_info.id %}active{% endif %}" href="{{ url_for('ranking.show_ranking', ranking_id=rank_info.id) }}">{{ rank_info.name }}</a>
+      </li>
+      {% endfor %}
+      #}
+        </ul>
         <div class="card shadow-sm">
             <div class="card-body p-0">
                 <div class="table-responsive">
