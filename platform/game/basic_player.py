@@ -61,11 +61,23 @@ class Player:
         - 自己一定上
         - 优先选择不在嫌疑列表的人
         """
+        # 确保候选人列表中不包含自己，并且数量足够
         candidates = [
             i for i in range(1, 8) if i != self.index and i not in self.suspects
         ]
+
+        # 如果候选人不足，补充所有非自己玩家
+        if len(candidates) < member_number - 1:
+            additional_candidates = [
+                i for i in range(1, 8) if i != self.index and i not in candidates
+            ]
+            candidates.extend(additional_candidates)
+    
+        # 打乱候选人顺序
         random.shuffle(candidates)
-        chosen = [self.index] + candidates[: member_number - 1]
+    
+        # 确保返回的队伍包含自己，并且总人数符合要求
+        chosen = [self.index] + candidates[:member_number - 1]
         return chosen[:member_number]
 
     def pass_mission_members(self, leader: int, members: list[int]):

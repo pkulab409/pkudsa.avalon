@@ -1192,7 +1192,7 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                 for team, scores in team_elos.items()
             }  # 这里改为调和平均，给有大蠢蛋参与队伍的强者发点补助
 
-            K_FACTOR = 32
+            K_FACTOR = 100
             red_expected = 1 / (
                 1 + 10 ** ((team_avg[BLUE_TEAM] - team_avg[RED_TEAM]) / 400)
             )
