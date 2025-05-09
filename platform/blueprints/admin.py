@@ -145,43 +145,28 @@ def terminate_game(game_id):
         if game.status != 'playing':
             abort(400, description="只能终止进行中的对局")
 
-        # 使用battle_manager取消对战，确保状态在所有地方一致
-        from utils.battle_manager_utils import get_battle_manager
-        battle_manager = get_battle_manager()
+        battle_players = game.players.all()
+        for bp in battle_players:
+            if bp.elo_change is not None:
+                stats = GameStats.query.filter_by(user_id=bp.user_id).first()
+                if stats:
+                    stats.elo_score -= bp.elo_change
+            bp.outcome = 'canceled'
+            bp.elo_change = None
+            db.session.add(bp)
 
-        # 调用battle_manager的cancel_battle方法
-        reason = f"由管理员 {current_user.username} 手动终止"
-        if battle_manager.cancel_battle(game_id, reason):
-            logging.info(f"对战 {game_id} 已成功取消: {reason}")
+        game.status = 'canceled'
+        game.ended_at = datetime.now()
+        db.session.commit()
 
-            # 处理ELO变化（如果有）
-            battle_players = game.players.all()
-            for bp in battle_players:
-                if bp.elo_change is not None:
-                    stats = GameStats.query.filter_by(user_id=bp.user_id).first()
-                    if stats:
-                        stats.elo_score -= bp.elo_change
-                bp.outcome = 'cancelled'
-                bp.elo_change = None
-                db.session.add(bp)
-
-            # 确保对局结束时间设置
-            if not game.ended_at:
-                game.ended_at = datetime.now()
-                db.session.add(game)
-
-            db.session.commit()
-
-            return jsonify({
-                'message': '对局已终止',
-                'details': {
-                    'battle_id': game.id,
-                    'cancelled_at': game.ended_at.isoformat() if game.ended_at else datetime.now().isoformat(),
-                    'affected_players': [bp.user_id for bp in battle_players]
-                }
-            }), 200
-        else:
-            abort(500, description=f"取消对战失败，请检查战局状态")
+        return jsonify({
+            'message': '对局已终止',
+            'details': {
+                'battle_id': game.id,
+                'canceled_at': game.ended_at.isoformat(),
+                'affected_players': [bp.user_id for bp in battle_players]
+            }
+        }), 200
 
     except Exception as e:
         db.session.rollback()
@@ -195,7 +180,7 @@ def terminate_game(game_id):
 def delete_game(game_id):
     try:
         game = Battle.query.get_or_404(game_id)
-        allowed_statuses = ['completed', 'cancelled', 'error']
+        allowed_statuses = ['completed', 'canceled', 'error']
         if game.status not in allowed_statuses:
             abort(400, description="只能删除已结束的对局")
 

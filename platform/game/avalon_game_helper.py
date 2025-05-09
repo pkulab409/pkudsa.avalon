@@ -135,7 +135,7 @@ class GameHelper:
         # 判断用户在这一轮已经调用几次 LLM，执行相应操作
         if (
             player_call_counts[self.current_round]
-            >= _MAX_CALL_COUNT_PER_ROUND + self.call_count_added
+            > _MAX_CALL_COUNT_PER_ROUND + self.call_count_added
         ):
             raise RuntimeError(
                 f"Maximum call count per round of player {self.current_player_id} exceeded"
@@ -197,8 +197,8 @@ class GameHelper:
 
         # 更新token统计
         token = len(completion.choices[0].message.content)
-        self.tokens[self.current_player_id-1]["input"] += token
-
+        self.tokens[self.current_player_id-1]["output"] += token
+    
         return completion.choices[0].message.content
 
     def _get_private_lib_content(self) -> dict:
