@@ -760,6 +760,7 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                 "winner": "red"|"blue",  # 获胜队伍
                 "error": bool,           # 新增错误标识（可选）
                 "public_log_file": str,  # 新增公共日志路径（可选）
+                "roles": {...},          # 角色分配信息
                 # 其他可选字段（如game_log_uuid等）
             }
 
@@ -771,13 +772,6 @@ def process_battle_results_and_update_stats(battle_id, results_data):
     BLUE_TEAM = "blue"
     BLUE_ROLES = ["Merlin", "Percival", "Knight"]  # 蓝方角色
     RED_ROLES = ["Morgana", "Assassin", "Oberon"]  # 红方角色
-
-    def _get_team_assignment(player_index: int) -> str:
-        """返回玩家的队伍 (player_index 取1-7)"""
-        if results_data["roles"][player_index] in RED_ROLES:
-            return RED_TEAM
-        else:
-            return BLUE_TEAM
 
     try:
         # ----------------------------------
@@ -802,6 +796,7 @@ def process_battle_results_and_update_stats(battle_id, results_data):
 
         # 初始化错误处理相关变量
         err_user_id = None
+        error_pid_in_game = None
         if "error" in results_data:
             # 验证公共日志文件路径
             PUBLIC_LIB_FILE_DIR = results_data.get("public_log_file")
@@ -818,7 +813,7 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                         logger.error(f"[Battle {battle_id}] 公有库无记录")
                         return False
                     error_pid_in_game = last_record.get("error_code_pid")
-                    if error_pid_in_game is None or not (1 <= error_pid_in_game <=7):
+                    if error_pid_in_game is None or not (1 <= error_pid_in_game <= 7):
                         logger.error(f"[Battle {battle_id}] 无效的错误玩家PID: {error_pid_in_game}")
                         return False
             except Exception as e:
@@ -841,13 +836,67 @@ def process_battle_results_and_update_stats(battle_id, results_data):
         battle.game_log_uuid = results_data.get("game_log_uuid")
 
         # ----------------------------------
-        # 阶段3：生成核心映射关系
+        # 阶段3：生成核心映射关系 - 修复部分
         # ----------------------------------
+        # 获取角色信息，处理不同格式的roles数据
+        roles_data = results_data.get("roles", {})
+        logger.info(f"[Battle {battle_id}] 从结果数据中获取角色信息: {roles_data}")
+
+        # 创建player_id到角色的映射
+        player_roles = {}
+
+        # 尝试多种方式从结果数据中提取角色信息
+        if isinstance(roles_data, dict):
+            # 如果roles是字典格式
+            for pid_str, role in roles_data.items():
+                try:
+                    # 尝试将键转换为整数（处理字符串键的情况）
+                    pid = int(pid_str) if isinstance(pid_str, str) else pid_str
+                    player_roles[pid] = role
+                except (ValueError, TypeError):
+                    logger.warning(f"[Battle {battle_id}] 无法解析角色数据键: {pid_str}")
+
+        # 如果无法从结果数据中获取角色信息，我们将基于最终获胜方推断队伍
+        if not player_roles and "winner" in results_data:
+            logger.warning(f"[Battle {battle_id}] 无法从结果中获取角色信息，将基于最终胜负推断队伍")
+
+            # 根据最终获胜方分配角色（简化处理）
+            winner_team = results_data.get("winner")
+
+            # 模拟一个基础的角色分配
+            # 前4个玩家是蓝队，后3个玩家是红队（这是一种简化处理）
+            for i in range(1, 8):
+                if i <= 4:  # 前4个玩家属于蓝队
+                    player_roles[i] = "Knight"  # 默认蓝队角色
+                else:  # 后3个玩家属于红队
+                    player_roles[i] = "Assassin"  # 默认红队角色
+
+        # 在没有任何角色信息的情况下，记录警告并继续
+        if not player_roles:
+            logger.warning(f"[Battle {battle_id}] 无法确定角色分配，将默认分配角色")
+            # 创建默认角色映射
+            for i in range(1, 8):
+                player_roles[i] = "Knight" if i <= 4 else "Assassin"
+
+        # 打印获取到的角色信息进行调试
+        logger.info(f"[Battle {battle_id}] 获取到的角色映射: {player_roles}")
+
+        # 定义获取队伍的函数
+        def _get_team_assignment(player_index: int) -> str:
+            """返回玩家的队伍 (player_index 取1-7)"""
+            role = player_roles.get(player_index)
+            if role in RED_ROLES:
+                return RED_TEAM
+            else:
+                return BLUE_TEAM
+
+        # 生成用户ID到队伍的映射
         team_map = {
             bp.user_id: _get_team_assignment(idx + 1)
             for idx, bp in enumerate(battle_players)
         }
 
+        logger.info(f"[Battle {battle_id}] 生成的队伍映射: {team_map}")
 
         # 生成用户结果映射
         if "error" in results_data:
@@ -870,7 +919,6 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                 for user_id, team in team_map.items()
             }
 
-
         # ----------------------------------
         # 阶段4：更新玩家对战记录
         # ----------------------------------
@@ -888,14 +936,21 @@ def process_battle_results_and_update_stats(battle_id, results_data):
         # ----------------------------------
 
         # 这里获取对局token数
-        PUBLIC_LIB_FILE_DIR = results_data.get("public_log_file")
-        with open(PUBLIC_LIB_FILE_DIR, "r", encoding="utf-8") as plib:
-            data = json.load(plib)
-            for line in data[::-1]:
-                if line.get("type") == "tokens":
-                    tokens = line.get("result") # [{"input": 0, "output": 0} for i in range(7)]
-                    break
-        
+        tokens = []
+        try:
+            PUBLIC_LIB_FILE_DIR = results_data.get("public_log_file")
+            with open(PUBLIC_LIB_FILE_DIR, "r", encoding="utf-8") as plib:
+                data = json.load(plib)
+                for line in data[::-1]:
+                    if line.get("type") == "tokens":
+                        tokens = line.get("result", [])  # [{"input": 0, "output": 0} for i in range(7)]
+                        break
+            logger.info(f"[Battle {battle_id}] 获取到的tokens数据: {tokens}")
+        except Exception as e:
+            logger.warning(f"[Battle {battle_id}] 获取tokens数据失败: {str(e)}")
+            # 创建默认tokens
+            tokens = [{"input": 0, "output": 0} for i in range(7)]
+
         involved_user_ids = list(user_outcomes.keys())
         user_stats_map = {
             stats.user_id: stats
@@ -926,10 +981,9 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                     team_elos[team].append(stats.elo_score)
 
             team_avg = {
-                team: sum(scores)/len(scores) if scores else 0
+                team: sum(scores) / len(scores) if scores else 0
                 for team, scores in team_elos.items()
             }
-
 
             # 计算惩罚值
             reduction = 2 * abs(team_avg[BLUE_TEAM] - team_avg[RED_TEAM])
@@ -955,7 +1009,6 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                     bp.elo_change = 0
                     stats.draws += 1
 
-
                 db.session.add(stats)
                 db.session.add(bp)
 
@@ -969,18 +1022,17 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                     team_elos[team].append(stats.elo_score)
 
             team_avg = {
-                team: sum(scores)/len(scores)
+                team: sum(scores) / len(scores) if scores else 0
                 for team, scores in team_elos.items()
             }
 
             K_FACTOR = 32
-            red_expected = 1 / (1 + 10**((team_avg[BLUE_TEAM] - team_avg[RED_TEAM])/400))
-            blue_expected = 1 / (1 + 10**((team_avg[RED_TEAM] - team_avg[BLUE_TEAM])/400))
-
+            red_expected = 1 / (1 + 10 ** ((team_avg[BLUE_TEAM] - team_avg[RED_TEAM]) / 400))
+            blue_expected = 1 / (1 + 10 ** ((team_avg[RED_TEAM] - team_avg[BLUE_TEAM]) / 400))
 
             actual_score = {
-                RED_TEAM: 1.0 if winner_team == RED_TEAM else 0.0,
-                BLUE_TEAM: 1.0 if winner_team == BLUE_TEAM else 0.0
+                RED_TEAM: 1.0 if results_data.get("winner") == RED_TEAM else 0.0,
+                BLUE_TEAM: 1.0 if results_data.get("winner") == BLUE_TEAM else 0.0
             }
 
             for user_id, stats in user_stats_map.items():
@@ -997,7 +1049,7 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                     stats.wins += 1
                 else:
                     stats.losses += 1
-                
+
                 new_elo = max(round(stats.elo_score + delta), 100)
                 bp.initial_elo = stats.elo_score
                 bp.elo_change = new_elo - stats.elo_score
