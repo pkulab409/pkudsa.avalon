@@ -633,15 +633,16 @@ def extract_player_movements(game_data):
         elif event_type == "RoundStart":
             if isinstance(event_data, int):
                 current_round_num = event_data  # Update current round number
-            for i in range(1,8):
+            for i in range(1, 8):
                 movements_by_player[str(i)].append(
                     {
-                        "round": current_round_num,  
+                        "round": current_round_num,
                         "position": (
-                           movements_by_player[str(i)][-1]['position'] 
+                            movements_by_player[str(i)][-1]["position"]
                         ),  # Basic validation
                         "moves": [],  # No moves for initial state
-                    })
+                    }
+                )
 
         elif event_type == "Move":
             # event_data = (player_id, [valid_moves, new_pos])
@@ -665,8 +666,6 @@ def extract_player_movements(game_data):
             #         break
             movements_by_player[player_id_str][current_round_num]["position"] = new_pos
             movements_by_player[player_id_str][current_round_num]["moves"] = valid_moves
-
-            
 
         # "Positions" event is ignored as 'Move' events should capture the state changes per round.
         # If 'Move' is unreliable, 'Positions' could be used as a fallback snapshot.
