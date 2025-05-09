@@ -37,37 +37,65 @@ $\Delta ELO = K \times (结果 - 预期胜率)$
 
 我们将使用改进版的ELO评分系统，结合了队伍表现和个体资源贡献。以下是核心公式的解析：
 
-1. **队伍调和平均ELO计算**
+1. **Token标准化计算**
 
-   $\text{队伍平均} = \frac{\text{队员数}}{\sum_{i=1}^{n} \min\left(1,\ \frac{1}{\text{ELO}_i}\right)}$
+每个玩家的token消耗被加权处理，输出token权重为输入的3倍：
+$$
+\text{tokens\_standard}_i = \frac{\text{input}_i + 3 \times \text{output}_i}{4} \quad (i=0,1,...,6)
+$$
 
-   其中`队员数`为队伍人数，通过调和平均降低低分玩家对队伍评分的影响。
+2. **基准Token平均值**
 
-2. **基础预期胜率**
+计算所有玩家的标准化token平均值，并设定下限：
+$$
+\text{tokens\_avg} = \max\left(3000, \frac{1}{7}\sum_{i=0}^{6} \text{tokens\_standard}_i\right)
+$$
 
-   $E_{\text{基础}} = \frac{1}{1 + 10^{(\text{队伍平均}_\text{对手} - \text{队伍平均}_\text{己方})/400}}$
+3. **Token消耗比例**
 
-   基于队伍调和平均分差的标准ELO预期胜率计算。
+计算每个玩家的token消耗相对于基准值的比例：
+$$
+\text{proportion}_i = \frac{\text{tokens\_standard}_i}{\text{tokens\_avg}}
+$$
 
-3. **资源贡献修正系数**
+4. **队伍ELO调和平均**
 
-   $\alpha = 0.9 + \frac{\max\left(\frac{\text{输入} + 3 \times \text{输出}}{\text{平均资源}} - 1,\ 0\right)}{3}$
+计算队伍ELO的调和平均值（防止低分玩家过度影响）：
+$$
+\text{team\_avg} = \frac{N}{\sum \min\left(1, \frac{1}{\text{elo\_score}}\right)}
+$$
+其中 $N$ 为队伍人数， $\text{elo\_score}$ 为玩家ELO
 
-   通过LLM的输入token和3倍输出token计算资源占比，对超过平均值的部分给予0.9~1.2的修正区间。
+5. **基础期望胜率**
 
-4. **调整后预期胜率**
+使用标准ELO公式计算两队期望胜率：
+$$
+\begin{align*}
+E_{\text{red}} &= \frac{1}{1 + 10^{(\text{team\_avg}_{\text{blue}} - \text{team\_avg}_{\text{red}})/400}} \\
+E_{\text{blue}} &= \frac{1}{1 + 10^{(\text{team\_avg}_{\text{red}} - \text{team\_avg}_{\text{blue}})/400}}
+\end{align*}
+$$
 
-   $E_{\text{调整后}} = \min(1,\ E_{\text{基础}} \times \alpha)$
+6. **期望胜率调整规则**
 
-   结合资源贡献系数调整后的最终预期胜率。
+根据token消耗比例动态调整期望值：
+$$
+E_{\text{adjusted}} = \min\left(1,\ E_{\text{base}} \times \left(0.9 + \frac{\max(\text{proportion}_i - 1,\ 0)}{3}\right)\right)
+$$
 
-5. **ELO更新公式**
+7. **ELO变化计算**
 
-   $\Delta\text{ELO} = K \times (S_{\text{实际}} - E_{\text{调整后}})$
+使用线性响应公式计算ELO变化量：
+$$
+\Delta = 32 \times (S_{\text{actual}} - E_{\text{adjusted}})
+$$
+*其中$S_{\text{actual}}=1$当队伍胜利，否则$0$*
 
-   其中 $K=32$ ，实际结果 $S∈{0,1}$ ，最终ELO最低保底100分。
-
-该公式在传统ELO机制上增加了两个关键改进：
+8. **最终ELO计算**
+强制设置ELO下限并更新分数：
+$$
+\text{new\_elo} = \max(100,\ \text{old\_elo} + \text{round}(\Delta))
+$$
 
 - 使用调和平均弱化低水平队友的影响
 - 通过资源消耗系数动态调整预期胜率，鼓励合理分配计算资源
@@ -78,7 +106,13 @@ $\Delta ELO = K \times (结果 - 预期胜率)$
 
 **处理方式**：  
 
-1. **扣除犯规玩家 50 分**
+1. **扣除犯规玩家分值如下：**
+
+   - 基础惩罚为30分，加上队伍差距的10%
+   - 根据错误类型设置不同倍数:严重错误(1.5倍)，返回值错误(1.2倍)
+   - 根据错误方法添加额外惩罚:移动错误(+10分)，队伍选择错误(+15分)，投票错误(+20分)
+   - 确保惩罚最低20分，最高100分
+
 2. 本局判定为**平局**，其他玩家ELO不变
 
 ---

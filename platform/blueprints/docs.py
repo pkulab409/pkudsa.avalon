@@ -21,7 +21,7 @@ def index2():
 
 @docs_bp.route("/elo")
 def index3():
-    return render_template("/docs/docs.html", docname="elo")
+    return render_template("/docs/elo.html")
 
 
 @docs_bp.route("/server_func")

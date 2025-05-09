@@ -20,9 +20,13 @@
         <script defer
                 src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
         <script>
-      // 4. 配置marked支持代码高亮（必须在所有库加载完成后）
+      // 4. 配置marked支持代码高亮和图片（必须在所有库加载完成后）
       marked.setOptions({
         breaks: true,
+        gfm: true,  // 启用 GitHub 风格的 Markdown
+        headerIds: true,
+        mangle: false,
+        sanitize: false,  // 允许 HTML 标签，这样图片才能正常显示
         highlight: function(code, lang) {
           // 确保hljs已加载
           if (typeof hljs !== 'undefined') {
@@ -54,8 +58,12 @@
               renderMathInElement(document.getElementById('markdown-content'), {
                 delimiters: [
                   { left: '$$', right: '$$', display: true },
-                  { left: '$', right: '$', display: false }
-                ]
+                  { left: '$', right: '$', display: false },
+                  { left: '\\(', right: '\\)', display: false },
+                  { left: '\\[', right: '\\]', display: true }
+                ],
+                throwOnError: false,
+                trust: true
               });
             }
           }, 100);
