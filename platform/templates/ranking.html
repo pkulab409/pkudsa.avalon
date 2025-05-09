@@ -5,12 +5,37 @@
 {% block content %}
     <div class="container mt-4">
         <h2 class="mb-4">玩家排行榜</h2>
-        <!-- 可以添加排序选项 -->
-        <!-- <div class="mb-3">
-      <a href="{{ url_for('ranking.show_ranking', sort_by='score') }}" class="btn btn-sm {% if sort_by == 'score' %}btn-primary{% else %}btn-outline-primary{% endif %}">按分数排序</a>
-      <a href="{{ url_for('ranking.show_ranking', sort_by='wins') }}" class="btn btn-sm {% if sort_by == 'wins' %}btn-primary{% else %}btn-outline-primary{% endif %}">按胜场排序</a>
-      <a href="{{ url_for('ranking.show_ranking', sort_by='win_rate') }}" class="btn btn-sm {% if sort_by == 'win_rate' %}btn-primary{% else %}btn-outline-primary{% endif %}">按胜率排序</a>
-    </div> -->
+        
+        <!-- 添加Font Awesome图标库 -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+        <style>
+            /* 奖牌样式 */
+            .medal-gold {
+                color: #FFD700;
+                font-size: 1.4em;
+                margin-right: 5px;
+            }
+            .medal-silver {
+                color: #C0C0C0;
+                font-size: 1.3em;
+                margin-right: 5px;
+            }
+            .medal-bronze {
+                color: #CD7F32;
+                font-size: 1.2em;
+                margin-right: 5px;
+            }
+            /* 突出显示前三名行 */
+            tr.top3 {
+                background: linear-gradient(45deg, #f8f9fa, #fff);
+                font-weight: 500;
+            }
+            tr.top3:hover {
+                background: linear-gradient(45deg, #f1f3f5, #f8f9fa);
+            }
+        </style>
+
         <div class="card shadow-sm">
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -30,17 +55,39 @@
                         <tbody>
                             {% if ranking_items %}
                                 {% for item in ranking_items %}
-                                    <tr>
-                                        <td>{{ item.rank }}</td>
+                                    <tr class="{% if item.rank <= 3 %}top3{% endif %}">
                                         <td>
-                                            <a href="{{ url_for('profile.profile', username=item.username) }}">{{ item.username }}</a>
+                                            {% if item.rank == 1 %}
+                                                <i class="fas fa-trophy medal-gold"></i>
+                                            {% elif item.rank == 2 %}
+                                                <i class="fas fa-trophy medal-silver"></i>
+                                            {% elif item.rank == 3 %}
+                                                <i class="fas fa-trophy medal-bronze"></i>
+                                            {% else %}
+                                                {{ item.rank }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if current_user.is_authenticated and item.username == current_user.username %}
+                                                <a href="{{ url_for('profile.profile', username=item.username) }}" class="text-dark">
+                                                    {{ item.username }}
+                                                    {% if item.rank <= 3 %}<i class="fas fa-crown"></i>{% endif %}
+                                                </a>
+                                            {% else %}
+                                                {{ item.username }}
+                                            {% endif %}
                                         </td>
                                         <td>{{ item.score }}</td>
                                         <td>{{ item.wins }}</td>
                                         <td>{{ item.losses }}</td>
                                         <td>{{ item.draws }}</td>
                                         <td>{{ item.total }}</td>
-                                        <td>{{ item.win_rate }}</td>
+                                        <td>
+                                            {{ item.win_rate }}
+                                            {% if item.rank <= 3 %}
+                                                <i class="fas fa-star text-warning"></i>
+                                            {% endif %}
+                                        </td>
                                     </tr>
                                 {% endfor %}
                             {% else %}
@@ -53,6 +100,5 @@
                 </div>
             </div>
         </div>
-        <!-- 可以添加分页控件 -->
     </div>
 {% endblock content %}
