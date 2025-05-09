@@ -1316,6 +1316,11 @@ class AvalonReferee:
         # 刺杀结束快照
         return success
 
+    """
+    以下是完整的 referee.py 中 run_game 方法修改实现。
+    这个实现专注于确保游戏结果的格式一致性，正确包含角色信息，并增强日志记录。
+    """
+
     def run_game(self) -> Dict[str, Any]:
         """
         运行游戏，返回游戏结果
@@ -1343,18 +1348,21 @@ class AvalonReferee:
             if self.battle_status_checker.should_abort():
                 battle_status = self.battle_status_checker.get_battle_status()
 
-                # 确保返回的角色信息是JSON可序列化的字典，而不是Python对象
+                # 创建标准格式的角色信息字典
                 roles_dict = {}
                 if hasattr(self, 'roles') and self.roles:
-                    # 将角色字典中的整数键转换为字符串键，确保可以在模板中访问
+                    # 保持整数键 - 这样在 process_battle_results_and_update_stats 中更容易处理
                     for player_id, role in self.roles.items():
-                        roles_dict[str(player_id)] = role
+                        roles_dict[player_id] = role
+
+                    # 记录详细的角色分配信息，便于调试
+                    logger.info(f"Game {self.game_id} aborted with roles: {roles_dict}")
 
                 game_result = {
                     "blue_wins": self.blue_wins,
                     "red_wins": self.red_wins,
                     "rounds_played": self.current_round,
-                    "roles": roles_dict,  # 使用转换后的角色字典
+                    "roles": roles_dict,  # 使用标准格式的角色字典
                     "public_log_file": os.path.join(self.data_dir, f"game_{self.game_id}_public.json"),
                     "winner": None,
                     "win_reason": f"aborted_due_to_battle_state_{battle_status}"
@@ -1394,10 +1402,15 @@ class AvalonReferee:
                         return abort_result
                     else:
                         # 如果check_abort没有返回结果，我们仍然需要处理终止
+                        # 创建标准格式的角色信息字典
                         roles_dict = {}
                         if hasattr(self, 'roles') and self.roles:
+                            # 保持整数键，与正常流程保持一致
                             for player_id, role in self.roles.items():
-                                roles_dict[str(player_id)] = role
+                                roles_dict[player_id] = role
+
+                            # 记录详细的角色分配信息，便于调试
+                            logger.info(f"Game {self.game_id} terminated with roles: {roles_dict}")
 
                         return {
                             "blue_wins": self.blue_wins,
@@ -1426,18 +1439,21 @@ class AvalonReferee:
                 "FinalScore", [self.blue_wins, self.red_wins]
             )
 
-            # 确保返回的角色信息是JSON可序列化的字典，而不是Python对象
+            # 创建标准格式的角色信息字典
             roles_dict = {}
             if hasattr(self, 'roles') and self.roles:
-                # 将角色字典中的整数键转换为字符串键，确保可以在模板中访问
+                # 保持整数键 - 这样在 process_battle_results_and_update_stats 中更容易处理
                 for player_id, role in self.roles.items():
-                    roles_dict[str(player_id)] = role
+                    roles_dict[player_id] = role
+
+                # 记录详细的角色分配信息，便于调试
+                logger.info(f"Game {self.game_id} final role assignments: {roles_dict}")
 
             game_result = {
                 "blue_wins": self.blue_wins,
                 "red_wins": self.red_wins,
                 "rounds_played": self.current_round,
-                "roles": roles_dict,  # 使用转换后的角色字典
+                "roles": roles_dict,  # 使用标准格式的角色字典
                 "public_log_file": os.path.join(
                     self.data_dir, f"game_{self.game_id}_public.json"
                 ),
@@ -1457,18 +1473,41 @@ class AvalonReferee:
                         "win_reason": "assassination_success"
                     })
                     self.battle_observer.make_snapshot("GameResult", ["Red", "Assassination Success"])
+                    logger.info(f"Game {self.game_id} result: RED wins by assassination")
                 else:
                     game_result.update({
                         "winner": "blue",
                         "win_reason": "missions_complete_and_assassination_failed"
                     })
                     self.battle_observer.make_snapshot("GameResult", ["Blue", "Assassination Failed"])
+                    logger.info(f"Game {self.game_id} result: BLUE wins (assassination failed)")
             elif self.red_wins >= 3:
                 game_result.update({
                     "winner": "red",
                     "win_reason": "missions_failed"
                 })
                 self.battle_observer.make_snapshot("GameResult", ["Red", "3 Failed Missions"])
+                logger.info(f"Game {self.game_id} result: RED wins by completing 3 failed missions")
+
+            # 验证结果数据的完整性
+            if "roles" not in game_result or not game_result["roles"]:
+                logger.warning(f"Game {self.game_id} missing roles data in result")
+                # 确保有一个默认的roles字典
+                game_result["roles"] = {}
+
+            if "winner" not in game_result:
+                logger.warning(f"Game {self.game_id} missing winner in result")
+                # 根据得分确定获胜方
+                if self.blue_wins > self.red_wins:
+                    game_result["winner"] = "blue"
+                elif self.red_wins > self.blue_wins:
+                    game_result["winner"] = "red"
+                else:
+                    # 平局情况
+                    game_result["winner"] = None
+
+            # 记录最终完整的游戏结果
+            logger.info(f"Final game result for {self.game_id}: {json.dumps(game_result, default=str)}")
 
             # 记录最终结果
             self.log_public_event({"type": "tokens", "result": self.game_helper.get_tokens()})
@@ -1480,44 +1519,59 @@ class AvalonReferee:
         except GameTerminationError as e:
             logger.error(f"Game terminated due to battle status change: {str(e)}")
 
-            # 确保返回的角色信息是JSON可序列化的字典，而不是Python对象
+            # 创建标准格式的角色信息字典
             roles_dict = {}
             if hasattr(self, 'roles') and self.roles:
-                # 将角色字典中的整数键转换为字符串键，确保可以在模板中访问
+                # 保持整数键，与正常流程保持一致
                 for player_id, role in self.roles.items():
-                    roles_dict[str(player_id)] = role
+                    roles_dict[player_id] = role
 
-            return {
+                # 记录详细的角色分配信息，便于调试
+                logger.info(f"Game {self.game_id} terminated with roles: {roles_dict}")
+
+            terminate_result = {
                 "blue_wins": self.blue_wins,
                 "red_wins": self.red_wins,
                 "rounds_played": self.current_round,
-                "roles": roles_dict,  # 使用转换后的角色字典
+                "roles": roles_dict,  # 使用标准格式的角色字典
                 "public_log_file": os.path.join(
                     self.data_dir, f"game_{self.game_id}_public.json"
                 ),
                 "winner": None,
                 "win_reason": "terminated_due_to_status_change"
             }
+
+            # 记录终止事件
+            self.log_public_event({"type": "game_terminated", "result": terminate_result})
+            return terminate_result
+
         except Exception as e:
             logger.error(f"Critical error during game {self.game_id}: {str(e)}", exc_info=True)
 
-            # 确保返回的角色信息是JSON可序列化的字典，而不是Python对象
+            # 创建标准格式的角色信息字典
             roles_dict = {}
             if hasattr(self, 'roles') and self.roles:
-                # 将角色字典中的整数键转换为字符串键，确保可以在模板中访问
+                # 保持整数键，与正常流程保持一致
                 for player_id, role in self.roles.items():
-                    roles_dict[str(player_id)] = role
+                    roles_dict[player_id] = role
 
-            return {
+                # 记录详细的角色分配信息，便于调试
+                logger.info(f"Game {self.game_id} crashed with roles: {roles_dict}")
+
+            error_result = {
                 "error": f"Critical Error: {str(e)}",
                 "blue_wins": self.blue_wins,
                 "red_wins": self.red_wins,
                 "rounds_played": self.current_round,
-                "roles": roles_dict,  # 使用转换后的角色字典
+                "roles": roles_dict,  # 使用标准格式的角色字典
                 "public_log_file": os.path.join(
                     self.data_dir, f"game_{self.game_id}_public.json"
                 ),
             }
+
+            # 记录错误事件
+            self.log_public_event({"type": "game_error", "result": error_result})
+            return error_result
 
     def safe_execute(self, player_id: int, method_name: str, *args, **kwargs):
         """

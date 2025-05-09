@@ -261,7 +261,15 @@ class BattleManager:
             return False
 
         # 更新数据库状态为 cancelled
-        cancel_data = {"error": f"Battle cancelled: {reason}"}
+        # 修改这里：确保传递正确的格式
+        # 如果 reason 是字符串，就保持原样；如果 reason 已经是字典，就增加 cancellation_reason 字段
+        if isinstance(reason, str):
+            cancel_data = {"cancellation_reason": reason}
+        else:
+            cancel_data = reason
+            if "cancellation_reason" not in cancel_data:
+                cancel_data["cancellation_reason"] = "Battle cancelled by system"
+
         if not self.battle_service.mark_battle_as_cancelled(battle_id, cancel_data):
             logger.error(f"对战 {battle_id} 取消失败：无法更新数据库状态")
             return False

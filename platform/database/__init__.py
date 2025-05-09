@@ -56,6 +56,9 @@ from .action import (
     get_recent_battles,
     get_battle_player_by_id,
     update_battle_player,
+    # 其他可能需要的函数...
+    mark_battle_as_cancelled,
+    handle_cancelled_battle_stats,
 )
 
 

@@ -7,6 +7,8 @@ from database import (
     update_battle,
     process_battle_results_and_update_stats,
     get_ai_code_path_full,
+    mark_battle_as_cancelled,  # 新增: 导入处理取消状态的函数
+    handle_cancelled_battle_stats,  # 新增: 导入处理取消对战统计的函数
 )
 from database.models import (
     Battle,
