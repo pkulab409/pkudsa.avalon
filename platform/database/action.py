@@ -792,13 +792,6 @@ def process_battle_results_and_update_stats(battle_id, results_data):
     BLUE_ROLES = ["Merlin", "Percival", "Knight"]  # 蓝方角色
     RED_ROLES = ["Morgana", "Assassin", "Oberon"]  # 红方角色
 
-    def _get_team_assignment(player_index: int) -> str:
-        """返回玩家的队伍 (player_index 取1-7)"""
-        if results_data["roles"][str(player_index)] in RED_ROLES:
-            return RED_TEAM
-        else:
-            return BLUE_TEAM
-
     try:
         # ----------------------------------
         # 阶段1：获取基础数据并验证
