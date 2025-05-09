@@ -17,7 +17,8 @@ from utils.battle_manager_utils import get_battle_manager
 # 配置日志
 logger = logging.getLogger("AutoMatch")
 
-MAX_AUTOMATCH_PARALLEL_GAMES = 5
+MAX_AUTOMATCH_PARALLEL_GAMES = 20
+
 
 
 class AutoMatch:

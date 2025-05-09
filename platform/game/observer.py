@@ -11,6 +11,7 @@ from threading import Lock
 import json
 import os
 from config.config import Config
+from copy import deepcopy
 
 PLAYER_COUNT = 7
 MAP_SIZE = 9
@@ -156,15 +157,15 @@ class Observer:
             "event_data": event_data,  # 事件数据，这里保存最后需要显示的内容
         }
         with self._lock:  # 加锁保护写操作
-            self.snapshots.append(snapshot)
-            self.archive.append(snapshot)
+            self.snapshots.append(deepcopy(snapshot))
+            self.archive.append(deepcopy(snapshot))
 
     def pop_snapshots(self) -> List[Dict[str, Any]]:
         """
         获取并清空当前的所有游戏快照，表示已被消费
         """
         with self._lock:  # 加锁保护读取 + 清空操作
-            snapshots = self.snapshots
+            snapshots = deepcopy(self.snapshots)
             self.snapshots = []
         return snapshots
 

@@ -14,13 +14,14 @@
 - 备用：BattlePlayer 独立 CRUD 操作
 """
 # 准备好后面一千多行的冲击吧！
-
+MAX_TOKEN_ALLOWED = 3000
 
 from .base import db
 import logging
 from sqlalchemy import select, update, or_, func
 import datetime
 import json
+import math
 import uuid
 from .models import (
     User,
@@ -102,6 +103,15 @@ def get_user_by_id(user_id):
     except Exception as e:
         logger.error(f"根据ID获取用户失败: {e}", exc_info=True)
         return None
+
+
+def get_user_index_in_battle(battle_id, user_id):
+    """根据battle_id获取用户index"""
+    battle_players = get_battle_players_for_battle(battle_id)
+    for idx, bp in enumerate(battle_players):
+        if bp.user_id == user_id:
+            return idx + 1  # index范围1~7
+    return None
 
 
 def get_user_by_username(username):
@@ -231,6 +241,15 @@ def get_ai_code_by_id(ai_code_id):
     except Exception as e:
         logger.error(f"根据ID获取AI代码失败: {e}", exc_info=True)
         return None
+
+
+def get_user_index_in_battle(battle_id, user_id):
+    """根据battle_id获取用户index"""
+    battle_players = get_battle_players_for_battle(battle_id)
+    for idx, bp in enumerate(battle_players):
+        if bp.user_id == user_id:
+            return idx + 1  # index范围1~7
+    return None
 
 
 def get_user_ai_codes(user_id):
@@ -1123,17 +1142,33 @@ def process_battle_results_and_update_stats(battle_id, results_data):
 
         # 正常处理分支
         else:
-            # 原ELO计算逻辑
+            # ELO计算逻辑
+            # 看玩家tokens数占全局tokens比例proportion,
+            # 若proportion<1,按照1计算，>1,
+            # 则胜率 = min{1, 胜率 * (1 + (max{proportion,1} - 1) / 3)}
             team_elos = {RED_TEAM: [], BLUE_TEAM: []}
             for user_id, stats in user_stats_map.items():
                 team = team_map.get(user_id)
                 if team in team_elos:
                     team_elos[team].append(stats.elo_score)
 
+            tokens_standard = [
+                (tokens[ui - 1]["input"] + 3 * tokens[ui - 1]["output"]) / 4
+                for ui in range(1, 8)
+            ]  # 一倍输入和三倍输出的和
+
+            tokens_avg = max(
+                MAX_TOKEN_ALLOWED, sum(tokens_standard) / 7
+            )  # 均值, 该常量以下必不惩罚
+
+            proportion = [token / tokens_avg for token in tokens_standard]  # 比例
+
             team_avg = {
-                team: sum(scores) / len(scores) if scores else 0
+                team: (
+                    len(scores) / sum([min(1, 1 / score) for score in scores])
+                )  # 防止分母为0
                 for team, scores in team_elos.items()
-            }
+            }  # 这里改为调和平均，给有大蠢蛋参与队伍的强者发点补助
 
             K_FACTOR = 32
             red_expected = 1 / (
@@ -1150,12 +1185,15 @@ def process_battle_results_and_update_stats(battle_id, results_data):
 
             for user_id, stats in user_stats_map.items():
                 bp = next((p for p in battle_players if p.user_id == user_id), None)
-                if not bp:
+                if not bp or bp.position is None:
                     continue
-
+                idx = bp.position - 1  # position为1~7，proportion下标为0~6
                 team = team_map[user_id]
                 expected = red_expected if team == RED_TEAM else blue_expected
-                delta = K_FACTOR * (actual_score[team] - expected)
+                delta = K_FACTOR * (
+                    actual_score[team]
+                    - min(1, expected * (0.9 + (max(proportion[idx] - 1, 0) / 3)))
+                )
 
                 stats.games_played += 1
                 if team_outcomes[team] == "win":

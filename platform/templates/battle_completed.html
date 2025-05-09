@@ -33,12 +33,12 @@
                 <hr>
                 <h5>对战结果</h5>
                 {% if battle.status == 'completed' and game_result %}
-                    <div class="alert {% if game_result.get('winner') == 'blue' %}alert-info{% elif game_result.get('winner') == 'red' %}alert-danger{% else %}alert-secondary{% endif %}"
+                    <div class="alert {% if game_result.winner == 'blue' %}alert-info{% elif game_result.winner == 'red' %}alert-danger{% else %}alert-secondary{% endif %}"
                          role="alert">
                         <h5 class="alert-heading">
-                            {% if game_result.get('winner') == 'blue' %}
+                            {% if game_result.winner == 'blue' %}
                                 <i class="bi bi-shield-check"></i> 蓝方胜利！
-                            {% elif game_result.get('winner') == 'red' %}
+                            {% elif game_result.winner == 'red' %}
                                 <i class="bi bi-shield-exclamation"></i> 红方胜利！
                             {% else %}
                                 结果未知
@@ -46,23 +46,23 @@
                         </h5>
                         <p>
                             <strong>胜利原因:</strong>
-                            {% if game_result.get('win_reason') == "missions_completed" %}
+                            {% if game_result.win_reason == "missions_completed" %}
                                 任务完成 (蓝方完成3次任务)
-                            {% elif game_result.get('win_reason') == "missions_failed" %}
+                            {% elif game_result.win_reason == "missions_failed" %}
                                 任务失败 (红方破坏3次任务)
-                            {% elif game_result.get('win_reason') == "assassination_success" %}
+                            {% elif game_result.win_reason == "assassination_success" %}
                                 刺杀成功 (刺客成功刺杀梅林)
-                            {% elif game_result.get('win_reason') == "missions_complete_and_assassination_failed" %}
+                            {% elif game_result.win_reason == "assassination_failed" %}
                                 刺杀失败 (刺客未能刺杀梅林)
                             {% else %}
-                                {{ game_result.get('win_reason', '未知') }}
+                                {{ game_result.win_reason | default("未知") }}
                             {% endif %}
                         </p>
                         <p>
-                            <strong>总回合数:</strong> {{ game_result.get('rounds_played', 'N/A') }}
+                            <strong>总回合数:</strong> {{ game_result.rounds_played | default("N/A") }}
                         </p>
                         <p>
-                            <strong>任务成功/失败:</strong> {{ game_result.get('blue_wins', '?') }} / {{ game_result.get('red_wins', '?') }}
+                            <strong>任务成功/失败:</strong> {{ game_result.blue_wins | default("?") }} / {{ game_result.red_wins | default("?") }}
                         </p>
                     </div>
                     <h6>玩家信息</h6>
@@ -160,6 +160,10 @@
                            class="btn btn-lg btn-secondary ms-3">
                             <i class="bi bi-download me-1"></i> 下载日志文件
                         </a>
+                        <a href="{{ url_for('game.download_private', battle_id=battle.id) }}"
+                           class="btn btn-lg btn-secondary ms-3">
+                            <i class="bi bi-download me-1"></i> 下载私有库
+                        </a>
                     </div>
                 {% elif battle.status == 'error' %}
                     <div class="alert alert-danger" role="alert">
@@ -167,9 +171,9 @@
                             <i class="bi bi-exclamation-triangle-fill"></i> 对战出错
                         </h5>
                         <p>对战未能正常完成。</p>
-                        {% if game_result and game_result.get('error') %}
+                        {% if game_result and game_result.error %}
                             <p>
-                                <strong>错误信息:</strong> {{ game_result.get("error") }}
+                                <strong>错误信息:</strong> {{ game_result.error }}
                             </p>
                         {% endif %}
                         <!-- 显示错误详情 -->

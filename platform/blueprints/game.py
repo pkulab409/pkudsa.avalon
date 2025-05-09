@@ -593,7 +593,7 @@ def download_logs(battle_id):
 
         # 2. 计算 'data' 目录的路径
         data_directory_path = os.path.abspath(
-            os.path.join(current_file_dir, "..", "..", "data")
+            os.path.join(current_file_dir, "..", "data")
         )
 
         # 3. 构造日志文件名
@@ -612,6 +612,66 @@ def download_logs(battle_id):
             flash(f"对战 {battle_id} 的日志文件不存在", "danger")
             current_app.logger.warning(
                 f"对战 {battle_id} 的日志文件不存在，路径为: {log_file_full_path}"
+            )
+            return redirect(url_for("game.view_battle", battle_id=battle_id))
+
+        # 使用 send_file 而不是 send_from_directory
+        return send_file(log_file_full_path, as_attachment=True)
+
+    except Exception as e:
+        # 在错误日志中包含我们计算的路径，帮助排查
+        current_app.logger.error(
+            f"下载对战 {battle_id} 日志失败 from path {log_file_full_path}: {str(e)}",
+            exc_info=True,
+        )
+        flash("下载日志失败", "danger")
+        return redirect(url_for("game.view_battle", battle_id=battle_id))
+
+
+@game_bp.route("/download_private/<battle_id>", methods=["GET"])
+@login_required
+def download_private(battle_id):
+    """下载对战私有日志"""
+    log_file_full_path = "path_not_calculated_yet"
+    try:
+        # 1. 获取当前文件所在的目录 (例如 /Users/ceciliaguo/Desktop/Tuvalon/pkudsa.avalon/platform/blueprints)
+        current_file_dir = os.path.dirname(__file__)
+
+        # 2. 计算 'data' 目录的路径
+        data_directory_path = os.path.abspath(
+            os.path.join(current_file_dir, "..", "data")
+        )
+
+        # 3'. 找人
+        battle = db_get_battle_by_id(battle_id)
+        if not battle:
+            return jsonify({"success": False, "message": "对战不存在"})
+        players_id = [player.id for player in battle.get_players()]
+        if current_user.id in players_id:
+            player_idx = players_id.index(current_user.id) + 1
+        else:
+            flash(f"您没有参与这场对战，不能下载私有库", "danger")
+            current_app.logger.warning(
+                f"{current_user.id} 访问其没有参与的对战 {battle_id}私有库被拒"
+            )
+            return redirect(url_for("game.view_battle", battle_id=battle_id))
+
+        # 3. 构造日志文件名
+        log_file_name = f"game_{battle_id}_player_{player_idx}_private.json"
+
+        # 4. 构造完整的日志文件路径，用于检查文件是否存在
+        log_file_full_path = os.path.join(data_directory_path, log_file_name)
+
+        # 打印出我们实际正在检查和试图访问的路径，用于调试验证
+        current_app.logger.info(
+            f"[INFO] Attempting to access log at: {log_file_full_path}"
+        )
+
+        # 检查日志文件是否存在于计算出的正确路径
+        if not os.path.exists(log_file_full_path):
+            flash(f"对战 {battle_id} 的 {player_idx} 号玩家私有库不存在", "danger")
+            current_app.logger.warning(
+                f"对战 {battle_id} 的 {player_idx} 号玩家私有库不存在，路径为: {log_file_full_path}"
             )
             return redirect(url_for("game.view_battle", battle_id=battle_id))
 

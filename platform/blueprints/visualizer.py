@@ -14,6 +14,7 @@ import os
 from datetime import datetime
 from config.config import Config
 import math
+from copy import deepcopy
 import uuid
 from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
@@ -501,11 +502,15 @@ def process_game_events(game_data):
                         "round": round_num,
                         "leader": None,
                         "team_members": [],
-                        "speeches": [],  # Combined list: [(player_id_str, message)]
+                        # Combined list: [(player_id_str, message)]
+                        "speeches": [],
                         "votes": {},  # {player_id_str: bool}
-                        "vote_result": None,  # {approved: bool, approve_count: int, reject_count: int}
-                        "mission_execution": None,  # {success: bool, fail_votes: int}
-                        "mission_result": None,  # {success: bool} - Simplified for badge
+                        # {approved: bool, approve_count: int, reject_count: int}
+                        "vote_result": None,
+                        # {success: bool, fail_votes: int}
+                        "mission_execution": None,
+                        # {success: bool} - Simplified for badge
+                        "mission_result": None,
                     }
             continue  # Processed RoundStart
 
@@ -586,92 +591,81 @@ def process_game_events(game_data):
 
 def extract_player_movements(game_data):
     """提取玩家移动轨迹数据 (基于 observer.py)"""
-    movements_by_player = (
-        {}
-    )  # {player_id_str: [{"round": int, "position": [r, c], "moves": []}]}
-    current_round_num = 0  # Start before round 1
+    movements_by_player = {}
+    current_round_num = 0
 
-    # First pass: Initialize players from RoleAssign
+    # 处理所有事件前，先确保玩家列表初始化
+    # 1. 初始化玩家列表（处理所有RoleAssign事件）
     for event in game_data:
         if event.get("event_type") == "RoleAssign":
             event_data = event.get("event_data")
             if isinstance(event_data, dict):
-                player_ids = list(event_data.keys())
-                for player_id in player_ids:
-                    movements_by_player[str(player_id)] = (
-                        []
-                    )  # Initialize empty list, use string ID
-            break  # Found roles, no need to continue this pass
+                for player_id in event_data.keys():
+                    player_id_str = str(player_id)
+                    if player_id_str not in movements_by_player:
+                        movements_by_player[player_id_str] = []
 
-    # Second pass: Process positions and movements
+    # 2. 处理DefaultPositions事件（动态补充未初始化的玩家）
+    for event in game_data:
+        if event.get("event_type") == "DefaultPositions":
+            event_data = event.get("event_data")
+            if isinstance(event_data, dict):
+                for player_id, pos in event_data.items():
+                    player_id_str = str(player_id)
+                    # 若玩家未初始化，补充初始化
+                    if player_id_str not in movements_by_player:
+                        movements_by_player[player_id_str] = []
+                    # 添加第0轮的位置（仅当不存在时）
+                    if not any(
+                        entry["round"] == 0
+                        for entry in movements_by_player[player_id_str]
+                    ):
+                        movements_by_player[player_id_str].append(
+                            {
+                                "round": 0,
+                                "position": (
+                                    deepcopy(pos) if isinstance(pos, list) else None
+                                ),
+                                "moves": [],
+                            }
+                        )
+
+    # 3. 处理回合和移动事件
     for event in game_data:
         event_type = event.get("event_type")
         event_data = event.get("event_data")
 
-        if event_type == "DefaultPositions":
-            # Record initial positions, associate with round 0
-            if isinstance(event_data, dict):
-                for player_id_str, pos in event_data.items():
-                    player_id_str = str(player_id_str)  # Ensure string key
-                    if player_id_str in movements_by_player:
-                        # Check if round 0 position already exists
-                        if not any(
-                            m["round"] == 0 for m in movements_by_player[player_id_str]
-                        ):
-                            movements_by_player[player_id_str].append(
-                                {
-                                    "round": 0,  # Assign to round 0
-                                    "position": (
-                                        pos
-                                        if isinstance(pos, list) and len(pos) == 2
-                                        else None
-                                    ),  # Basic validation
-                                    "moves": [],  # No moves for initial state
-                                }
-                            )
-
-        elif event_type == "RoundStart":
-            if isinstance(event_data, int):
-                current_round_num = event_data  # Update current round number
-            for i in range(1, 8):
-                movements_by_player[str(i)].append(
-                    {
-                        "round": current_round_num,
-                        "position": (
-                            movements_by_player[str(i)][-1]["position"]
-                        ),  # Basic validation
-                        "moves": [],  # No moves for initial state
-                    }
-                )
+        if event_type == "RoundStart" and isinstance(event_data, int):
+            current_round_num = event_data
+            # 确保所有玩家都有当前回合的条目
+            for player_id in movements_by_player:
+                entries = movements_by_player[player_id]
+                if entries:
+                    last_entry = entries[-1]
+                    # 仅当当前回合尚未添加时创建新条目
+                    if last_entry["round"] != current_round_num:
+                        new_entry = {
+                            "round": current_round_num,
+                            "position": deepcopy(last_entry["position"]),
+                            "moves": [],
+                        }
+                        entries.append(new_entry)
+                else:
+                    # 若玩家无任何条目（异常情况），初始化一个空位置
+                    entries.append(
+                        {"round": current_round_num, "position": None, "moves": []}
+                    )
 
         elif event_type == "Move":
-            # event_data = (player_id, [valid_moves, new_pos])
-            player_id = event_data[0]
-            move_details = event_data[1]
-            player_id_str = str(player_id)  # Ensure string ID
+            if isinstance(event_data, list) and len(event_data) >= 2:
+                player_id = str(event_data[0])
+                move_details = event_data[1]
+                if isinstance(move_details, list) and len(move_details) >= 2:
+                    new_pos = move_details[1]
+                    if player_id in movements_by_player:
+                        entries = movements_by_player[player_id]
+                        if entries and entries[-1]["round"] == current_round_num:
+                            entries[-1]["position"] = deepcopy(new_pos)
+                            entries[-1]["moves"] = deepcopy(move_details[0])
 
-            new_pos = move_details[1]
-            valid_moves = move_details[0]  # Optional to store
-
-            # for move in movements_by_player[player_id_str]:
-            #     if move["round"] == current_round_num:
-            #         move["position"] = (
-            #             new_pos
-            #             if isinstance(new_pos, list) and len(new_pos) == 2
-            #             else None
-            #         )
-            #         move["moves"] = (
-            #             valid_moves if isinstance(valid_moves, list) else []
-            #         )
-            #         break
-            movements_by_player[player_id_str][current_round_num]["position"] = new_pos
-            movements_by_player[player_id_str][current_round_num]["moves"] = valid_moves
-
-        # "Positions" event is ignored as 'Move' events should capture the state changes per round.
-        # If 'Move' is unreliable, 'Positions' could be used as a fallback snapshot.
-
-    # Ensure all players have at least a round 0 position if DefaultPositions was missed
-    # This might happen if RoleAssign is present but DefaultPositions is not.
-    # It's safer to rely on DefaultPositions being present.
-    print(movements_by_player)
-    return movements_by_player
+    return deepcopy(movements_by_player)
