@@ -753,6 +753,11 @@ def process_battle_results_and_update_stats(battle_id, results_data):
     """
     处理4v3对战结果，更新玩家对战记录及ELO评分。
 
+    改进：
+    1. 更准确地识别玩家错误
+    2. 基于错误类型和方法实现差异化的ELO惩罚
+    3. 提供更详细的日志记录
+
     参数:
         battle_id (str): 对战的唯一标识符
         results_data (dict): 包含对战结果的数据，格式为:
@@ -760,6 +765,7 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                 "winner": "red"|"blue",  # 获胜队伍
                 "error": bool,           # 新增错误标识（可选）
                 "public_log_file": str,  # 新增公共日志路径（可选）
+                "roles": {...},          # 角色分配信息
                 # 其他可选字段（如game_log_uuid等）
             }
 
@@ -771,13 +777,6 @@ def process_battle_results_and_update_stats(battle_id, results_data):
     BLUE_TEAM = "blue"
     BLUE_ROLES = ["Merlin", "Percival", "Knight"]  # 蓝方角色
     RED_ROLES = ["Morgana", "Assassin", "Oberon"]  # 红方角色
-
-    def _get_team_assignment(player_index: int) -> str:
-        """返回玩家的队伍 (player_index 取1-7)"""
-        if results_data["roles"][player_index] in RED_ROLES:
-            return RED_TEAM
-        else:
-            return BLUE_TEAM
 
     try:
         # ----------------------------------
@@ -802,35 +801,98 @@ def process_battle_results_and_update_stats(battle_id, results_data):
 
         # 初始化错误处理相关变量
         err_user_id = None
-        if "error" in results_data:
-            # 验证公共日志文件路径
-            PUBLIC_LIB_FILE_DIR = results_data.get("public_log_file")
-            if not PUBLIC_LIB_FILE_DIR:
-                logger.error(f"[Battle {battle_id}] 缺少公共日志文件路径")
-                return False
+        error_pid_in_game = None
+        error_type = None
+        error_code_method = None
+        error_msg = None
 
-            # 读取公共日志获取错误玩家
-            try:
-                with open(PUBLIC_LIB_FILE_DIR, "r", encoding="utf-8") as plib:
-                    data = json.load(plib)
+        # 验证公共日志文件路径
+        PUBLIC_LIB_FILE_DIR = results_data.get("public_log_file")
+        if not PUBLIC_LIB_FILE_DIR:
+            logger.error(f"[Battle {battle_id}] 缺少公共日志文件路径")
+            return False
+
+        # 读取公共日志获取错误玩家
+        try:
+            with open(PUBLIC_LIB_FILE_DIR, "r", encoding="utf-8") as plib:
+                data = json.load(plib)
+                # 遍历日志条目，查找错误记录
+                for record in reversed(data):  # 从最新记录开始查找
+                    # 检查是否是错误记录
+                    if "type" in record and record["type"] in [
+                        "critical_player_ERROR",
+                        "player_ruturn_ERROR",
+                    ]:
+                        error_type = record.get("type")
+                        error_pid_in_game = record.get("error_code_pid")
+                        error_code_method = record.get("error_code_method")
+                        error_msg = record.get("error_msg")
+
+                        # 检查错误玩家ID有效性
+                        if (
+                            error_pid_in_game is not None
+                            and 1 <= error_pid_in_game <= 7
+                        ):
+                            logger.info(
+                                f"[Battle {battle_id}] 找到错误玩家PID: {error_pid_in_game}, 错误类型: {error_type}, 错误方法: {error_code_method}"
+                            )
+                            break
+
+                # 如果没有找到有效的错误记录
+                if error_pid_in_game is None or not (1 <= error_pid_in_game <= 7):
+                    # 检查最后一条记录是否有错误信息但格式不同
                     last_record = data[-1] if data else None
-                    if not last_record:
-                        logger.error(f"[Battle {battle_id}] 公有库无记录")
-                        return False
-                    error_pid_in_game = last_record.get("error_code_pid")
-                    if error_pid_in_game is None or not (1 <= error_pid_in_game <=7):
-                        logger.error(f"[Battle {battle_id}] 无效的错误玩家PID: {error_pid_in_game}")
-                        return False
-            except Exception as e:
-                logger.error(f"[Battle {battle_id}] 读取公共日志失败: {str(e)}", exc_info=True)
-                return False
+                    if last_record and "error" in last_record:
+                        logger.warning(
+                            f"[Battle {battle_id}] 找到非标准错误记录: {last_record}"
+                        )
+                        # 尝试从非标准错误记录中提取信息
+                        if isinstance(
+                            last_record.get("error"), str
+                        ) and "Player" in last_record.get("error"):
+                            # 尝试从错误消息中提取玩家ID
+                            import re
 
-            # 获取错误玩家信息
+                            match = re.search(r"Player (\d+)", last_record.get("error"))
+                            if match:
+                                error_pid_in_game = int(match.group(1))
+                                error_type = "extracted_error"
+                                error_msg = last_record.get("error")
+
+                                # 尝试提取错误方法
+                                method_match = re.search(
+                                    r"method '([^']+)'|executing ([^ ]+)",
+                                    last_record.get("error"),
+                                )
+                                if method_match:
+                                    error_code_method = method_match.group(
+                                        1
+                                    ) or method_match.group(2)
+
+                                logger.info(
+                                    f"[Battle {battle_id}] 从错误消息中提取出玩家ID: {error_pid_in_game}, 方法: {error_code_method}"
+                                )
+
+                    # 如果仍然没有找到错误玩家
+                    if error_pid_in_game is None or not (1 <= error_pid_in_game <= 7):
+                        logger.error(f"[Battle {battle_id}] 无法找到有效的错误玩家PID")
+                        # 此时不返回False，而是继续处理，但不执行ELO扣分
+        except Exception as e:
+            logger.error(
+                f"[Battle {battle_id}] 读取公共日志失败: {str(e)}", exc_info=True
+            )
+            # 继续处理，但不执行ELO扣分
+
+        # 获取错误玩家信息
+        if error_pid_in_game is not None and 1 <= error_pid_in_game <= 7:
             err_player_index = error_pid_in_game - 1
-            if err_player_index >= len(battle_players):
+            if err_player_index < len(battle_players):
+                err_user_id = battle_players[err_player_index].user_id
+                logger.info(
+                    f"[Battle {battle_id}] 错误玩家用户ID: {err_user_id} (游戏中的PID: {error_pid_in_game})"
+                )
+            else:
                 logger.error(f"[Battle {battle_id}] 错误玩家索引超出范围")
-                return False
-            err_user_id = battle_players[err_player_index].user_id
 
         # ----------------------------------
         # 阶段2：基础数据更新
@@ -841,21 +903,81 @@ def process_battle_results_and_update_stats(battle_id, results_data):
         battle.game_log_uuid = results_data.get("game_log_uuid")
 
         # ----------------------------------
-        # 阶段3：生成核心映射关系
+        # 阶段3：生成核心映射关系 - 修复部分
         # ----------------------------------
+        # 获取角色信息，处理不同格式的roles数据
+        roles_data = results_data.get("roles", {})
+        logger.info(f"[Battle {battle_id}] 从结果数据中获取角色信息: {roles_data}")
+
+        # 创建player_id到角色的映射
+        player_roles = {}
+
+        # 尝试多种方式从结果数据中提取角色信息
+        if isinstance(roles_data, dict):
+            # 如果roles是字典格式
+            for pid_str, role in roles_data.items():
+                try:
+                    # 尝试将键转换为整数（处理字符串键的情况）
+                    pid = int(pid_str) if isinstance(pid_str, str) else pid_str
+                    player_roles[pid] = role
+                except (ValueError, TypeError):
+                    logger.warning(
+                        f"[Battle {battle_id}] 无法解析角色数据键: {pid_str}"
+                    )
+
+        # 如果无法从结果数据中获取角色信息，我们将基于最终获胜方推断队伍
+        if not player_roles and "winner" in results_data:
+            logger.warning(
+                f"[Battle {battle_id}] 无法从结果中获取角色信息，将基于最终胜负推断队伍"
+            )
+
+            # 根据最终获胜方分配角色（简化处理）
+            winner_team = results_data.get("winner")
+
+            # 模拟一个基础的角色分配
+            # 前4个玩家是蓝队，后3个玩家是红队（这是一种简化处理）
+            for i in range(1, 8):
+                if i <= 4:  # 前4个玩家属于蓝队
+                    player_roles[i] = "Knight"  # 默认蓝队角色
+                else:  # 后3个玩家属于红队
+                    player_roles[i] = "Assassin"  # 默认红队角色
+
+        # 在没有任何角色信息的情况下，记录警告并继续
+        if not player_roles:
+            logger.warning(f"[Battle {battle_id}] 无法确定角色分配，将默认分配角色")
+            # 创建默认角色映射
+            for i in range(1, 8):
+                player_roles[i] = "Knight" if i <= 4 else "Assassin"
+
+        # 打印获取到的角色信息进行调试
+        logger.info(f"[Battle {battle_id}] 获取到的角色映射: {player_roles}")
+
+        # 定义获取队伍的函数
+        def _get_team_assignment(player_index: int) -> str:
+            """返回玩家的队伍 (player_index 取1-7)"""
+            role = player_roles.get(player_index)
+            if role in RED_ROLES:
+                return RED_TEAM
+            else:
+                return BLUE_TEAM
+
+        # 生成用户ID到队伍的映射
         team_map = {
             bp.user_id: _get_team_assignment(idx + 1)
             for idx, bp in enumerate(battle_players)
         }
 
+        logger.info(f"[Battle {battle_id}] 生成的队伍映射: {team_map}")
 
         # 生成用户结果映射
-        if "error" in results_data:
+        if err_user_id is not None:
+            # 有错误玩家，该玩家为失败，其他为平局
             user_outcomes = {
                 user_id: "loss" if user_id == err_user_id else "draw"
                 for user_id in team_map.keys()
             }
         else:
+            # 正常情况，根据胜负判断
             winner_team = results_data.get("winner")
             if winner_team not in (RED_TEAM, BLUE_TEAM):
                 logger.error(f"[Battle {battle_id}] 无效的获胜队伍标识: {winner_team}")
@@ -863,13 +985,11 @@ def process_battle_results_and_update_stats(battle_id, results_data):
 
             team_outcomes = {
                 RED_TEAM: "win" if winner_team == RED_TEAM else "loss",
-                BLUE_TEAM: "win" if winner_team == BLUE_TEAM else "loss"
+                BLUE_TEAM: "win" if winner_team == BLUE_TEAM else "loss",
             }
             user_outcomes = {
-                user_id: team_outcomes[team]
-                for user_id, team in team_map.items()
+                user_id: team_outcomes[team] for user_id, team in team_map.items()
             }
-
 
         # ----------------------------------
         # 阶段4：更新玩家对战记录
@@ -888,14 +1008,22 @@ def process_battle_results_and_update_stats(battle_id, results_data):
         # ----------------------------------
 
         # 这里获取对局token数
-        PUBLIC_LIB_FILE_DIR = results_data.get("public_log_file")
-        with open(PUBLIC_LIB_FILE_DIR, "r", encoding="utf-8") as plib:
-            data = json.load(plib)
-            for line in data[::-1]:
-                if line.get("type") == "tokens":
-                    tokens = line.get("result") # [{"input": 0, "output": 0} for i in range(7)]
-                    break
-        
+        tokens = []
+        try:
+            with open(PUBLIC_LIB_FILE_DIR, "r", encoding="utf-8") as plib:
+                data = json.load(plib)
+                for line in data[::-1]:
+                    if line.get("type") == "tokens":
+                        tokens = line.get(
+                            "result", []
+                        )  # [{"input": 0, "output": 0} for i in range(7)]
+                        break
+            logger.info(f"[Battle {battle_id}] 获取到的tokens数据: {tokens}")
+        except Exception as e:
+            logger.warning(f"[Battle {battle_id}] 获取tokens数据失败: {str(e)}")
+            # 创建默认tokens
+            tokens = [{"input": 0, "output": 0} for i in range(7)]
+
         involved_user_ids = list(user_outcomes.keys())
         user_stats_map = {
             stats.user_id: stats
@@ -916,8 +1044,8 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                         f"[Battle {battle_id}] 无法为玩家 {user_id} 创建统计记录"
                     )
 
-        # 错误处理分支
-        if "error" in results_data:
+        # 错误处理分支 - 代码错误的玩家将受到ELO扣除
+        if err_user_id is not None:
             # 计算队伍平均ELO
             team_elos = {RED_TEAM: [], BLUE_TEAM: []}
             for user_id, stats in user_stats_map.items():
@@ -926,13 +1054,43 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                     team_elos[team].append(stats.elo_score)
 
             team_avg = {
-                team: sum(scores)/len(scores) if scores else 0
+                team: sum(scores) / len(scores) if scores else 0
                 for team, scores in team_elos.items()
             }
 
+            # 计算惩罚值 - 改进的惩罚计算逻辑
+            # 对于代码错误，基础惩罚为30分，加上队伍差距的10%
+            base_penalty = 30
+            team_diff_penalty = abs(team_avg[BLUE_TEAM] - team_avg[RED_TEAM]) * 0.1
 
-            # 计算惩罚值
-            reduction = 2 * abs(team_avg[BLUE_TEAM] - team_avg[RED_TEAM])
+            # 根据错误类型调整惩罚
+            error_type_multiplier = 1.0
+            if error_type == "critical_player_ERROR":
+                error_type_multiplier = 1.5  # 严重错误
+            elif error_type == "player_ruturn_ERROR":
+                error_type_multiplier = 1.2  # 返回值错误
+
+            # 根据错误方法调整惩罚
+            method_penalty = 0
+            if error_code_method == "walk":  # 移动错误
+                method_penalty = 10
+            elif error_code_method == "decide_mission_member":  # 队伍选择错误
+                method_penalty = 15
+            elif error_code_method == "mission_vote2":  # 投票错误
+                method_penalty = 20
+
+            total_reduction = round(
+                (base_penalty + team_diff_penalty) * error_type_multiplier
+                + method_penalty
+            )
+
+            # 确保惩罚至少为20分，最多为100分
+            total_reduction = max(20, min(total_reduction, 100))
+
+            logger.info(
+                f"[Battle {battle_id}] 错误惩罚计算: 基础={base_penalty}, 队伍差异={team_diff_penalty:.1f}, "
+                + f"类型系数={error_type_multiplier}, 方法惩罚={method_penalty}, 总计={total_reduction}"
+            )
 
             # 更新所有玩家数据
             for user_id, stats in user_stats_map.items():
@@ -947,14 +1105,18 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                 # 错误玩家特殊处理
                 if user_id == err_user_id:
                     stats.losses += 1
-                    new_elo = max(round(stats.elo_score - reduction), 100)
+                    new_elo = max(round(stats.elo_score - total_reduction), 100)
                     bp.elo_change = new_elo - stats.elo_score
                     stats.elo_score = new_elo
-                    logger.info(f"[ERROR] 扣除ELO: {user_id} | {bp.initial_elo} -> {new_elo}")
+                    logger.info(
+                        f"[Battle {battle_id}] [ERROR] 扣除ELO: 玩家 {user_id} | {bp.initial_elo} -> {new_elo} (减少: {total_reduction}分)"
+                    )
                 else:
                     bp.elo_change = 0
                     stats.draws += 1
-
+                    logger.info(
+                        f"[Battle {battle_id}] 其他玩家不受影响: 玩家 {user_id} | ELO 保持 {stats.elo_score}"
+                    )
 
                 db.session.add(stats)
                 db.session.add(bp)
@@ -969,18 +1131,21 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                     team_elos[team].append(stats.elo_score)
 
             team_avg = {
-                team: sum(scores)/len(scores)
+                team: sum(scores) / len(scores) if scores else 0
                 for team, scores in team_elos.items()
             }
 
             K_FACTOR = 32
-            red_expected = 1 / (1 + 10**((team_avg[BLUE_TEAM] - team_avg[RED_TEAM])/400))
-            blue_expected = 1 / (1 + 10**((team_avg[RED_TEAM] - team_avg[BLUE_TEAM])/400))
-
+            red_expected = 1 / (
+                1 + 10 ** ((team_avg[BLUE_TEAM] - team_avg[RED_TEAM]) / 400)
+            )
+            blue_expected = 1 / (
+                1 + 10 ** ((team_avg[RED_TEAM] - team_avg[BLUE_TEAM]) / 400)
+            )
 
             actual_score = {
-                RED_TEAM: 1.0 if winner_team == RED_TEAM else 0.0,
-                BLUE_TEAM: 1.0 if winner_team == BLUE_TEAM else 0.0
+                RED_TEAM: 1.0 if results_data.get("winner") == RED_TEAM else 0.0,
+                BLUE_TEAM: 1.0 if results_data.get("winner") == BLUE_TEAM else 0.0,
             }
 
             for user_id, stats in user_stats_map.items():
@@ -997,12 +1162,14 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                     stats.wins += 1
                 else:
                     stats.losses += 1
-                
+
                 new_elo = max(round(stats.elo_score + delta), 100)
                 bp.initial_elo = stats.elo_score
                 bp.elo_change = new_elo - stats.elo_score
                 stats.elo_score = new_elo
-                logger.info(f"更新ELO: {user_id} | {bp.initial_elo} -> {new_elo}")
+                logger.info(
+                    f"[Battle {battle_id}] 更新ELO: 玩家 {user_id} | {bp.initial_elo} -> {new_elo} (变化: {bp.elo_change:+d})"
+                )
 
                 db.session.add(stats)
                 db.session.add(bp)
@@ -1076,12 +1243,7 @@ def get_recent_battles(limit=20):
     """
     try:
         # 过滤已完成的对战，按结束时间降序排列
-        return (
-            Battle.query.filter_by(status="completed")
-            .order_by(Battle.ended_at.desc())
-            .limit(limit)
-            .all()
-        )
+        return Battle.query.order_by(Battle.ended_at.desc()).limit(limit).all()
     except Exception as e:
         logger.error(f"获取最近对战失败: {e}", exc_info=True)
         return []
@@ -1130,6 +1292,147 @@ def update_battle_player(battle_player, **kwargs):
         return safe_commit()
     except Exception as e:
         logger.error(f"更新 BattlePlayer {battle_player.id} 失败: {e}", exc_info=True)
+        db.session.rollback()
+        return False
+
+
+def mark_battle_as_cancelled(battle_id, cancellation_reason=None):
+    """
+    将对战标记为已取消状态。
+
+    参数:
+        battle_id (str): 对战ID。
+        cancellation_reason (str, optional): 取消原因。
+
+    返回:
+        bool: 操作是否成功。
+    """
+    try:
+        battle = get_battle_by_id(battle_id)
+        if not battle:
+            logger.error(f"将对战标记为已取消失败: 对战 {battle_id} 不存在")
+            return False
+
+        # 检查对战状态，只允许取消特定状态的对战
+        allowed_states = ["waiting", "playing"]
+        if battle.status not in allowed_states:
+            logger.warning(
+                f"无法取消对战 {battle_id}: 当前状态 '{battle.status}' 不允许取消"
+            )
+            return False
+
+        # 更新对战状态
+        battle.status = "cancelled"
+        battle.ended_at = datetime.datetime.now()
+
+        # 如果提供了取消原因，则更新结果字段
+        if cancellation_reason:
+            # 如果已有结果，则保留原有结果并添加取消原因
+            if battle.results:
+                try:
+                    results_data = json.loads(battle.results)
+                    results_data["cancellation_reason"] = cancellation_reason
+                    battle.results = json.dumps(results_data)
+                except (json.JSONDecodeError, TypeError):
+                    # 如果 battle.results 不是有效的 JSON，则创建新的
+                    battle.results = json.dumps(
+                        {"cancellation_reason": cancellation_reason}
+                    )
+            else:
+                # 如果没有结果，则创建新的
+                battle.results = json.dumps(
+                    {"cancellation_reason": cancellation_reason}
+                )
+
+        if safe_commit():
+            logger.info(f"对战 {battle_id} 已标记为已取消")
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"将对战标记为已取消失败: {e}", exc_info=True)
+        db.session.rollback()
+        return False
+
+
+def handle_cancelled_battle_stats(battle_id):
+    """
+    处理已取消对战的玩家统计数据。
+
+    根据系统设计，可能需要:
+    1. 不计入玩家游戏统计
+    2. 或标记为"取消"而非输赢
+    3. 或在特定情况下给予部分ELO补偿
+
+    参数:
+        battle_id (str): 已取消对战的ID。
+
+    返回:
+        bool: 操作是否成功。
+    """
+    try:
+        battle = get_battle_by_id(battle_id)
+        if not battle:
+            logger.error(f"处理已取消对战统计失败: 对战 {battle_id} 不存在")
+            return False
+
+        if battle.status != "cancelled":
+            logger.warning(f"对战 {battle_id} 不是已取消状态，无法处理取消统计")
+            return False
+
+        # 获取对战玩家列表
+        battle_players = get_battle_players_for_battle(battle_id)
+        if not battle_players:
+            logger.warning(f"对战 {battle_id} 没有参与玩家，无需处理统计")
+            return True  # 无玩家，视为成功处理
+
+        # 解析取消原因（如果有）
+        cancellation_reason = None
+        if battle.results:
+            try:
+                results_data = json.loads(battle.results)
+                cancellation_reason = results_data.get("cancellation_reason")
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+        # 系统故障取消 vs 用户主动取消 vs 管理员取消等情况可能有不同处理
+        # 修改这里：检查 cancellation_reason 的类型
+        is_system_error = False
+        if (
+            isinstance(cancellation_reason, str)
+            and "system" in cancellation_reason.lower()
+        ):
+            is_system_error = True
+        elif (
+            isinstance(cancellation_reason, dict)
+            and cancellation_reason.get("error")
+            and "system" in str(cancellation_reason.get("error")).lower()
+        ):
+            is_system_error = True
+
+        # 更新所有参与者的对战记录
+        for bp in battle_players:
+            # 设置对战结果为"取消"
+            bp.outcome = "cancelled"
+            # 对于已经开始的对战，可能需要保留ELO初始值但不计算变化
+            bp.elo_change = 0
+            db.session.add(bp)
+
+            # 根据实际需求决定是否更新游戏统计
+            # 例如：系统故障导致的取消不计入玩家的游戏场次
+            if not is_system_error:
+                # 获取用户统计
+                stats = get_game_stats_by_user_id(bp.user_id)
+                if stats:
+                    # 更新取消的对战计数（假设模型中有canceled_games字段）
+                    # 如果模型中没有，可以添加，或者选择不记录
+                    if hasattr(stats, "cancelled_games"):
+                        stats.cancelled_games += 1
+                        db.session.add(stats)
+
+        # 提交所有更改
+        return safe_commit()
+    except Exception as e:
+        logger.error(f"处理已取消对战统计失败: {e}", exc_info=True)
         db.session.rollback()
         return False
 

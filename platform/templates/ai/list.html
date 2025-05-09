@@ -1,95 +1,95 @@
 {% extends "base.html" %}
 {% block title %}
-  我的AI代码 - 游戏平台
+    我的AI代码 - 游戏平台
 {% endblock title %}
 {% block content %}
-  <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2>我的AI代码</h2>
-      <a href="{{ url_for('ai.upload_ai') }}" class="btn btn-primary">
-        <i class="bi bi-cloud-upload me-1"></i> 上传新AI
-      </a>
-    </div>
-    <div class="card shadow-sm">
-      <div class="card-body p-0">
-        {% if ai_codes %}
-          <div class="list-group list-group-flush">
-            {% for ai in ai_codes %}
-              <div class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                  <h5 class="mb-1">
-                    {{ ai.name }}
-                    {% if ai.is_active %}<span class="badge bg-success ms-2">当前活跃</span>{% endif %}
-                  </h5>
-                  <p class="mb-1 text-muted">{{ ai.description | default('没有描述', true) }}</p>
-                  <small class="text-muted">上传于: {{ ai.created_at.strftime("%Y-%m-%d %H:%M") }} | 文件: {{ ai.code_path.split("/")[-1] }}</small>
-                </div>
-                <div>
-                  {% if not ai.is_active %}
-                    <form action="{{ url_for('ai.activate_ai', ai_id=ai.id) }}"
-                          method="post"
-                          class="d-inline">
-                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                      {# 如果启用了CSRF #}
-                      <button type="submit"
-                              class="btn btn-sm btn-outline-success me-1"
-                              title="设为活跃">
-                        <i class="bi bi-check-circle"></i> 激活
-                      </button>
-                    </form>
-                  {% endif %}
-                  <a href="{{ url_for('ai.edit_ai', ai_id=ai.id) }}"
-                     class="btn btn-sm btn-outline-primary me-1"
-                     title="编辑">
-                    <i class="bi bi-pencil-square"></i> 编辑
-                  </a>
-                  <button type="button"
-                          class="btn btn-sm btn-outline-danger"
-                          data-bs-toggle="modal"
-                          data-bs-target="#deleteAiModal-{{ ai.id }}"
-                          title="删除">
-                    <i class="bi bi-trash"></i> 删除
-                  </button>
-                </div>
-              </div>
-              <!-- 删除确认模态框 -->
-              <div class="modal fade"
-                   id="deleteAiModal-{{ ai.id }}"
-                   tabindex="-1"
-                   aria-labelledby="deleteAiModalLabel-{{ ai.id }}"
-                   aria-hidden="true">
-                <div class="modal-dialog">
-                  <div class="modal-content">
-                    <div class="modal-header">
-                      <h5 class="modal-title" id="deleteAiModalLabel-{{ ai.id }}">确认删除</h5>
-                      <button type="button"
-                              class="btn-close"
-                              data-bs-dismiss="modal"
-                              aria-label="Close"></button>
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>我的AI代码</h2>
+            <a href="{{ url_for("ai.upload_ai") }}" class="btn btn-primary">
+                <i class="bi bi-cloud-upload me-1"></i> 上传新AI
+            </a>
+        </div>
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                {% if ai_codes %}
+                    <div class="list-group list-group-flush">
+                        {% for ai in ai_codes %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="mb-1">
+                                        {{ ai.name }}
+                                        {% if ai.is_active %}<span class="badge bg-success ms-2">当前活跃</span>{% endif %}
+                                    </h5>
+                                    <p class="mb-1 text-muted">{{ ai.description | default('没有描述', true) }}</p>
+                                    <small class="text-muted">上传于: {{ ai.created_at.strftime("%Y-%m-%d %H:%M") }} | 文件: {{ ai.code_path.split("/")[-1] }}</small>
+                                </div>
+                                <div>
+                                    {% if not ai.is_active %}
+                                        <form action="{{ url_for('ai.activate_ai', ai_id=ai.id) }}"
+                                              method="post"
+                                              class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            {# 如果启用了CSRF #}
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-outline-success me-1"
+                                                    title="设为活跃">
+                                                <i class="bi bi-check-circle"></i> 激活
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                    <a href="{{ url_for('ai.edit_ai', ai_id=ai.id) }}"
+                                       class="btn btn-sm btn-outline-primary me-1"
+                                       title="编辑">
+                                        <i class="bi bi-pencil-square"></i> 编辑
+                                    </a>
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#deleteAiModal-{{ ai.id }}"
+                                            title="删除">
+                                        <i class="bi bi-trash"></i> 删除
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- 删除确认模态框 -->
+                            <div class="modal fade"
+                                 id="deleteAiModal-{{ ai.id }}"
+                                 tabindex="-1"
+                                 aria-labelledby="deleteAiModalLabel-{{ ai.id }}"
+                                 aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="deleteAiModalLabel-{{ ai.id }}">确认删除</h5>
+                                            <button type="button"
+                                                    class="btn-close"
+                                                    data-bs-dismiss="modal"
+                                                    aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">确定要删除AI代码 "{{ ai.name }}" 吗？此操作不可恢复。</div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                            <form action="{{ url_for('ai.delete_ai', ai_id=ai.id) }}"
+                                                  method="post"
+                                                  class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                {# 如果启用了CSRF #}
+                                                <button type="submit" class="btn btn-danger">确认删除</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
                     </div>
-                    <div class="modal-body">确定要删除AI代码 "{{ ai.name }}" 吗？此操作不可恢复。</div>
-                    <div class="modal-footer">
-                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                      <form action="{{ url_for('ai.delete_ai', ai_id=ai.id) }}"
-                            method="post"
-                            class="d-inline">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        {# 如果启用了CSRF #}
-                        <button type="submit" class="btn btn-danger">确认删除</button>
-                      </form>
+                {% else %}
+                    <div class="card-body text-center">
+                        <p class="text-muted">您还没有上传任何AI代码。</p>
+                        <a href="{{ url_for("ai.upload_ai") }}" class="btn btn-primary">立即上传</a>
                     </div>
-                  </div>
-                </div>
-              </div>
-            {% endfor %}
-          </div>
-        {% else %}
-          <div class="card-body text-center">
-            <p class="text-muted">您还没有上传任何AI代码。</p>
-            <a href="{{ url_for('ai.upload_ai') }}" class="btn btn-primary">立即上传</a>
-          </div>
-        {% endif %}
-      </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
-  </div>
 {% endblock content %}

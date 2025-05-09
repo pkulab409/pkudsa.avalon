@@ -1,246 +1,294 @@
 {% extends "base.html" %}
 {% block title %}
-  对战结果 - {{ battle.id[:8] }}...
+    对战结果 - {{ battle.id[:8] }}...
 {% endblock title %}
 {% block content %}
-  <div class="container mt-4">
-    <div class="card shadow-sm mb-4">
-      <div class="card-header {% if battle.status == 'completed' %}bg-success{% elif battle.status == 'error' %}bg-danger{% else %}bg-secondary{% endif %} text-white d-flex justify-content-between align-items-center">
-        <h4 class="mb-0">对战结果 ({{ battle.id[:8] }}...)</h4>
-        <span class="badge bg-light text-dark">
-          状态:
-          {% if battle.status == 'completed' %}
-            已完成
-          {% elif battle.status == 'error' %}
-            错误
-          {% elif battle.status == 'cancelled' %}
-            已取消
-          {% else %}
-            {{ battle.status }}
-          {% endif %}
-        </span>
-      </div>
-      <div class="card-body">
-        <p>
-          <strong>创建时间:</strong> {{ battle.created_at.strftime("%Y-%m-%d %H:%M:%S") if battle.created_at else 'N/A' }}
-        </p>
-        <p>
-          <strong>开始时间:</strong> {{ battle.started_at.strftime("%Y-%m-%d %H:%M:%S") if battle.started_at else 'N/A' }}
-        </p>
-        <p>
-          <strong>结束时间:</strong> {{ battle.ended_at.strftime("%Y-%m-%d %H:%M:%S") if battle.ended_at else 'N/A' }}
-        </p>
-        <hr>
-        <h5>对战结果</h5>
-        {% if battle.status == 'completed' and game_result %}
-          <div class="alert {% if game_result.winner == 'blue' %}alert-info{% elif game_result.winner == 'red' %}alert-danger{% else %}alert-secondary{% endif %}"
-               role="alert">
-            <h5 class="alert-heading">
-              {% if game_result.winner == 'blue' %}
-                <i class="bi bi-shield-check"></i> 蓝方胜利！
-              {% elif game_result.winner == 'red' %}
-                <i class="bi bi-shield-exclamation"></i> 红方胜利！
-              {% else %}
-                结果未知
-              {% endif %}
-            </h5>
-            <p>
-              <strong>胜利原因:</strong>
-              {% if game_result.win_reason == "missions_completed" %}
-                任务完成 (蓝方完成3次任务)
-              {% elif game_result.win_reason == "missions_failed" %}
-                任务失败 (红方破坏3次任务)
-              {% elif game_result.win_reason == "assassination_success" %}
-                刺杀成功 (刺客成功刺杀梅林)
-              {% elif game_result.win_reason == "assassination_failed" %}
-                刺杀失败 (刺客未能刺杀梅林)
-              {% else %}
-                {{ game_result.win_reason | default("未知") }}
-              {% endif %}
-            </p>
-            <p>
-              <strong>总回合数:</strong> {{ game_result.rounds_played | default("N/A") }}
-            </p>
-            <p>
-              <strong>任务成功/失败:</strong> {{ game_result.blue_wins | default("?") }} / {{ game_result.red_wins | default("?") }}
-            </p>
-          </div>
-          <h6>玩家信息</h6>
-          <div class="table-responsive mb-3">
-            <table class="table table-sm table-bordered">
-              <thead class="table-light">
-                <tr>
-                  <th>玩家</th>
-                  <th>角色</th>
-                  <th>阵营</th>
-                  <th>ELO</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for i in range(7) %}
-                  {% set player = battle_players[i] %}
-                  {% set role = game_result.roles[(i + 1) | string] | default("未知") %}
-                  <tr>
-                    <td>
-                      <a href="{{ url_for('profile.profile', username=player.user.username) }}">{{ player.user.username }}</a>
-                      ({{ i + 1 }}号)
-                    </td>
-                    <td>
-                      {% if role == "Merlin" %}
-                        <span class="text-primary fw-bold">梅林</span>
-                      {% elif role == "Percival" %}
-                        <span class="text-primary">派西维尔</span>
-                      {% elif role == "Knight" %}
-                        <span class="text-primary">骑士</span>
-                      {% elif role == "Assassin" %}
-                        <span class="text-danger fw-bold">刺客</span>
-                      {% elif role == "Morgana" %}
-                        <span class="text-danger">莫甘娜</span>
-                      {% elif role == "Mordred" %}
-                        <span class="text-danger">莫德雷德</span>
-                      {% elif role == "Oberon" %}
-                        <span class="text-danger">奥伯伦</span>
-                      {% else %}
-                        {{ role }}
-                      {% endif %}
-                    </td>
-                    <td>
-                      {% if role in ["Merlin", "Percival", "Knight"] %}
-                        <span class="badge bg-info">蓝方</span>
-                      {% elif role in ["Assassin", "Morgana", "Mordred", "Oberon"] %}
-                        <span class="badge bg-danger">红方</span>
-                      {% else %}
-                        <span class="badge bg-secondary">未知</span>
-                      {% endif %}
-                    </td>
-                    <td>
-                      {% if player.initial_elo and player.elo_change %}
-                        {{ player.initial_elo }} → {{ player.initial_elo + player.elo_change }}
-                        {% if player.elo_change >= 0 %}
-                          <span class="text-primary">+{{ player.elo_change }}</span>
-                        {% else %}
-                          <span class="text-danger">{{ player.elo_change }}</span>
-                        {% endif %}
-                      {% endif %}
-                    </td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          <div class="text-center">
-            <a href="{{ url_for('visualizer.game_replay', game_id=battle.id) }}"
-                class="btn btn-lg btn-info">
-              <i class="bi bi-play-btn-fill me-1"></i> 查看详细回放
-            </a>
-            <a href="{{ url_for('game.download_logs', battle_id=battle.id) }}" 
-                class="btn btn-lg btn-secondary ms-3">
-              <i class="bi bi-download me-1"></i> 下载日志文件
-            </a>
-          </div>
-        {% elif battle.status == 'error' %}
-          <div class="alert alert-danger" role="alert">
-            <h5 class="alert-heading">
-              <i class="bi bi-exclamation-triangle-fill"></i> 对战出错
-            </h5>
-            <p>对战未能正常完成。</p>
-            {% if game_result and game_result.error %}
-              <p>
-                <strong>错误信息:</strong> {{ game_result.error }}
-              </p>
-            {% endif %}
-            <!-- 显示错误详情 -->
-            {% if error_info %}
-              <p>玩家 {{ error_info.get("error_user_id") }} （{{ error_info.get("error_pid_in_game") }} 号）在执行 &nbsp;<code>{{ error_info.get("error_code_method") }}</code>&nbsp;&nbsp;时发生错误 {{ error_info.get("error_type") }} ：</p>
-              <p><code>{{ error_info.get("error_msg") }}</code></p>
-              <p class="small">0 号表示裁判</p>
-            {% endif %}
-          </div>
-          <h6>玩家信息</h6>
-              <div class="table-responsive mb-3">
-                <table class="table table-sm table-bordered">
-                  <thead class="table-light">
-                    <tr>
-                      <th>玩家</th>
-                      <th>角色</th>
-                      <th>阵营</th>
-                      <th>ELO</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for i in range(7) %}
-                      {% set player = battle_players[i] %}
-                      {% set role = game_result.roles[(i + 1) | string] | default("未知") %}
-                      <tr>
-                        <td>
-                          <a href="{{ url_for('profile.profile', username=player.user.username) }}">{{ player.user.username }}</a>
-                          ({{ i + 1 }}号)
-                        </td>
-                        <td>
-                          {% if role == "Merlin" %}
-                            <span class="text-primary fw-bold">梅林</span>
-                          {% elif role == "Percival" %}
-                            <span class="text-primary">派西维尔</span>
-                          {% elif role == "Knight" %}
-                            <span class="text-primary">骑士</span>
-                          {% elif role == "Assassin" %}
-                            <span class="text-danger fw-bold">刺客</span>
-                          {% elif role == "Morgana" %}
-                            <span class="text-danger">莫甘娜</span>
-                          {% elif role == "Mordred" %}
-                            <span class="text-danger">莫德雷德</span>
-                          {% elif role == "Oberon" %}
-                            <span class="text-danger">奥伯伦</span>
-                          {% else %}
-                            {{ role }}
-                          {% endif %}
-                        </td>
-                        <td>
-                          {% if role in ["Merlin", "Percival", "Knight"] %}
-                            <span class="badge bg-info">蓝方</span>
-                          {% elif role in ["Assassin", "Morgana", "Mordred", "Oberon"] %}
-                            <span class="badge bg-danger">红方</span>
-                          {% else %}
-                            <span class="badge bg-secondary">未知</span>
-                          {% endif %}
-                        </td>
-                        <td>
-                          {% if player.initial_elo and player.elo_change %}
-                            {{ player.initial_elo }} → {{ player.initial_elo + player.elo_change }}
-                            {% if player.elo_change >= 0 %}
-                              <span class="text-primary">+{{ player.elo_change }}</span>
+    <div class="container mt-4">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header {% if battle.status == 'completed' %}bg-success{% elif battle.status == 'error' %}bg-danger{% else %}bg-secondary{% endif %} text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">对战id ({{ battle.id }})</h4>
+                <span class="badge bg-light text-dark">
+                    状态:
+                    {% if battle.status == 'completed' %}
+                        已完成
+                    {% elif battle.status == 'error' %}
+                        错误
+                    {% elif battle.status == 'cancelled' %}
+                        已取消
+                    {% else %}
+                        {{ battle.status }}
+                    {% endif %}
+                </span>
+            </div>
+            <div class="card-body">
+                <p>
+                    <strong>创建时间:</strong> {{ battle.created_at.strftime("%Y-%m-%d %H:%M:%S") if battle.created_at else 'N/A' }}
+                </p>
+                <p>
+                    <strong>开始时间:</strong> {{ battle.started_at.strftime("%Y-%m-%d %H:%M:%S") if battle.started_at else 'N/A' }}
+                </p>
+                <p>
+                    <strong>结束时间:</strong> {{ battle.ended_at.strftime("%Y-%m-%d %H:%M:%S") if battle.ended_at else 'N/A' }}
+                </p>
+                <hr>
+                <h5>对战结果</h5>
+                {% if battle.status == 'completed' and game_result %}
+                    <div class="alert {% if game_result.get('winner') == 'blue' %}alert-info{% elif game_result.get('winner') == 'red' %}alert-danger{% else %}alert-secondary{% endif %}"
+                         role="alert">
+                        <h5 class="alert-heading">
+                            {% if game_result.get('winner') == 'blue' %}
+                                <i class="bi bi-shield-check"></i> 蓝方胜利！
+                            {% elif game_result.get('winner') == 'red' %}
+                                <i class="bi bi-shield-exclamation"></i> 红方胜利！
                             {% else %}
-                              <span class="text-danger">{{ player.elo_change }} (惩罚)</span>
+                                结果未知
                             {% endif %}
-                          {% elif player.initial_elo %}
-                            {{ player.initial_elo }}
-                          {% endif %}
-                        </td>
-                      </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-              <!-- 添加下载日志按钮 -->
-              <div class="text-center mt-4">
-                <a href="{{ url_for('game.download_logs', battle_id=battle.id) }}" 
-                  class="btn btn-lg btn-secondary">
-                  <i class="bi bi-download me-1"></i> 下载日志文件
-                </a>
-              </div>
-        {% elif battle.status == 'cancelled' %}
-          <div class="alert alert-secondary" role="alert">
-            <h5 class="alert-heading">
-              <i class="bi bi-stop-circle-fill"></i> 对战已取消
-            </h5>
-            <p>该对战已被取消，没有最终结果。</p>
-          </div>
-        {% else %}
-          <p class="text-muted">暂无详细对战结果信息。</p>
-        {% endif %}
-        <hr>
-        <a href="{{ url_for('game.lobby') }}" class="btn btn-outline-secondary">返回大厅</a>
-      </div>
+                        </h5>
+                        <p>
+                            <strong>胜利原因:</strong>
+                            {% if game_result.get('win_reason') == "missions_completed" %}
+                                任务完成 (蓝方完成3次任务)
+                            {% elif game_result.get('win_reason') == "missions_failed" %}
+                                任务失败 (红方破坏3次任务)
+                            {% elif game_result.get('win_reason') == "assassination_success" %}
+                                刺杀成功 (刺客成功刺杀梅林)
+                            {% elif game_result.get('win_reason') == "missions_complete_and_assassination_failed" %}
+                                刺杀失败 (刺客未能刺杀梅林)
+                            {% else %}
+                                {{ game_result.get('win_reason', '未知') }}
+                            {% endif %}
+                        </p>
+                        <p>
+                            <strong>总回合数:</strong> {{ game_result.get('rounds_played', 'N/A') }}
+                        </p>
+                        <p>
+                            <strong>任务成功/失败:</strong> {{ game_result.get('blue_wins', '?') }} / {{ game_result.get('red_wins', '?') }}
+                        </p>
+                    </div>
+                    <h6>玩家信息</h6>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>玩家</th>
+                                    <th>角色</th>
+                                    <th>阵营</th>
+                                    <th>ELO</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for i in range(7) %}
+                                    {% if i < battle_players|length %}
+                                        {% set player = battle_players[i] %}
+                                        {% set player_id = i + 1 %}
+                                        {% set role = "" %}
+                                        {# 获取角色信息，以多种可能的方式 #}
+                                        {% if game_result.get('roles') %}
+                                            {% if player_id in game_result.roles %}
+                                                {% set role = game_result.roles[player_id] %}
+                                            {% elif player_id|string in game_result.roles %}
+                                                {% set role = game_result.roles[player_id|string] %}
+                                            {% else %}
+                                                {% set role = "未知" %}
+                                            {% endif %}
+                                        {% else %}
+                                            {% set role = "未知" %}
+                                        {% endif %}
+                                        <tr>
+                                            <td>
+                                                {% if player.user %}
+                                                    <a href="{{ url_for('profile.profile', username=player.user.username) }}">{{ player.user.username }}</a>
+                                                {% else %}
+                                                    未知玩家
+                                                {% endif %}
+                                                ({{ i + 1 }}号)
+                                            </td>
+                                            <td>
+                                                {% if role == "Merlin" %}
+                                                    <span class="text-primary fw-bold">梅林</span>
+                                                {% elif role == "Percival" %}
+                                                    <span class="text-primary">派西维尔</span>
+                                                {% elif role == "Knight" %}
+                                                    <span class="text-primary">骑士</span>
+                                                {% elif role == "Assassin" %}
+                                                    <span class="text-danger fw-bold">刺客</span>
+                                                {% elif role == "Morgana" %}
+                                                    <span class="text-danger">莫甘娜</span>
+                                                {% elif role == "Mordred" %}
+                                                    <span class="text-danger">莫德雷德</span>
+                                                {% elif role == "Oberon" %}
+                                                    <span class="text-danger">奥伯伦</span>
+                                                {% else %}
+                                                    {{ role }}
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if role in ["Merlin", "Percival", "Knight"] %}
+                                                    <span class="badge bg-info">蓝方</span>
+                                                {% elif role in ["Assassin", "Morgana", "Mordred", "Oberon"] %}
+                                                    <span class="badge bg-danger">红方</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">未知</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if player.initial_elo is not none and player.elo_change is not none %}
+                                                    {{ player.initial_elo }} → {{ player.initial_elo + player.elo_change }}
+                                                    {% if player.elo_change >= 0 %}
+                                                        <span class="text-primary">+{{ player.elo_change }}</span>
+                                                    {% else %}
+                                                        <span class="text-danger">{{ player.elo_change }}</span>
+                                                    {% endif %}
+                                                {% elif player.initial_elo is not none %}
+                                                    {{ player.initial_elo }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center">
+                        <a href="{{ url_for('visualizer.game_replay', game_id=battle.id) }}"
+                           class="btn btn-lg btn-info">
+                            <i class="bi bi-play-btn-fill me-1"></i> 查看详细回放
+                        </a>
+                        <a href="{{ url_for('game.download_logs', battle_id=battle.id) }}"
+                           class="btn btn-lg btn-secondary ms-3">
+                            <i class="bi bi-download me-1"></i> 下载日志文件
+                        </a>
+                    </div>
+                {% elif battle.status == 'error' %}
+                    <div class="alert alert-danger" role="alert">
+                        <h5 class="alert-heading">
+                            <i class="bi bi-exclamation-triangle-fill"></i> 对战出错
+                        </h5>
+                        <p>对战未能正常完成。</p>
+                        {% if game_result and game_result.get('error') %}
+                            <p>
+                                <strong>错误信息:</strong> {{ game_result.get("error") }}
+                            </p>
+                        {% endif %}
+                        <!-- 显示错误详情 -->
+                        {% if error_info %}
+                            <p>
+                                玩家 {{ error_info.get("error_user_id") }} （{{ error_info.get("error_pid_in_game") }} 号）在执行 &nbsp;<code>{{ error_info.get("error_code_method") }}</code>&nbsp;&nbsp;时发生错误 {{ error_info.get("error_type") }} ：
+                            </p>
+                            <p>
+                                <code>{{ error_info.get("error_msg") }}</code>
+                            </p>
+                            <p class="small">0 号表示裁判</p>
+                        {% endif %}
+                    </div>
+                    <h6>玩家信息</h6>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>玩家</th>
+                                    <th>角色</th>
+                                    <th>阵营</th>
+                                    <th>ELO</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for i in range(7) %}
+                                    {% if i < battle_players|length %}
+                                        {% set player = battle_players[i] %}
+                                        {% set player_id = i + 1 %}
+                                        {% set role = "" %}
+                                        {# 获取角色信息，以多种可能的方式 #}
+                                        {% if game_result.get('roles') %}
+                                            {% if player_id in game_result.roles %}
+                                                {% set role = game_result.roles[player_id] %}
+                                            {% elif player_id|string in game_result.roles %}
+                                                {% set role = game_result.roles[player_id|string] %}
+                                            {% else %}
+                                                {% set role = "未知" %}
+                                            {% endif %}
+                                        {% else %}
+                                            {% set role = "未知" %}
+                                        {% endif %}
+                                        <tr>
+                                            <td>
+                                                {% if player.user %}
+                                                    <a href="{{ url_for('profile.profile', username=player.user.username) }}">{{ player.user.username }}</a>
+                                                {% else %}
+                                                    未知玩家
+                                                {% endif %}
+                                                ({{ i + 1 }}号)
+                                            </td>
+                                            <td>
+                                                {% if role == "Merlin" %}
+                                                    <span class="text-primary fw-bold">梅林</span>
+                                                {% elif role == "Percival" %}
+                                                    <span class="text-primary">派西维尔</span>
+                                                {% elif role == "Knight" %}
+                                                    <span class="text-primary">骑士</span>
+                                                {% elif role == "Assassin" %}
+                                                    <span class="text-danger fw-bold">刺客</span>
+                                                {% elif role == "Morgana" %}
+                                                    <span class="text-danger">莫甘娜</span>
+                                                {% elif role == "Mordred" %}
+                                                    <span class="text-danger">莫德雷德</span>
+                                                {% elif role == "Oberon" %}
+                                                    <span class="text-danger">奥伯伦</span>
+                                                {% else %}
+                                                    {{ role }}
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if role in ["Merlin", "Percival", "Knight"] %}
+                                                    <span class="badge bg-info">蓝方</span>
+                                                {% elif role in ["Assassin", "Morgana", "Mordred", "Oberon"] %}
+                                                    <span class="badge bg-danger">红方</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">未知</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if player.initial_elo is not none and player.elo_change is not none %}
+                                                    {{ player.initial_elo }} → {{ player.initial_elo + player.elo_change }}
+                                                    {% if player.elo_change >= 0 %}
+                                                        <span class="text-primary">+{{ player.elo_change }}</span>
+                                                    {% else %}
+                                                        <span class="text-danger">{{ player.elo_change }} (惩罚)</span>
+                                                    {% endif %}
+                                                {% elif player.initial_elo is not none %}
+                                                    {{ player.initial_elo }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- 添加下载日志按钮 -->
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('game.download_logs', battle_id=battle.id) }}"
+                           class="btn btn-lg btn-secondary">
+                            <i class="bi bi-download me-1"></i> 下载日志文件
+                        </a>
+                    </div>
+                {% elif battle.status == 'cancelled' %}
+                    <div class="alert alert-secondary" role="alert">
+                        <h5 class="alert-heading">
+                            <i class="bi bi-stop-circle-fill"></i> 对战已取消
+                        </h5>
+                        <p>该对战已被取消，没有最终结果。</p>
+                    </div>
+                {% else %}
+                    <p class="text-muted">暂无详细对战结果信息。</p>
+                {% endif %}
+                <hr>
+                <a href="{{ url_for("game.lobby") }}" class="btn btn-outline-secondary">返回大厅</a>
+            </div>
+        </div>
     </div>
-  </div>
 {% endblock content %}

@@ -5,7 +5,7 @@
 
 
 import logging
-from flask import Flask # 导入 Flask
+from flask import Flask  # 导入 Flask
 from game.battle_manager import BattleManager
 from services.battle_service import BattleService, get_battle_service
 
@@ -15,7 +15,8 @@ logger = logging.getLogger("BattleManagerUtils")
 # 全局BattleManager实例缓存
 _battle_manager = None
 _battle_service = None  # 缓存 service 实例
-_app_ref: Flask = None # 用于存储 Flask app 实例的引用
+_app_ref: Flask = None  # 用于存储 Flask app 实例的引用
+
 
 def init_battle_manager_utils(app: Flask):
     """使用 Flask 应用实例初始化此工具模块。"""
@@ -25,6 +26,7 @@ def init_battle_manager_utils(app: Flask):
     _app_ref = app
     logger.info("BattleManagerUtils initialized with Flask app.")
 
+
 def get_battle_manager() -> BattleManager:
     """获取对战管理器单例实例，并确保注入 BattleService"""
     global _battle_manager
@@ -33,7 +35,9 @@ def get_battle_manager() -> BattleManager:
 
     if _app_ref is None:
         # 提供更清晰的错误信息
-        raise RuntimeError("BattleManagerUtils has not been initialized with the Flask app. Call init_battle_manager_utils(app) first.")
+        raise RuntimeError(
+            "BattleManagerUtils has not been initialized with the Flask app. Call init_battle_manager_utils(app) first."
+        )
 
     if _battle_manager is None:
         if _battle_service is None:
@@ -51,8 +55,9 @@ def get_battle_manager() -> BattleManager:
         _battle_manager = BattleManager(battle_service=_battle_service)
         logger.info("BattleManager instance created and injected with BattleService.")
     # else: # 移除这个日志，因为它在每次获取时都会打印
-        # logger.info("BattleManager instance reused.")
+    # logger.info("BattleManager instance reused.")
     return _battle_manager
+
 
 def get_shared_battle_service() -> BattleService:
     """获取共享的 BattleService 实例"""
@@ -66,15 +71,23 @@ def get_shared_battle_service() -> BattleService:
         return _battle_service
     else:
         # 如果 manager 和 service 都未创建，尝试创建 service
-        logger.warning("Attempting to get BattleService before BattleManager initialization or reuse.")
+        logger.warning(
+            "Attempting to get BattleService before BattleManager initialization or reuse."
+        )
         if _app_ref:
             try:
                 _battle_service = get_battle_service(_app_ref)
-                logger.info("BattleService instance created on demand for get_shared_battle_service.")
+                logger.info(
+                    "BattleService instance created on demand for get_shared_battle_service."
+                )
                 return _battle_service
             except Exception as e:
-                 logger.exception("Failed to create BattleService instance on demand.")
-                 raise RuntimeError("Could not get BattleService: Failed to create instance.") from e
+                logger.exception("Failed to create BattleService instance on demand.")
+                raise RuntimeError(
+                    "Could not get BattleService: Failed to create instance."
+                ) from e
         else:
             # 如果没有 app 引用，无法创建
-            raise RuntimeError("Cannot get BattleService: BattleManagerUtils not initialized with Flask app.")
+            raise RuntimeError(
+                "Cannot get BattleService: BattleManagerUtils not initialized with Flask app."
+            )

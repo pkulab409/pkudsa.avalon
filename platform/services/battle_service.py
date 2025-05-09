@@ -7,6 +7,8 @@ from database import (
     update_battle,
     process_battle_results_and_update_stats,
     get_ai_code_path_full,
+    mark_battle_as_cancelled,  # 新增: 导入处理取消状态的函数
+    handle_cancelled_battle_stats,  # 新增: 导入处理取消对战统计的函数
 )
 from database.models import (
     Battle,
@@ -105,11 +107,15 @@ class BattleService:
                         battle, status="error", results=json.dumps(error_details)
                     ):
                         logger.info(f"数据库：对战 {battle_id} 状态更新为 error")
-                        if process_battle_results_and_update_stats(battle_id, error_details):
+                        if process_battle_results_and_update_stats(
+                            battle_id, error_details
+                        ):
                             logger.info(f"数据库：对战 {battle_id} 玩家报错处置成功")
                             return True
                         else:
-                            logger.error(f"数据库：对战 {battle_id} 玩家报错处置失败，或不需要处置玩家")
+                            logger.error(
+                                f"数据库：对战 {battle_id} 玩家报错处置失败，或不需要处置玩家"
+                            )
                     else:
                         logger.error(f"数据库：更新对战 {battle_id} 状态为 error 失败")
                         return False
@@ -118,6 +124,52 @@ class BattleService:
                     return False
         except Exception as e:
             logger.exception(f"更新对战 {battle_id} 状态为 error 时出错: {e}")
+            return False
+
+    # 新增方法：标记对战为已取消状态
+    def mark_battle_as_cancelled(self, battle_id: str, cancel_data: dict) -> bool:
+        """
+        将数据库中的对战状态更新为 'cancelled'，并处理相关统计。
+
+        参数:
+            battle_id (str): 对战ID
+            cancel_data (dict): 取消相关数据，如取消原因
+
+        返回:
+            bool: 操作是否成功
+        """
+        try:
+            # 使用 self.app 创建上下文
+            with self.app.app_context():
+                # 先检查对战是否存在
+                battle = get_battle_by_id(battle_id)
+                if not battle:
+                    logger.error(f"数据库：尝试取消时未找到对战 {battle_id}")
+                    return False
+
+                # 检查对战状态是否允许取消
+                if battle.status not in ["waiting", "playing"]:
+                    logger.warning(
+                        f"数据库：对战 {battle_id} 状态为 {battle.status}，不适合取消"
+                    )
+                    return False
+
+                # 更新对战状态为cancelled
+                if not mark_battle_as_cancelled(battle_id, cancel_data):
+                    logger.error(f"数据库：更新对战 {battle_id} 状态为 cancelled 失败")
+                    return False
+
+                logger.info(f"数据库：对战 {battle_id} 状态已更新为 cancelled")
+
+                # 处理取消对战的统计数据
+                if handle_cancelled_battle_stats(battle_id):
+                    logger.info(f"数据库：对战 {battle_id} 取消统计处理成功")
+                    return True
+                else:
+                    logger.error(f"数据库：对战 {battle_id} 取消统计处理失败")
+                    return False
+        except Exception as e:
+            logger.exception(f"取消对战 {battle_id} 时出错: {e}")
             return False
 
     # 可以添加包装好的日志方法，如果希望 BattleManager 完全不依赖 logging

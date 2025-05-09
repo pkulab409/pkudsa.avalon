@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # dmcnczy 25/4/28
-'''提供文档页面'''
+"""提供文档页面"""
 
 
 from flask import Blueprint, render_template

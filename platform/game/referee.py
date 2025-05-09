@@ -19,6 +19,9 @@ from .restrictor import RESTRICTED_BUILTINS
 from .avalon_game_helper import GameHelper
 from database.models import Battle
 from database.base import db
+from database import (
+    get_battle_by_id as db_get_battle_by_id,
+)
 
 # 配置日志
 logging.basicConfig(
@@ -63,6 +66,118 @@ HEARING_RANGE = {  # 听力范围（中心格周围的方格数）
     "Oberon": 2,  # 奥伯伦听力更大
 }
 MAX_EXECUTION_TIME = 100
+
+
+class GameTerminationError(Exception):
+    """Exception raised when game needs to be terminated due to battle status change"""
+
+    pass
+
+
+class BattleStatusChecker:
+    """用于安全检查对战状态的辅助类，不直接依赖Flask上下文"""
+
+    def __init__(self, battle_id):
+        """初始化状态检查器"""
+        self.battle_id = battle_id
+        self.last_known_status = "playing"  # 默认状态
+        self.check_interval = 2  # 状态检查间隔（秒）
+        self.last_check_time = 0  # 上次检查时间
+
+        # 初始化时立即检查一次状态
+        self.get_battle_status(force=True)
+
+    def get_battle_status(self, force=False):
+        """
+        获取当前对战状态，使用直接SQL查询避免Flask上下文依赖
+
+        参数:
+            force (bool): 是否强制检查，忽略时间间隔限制
+        """
+        current_time = time.time()
+
+        # 如果距离上次检查时间不足check_interval且不是强制检查，则返回上次状态
+        if not force and (current_time - self.last_check_time < self.check_interval):
+            return self.last_known_status
+
+        self.last_check_time = current_time
+
+        try:
+            # 尝试多种方法获取对战状态
+
+            # 方法1: 通过battle_manager获取（如果可访问）
+            try:
+                from utils.battle_manager_utils import get_battle_manager
+
+                battle_manager = get_battle_manager()
+                if battle_manager:
+                    status = battle_manager.get_battle_status(self.battle_id)
+                    if status:
+                        self.last_known_status = status
+                        logger.debug(
+                            f"从battle_manager获取对战 {self.battle_id} 状态: {status}"
+                        )
+                        return status
+            except Exception as e:
+                logger.debug(f"无法从battle_manager获取状态: {str(e)}")
+
+            # 方法2: 使用原始SQL查询
+            import sqlite3
+            from os import path
+
+            # 尝试多个可能的数据库位置
+            possible_paths = [
+                "./database.sqlite",
+                "./platform/database.sqlite",
+                "../database.sqlite",
+                "../../database.sqlite",
+                os.path.join(
+                    os.path.dirname(os.path.abspath(__file__)), "../../database.sqlite"
+                ),
+            ]
+
+            db_path = None
+            for p in possible_paths:
+                if path.exists(p):
+                    db_path = p
+                    break
+
+            if not db_path:
+                logger.warning(f"无法找到数据库文件进行状态检查")
+                return self.last_known_status
+
+            # 连接数据库
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+
+            # 执行查询
+            cursor.execute("SELECT status FROM battles WHERE id = ?", (self.battle_id,))
+            result = cursor.fetchone()
+
+            # 关闭连接
+            conn.close()
+
+            if result:
+                self.last_known_status = result[0]
+                logger.debug(f"从数据库获取对战 {self.battle_id} 状态: {result[0]}")
+                return result[0]
+            else:
+                logger.warning(f"在数据库中找不到对战 {self.battle_id}")
+
+        except Exception as e:
+            logger.error(f"检查对战状态时出错: {str(e)}")
+
+        return self.last_known_status
+
+    def should_abort(self):
+        """检查对战是否应该中止"""
+        status = self.get_battle_status(force=True)  # 强制刷新状态
+        should_stop = status not in ["playing", "waiting"]
+
+        if should_stop:
+            logger.warning(f"检测到对战 {self.battle_id} 状态为 '{status}'，将中止游戏")
+
+        return should_stop
 
 
 class AvalonReferee:
@@ -328,7 +443,6 @@ class AvalonReferee:
         # 然后重置LLM限制
         self.game_helper.reset_llm_limit(self.current_round)
 
-        # set_current_round(self.current_round)
         member_count = MISSION_MEMBER_COUNT[self.current_round - 1]
         vote_round = 0
         mission_success = None
@@ -347,12 +461,42 @@ class AvalonReferee:
             }
         )
 
+        # 检查对战状态
+        def check_battle_status():
+            """检查对战状态，如果不是playing或waiting则抛出异常"""
+            if (
+                hasattr(self, "battle_status_checker")
+                and self.battle_status_checker is not None
+            ):
+                if self.battle_status_checker.should_abort():
+                    battle_status = self.battle_status_checker.get_battle_status(
+                        force=True
+                    )
+                    logger.warning(
+                        f"Mission round aborted: Battle state changed to '{battle_status}'"
+                    )
+                    raise GameTerminationError(
+                        f"Battle status changed to '{battle_status}'"
+                    )
+
+        # 初始状态检查
+        try:
+            check_battle_status()
+        except GameTerminationError as e:
+            raise e
+
         # 任务循环，直到有效执行或达到最大投票次数
         while mission_success is None and vote_round < MAX_VOTE_ROUNDS:
             vote_round += 1
             logger.info(
                 f"Starting Vote Round {vote_round} for Mission {self.current_round}."
             )
+
+            # 添加状态检查：队长选择前
+            try:
+                check_battle_status()
+            except GameTerminationError as e:
+                raise e
 
             # 1. 队长选择队员
             logger.info(f"Leader {self.leader_index} is proposing a team.")
@@ -362,7 +506,7 @@ class AvalonReferee:
             )
             logger.debug(f"Leader {self.leader_index} proposed: {mission_members}")
 
-            # 验证队员数量和有效性 (Adding logs for validation steps)
+            # 验证队员数量和有效性
             if not isinstance(mission_members, list):
                 logger.error(
                     f"Leader {self.leader_index} returned non-list: {type(mission_members)}.",
@@ -406,7 +550,7 @@ class AvalonReferee:
 
                 if len(valid_members) != member_count:
                     logger.error(
-                        f"Leader {self.leader_index} proposed too many(few) members: {member}.",
+                        f"Leader {self.leader_index} proposed too many(few) members: {len(valid_members)}.",
                         exc_info=True,  # Include traceback in log
                     )
                     self.suspend_game(
@@ -447,24 +591,53 @@ class AvalonReferee:
                 }
             )
 
+            # 添加状态检查：第一轮发言前
+            try:
+                check_battle_status()
+            except GameTerminationError as e:
+                raise e
+
             # 2. 第一轮发言（全图广播）
             logger.info("Starting Global Speech phase.")
+            try:
+                self.conduct_global_speech()
+            except GameTerminationError as e:
+                raise e
 
-            self.conduct_global_speech()
+            # 添加状态检查：玩家移动前
+            try:
+                check_battle_status()
+            except GameTerminationError as e:
+                raise e
 
             # 3. 玩家移动
             logger.info("Starting Movement phase.")
+            try:
+                self.conduct_movement()
+            except GameTerminationError as e:
+                raise e
 
-            self.conduct_movement()
+            # 添加状态检查：第二轮发言前
+            try:
+                check_battle_status()
+            except GameTerminationError as e:
+                raise e
 
             # 4. 第二轮发言（有限听力范围）
             logger.info("Starting Limited Speech phase.")
+            try:
+                self.conduct_limited_speech()
+            except GameTerminationError as e:
+                raise e
 
-            self.conduct_limited_speech()
+            # 添加状态检查：公投表决前
+            try:
+                check_battle_status()
+            except GameTerminationError as e:
+                raise e
 
             # 5. 公投表决
             logger.info("Starting Public Vote phase.")
-
             approve_votes = self.conduct_public_vote(mission_members)
             logger.info(
                 f"Public vote result: {approve_votes} Approve vs {PLAYER_COUNT - approve_votes} Reject."
@@ -478,17 +651,25 @@ class AvalonReferee:
                 self.battle_observer.make_snapshot(
                     "MissionApproved", [self.current_round, mission_members]
                 )
+
+                # 添加状态检查：执行任务前
+                try:
+                    check_battle_status()
+                except GameTerminationError as e:
+                    raise e
+
                 # 执行任务
-                mission_success = self.execute_mission(mission_members)
+                try:
+                    mission_success = self.execute_mission(mission_members)
+                except GameTerminationError as e:
+                    raise e
                 break  # 退出循环
             else:
                 logger.info("Team Rejected.")
                 self.battle_observer.make_snapshot("MissionRejected", "Team Rejected.")
                 # 否决，更换队长
-                # from .avalon_game_helper import reset_llm_limit
-                # reset_llm_limit(self.current_round)
-
                 self.game_helper.reset_llm_limit(self.current_round)
+
                 old_leader = self.leader_index
                 self.leader_index = self.leader_index % PLAYER_COUNT + 1
                 logger.info(f"Leader changed from {old_leader} to {self.leader_index}.")
@@ -505,6 +686,12 @@ class AvalonReferee:
                     }
                 )
 
+                # 添加状态检查：特殊情况前
+                try:
+                    check_battle_status()
+                except GameTerminationError as e:
+                    raise e
+
                 # 特殊情况：连续5次否决
                 if vote_round == MAX_VOTE_ROUNDS:
                     logger.warning(
@@ -517,9 +704,24 @@ class AvalonReferee:
                     self.log_public_event(
                         {"type": "consecutive_rejections", "round": self.current_round}
                     )
+
+                    # 添加状态检查：强制执行前
+                    try:
+                        check_battle_status()
+                    except GameTerminationError as e:
+                        raise e
+
                     # 强制执行任务
-                    mission_success = self.execute_mission(mission_members)
-                    # No break needed, loop condition will handle exit
+                    try:
+                        mission_success = self.execute_mission(mission_members)
+                    except GameTerminationError as e:
+                        raise e
+
+        # 任务完成后最后检查状态
+        try:
+            check_battle_status()
+        except GameTerminationError as e:
+            raise e
 
         # 记录任务结果
         logger.info(
@@ -559,8 +761,6 @@ class AvalonReferee:
         )
 
         # 更新队长 (Moved outside the loop, happens once per mission round end)
-        # self.leader_index = self.leader_index % PLAYER_COUNT + 1 # Already updated on rejection, needs careful thought if approved
-        # Let's update leader *after* the mission result is logged, regardless of approval/rejection outcome for simplicity
         old_leader_for_next_round = self.leader_index
         self.leader_index = self.leader_index % PLAYER_COUNT + 1
         logger.debug(
@@ -571,6 +771,20 @@ class AvalonReferee:
 
     def conduct_global_speech(self):
         """进行全局发言（所有玩家都能听到）"""
+        # 添加状态检查
+        if (
+            hasattr(self, "battle_status_checker")
+            and self.battle_status_checker is not None
+        ):
+            if self.battle_status_checker.should_abort():
+                battle_status = self.battle_status_checker.get_battle_status(force=True)
+                logger.warning(
+                    f"Global speech aborted: Battle state changed to '{battle_status}'"
+                )
+                raise GameTerminationError(
+                    f"Battle status changed to '{battle_status}'"
+                )
+
         speeches = []
 
         # 从队长开始，按编号顺序发言
@@ -581,6 +795,22 @@ class AvalonReferee:
         logger.debug(f"Global speech order: {ordered_players}")
 
         for player_id in ordered_players:
+            # 每个玩家发言前检查状态
+            if (
+                hasattr(self, "battle_status_checker")
+                and self.battle_status_checker is not None
+            ):
+                if self.battle_status_checker.should_abort():
+                    battle_status = self.battle_status_checker.get_battle_status(
+                        force=True
+                    )
+                    logger.warning(
+                        f"Global speech interrupted: Battle state changed to '{battle_status}'"
+                    )
+                    raise GameTerminationError(
+                        f"Battle status changed to '{battle_status}'"
+                    )
+
             logger.debug(f"Requesting speech from Player {player_id}")
             speech = self.safe_execute(player_id, "say")
 
@@ -619,6 +849,20 @@ class AvalonReferee:
 
     def conduct_movement(self):
         """执行玩家移动"""
+        # 添加状态检查
+        if (
+            hasattr(self, "battle_status_checker")
+            and self.battle_status_checker is not None
+        ):
+            if self.battle_status_checker.should_abort():
+                battle_status = self.battle_status_checker.get_battle_status(force=True)
+                logger.warning(
+                    f"Movement phase aborted: Battle state changed to '{battle_status}'"
+                )
+                raise GameTerminationError(
+                    f"Battle status changed to '{battle_status}'"
+                )
+
         # 从队长开始，按编号顺序移动
         ordered_players = [
             (i - 1) % PLAYER_COUNT + 1
@@ -635,11 +879,25 @@ class AvalonReferee:
                     self.map_data[x][y] = " "
 
         for player_id in ordered_players:
-            # 每个玩家分别循环一次
+            # 每个玩家移动前检查状态
+            if (
+                hasattr(self, "battle_status_checker")
+                and self.battle_status_checker is not None
+            ):
+                if self.battle_status_checker.should_abort():
+                    battle_status = self.battle_status_checker.get_battle_status(
+                        force=True
+                    )
+                    logger.warning(
+                        f"Movement interrupted: Battle state changed to '{battle_status}'"
+                    )
+                    raise GameTerminationError(
+                        f"Battle status changed to '{battle_status}'"
+                    )
 
             # 告知玩家当前地图情况
             self.safe_execute(player_id, "pass_position_data", self.player_positions)
-            logger.debug("Sending current map to player {player_id}.")
+            logger.debug(f"Sending current map to player {player_id}.")
 
             # 获取当前位置
             current_pos = self.player_positions[player_id]
@@ -747,7 +1005,6 @@ class AvalonReferee:
             logger.info(
                 f"Movement - Player {player_id}: {current_pos} -> {new_pos} via {valid_moves}"
             )
-            
             self.player_positions[player_id] = new_pos
             x, y = new_pos
             self.map_data[x][y] = str(player_id)  # Place marker after all checks
@@ -760,6 +1017,20 @@ class AvalonReferee:
                     "final_position": new_pos,
                 }
             )
+
+        # 再次检查状态
+        if (
+            hasattr(self, "battle_status_checker")
+            and self.battle_status_checker is not None
+        ):
+            if self.battle_status_checker.should_abort():
+                battle_status = self.battle_status_checker.get_battle_status(force=True)
+                logger.warning(
+                    f"Movement completion aborted: Battle state changed to '{battle_status}'"
+                )
+                raise GameTerminationError(
+                    f"Battle status changed to '{battle_status}'"
+                )
 
         # 更新所有玩家的地图
         logger.debug(
@@ -781,6 +1052,20 @@ class AvalonReferee:
 
     def conduct_limited_speech(self):
         """进行有限范围发言（只有在听力范围内的玩家能听到）"""
+        # 添加状态检查
+        if (
+            hasattr(self, "battle_status_checker")
+            and self.battle_status_checker is not None
+        ):
+            if self.battle_status_checker.should_abort():
+                battle_status = self.battle_status_checker.get_battle_status(force=True)
+                logger.warning(
+                    f"Limited speech aborted: Battle state changed to '{battle_status}'"
+                )
+                raise GameTerminationError(
+                    f"Battle status changed to '{battle_status}'"
+                )
+
         # 从队长开始，按编号顺序发言
         ordered_players = [
             (i - 1) % PLAYER_COUNT + 1
@@ -790,6 +1075,22 @@ class AvalonReferee:
 
         speeches = []
         for speaker_id in ordered_players:
+            # 每个玩家发言前检查状态
+            if (
+                hasattr(self, "battle_status_checker")
+                and self.battle_status_checker is not None
+            ):
+                if self.battle_status_checker.should_abort():
+                    battle_status = self.battle_status_checker.get_battle_status(
+                        force=True
+                    )
+                    logger.warning(
+                        f"Limited speech interrupted: Battle state changed to '{battle_status}'"
+                    )
+                    raise GameTerminationError(
+                        f"Battle status changed to '{battle_status}'"
+                    )
+
             logger.debug(f"Requesting limited speech from Player {speaker_id}")
             speech = self.safe_execute(speaker_id, "say")
 
@@ -808,7 +1109,7 @@ class AvalonReferee:
             logger.info(
                 f"Limited Speech - Player {speaker_id}: {speech[:100]}{'...' if len(speech) > 100 else ''}"
             )
-            
+
             speeches.append((speaker_id, speech))
 
             # 确定能听到的玩家
@@ -819,12 +1120,14 @@ class AvalonReferee:
             for hearer_id in hearers:
                 if hearer_id != speaker_id:  # 不需要通知发言者自己
                     self.safe_execute(hearer_id, "pass_message", (speaker_id, speech))
-            
+
             self.battle_observer.make_snapshot(
                 "PrivateSpeech",
-                (speaker_id, 
-                 speech[:100] + ("..." if len(speech) > 100 else ""),
-                 " ".join(map(str,hearers)))
+                (
+                    speaker_id,
+                    speech[:100] + ("..." if len(speech) > 100 else ""),
+                    " ".join(map(str, hearers)),
+                ),
             )
 
         # 记录有限范围发言
@@ -864,9 +1167,40 @@ class AvalonReferee:
         进行公开投票，决定是否执行任务
         返回支持票数
         """
+        # 添加状态检查
+        if (
+            hasattr(self, "battle_status_checker")
+            and self.battle_status_checker is not None
+        ):
+            if self.battle_status_checker.should_abort():
+                battle_status = self.battle_status_checker.get_battle_status(force=True)
+                logger.warning(
+                    f"Public vote aborted: Battle state changed to '{battle_status}'"
+                )
+                raise GameTerminationError(
+                    f"Battle status changed to '{battle_status}'"
+                )
+
         votes = {}
         logger.debug(f"Requesting public votes for team: {mission_members}")
         for player_id in range(1, PLAYER_COUNT + 1):
+            # 每个玩家投票前检查状态
+            if (
+                hasattr(self, "battle_status_checker")
+                and self.battle_status_checker is not None
+                and player_id % 3 == 0
+            ):  # 每3个玩家检查一次状态
+                if self.battle_status_checker.should_abort():
+                    battle_status = self.battle_status_checker.get_battle_status(
+                        force=True
+                    )
+                    logger.warning(
+                        f"Public vote interrupted: Battle state changed to '{battle_status}'"
+                    )
+                    raise GameTerminationError(
+                        f"Battle status changed to '{battle_status}'"
+                    )
+
             vote = self.safe_execute(player_id, "mission_vote1")
 
             # 确保投票结果是布尔值
@@ -1071,18 +1405,80 @@ class AvalonReferee:
         # 刺杀结束快照
         return success
 
+    """
+    以下是完整的 referee.py 中 run_game 方法修改实现。
+    这个实现专注于确保游戏结果的格式一致性，正确包含角色信息，并增强日志记录。
+    """
+
     def run_game(self) -> Dict[str, Any]:
         """
         运行游戏，返回游戏结果
         """
         logger.info(f"===== Starting Game {self.game_id} =====")
         self.battle_observer.make_snapshot("GameStart", self.game_id)
+
+        # 从数据库获取对战记录，用于状态检查
+        try:
+            # 直接使用传入的battle_service而不是直接查询数据库
+            # 避免"Working outside of application context"错误
+            self.battle_status_checker = BattleStatusChecker(self.game_id)
+        except Exception as e:
+            logger.error(f"Error initializing battle status checker: {str(e)}")
+            # 继续游戏流程，但没有状态检查
+            self.battle_status_checker = None
+
+        def check_abort():
+            """检查是否需要中止游戏，若需要则返回中止结果"""
+            # 如果无法获取battle状态检查器，跳过检查
+            if (
+                not hasattr(self, "battle_status_checker")
+                or self.battle_status_checker is None
+            ):
+                return None
+
+            # 检查对战状态
+            if self.battle_status_checker.should_abort():
+                battle_status = self.battle_status_checker.get_battle_status()
+
+                # 创建标准格式的角色信息字典
+                roles_dict = {}
+                if hasattr(self, "roles") and self.roles:
+                    # 保持整数键 - 这样在 process_battle_results_and_update_stats 中更容易处理
+                    for player_id, role in self.roles.items():
+                        roles_dict[player_id] = role
+
+                    # 记录详细的角色分配信息，便于调试
+                    logger.info(f"Game {self.game_id} aborted with roles: {roles_dict}")
+
+                game_result = {
+                    "blue_wins": self.blue_wins,
+                    "red_wins": self.red_wins,
+                    "rounds_played": self.current_round,
+                    "roles": roles_dict,  # 使用标准格式的角色字典
+                    "public_log_file": os.path.join(
+                        self.data_dir, f"game_{self.game_id}_public.json"
+                    ),
+                    "winner": None,
+                    "win_reason": f"aborted_due_to_battle_state_{battle_status}",
+                }
+                logger.info(f"Game aborted: Battle state is '{battle_status}'")
+                self.log_public_event({"type": "game_aborted", "result": game_result})
+                self.battle_observer.make_snapshot("GameAborted", self.game_id)
+                return game_result
+            return None
+
         try:
             # 初始化游戏
             self.init_game()
+            abort_result = check_abort()
+            if abort_result:
+                return abort_result
 
             # 夜晚阶段
             self.night_phase()
+            abort_result = check_abort()
+            if abort_result:
+                return abort_result
 
             # 任务阶段
             while (
@@ -1090,7 +1486,44 @@ class AvalonReferee:
                 and self.red_wins < 3
                 and self.current_round < MAX_MISSION_ROUNDS
             ):
-                self.run_mission_round()
+                try:
+                    self.run_mission_round()
+                except GameTerminationError as e:
+                    logger.warning(f"Mission round terminated: {str(e)}")
+                    # 将状态检查的结果包装成返回值
+                    abort_result = check_abort()
+                    if abort_result:
+                        return abort_result
+                    else:
+                        # 如果check_abort没有返回结果，我们仍然需要处理终止
+                        # 创建标准格式的角色信息字典
+                        roles_dict = {}
+                        if hasattr(self, "roles") and self.roles:
+                            # 保持整数键，与正常流程保持一致
+                            for player_id, role in self.roles.items():
+                                roles_dict[player_id] = role
+
+                            # 记录详细的角色分配信息，便于调试
+                            logger.info(
+                                f"Game {self.game_id} terminated with roles: {roles_dict}"
+                            )
+
+                        return {
+                            "blue_wins": self.blue_wins,
+                            "red_wins": self.red_wins,
+                            "rounds_played": self.current_round,
+                            "roles": roles_dict,
+                            "public_log_file": os.path.join(
+                                self.data_dir, f"game_{self.game_id}_public.json"
+                            ),
+                            "winner": None,
+                            "win_reason": "terminated_due_to_status_change",
+                        }
+
+                # 每轮结束后检查状态
+                abort_result = check_abort()
+                if abort_result:
+                    return abort_result
 
             # 游戏结束判定
             logger.info("===== Game Over =====")
@@ -1102,96 +1535,159 @@ class AvalonReferee:
                 "FinalScore", [self.blue_wins, self.red_wins]
             )
 
+            # 创建标准格式的角色信息字典
+            roles_dict = {}
+            if hasattr(self, "roles") and self.roles:
+                # 保持整数键 - 这样在 process_battle_results_and_update_stats 中更容易处理
+                for player_id, role in self.roles.items():
+                    roles_dict[player_id] = role
+
+                # 记录详细的角色分配信息，便于调试
+                logger.info(f"Game {self.game_id} final role assignments: {roles_dict}")
+
             game_result = {
                 "blue_wins": self.blue_wins,
                 "red_wins": self.red_wins,
                 "rounds_played": self.current_round,
-                "roles": self.roles,  # Include roles in final result
+                "roles": roles_dict,  # 使用标准格式的角色字典
                 "public_log_file": os.path.join(
                     self.data_dir, f"game_{self.game_id}_public.json"
-                ),  # Path to log
+                ),
             }
 
-            # 如果蓝方即将获胜（3轮任务成功），执行刺杀阶段
+            # 蓝方需要刺杀阶段
             if self.blue_wins >= 3:
                 logger.info(
                     "Blue team completed 3 missions. Proceeding to assassination."
                 )
+                abort_result = check_abort()
+                if abort_result:
+                    return abort_result  # 进入刺杀阶段前检查
 
                 assassination_success = self.assassinate_phase()
-
                 if assassination_success:
-                    # 刺杀成功，红方胜利
-                    game_result["winner"] = "red"
-                    game_result["win_reason"] = "assassination_success"
-                    logger.info("Game Result: Red wins (Assassination Success)")
+                    game_result.update(
+                        {"winner": "red", "win_reason": "assassination_success"}
+                    )
                     self.battle_observer.make_snapshot(
                         "GameResult", ["Red", "Assassination Success"]
                     )
-                else:
-                    # 刺杀失败，蓝方胜利
-                    game_result["winner"] = "blue"
-                    game_result["win_reason"] = (
-                        "missions_complete_and_assassination_failed"
+                    logger.info(
+                        f"Game {self.game_id} result: RED wins by assassination"
                     )
-                    logger.info("Game Result: Blue wins (Assassination Failed)")
+                else:
+                    game_result.update(
+                        {
+                            "winner": "blue",
+                            "win_reason": "missions_complete_and_assassination_failed",
+                        }
+                    )
                     self.battle_observer.make_snapshot(
                         "GameResult", ["Blue", "Assassination Failed"]
                     )
+                    logger.info(
+                        f"Game {self.game_id} result: BLUE wins (assassination failed)"
+                    )
             elif self.red_wins >= 3:
-                # 红方直接胜利（3轮任务失败）
-                game_result["winner"] = "red"
-                game_result["win_reason"] = "missions_failed"
-                logger.info("Game Result: Red wins (3 Failed Missions)")
+                game_result.update({"winner": "red", "win_reason": "missions_failed"})
                 self.battle_observer.make_snapshot(
                     "GameResult", ["Red", "3 Failed Missions"]
                 )
-            ##### 貌似没用 #####
-            # else:
-            #     # 达到最大轮数，根据胜利次数判定
-            #     logger.warning(
-            #         f"Max rounds ({MAX_MISSION_ROUNDS}) reached without 3 wins for either team."
-            #     )
-            #     self.battle_observer.make_snapshot('referee',f"Max rounds ({MAX_MISSION_ROUNDS}) reached without 3 wins for either team.")
-            #     if self.blue_wins > self.red_wins:
-            #         game_result["winner"] = "blue"
-            #         game_result["win_reason"] = "more_successful_missions_at_max_rounds"
-            #         logger.info(
-            #             "Game Result: Blue wins (More missions succeeded at max rounds)"
-            #         )
-            #         self.battle_observer.make_snapshot('referee',"Game Result: Blue wins (More missions succeeded at max rounds)")
-            #     else:  # Includes draw in mission wins, red wins draws
-            #         game_result["winner"] = "red"
-            #         game_result["win_reason"] = (
-            #             "more_or_equal_failed_missions_at_max_rounds"
-            #         )
-            #         logger.info(
-            #             "Game Result: Red wins (More or equal missions failed at max rounds)"
-            #         )
-            #         self.battle_observer.make_snapshot('referee',"Game Result: Red wins (More or equal missions failed at max rounds)")
+                logger.info(
+                    f"Game {self.game_id} result: RED wins by completing 3 failed missions"
+                )
 
-            # 记录游戏结果
-            self.log_public_event({"type": "tokens", "result": self.game_helper.get_tokens()})
+            # 验证结果数据的完整性
+            if "roles" not in game_result or not game_result["roles"]:
+                logger.warning(f"Game {self.game_id} missing roles data in result")
+                # 确保有一个默认的roles字典
+                game_result["roles"] = {}
+
+            if "winner" not in game_result:
+                logger.warning(f"Game {self.game_id} missing winner in result")
+                # 根据得分确定获胜方
+                if self.blue_wins > self.red_wins:
+                    game_result["winner"] = "blue"
+                elif self.red_wins > self.blue_wins:
+                    game_result["winner"] = "red"
+                else:
+                    # 平局情况
+                    game_result["winner"] = None
+
+            # 记录最终完整的游戏结果
+            logger.info(
+                f"Final game result for {self.game_id}: {json.dumps(game_result, default=str)}"
+            )
+
+            # 记录最终结果
+            self.log_public_event(
+                {"type": "tokens", "result": self.game_helper.get_tokens()}
+            )
             self.log_public_event({"type": "game_end", "result": game_result})
             logger.info(f"===== Game {self.game_id} Finished =====")
             self.battle_observer.make_snapshot("GameEnd", self.game_id)
             return game_result
 
-        except Exception as e:  # suspend_game 抛出的错误导到这里
+        except GameTerminationError as e:
+            logger.error(f"Game terminated due to battle status change: {str(e)}")
+
+            # 创建标准格式的角色信息字典
+            roles_dict = {}
+            if hasattr(self, "roles") and self.roles:
+                # 保持整数键，与正常流程保持一致
+                for player_id, role in self.roles.items():
+                    roles_dict[player_id] = role
+
+                # 记录详细的角色分配信息，便于调试
+                logger.info(f"Game {self.game_id} terminated with roles: {roles_dict}")
+
+            terminate_result = {
+                "blue_wins": self.blue_wins,
+                "red_wins": self.red_wins,
+                "rounds_played": self.current_round,
+                "roles": roles_dict,  # 使用标准格式的角色字典
+                "public_log_file": os.path.join(
+                    self.data_dir, f"game_{self.game_id}_public.json"
+                ),
+                "winner": None,
+                "win_reason": "terminated_due_to_status_change",
+            }
+
+            # 记录终止事件
+            self.log_public_event(
+                {"type": "game_terminated", "result": terminate_result}
+            )
+            return terminate_result
+
+        except Exception as e:
             logger.error(
                 f"Critical error during game {self.game_id}: {str(e)}", exc_info=True
             )
-            # traceback.print_exc() # Already logged with exc_info=True
-            return {
+
+            # 创建标准格式的角色信息字典
+            roles_dict = {}
+            if hasattr(self, "roles") and self.roles:
+                # 保持整数键，与正常流程保持一致
+                for player_id, role in self.roles.items():
+                    roles_dict[player_id] = role
+
+                # 记录详细的角色分配信息，便于调试
+                logger.info(f"Game {self.game_id} crashed with roles: {roles_dict}")
+
+            error_result = {
                 "error": f"Critical Error: {str(e)}",
                 "blue_wins": self.blue_wins,
                 "red_wins": self.red_wins,
                 "rounds_played": self.current_round,
-                "roles": self.roles,
+                "roles": roles_dict,  # 使用标准格式的角色字典
                 "public_log_file": os.path.join(
                     self.data_dir, f"game_{self.game_id}_public.json"
                 ),
             }
+
+            # 记录错误事件
+            self.log_public_event({"type": "game_error", "result": error_result})
+            return error_result
 
     def safe_execute(self, player_id: int, method_name: str, *args, **kwargs):
         """
@@ -1274,7 +1770,9 @@ class AvalonReferee:
                 logger.error(
                     f"Player {player_id} ({self.roles.get(player_id)}) method {method_name} took {execution_time:.2f} seconds (timeout)"
                 )
-                self.suspend_game("critical_player_ERROR", player_id, method_name, str(e))
+                self.suspend_game(
+                    "critical_player_ERROR", player_id, method_name, str(e)
+                )
             return result
 
         except Exception as e:  # 玩家代码运行过程中报错
@@ -1329,7 +1827,9 @@ class AvalonReferee:
         )
 
         # 1. 给公有库添加报错信息
-        self.log_public_event({"type": "tokens", "result": self.game_helper.get_tokens()})
+        self.log_public_event(
+            {"type": "tokens", "result": self.game_helper.get_tokens()}
+        )
         self.log_public_event(
             {
                 "type": game_error_type,

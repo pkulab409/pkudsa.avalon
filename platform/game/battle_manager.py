@@ -146,22 +146,47 @@ class BattleManager:
                 # 4. 运行游戏
                 result_data = referee.run_game()
 
-                # 5. 记录内存结果和状态
+                # 5. 记录内存结果
                 self.battle_results[battle_id] = result_data
-                self.battle_status[battle_id] = "completed"
-                self.get_snapshots_archive(battle_id)  # 保存快照
-                self.battle_service.log_info(
-                    f"对战 {battle_id} 结果已保存到 {self.data_dir}"
-                )  # 使用 service log
-                # 6. 处理游戏结果并更新数据库 (通过 service)
-                if self.battle_service.mark_battle_as_completed(battle_id, result_data):
-                    self.battle_service.log_info(f"对战 {battle_id} 完成，结果已处理")
-                else:
-                    # Service 内部已记录错误，BattleManager 只记录内存状态
-                    self.battle_service.log_error(
-                        f"对战 {battle_id} 完成，但结果处理或数据库更新失败"
+
+                # 检查结果是否正常完成 - 只有正常完成才更新状态为 completed
+                if "error" not in result_data and result_data.get("winner") is not None:
+                    # 只有正常完成的游戏才会更新状态为 completed
+                    self.battle_status[battle_id] = "completed"
+                    self.get_snapshots_archive(battle_id)  # 保存快照
+                    self.battle_service.log_info(
+                        f"对战 {battle_id} 结果已保存到 {self.data_dir}"
                     )
-                    # 内存状态仍是 completed，但数据库可能标记了错误或只是未更新统计
+
+                    # 正常结束，更新数据库状态为 completed
+                    if self.battle_service.mark_battle_as_completed(
+                        battle_id, result_data
+                    ):
+                        self.battle_service.log_info(
+                            f"对战 {battle_id} 完成，结果已处理"
+                        )
+                    else:
+                        # Service 内部已记录错误，BattleManager 只记录内存状态
+                        self.battle_service.log_error(
+                            f"对战 {battle_id} 完成，但结果处理或数据库更新失败"
+                        )
+                else:
+                    # 非正常完成的情况 (游戏中止、错误等)，不改变状态，只更新结果
+                    self.battle_service.log_info(
+                        f"对战 {battle_id} 非正常结束，保持原状态，结果已记录"
+                    )
+                    # 仍然保存快照以便查看游戏进程
+                    self.get_snapshots_archive(battle_id)
+
+                    # 如果结果中有错误信息，标记为错误状态
+                    if "error" in result_data:
+                        self.battle_status[battle_id] = "error"
+                        self.battle_service.mark_battle_as_error(battle_id, result_data)
+                    else:
+                        # 对于中止但无错误的情况（如外部取消），保持原状态
+                        self.battle_service.log_info(
+                            f"对战 {battle_id} 非正常结束，但未发现错误，保持原状态"
+                        )
 
             except Exception as e:
                 # 7. 处理异常 (通过 service)
@@ -192,7 +217,7 @@ class BattleManager:
 
     def get_battle_status(self, battle_id: str) -> Optional[str]:
         """获取对战状态 (优先从内存获取)"""
-        '''可以实时实现与数据库的交汇，清理其余标记的残余记录'''
+        """可以实时实现与数据库的交汇，清理其余标记的残余记录"""
         return self.battle_status.get(battle_id)
 
     def get_snapshots_queue(self, battle_id: str) -> List[Dict[str, Any]]:
@@ -219,3 +244,43 @@ class BattleManager:
     def get_all_battles(self) -> List[Tuple[str, str]]:
         """获取内存中所有对战及其状态"""
         return list(self.battle_status.items())
+
+    def cancel_battle(self, battle_id: str, reason: str = "Manually cancelled") -> bool:
+        """
+        取消一个正在进行的对战
+
+        参数:
+            battle_id (str): 对战ID
+            reason (str): 取消原因
+
+        返回:
+            bool: 操作是否成功
+        """
+        # 从内存中获取对战状态
+        current_status = self.get_battle_status(battle_id)
+
+        # 只有等待中或正在进行的对战可以被取消
+        if current_status not in ["waiting", "playing"]:
+            logger.warning(f"对战 {battle_id} 状态为 {current_status}，无法取消")
+            return False
+
+        # 更新数据库状态为 cancelled
+        # 修改这里：确保传递正确的格式
+        # 如果 reason 是字符串，就保持原样；如果 reason 已经是字典，就增加 cancellation_reason 字段
+        if isinstance(reason, str):
+            cancel_data = {"cancellation_reason": reason}
+        else:
+            cancel_data = reason
+            if "cancellation_reason" not in cancel_data:
+                cancel_data["cancellation_reason"] = "Battle cancelled by system"
+
+        if not self.battle_service.mark_battle_as_cancelled(battle_id, cancel_data):
+            logger.error(f"对战 {battle_id} 取消失败：无法更新数据库状态")
+            return False
+
+        # 更新内存状态
+        self.battle_status[battle_id] = "cancelled"
+        self.battle_results[battle_id] = cancel_data
+
+        logger.info(f"对战 {battle_id} 已成功取消：{reason}")
+        return True

@@ -2,9 +2,12 @@ import random
 import re
 import collections
 from game.avalon_game_helper import (
-    askLLM, read_public_lib,
-    read_private_lib, write_into_private
+    askLLM,
+    read_public_lib,
+    read_private_lib,
+    write_into_private,
 )
+
 
 class Player:
     def __init__(self):
@@ -12,20 +15,20 @@ class Player:
         self.index = None  # 玩家编号
         self.role = None  # 角色类型
         self.is_evil = False  # 是否为邪恶方
-        
+
         # 地图相关
         self.map = None
         self.player_positions = {}
         self.location = None
         self.map_size = 0
         self.key_locations = []  # 关键位置（如任务点）
-        
+
         # 游戏状态
         self.round = 0  # 当前回合数
         self.player_count = 7  # 总玩家数
         self.mission_team_sizes = [2, 3, 3, 4, 4]  # 每轮任务队伍大小
         self.consecutive_rejections = 0  # 连续拒绝次数
-        
+
         # 历史记录
         self.memory = {
             "speech": {},  # {player_index: [messages]}
@@ -34,7 +37,7 @@ class Player:
             "mission_results": [],  # 任务成功/失败 [(round, success/fail, fail_count), ...]
             "movements": [],  # 移动记录
         }
-        
+
         # 推理辅助
         self.suspects = set()  # 可疑玩家编号集合
         self.trusted = set()  # 信任玩家编号集合
@@ -45,16 +48,16 @@ class Player:
         self.last_team = []  # 上一轮队伍成员
         self.failed_missions = []  # 失败的任务轮次
         self.successful_missions = []  # 成功的任务轮次
-        
+
         # 贝叶斯推理相关
         self.vote_patterns = {}  # 记录每个玩家的投票模式
         self.mission_participation = {}  # 记录每个玩家参与任务的情况
         self.speech_analysis = {}  # 发言分析结果
-        
+
         # 策略配置
         self.strategy = {
             "aggressive": False,  # 是否采取激进策略
-            "deception": False,   # 是否采取欺骗策略（仅红方）
+            "deception": False,  # 是否采取欺骗策略（仅红方）
             "trust_threshold": 0.7,  # 信任阈值
             "suspect_threshold": 0.6,  # 怀疑阈值
         }
@@ -73,11 +76,11 @@ class Player:
     def set_role_type(self, role_type: str):
         self.role = role_type
         write_into_private(f"我的角色是: {role_type}")
-        
+
         # 设置阵营
         evil_roles = ["Assassin", "Morgana", "Oberon"]
         self.is_evil = role_type in evil_roles
-        
+
         # 根据角色设置策略
         if self.is_evil:
             if role_type == "Assassin":
@@ -100,7 +103,7 @@ class Player:
     def pass_role_sight(self, role_sight: dict[str, int]):
         self.role_sight = role_sight
         write_into_private(f"夜晚视野信息: {role_sight}")
-        
+
         # 根据角色处理视野信息
         if self.role == "Merlin":
             # 梅林看到所有邪恶方（除了奥伯伦）
@@ -108,13 +111,13 @@ class Player:
                 self.suspects.add(player_idx)
                 self.evil_probability[player_idx] = 0.95
             write_into_private(f"作为梅林，我看到的邪恶方: {self.suspects}")
-            
+
         elif self.role == "Percival":
             # 派西维尔看到梅林和莫甘娜，但无法区分
             special_players = list(role_sight.values())
             write_into_private(f"作为派西维尔，我看到的特殊角色: {special_players}")
             self.merlin_candidates = set(special_players)
-            
+
         elif self.role == "Assassin":
             # 刺客看到莫甘娜
             morgana_idx = role_sight.get("Morgana")
@@ -122,7 +125,7 @@ class Player:
                 write_into_private(f"作为刺客，我看到莫甘娜是: {morgana_idx}")
                 self.trusted.add(morgana_idx)
                 self.evil_probability[morgana_idx] = 0.0  # 确定是邪恶方
-                
+
         elif self.role == "Morgana":
             # 莫甘娜看到刺客
             assassin_idx = role_sight.get("Assassin")
@@ -134,7 +137,7 @@ class Player:
     def pass_map(self, map_data: list[list[str]]):
         self.map = map_data
         self.map_size = len(map_data)
-        
+
         # 识别地图上的关键位置
         self.key_locations = []
         for i in range(self.map_size):
@@ -149,12 +152,12 @@ class Player:
 
     def pass_message(self, content: tuple[int, str]):
         speaker_idx, message = content
-        
+
         # 记录发言
         if speaker_idx not in self.memory["speech"]:
             self.memory["speech"][speaker_idx] = []
         self.memory["speech"][speaker_idx].append(message)
-        
+
         # 分析发言内容
         self._analyze_speech(speaker_idx, message)
 
@@ -162,7 +165,7 @@ class Player:
         self.last_leader = leader
         self.last_team = members
         self.memory["teams"].append((leader, members))
-        
+
         # 记录并分析队伍组成
         write_into_private(f"第{self.round}轮任务队长: {leader}, 队员: {members}")
         self._analyze_team_composition(leader, members)
@@ -171,56 +174,60 @@ class Player:
         """选择任务队员"""
         # 获取当前轮次
         self.round = len(self.memory["teams"]) + 1
-        
+
         # 构建提示词，请求LLM帮助选择队员
         prompt = self._build_prompt_for_team_selection(team_size)
         response = askLLM(prompt)
-        
+
         # 解析LLM回复，提取队员编号
         try:
             # 尝试直接从回复中提取数字列表
-            numbers = re.findall(r'\d+', response)
+            numbers = re.findall(r"\d+", response)
             team = [int(num) for num in numbers if 1 <= int(num) <= 7][:team_size]
-            
+
             # 如果提取失败或数量不对，使用备选策略
             if len(team) != team_size:
                 team = self._fallback_team_selection(team_size)
         except:
             team = self._fallback_team_selection(team_size)
-        
+
         # 确保自己在队伍中
         if self.index not in team and len(team) > 0:
             team[0] = self.index
-            
+
         # 确保队伍大小正确
         while len(team) < team_size:
             for i in range(1, 8):
                 if i not in team:
                     team.append(i)
                     break
-        
+
         # 如果队伍过大，裁剪
         team = team[:team_size]
-        
+
         write_into_private(f"我选择的队员: {team}")
         return team
 
     def _fallback_team_selection(self, team_size: int) -> list[int]:
         """备选的队员选择策略"""
         team = [self.index]  # 首先选择自己
-        
+
         # 如果是邪恶方，优先选择已知的邪恶同伴
         if self.is_evil:
             for player in self.trusted:
                 if player != self.index and len(team) < team_size:
                     team.append(player)
-        
+
         # 选择信任度高的玩家
         trusted_players = sorted(
-            [(i, self.evil_probability.get(i, 0.5)) for i in range(1, 8) if i != self.index],
-            key=lambda x: x[1]
+            [
+                (i, self.evil_probability.get(i, 0.5))
+                for i in range(1, 8)
+                if i != self.index
+            ],
+            key=lambda x: x[1],
         )
-        
+
         # 正义方选择信任度高的，邪恶方根据策略选择
         if not self.is_evil:
             # 选择最不可能是邪恶方的玩家
@@ -232,15 +239,21 @@ class Player:
             if self.strategy["deception"]:
                 # 混入一些看起来可信的玩家
                 for player, prob in trusted_players:
-                    if player not in team and player not in self.trusted and len(team) < team_size:
+                    if (
+                        player not in team
+                        and player not in self.trusted
+                        and len(team) < team_size
+                    ):
                         team.append(player)
             else:
                 # 随机选择其他玩家
-                available = [i for i in range(1, 8) if i != self.index and i not in team]
+                available = [
+                    i for i in range(1, 8) if i != self.index and i not in team
+                ]
                 while len(team) < team_size and available:
                     team.append(random.choice(available))
                     available.remove(team[-1])
-        
+
         return team[:team_size]
 
     def walk(self) -> tuple[str, ...]:
@@ -248,22 +261,27 @@ class Player:
         # 如果没有地图或位置信息，返回随机移动
         if not self.map or not self.location:
             return random.sample(["Up", "Down", "Left", "Right"], 3)
-        
+
         # 获取当前位置
         x, y = self.location
-        
+
         # 计算到最近任务点的路径
         if self.key_locations:
-            target = min(self.key_locations, key=lambda pos: abs(pos[0] - x) + abs(pos[1] - y))
+            target = min(
+                self.key_locations, key=lambda pos: abs(pos[0] - x) + abs(pos[1] - y)
+            )
             path = self._find_path_to_target(x, y, target)
             if path:
                 return tuple(path[:3])  # 最多返回3步
-        
+
         # 如果没有找到路径或没有任务点，尝试接近其他玩家
         if not self.is_evil:
             # 正义方尝试接近可信的玩家
-            trusted_players = [p for p, prob in self.evil_probability.items() 
-                              if prob < self.strategy["trust_threshold"] and p != self.index]
+            trusted_players = [
+                p
+                for p, prob in self.evil_probability.items()
+                if prob < self.strategy["trust_threshold"] and p != self.index
+            ]
             if trusted_players and trusted_players[0] in self.player_positions:
                 target_pos = self.player_positions[trusted_players[0]]
                 path = self._find_path_to_target(x, y, target_pos)
@@ -271,26 +289,33 @@ class Player:
                     return tuple(path[:3])
         else:
             # 邪恶方尝试接近可能的梅林
-            potential_merlins = [p for p, prob in self.evil_probability.items() 
-                                if prob < 0.3 and p != self.index]
+            potential_merlins = [
+                p
+                for p, prob in self.evil_probability.items()
+                if prob < 0.3 and p != self.index
+            ]
             if potential_merlins and potential_merlins[0] in self.player_positions:
                 target_pos = self.player_positions[potential_merlins[0]]
                 path = self._find_path_to_target(x, y, target_pos)
                 if path:
                     return tuple(path[:3])
-        
+
         # 默认随机移动
         valid_moves = []
         directions = [("Up", -1, 0), ("Down", 1, 0), ("Left", 0, -1), ("Right", 0, 1)]
         for direction, dx, dy in directions:
             nx, ny = x + dx, y + dy
-            if 0 <= nx < self.map_size and 0 <= ny < self.map_size and self.map[nx][ny] != "#":
+            if (
+                0 <= nx < self.map_size
+                and 0 <= ny < self.map_size
+                and self.map[nx][ny] != "#"
+            ):
                 valid_moves.append(direction)
-        
+
         # 如果没有有效移动，返回空元组
         if not valid_moves:
             return tuple()
-            
+
         # 随机选择最多3个有效移动
         return tuple(random.sample(valid_moves, min(3, len(valid_moves))))
 
@@ -298,36 +323,45 @@ class Player:
         """使用BFS寻找从(x,y)到target的最短路径"""
         if not self.map:
             return []
-            
+
         queue = collections.deque([(x, y, [])])
         visited = set([(x, y)])
-        
+
         while queue:
             cx, cy, path = queue.popleft()
-            
+
             # 如果到达目标
             if (cx, cy) == target:
                 return path
-                
+
             # 尝试四个方向
-            directions = [("Up", -1, 0), ("Down", 1, 0), ("Left", 0, -1), ("Right", 0, 1)]
+            directions = [
+                ("Up", -1, 0),
+                ("Down", 1, 0),
+                ("Left", 0, -1),
+                ("Right", 0, 1),
+            ]
             for direction, dx, dy in directions:
                 nx, ny = cx + dx, cy + dy
-                
+
                 # 检查是否有效且未访问
-                if (0 <= nx < self.map_size and 0 <= ny < self.map_size and 
-                    self.map[nx][ny] != "#" and (nx, ny) not in visited):
+                if (
+                    0 <= nx < self.map_size
+                    and 0 <= ny < self.map_size
+                    and self.map[nx][ny] != "#"
+                    and (nx, ny) not in visited
+                ):
                     new_path = path + [direction]
                     queue.append((nx, ny, new_path))
                     visited.add((nx, ny))
-        
+
         return []  # 没有找到路径
 
     def say(self) -> str:
         """发言策略"""
         # 构建提示词
         prompt = self._build_prompt_for_speech()
-        
+
         # 调用LLM生成发言
         try:
             response = askLLM(prompt)
@@ -361,28 +395,40 @@ class Player:
         current_round = len(self.memory["teams"])
         leader = self.last_leader
         team = self.last_team
-        
+
         # 构建提示词
         prompt = self._build_prompt_for_vote1()
-        
+
         try:
             # 调用LLM进行决策
             response = askLLM(prompt)
-            
+
             # 解析回复
-            if "同意" in response or "赞成" in response or "支持" in response or "true" in response.lower():
+            if (
+                "同意" in response
+                or "赞成" in response
+                or "支持" in response
+                or "true" in response.lower()
+            ):
                 vote_result = True
-            elif "反对" in response or "否决" in response or "拒绝" in response or "false" in response.lower():
+            elif (
+                "反对" in response
+                or "否决" in response
+                or "拒绝" in response
+                or "false" in response.lower()
+            ):
                 vote_result = False
             else:
                 # 如果无法解析，使用备选策略
                 vote_result = self._fallback_vote1_strategy(team)
         except:
             vote_result = self._fallback_vote1_strategy(team)
-        
+
         # 记录投票结果
-        write_into_private(f"第{current_round}轮公投: {'同意' if vote_result else '反对'}")
-        
+        write_into_private(
+            f"第{current_round}轮公投: {'同意' if vote_result else '反对'}"
+        )
+
         return vote_result
 
     def _fallback_vote1_strategy(self, team) -> bool:
@@ -390,32 +436,42 @@ class Player:
         # 如果是邪恶方
         if self.is_evil:
             # 如果队伍中有足够多的邪恶方，支持
-            evil_count = sum(1 for p in team if p in self.trusted or self.evil_probability.get(p, 0.5) > 0.7)
-            
+            evil_count = sum(
+                1
+                for p in team
+                if p in self.trusted or self.evil_probability.get(p, 0.5) > 0.7
+            )
+
             # 如果是第5轮投票，必须通过
             if self.consecutive_rejections >= 4:
                 return True
-                
+
             # 如果队伍中有邪恶方，有较大概率支持
             if evil_count > 0:
                 return random.random() < 0.8
-            
+
             # 如果队伍全是好人，有较大概率反对
             return random.random() < 0.3
-        
+
         # 如果是正义方
         else:
             # 计算队伍中可疑成员数量
-            suspicious_count = sum(1 for p in team if p in self.suspects or self.evil_probability.get(p, 0.5) > self.strategy["suspect_threshold"])
-            
+            suspicious_count = sum(
+                1
+                for p in team
+                if p in self.suspects
+                or self.evil_probability.get(p, 0.5)
+                > self.strategy["suspect_threshold"]
+            )
+
             # 如果是第5轮投票，必须通过
             if self.consecutive_rejections >= 4:
                 return True
-                
+
             # 如果队伍中没有可疑成员，支持
             if suspicious_count == 0:
                 return True
-                
+
             # 如果队伍中有可疑成员，根据可疑程度决定
             return suspicious_count < len(team) / 2
 
@@ -424,17 +480,17 @@ class Player:
         # 如果是正义方，必须投成功
         if not self.is_evil:
             return True
-            
+
         # 如果是邪恶方，根据策略决定是否破坏任务
         current_round = len(self.memory["teams"])
-        
+
         # 构建提示词
         prompt = self._build_prompt_for_vote2()
-        
+
         try:
             # 调用LLM进行决策
             response = askLLM(prompt)
-            
+
             # 解析回复
             if "破坏" in response or "失败" in response or "false" in response.lower():
                 sabotage = True
@@ -445,13 +501,13 @@ class Player:
                 sabotage = self._fallback_vote2_strategy()
         except:
             sabotage = self._fallback_vote2_strategy()
-        
+
         # 记录决策
         if sabotage:
             write_into_private(f"第{current_round}轮任务: 我选择破坏")
         else:
             write_into_private(f"第{current_round}轮任务: 我选择不破坏")
-            
+
         # 返回投票结果（True为成功，False为破坏）
         return not sabotage
 
@@ -460,24 +516,24 @@ class Player:
         current_round = len(self.memory["teams"])
         blue_wins = len(self.successful_missions)
         red_wins = len(self.failed_missions)
-        
+
         # 如果红方已经赢了2轮，有很大概率破坏
         if red_wins >= 2:
             return random.random() < 0.9
-            
+
         # 如果蓝方已经赢了2轮，必须破坏
         if blue_wins >= 2:
             return True
-            
+
         # 如果是关键轮次（第3轮），有较大概率破坏
         if current_round == 3:
             return random.random() < 0.8
-            
+
         # 如果队伍中有多个邪恶方，可能选择不破坏以混淆视听
         evil_count = sum(1 for p in self.last_team if p in self.trusted)
         if evil_count > 1:
             return random.random() < 0.5
-            
+
         # 默认有较大概率破坏
         return random.random() < 0.7
 
@@ -485,15 +541,19 @@ class Player:
         """刺客刺杀梅林"""
         # 构建提示词
         prompt = self._build_prompt_for_assassination()
-        
+
         try:
             # 调用LLM进行决策
             response = askLLM(prompt)
-            
+
             # 尝试从回复中提取玩家编号
-            numbers = re.findall(r'\d+', response)
-            candidates = [int(num) for num in numbers if 1 <= int(num) <= 7 and int(num) != self.index]
-            
+            numbers = re.findall(r"\d+", response)
+            candidates = [
+                int(num)
+                for num in numbers
+                if 1 <= int(num) <= 7 and int(num) != self.index
+            ]
+
             if candidates:
                 target = candidates[0]
             else:
@@ -501,7 +561,7 @@ class Player:
                 target = self._fallback_assassination_strategy()
         except:
             target = self._fallback_assassination_strategy()
-        
+
         write_into_private(f"我选择刺杀: {target}号玩家")
         return target
 
@@ -509,17 +569,17 @@ class Player:
         """备选的刺杀策略"""
         # 根据各种线索推测梅林
         merlin_scores = {}
-        
+
         # 初始化所有玩家的分数
         for i in range(1, 8):
             if i != self.index and i not in self.trusted:
                 merlin_scores[i] = 0
-        
+
         # 1. 根据邪恶概率评分（越低越可能是梅林）
         for player, prob in self.evil_probability.items():
             if player in merlin_scores:
                 merlin_scores[player] += (1 - prob) * 10
-        
+
         # 2. 分析投票模式
         for player in merlin_scores:
             # 梅林更可能反对有邪恶方的队伍
@@ -527,7 +587,7 @@ class Player:
             reject_count = self.vote_patterns.get(player, {}).get("reject", 0)
             if reject_count > approve_count:
                 merlin_scores[player] += 2
-        
+
         # 3. 分析发言内容
         for player in merlin_scores:
             # 梅林的发言可能更有洞察力
@@ -535,31 +595,45 @@ class Player:
             negative = self.speech_analysis.get(player, {}).get("negative", 0)
             if positive > negative:
                 merlin_scores[player] += 3
-        
+
         # 4. 如果是派西维尔，他可能知道梅林
         if "Percival" in [role for player, role in self.role_sight.items()]:
-            percival_candidates = [p for p in range(1, 8) if p != self.index and p not in self.trusted]
+            percival_candidates = [
+                p for p in range(1, 8) if p != self.index and p not in self.trusted
+            ]
             for p in percival_candidates:
                 merlin_scores[p] = merlin_scores.get(p, 0) + 2
-        
+
         # 选择得分最高的玩家作为刺杀目标
         if merlin_scores:
             return max(merlin_scores.items(), key=lambda x: x[1])[0]
-        
+
         # 如果没有有效的目标，随机选择一个非邪恶方玩家
-        candidates = [i for i in range(1, 8) if i != self.index and i not in self.trusted]
-        return random.choice(candidates) if candidates else random.choice([i for i in range(1, 8) if i != self.index])
+        candidates = [
+            i for i in range(1, 8) if i != self.index and i not in self.trusted
+        ]
+        return (
+            random.choice(candidates)
+            if candidates
+            else random.choice([i for i in range(1, 8) if i != self.index])
+        )
 
     def _analyze_speech(self, speaker_idx: int, message: str):
         """分析发言内容"""
         # 更新发言分析统计
         if "成功" in message or "支持" in message or "信任" in message:
-            self.speech_analysis[speaker_idx]["positive"] = self.speech_analysis.get(speaker_idx, {}).get("positive", 0) + 1
+            self.speech_analysis[speaker_idx]["positive"] = (
+                self.speech_analysis.get(speaker_idx, {}).get("positive", 0) + 1
+            )
         elif "失败" in message or "反对" in message or "怀疑" in message:
-            self.speech_analysis[speaker_idx]["negative"] = self.speech_analysis.get(speaker_idx, {}).get("negative", 0) + 1
+            self.speech_analysis[speaker_idx]["negative"] = (
+                self.speech_analysis.get(speaker_idx, {}).get("negative", 0) + 1
+            )
         else:
-            self.speech_analysis[speaker_idx]["neutral"] = self.speech_analysis.get(speaker_idx, {}).get("neutral", 0) + 1
-        
+            self.speech_analysis[speaker_idx]["neutral"] = (
+                self.speech_analysis.get(speaker_idx, {}).get("neutral", 0) + 1
+            )
+
         # 使用贝叶斯更新对玩家的评估
         # 如果发言中提到了特定玩家
         for i in range(1, 8):
@@ -568,18 +642,26 @@ class Player:
                     # 如果说话者指责玩家i是邪恶的
                     if speaker_idx in self.suspects:
                         # 如果说话者本身可疑，那么被指责的玩家可能是好人
-                        self.evil_probability[i] = max(0.1, self.evil_probability.get(i, 0.5) - 0.05)
+                        self.evil_probability[i] = max(
+                            0.1, self.evil_probability.get(i, 0.5) - 0.05
+                        )
                     else:
                         # 如果说话者不可疑，那么被指责的玩家可能是邪恶的
-                        self.evil_probability[i] = min(0.9, self.evil_probability.get(i, 0.5) + 0.05)
+                        self.evil_probability[i] = min(
+                            0.9, self.evil_probability.get(i, 0.5) + 0.05
+                        )
                 elif "好人" in message or "信任" in message:
                     # 如果说话者认为玩家i是好人
                     if speaker_idx in self.suspects:
                         # 如果说话者本身可疑，那么被信任的玩家可能是邪恶的
-                        self.evil_probability[i] = min(0.9, self.evil_probability.get(i, 0.5) + 0.05)
+                        self.evil_probability[i] = min(
+                            0.9, self.evil_probability.get(i, 0.5) + 0.05
+                        )
                     else:
                         # 如果说话者不可疑，那么被信任的玩家可能是好人
-                        self.evil_probability[i] = max(0.1, self.evil_probability.get(i, 0.5) - 0.05)
+                        self.evil_probability[i] = max(
+                            0.1, self.evil_probability.get(i, 0.5) - 0.05
+                        )
 
     def _analyze_team_composition(self, leader: int, members: list[int]):
         """分析队伍组成"""
@@ -589,19 +671,27 @@ class Player:
             evil_count = sum(1 for p in members if p in self.trusted or p == self.index)
             if evil_count > 0:
                 # 队长选了邪恶方，可能是邪恶方或被蒙蔽的好人
-                self.evil_probability[leader] = min(0.9, self.evil_probability.get(leader, 0.5) + 0.1)
+                self.evil_probability[leader] = min(
+                    0.9, self.evil_probability.get(leader, 0.5) + 0.1
+                )
             else:
                 # 队长没选邪恶方，可能是好人
-                self.evil_probability[leader] = max(0.1, self.evil_probability.get(leader, 0.5) - 0.1)
+                self.evil_probability[leader] = max(
+                    0.1, self.evil_probability.get(leader, 0.5) - 0.1
+                )
         else:
             # 如果自己是好人，评估队长选择的队伍是否有可疑成员
             suspicious_count = sum(1 for p in members if p in self.suspects)
             if suspicious_count > 0:
                 # 队长选了可疑成员，队长可能是邪恶方
-                self.evil_probability[leader] = min(0.9, self.evil_probability.get(leader, 0.5) + 0.1)
+                self.evil_probability[leader] = min(
+                    0.9, self.evil_probability.get(leader, 0.5) + 0.1
+                )
             else:
                 # 队长没选可疑成员，队长可能是好人
-                self.evil_probability[leader] = max(0.1, self.evil_probability.get(leader, 0.5) - 0.1)
+                self.evil_probability[leader] = max(
+                    0.1, self.evil_probability.get(leader, 0.5) - 0.1
+                )
 
     def _update_after_mission_result(self, success: bool, team: list[int]):
         """任务结果后更新评估"""
@@ -609,13 +699,17 @@ class Player:
             # 任务成功，队伍成员可能是好人
             for member in team:
                 if member != self.index:
-                    self.evil_probability[member] = max(0.1, self.evil_probability.get(member, 0.5) - 0.1)
+                    self.evil_probability[member] = max(
+                        0.1, self.evil_probability.get(member, 0.5) - 0.1
+                    )
             self.successful_missions.append(self.round)
         else:
             # 任务失败，队伍中可能有邪恶方
             for member in team:
                 if member != self.index:
-                    self.evil_probability[member] = min(0.9, self.evil_probability.get(member, 0.5) + 0.2)
+                    self.evil_probability[member] = min(
+                        0.9, self.evil_probability.get(member, 0.5) + 0.2
+                    )
             self.failed_missions.append(self.round)
 
     def _build_prompt_for_team_selection(self, team_size: int) -> str:
@@ -629,29 +723,29 @@ class Player:
         【你的身份信息】
         你属于{'邪恶方' if self.is_evil else '正义方'}。
         """
-        
+
         # 添加视野信息
         if self.role_sight:
             prompt += f"\n【你的夜晚视野】\n{self.role_sight}\n"
-        
+
         # 添加历史信息
         if self.memory["teams"]:
             prompt += "\n【历史队伍组成】\n"
             for i, (leader, members) in enumerate(self.memory["teams"]):
                 prompt += f"第{i+1}轮: 队长{leader}号，队员{members}\n"
-        
+
         if self.memory["mission_results"]:
             prompt += "\n【历史任务结果】\n"
             for i, result in enumerate(self.memory["mission_results"]):
                 prompt += f"第{i+1}轮: {'成功' if result else '失败'}\n"
-        
+
         # 添加玩家评估
         prompt += "\n【玩家评估】\n"
         for player, prob in self.evil_probability.items():
             if player != self.index:
                 status = "可疑" if prob > 0.6 else "中立" if prob > 0.4 else "可信"
                 prompt += f"{player}号玩家: {status}\n"
-        
+
         # 添加决策要求
         if self.is_evil:
             prompt += f"""
@@ -667,7 +761,7 @@ class Player:
             应该选择你最信任的玩家，避免选择可疑的玩家。
             请直接返回{team_size}个玩家编号，用逗号分隔，确保包含自己({self.index}号)。
             """
-        
+
         return prompt
 
     def _build_prompt_for_speech(self) -> str:
@@ -681,36 +775,36 @@ class Player:
         【你的身份信息】
         你属于{'邪恶方' if self.is_evil else '正义方'}。
         """
-        
+
         # 添加视野信息
         if self.role_sight:
             prompt += f"\n【你的夜晚视野】\n{self.role_sight}\n"
-        
+
         # 添加历史信息
         if self.memory["teams"]:
             prompt += "\n【历史队伍组成】\n"
             for i, (leader, members) in enumerate(self.memory["teams"]):
                 prompt += f"第{i+1}轮: 队长{leader}号，队员{members}\n"
-        
+
         if self.memory["mission_results"]:
             prompt += "\n【历史任务结果】\n"
             for i, result in enumerate(self.memory["mission_results"]):
                 prompt += f"第{i+1}轮: {'成功' if result else '失败'}\n"
-        
+
         # 添加玩家评估
         prompt += "\n【玩家评估】\n"
         for player, prob in self.evil_probability.items():
             if player != self.index:
                 status = "可疑" if prob > 0.6 else "中立" if prob > 0.4 else "可信"
                 prompt += f"{player}号玩家: {status}\n"
-        
+
         # 添加其他玩家的发言
         if self.memory["speech"]:
             prompt += "\n【其他玩家的发言】\n"
             for player, speeches in self.memory["speech"].items():
                 if player != self.index and speeches:
                     prompt += f"{player}号玩家最近说: {speeches[-1][:100]}...\n"
-        
+
         # 添加决策要求
         if self.is_evil:
             if self.role == "Morgana":
@@ -762,7 +856,7 @@ class Player:
                 表达你的怀疑和信任，但要基于逻辑和观察。
                 请生成一段不超过500字的发言。
                 """
-        
+
         return prompt
 
     def _build_prompt_for_vote1(self) -> str:
@@ -777,29 +871,29 @@ class Player:
         【你的身份信息】
         你属于{'邪恶方' if self.is_evil else '正义方'}。
         """
-        
+
         # 添加视野信息
         if self.role_sight:
             prompt += f"\n【你的夜晚视野】\n{self.role_sight}\n"
-        
+
         # 添加历史信息
         if self.memory["teams"]:
             prompt += "\n【历史队伍组成】\n"
             for i, (leader, members) in enumerate(self.memory["teams"]):
                 prompt += f"第{i+1}轮: 队长{leader}号，队员{members}\n"
-        
+
         if self.memory["mission_results"]:
             prompt += "\n【历史任务结果】\n"
             for i, result in enumerate(self.memory["mission_results"]):
                 prompt += f"第{i+1}轮: {'成功' if result else '失败'}\n"
-        
+
         # 添加玩家评估
         prompt += "\n【玩家评估】\n"
         for player, prob in self.evil_probability.items():
             if player != self.index:
                 status = "可疑" if prob > 0.6 else "中立" if prob > 0.4 else "可信"
                 prompt += f"{player}号玩家: {status}\n"
-        
+
         # 添加决策要求
         if self.is_evil:
             prompt += f"""
@@ -819,7 +913,7 @@ class Player:
             当前连续否决次数: {self.consecutive_rejections}
             请直接回答"同意"或"反对"。
             """
-        
+
         return prompt
 
     def _build_prompt_for_vote2(self) -> str:
@@ -827,7 +921,7 @@ class Player:
         # 如果是好人，不需要提示词，必须投成功
         if not self.is_evil:
             return "作为好人，你必须投成功。请回答'成功'。"
-        
+
         # 基本信息
         prompt = f"""
         【任务背景】
@@ -839,14 +933,16 @@ class Player:
         蓝方胜利次数: {len(self.successful_missions)}
         红方胜利次数: {len(self.failed_missions)}
         """
-        
+
         # 添加队伍信息
-        prompt += f"\n【当前队伍】\n队长: {self.last_leader}号\n队员: {self.last_team}\n"
-        
+        prompt += (
+            f"\n【当前队伍】\n队长: {self.last_leader}号\n队员: {self.last_team}\n"
+        )
+
         # 添加其他邪恶方信息
         if self.trusted:
             prompt += f"\n【已知的其他邪恶方】\n{list(self.trusted)}\n"
-        
+
         # 添加决策要求
         prompt += """
         【决策要求】
@@ -862,7 +958,7 @@ class Player:
         
         请直接回答"破坏"或"成功"。
         """
-        
+
         return prompt
 
     def _build_prompt_for_assassination(self) -> str:
@@ -876,38 +972,40 @@ class Player:
         
         【游戏历史】
         """
-        
+
         # 添加队伍历史
         if self.memory["teams"]:
             prompt += "\n【历史队伍组成】\n"
             for i, (leader, members) in enumerate(self.memory["teams"]):
                 prompt += f"第{i+1}轮: 队长{leader}号，队员{members}\n"
-        
+
         # 添加任务结果
         if self.memory["mission_results"]:
             prompt += "\n【历史任务结果】\n"
             for i, result in enumerate(self.memory["mission_results"]):
                 prompt += f"第{i+1}轮: {'成功' if result else '失败'}\n"
-        
+
         # 添加投票历史
         if self.memory["votes"]:
             prompt += "\n【投票历史】\n"
             for i, votes in enumerate(self.memory["votes"]):
                 prompt += f"第{i+1}轮: {votes}\n"
-        
+
         # 添加发言分析
         prompt += "\n【发言分析】\n"
         for player, speeches in self.memory["speech"].items():
             if player != self.index and speeches:
                 prompt += f"{player}号玩家的关键发言: {speeches[-1][:100]}...\n"
-                
+
         # 添加玩家评估
         prompt += "\n【玩家评估】\n"
         for player, prob in self.evil_probability.items():
             if player != self.index and player not in self.trusted:
                 status = "可疑" if prob > 0.6 else "中立" if prob > 0.4 else "可信"
-                prompt += f"{player}号玩家: {status} (梅林可能性: {(1-prob)*100:.1f}%)\n"
-        
+                prompt += (
+                    f"{player}号玩家: {status} (梅林可能性: {(1-prob)*100:.1f}%)\n"
+                )
+
         # 添加决策要求
         prompt += """
         【决策要求】
@@ -917,5 +1015,5 @@ class Player:
         
         请直接回答你认为是梅林的玩家编号。
         """
-        
+
         return prompt

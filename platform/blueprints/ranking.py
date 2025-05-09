@@ -5,11 +5,11 @@
 # 包含页面html: ranking.html
 
 
-'''
+"""
 用户排行版块蓝图，包含排行榜和用户统计数据的路由。
 - 上接后端数据库排行榜 database.actions 和 database.models 操作函数和模型
 - 下接浏览器页面 ranking.html
-'''
+"""
 
 
 from flask import Blueprint, render_template, jsonify, request

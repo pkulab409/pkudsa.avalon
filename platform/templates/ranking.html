@@ -1,58 +1,58 @@
 {% extends "base.html" %}
 {% block title %}
-  排行榜 - 游戏平台
+    排行榜 - 游戏平台
 {% endblock title %}
 {% block content %}
-  <div class="container mt-4">
-    <h2 class="mb-4">玩家排行榜</h2>
-    <!-- 可以添加排序选项 -->
-    <!-- <div class="mb-3">
+    <div class="container mt-4">
+        <h2 class="mb-4">玩家排行榜</h2>
+        <!-- 可以添加排序选项 -->
+        <!-- <div class="mb-3">
       <a href="{{ url_for('ranking.show_ranking', sort_by='score') }}" class="btn btn-sm {% if sort_by == 'score' %}btn-primary{% else %}btn-outline-primary{% endif %}">按分数排序</a>
       <a href="{{ url_for('ranking.show_ranking', sort_by='wins') }}" class="btn btn-sm {% if sort_by == 'wins' %}btn-primary{% else %}btn-outline-primary{% endif %}">按胜场排序</a>
       <a href="{{ url_for('ranking.show_ranking', sort_by='win_rate') }}" class="btn btn-sm {% if sort_by == 'win_rate' %}btn-primary{% else %}btn-outline-primary{% endif %}">按胜率排序</a>
     </div> -->
-    <div class="card shadow-sm">
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-striped table-hover mb-0">
-            <thead class="table-light">
-              <tr>
-                <th scope="col">排名</th>
-                <th scope="col">用户名</th>
-                <th scope="col">分数 (Elo)</th>
-                <th scope="col">胜场</th>
-                <th scope="col">负场</th>
-                <th scope="col">平局</th>
-                <th scope="col">总场次</th>
-                <th scope="col">胜率</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% if ranking_items %}
-                {% for item in ranking_items %}
-                  <tr>
-                    <td>{{ item.rank }}</td>
-                    <td>
-                      <a href="{{ url_for('profile.profile', username=item.username) }}">{{ item.username }}</a>
-                    </td>
-                    <td>{{ item.score }}</td>
-                    <td>{{ item.wins }}</td>
-                    <td>{{ item.losses }}</td>
-                    <td>{{ item.draws }}</td>
-                    <td>{{ item.total }}</td>
-                    <td>{{ item.win_rate }}</td>
-                  </tr>
-                {% endfor %}
-              {% else %}
-                <tr>
-                  <td colspan="8" class="text-center text-muted">暂无排名数据</td>
-                </tr>
-              {% endif %}
-            </tbody>
-          </table>
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">排名</th>
+                                <th scope="col">用户名</th>
+                                <th scope="col">分数 (Elo)</th>
+                                <th scope="col">胜场</th>
+                                <th scope="col">负场</th>
+                                <th scope="col">平局</th>
+                                <th scope="col">总场次</th>
+                                <th scope="col">胜率</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if ranking_items %}
+                                {% for item in ranking_items %}
+                                    <tr>
+                                        <td>{{ item.rank }}</td>
+                                        <td>
+                                            <a href="{{ url_for('profile.profile', username=item.username) }}">{{ item.username }}</a>
+                                        </td>
+                                        <td>{{ item.score }}</td>
+                                        <td>{{ item.wins }}</td>
+                                        <td>{{ item.losses }}</td>
+                                        <td>{{ item.draws }}</td>
+                                        <td>{{ item.total }}</td>
+                                        <td>{{ item.win_rate }}</td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted">暂无排名数据</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-      </div>
+        <!-- 可以添加分页控件 -->
     </div>
-    <!-- 可以添加分页控件 -->
-  </div>
 {% endblock content %}

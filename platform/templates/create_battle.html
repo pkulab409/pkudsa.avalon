@@ -1,73 +1,75 @@
 {% extends "base.html" %}
 {% block title %}
-  创建对战 - 游戏平台
+    创建对战 - 游戏平台
 {% endblock title %}
 {% block content %}
-  <div class="container mt-4">
-    <h2>创建新对战</h2>
-    <p class="text-muted">选择7位参与者及其使用的AI来开始一场阿瓦隆对战。</p>
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <form id="createBattleForm">
-          <div class="row mb-3">
-            <p>请为7个位置选择玩家和他们使用的AI代码：</p>
-            {% for i in range(7) %}
-              <div class="col-md-6 col-lg-4 mb-3">
-                <div class="card">
-                  <div class="card-header">位置 {{ i + 1 }}</div>
-                  <div class="card-body">
-                    <div class="mb-2">
-                      <label for="player_{{ i }}" class="form-label">选择玩家</label>
-                      <select class="form-select player-select"
-                              id="player_{{ i }}"
-                              name="player_{{ i }}"
-                              required
-                              data-index="{{ i }}">
-                        <option value="" selected disabled>-- 选择玩家 --</option>
-                        <option value="{{ current_user.id }}"
-                                data-username="{{ current_user.username }}">{{ current_user.username }} (自己)</option>
-                        {% for opponent in potential_opponents %}
-                          <option value="{{ opponent.id }}" data-username="{{ opponent.username }}">{{ opponent.username }}</option>
+    <div class="container mt-4">
+        <h2>创建新对战</h2>
+        <p class="text-muted">选择7位参与者及其使用的AI来开始一场阿瓦隆对战。</p>
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form id="createBattleForm">
+                    <div class="row mb-3">
+                        <p>请为7个位置选择玩家和他们使用的AI代码：</p>
+                        {% for i in range(7) %}
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card">
+                                    <div class="card-header">位置 {{ i + 1 }}</div>
+                                    <div class="card-body">
+                                        <div class="mb-2">
+                                            <label for="player_{{ i }}" class="form-label">选择玩家</label>
+                                            <select class="form-select player-select"
+                                                    id="player_{{ i }}"
+                                                    name="player_{{ i }}"
+                                                    required
+                                                    data-index="{{ i }}">
+                                                <option value="" selected disabled>-- 选择玩家 --</option>
+                                                <option value="{{ current_user.id }}"
+                                                        data-username="{{ current_user.username }}">
+                                                    {{ current_user.username }} (自己)
+                                                </option>
+                                                {% for opponent in potential_opponents %}
+                                                    <option value="{{ opponent.id }}" data-username="{{ opponent.username }}">{{ opponent.username }}</option>
+                                                {% endfor %}
+                                                <!-- 可以添加搜索或更多玩家选项 -->
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label for="ai_code_{{ i }}" class="form-label">选择AI代码</label>
+                                            <select class="form-select ai-select"
+                                                    id="ai_code_{{ i }}"
+                                                    name="ai_code_{{ i }}"
+                                                    required
+                                                    disabled>
+                                                <option value="" selected disabled>-- 请先选择玩家 --</option>
+                                                <!-- AI选项将由JS动态加载 -->
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         {% endfor %}
-                        <!-- 可以添加搜索或更多玩家选项 -->
-                      </select>
                     </div>
-                    <div>
-                      <label for="ai_code_{{ i }}" class="form-label">选择AI代码</label>
-                      <select class="form-select ai-select"
-                              id="ai_code_{{ i }}"
-                              name="ai_code_{{ i }}"
-                              required
-                              disabled>
-                        <option value="" selected disabled>-- 请先选择玩家 --</option>
-                        <!-- AI选项将由JS动态加载 -->
-                      </select>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-play-fill me-1"></i> 开始对战
+                        </button>
                     </div>
-                  </div>
+                </form>
+                <div id="loadingIndicator" class="text-center mt-3" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">正在创建对战...</span>
+                    </div>
+                    <p>正在创建对战，请稍候...</p>
                 </div>
-              </div>
-            {% endfor %}
-          </div>
-          <div class="d-grid">
-            <button type="submit" class="btn btn-primary btn-lg">
-              <i class="bi bi-play-fill me-1"></i> 开始对战
-            </button>
-          </div>
-        </form>
-        <div id="loadingIndicator" class="text-center mt-3" style="display: none;">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">正在创建对战...</span>
-          </div>
-          <p>正在创建对战，请稍候...</p>
+                <div id="resultMessage" class="mt-3"></div>
+            </div>
         </div>
-        <div id="resultMessage" class="mt-3"></div>
-      </div>
     </div>
-  </div>
 {% endblock content %}
 {% block scripts %}
-  {{ super() }}
-  <script>
+    {{ super() }}
+    <script>
     document.addEventListener('DOMContentLoaded', function() {
       const playerSelects = document.querySelectorAll('.player-select');
       const aiSelects = document.querySelectorAll('.ai-select');
@@ -239,5 +241,5 @@
         }
       });
     });
-  </script>
+    </script>
 {% endblock scripts %}

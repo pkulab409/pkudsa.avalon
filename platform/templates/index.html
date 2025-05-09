@@ -1,53 +1,53 @@
 {% extends "base.html" %}
 {% block title %}
-  首页 - 阿瓦隆AI对战平台
+    首页 - 阿瓦隆AI对战平台
 {% endblock title %}
 {% block content %}
-  <div class="container mt-5">
-    <div class="p-5 mb-4 bg-light rounded-3 shadow-sm">
-      <div class="container-fluid py-5">
-        <h1 class="display-5 fw-bold">欢迎来到阿瓦隆AI对战平台</h1>
-        <p class="col-md-8 fs-4">在这里，你可以上传、测试和对战你的阿瓦隆AI，与他人一较高下。</p>
-        {% if current_user.is_authenticated %}
-          <a href="{{ url_for('game.lobby') }}"
-             class="btn btn-primary btn-lg me-2"
-             type="button">进入游戏大厅</a>
-          <a href="{{ url_for('ai.list_ai') }}"
-             class="btn btn-outline-secondary btn-lg"
-             type="button">管理我的AI</a>
-        {% else %}
-          <a href="{{ url_for('auth.login') }}"
-             class="btn btn-primary btn-lg me-2"
-             type="button">登录</a>
-          <a href="{{ url_for('auth.register') }}"
-             class="btn btn-success btn-lg"
-             type="button">注册</a>
-        {% endif %}
-      </div>
-    </div>
-    <div class="row align-items-md-stretch">
-      <div class="col-md-6 mb-4">
-        <div class="h-100 p-5 text-white bg-dark rounded-3 shadow">
-          <h2>排行榜</h2>
-          <p>查看顶尖玩家和他们的AI表现，了解当前战力格局。</p>
-          <a href="{{ url_for('ranking.show_ranking') }}"
-             class="btn btn-outline-light"
-             type="button">查看排行榜</a>
+    <div class="container mt-5">
+        <div class="p-5 mb-4 bg-light rounded-3 shadow-sm">
+            <div class="container-fluid py-5">
+                <h1 class="display-5 fw-bold">欢迎来到阿瓦隆AI对战平台</h1>
+                <p class="col-md-8 fs-4">在这里，你可以上传、测试和对战你的阿瓦隆AI，与他人一较高下。</p>
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for("game.lobby") }}"
+                       class="btn btn-primary btn-lg me-2"
+                       type="button">进入游戏大厅</a>
+                    <a href="{{ url_for("ai.list_ai") }}"
+                       class="btn btn-outline-secondary btn-lg"
+                       type="button">管理我的AI</a>
+                {% else %}
+                    <a href="{{ url_for("auth.login") }}"
+                       class="btn btn-primary btn-lg me-2"
+                       type="button">登录</a>
+                    <a href="{{ url_for("auth.register") }}"
+                       class="btn btn-success btn-lg"
+                       type="button">注册</a>
+                {% endif %}
+            </div>
         </div>
-      </div>
-      <div class="col-md-6 mb-4">
-        <div class="h-100 p-5 bg-light border rounded-3 shadow">
-          <h2>对局可视化</h2>
-          <p>上传或查看已完成的对局，通过可视化界面复盘精彩瞬间。</p>
-          <a href="{{ url_for('visualizer.upload_game_json') }}"
-             class="btn btn-outline-secondary me-2"
-             type="button">上传对局JSON</a>
-          <a href="{{ url_for('visualizer.game_replay', game_id='example') }}"
-             class="btn btn-outline-secondary"
-             type="button">查看示例回放</a>
+        <div class="row align-items-md-stretch">
+            <div class="col-md-6 mb-4">
+                <div class="h-100 p-5 text-white bg-dark rounded-3 shadow">
+                    <h2>排行榜</h2>
+                    <p>查看顶尖玩家和他们的AI表现，了解当前战力格局。</p>
+                    <a href="{{ url_for("ranking.show_ranking") }}"
+                       class="btn btn-outline-light"
+                       type="button">查看排行榜</a>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="h-100 p-5 bg-light border rounded-3 shadow">
+                    <h2>对局可视化</h2>
+                    <p>上传或查看已完成的对局，通过可视化界面复盘精彩瞬间。</p>
+                    <a href="{{ url_for("visualizer.upload_game_json") }}"
+                       class="btn btn-outline-secondary me-2"
+                       type="button">上传对局JSON</a>
+                    <a href="{{ url_for('visualizer.game_replay', game_id='example') }}"
+                       class="btn btn-outline-secondary"
+                       type="button">查看示例回放</a>
+                </div>
+            </div>
         </div>
-      </div>
+        <!-- 可以添加更多介绍性内容或平台新闻 -->
     </div>
-    <!-- 可以添加更多介绍性内容或平台新闻 -->
-  </div>
 {% endblock content %}

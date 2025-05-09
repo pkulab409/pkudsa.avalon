@@ -19,6 +19,7 @@ logger = logging.getLogger("AutoMatch")
 
 MAX_AUTOMATCH_PARALLEL_GAMES = 5
 
+
 class AutoMatch:
     def __init__(self, app: Flask):
         # 自动对战默认关闭
@@ -57,7 +58,10 @@ class AutoMatch:
                 while True:
                     # 对战生成逻辑，现为随机抽人
                     participants = sample(all_active_codes, 7)
-                    participant_data = [{'user_id': ai_code.user_id, 'ai_code_id': ai_code.id} for ai_code in participants]
+                    participant_data = [
+                        {"user_id": ai_code.user_id, "ai_code_id": ai_code.id}
+                        for ai_code in participants
+                    ]
 
                     # 如果被设置为停止(通过stop)，退出自动对战
                     if not self.is_on:
@@ -76,7 +80,9 @@ class AutoMatch:
                     battle_manager.start_battle(battle.id, participant_data)
 
         # 创建并启动后台线程
-        self.loop_thread = threading.Thread(target=loop, name="Thread-AutoMatch", args=(self.app,))
+        self.loop_thread = threading.Thread(
+            target=loop, name="Thread-AutoMatch", args=(self.app,)
+        )
         logger.info("自动对战线程已启动！")
         self.loop_thread.start()
 
