@@ -27,12 +27,17 @@ ranking_bp = Blueprint("ranking", __name__)
 def show_ranking():
     """显示排行榜页面"""
     # 获取排行榜类型
-    sort_by = request.args.get("sort_by", "score")
-    limit = request.args.get("limit", 100, type=int)  # 添加分页或限制参数
-    min_games = request.args.get("min_games", 1, type=int)  # 添加最小场次参数
+    sort_by = request.args.get(
+        "sort_by", "score"
+    )  # sort_by 当前未实际用于排序逻辑，因为 get_leaderboard 默认按 elo 排序
+    limit = request.args.get("limit", 100, type=int)
+    min_games = request.args.get("min_games", 1, type=int)
+    ranking_id = request.args.get("ranking_id", 0, type=int)  # 新增 ranking_id 参数
 
-    # 获取排行榜数据 - get_leaderboard 默认按 score 排序
-    leaderboard_data = get_leaderboard(limit=limit, min_games_played=min_games)
+    # 获取排行榜数据
+    leaderboard_data = get_leaderboard(
+        ranking_id=ranking_id, limit=limit, min_games_played=min_games
+    )
 
     ranking_items = []
     for idx, data in enumerate(leaderboard_data):
@@ -55,6 +60,7 @@ def show_ranking():
         "ranking.html",
         ranking_items=ranking_items,
         sort_by=sort_by,
+        current_ranking_id=ranking_id,  # 将 ranking_id 传递给模板
     )
 
 
@@ -62,12 +68,15 @@ def show_ranking():
 def get_ranking_data():
     """获取排行榜数据（API）"""
     # 获取排序类型
-    sort_by = request.args.get("sort_by", "score")
+    sort_by = request.args.get("sort_by", "score")  # sort_by 当前未实际用于排序逻辑
     limit = request.args.get("limit", 100, type=int)
     min_games = request.args.get("min_games", 1, type=int)
+    ranking_id = request.args.get("ranking_id", 0, type=int)  # 新增 ranking_id 参数
 
-    # 获取排行榜数据 - get_leaderboard 默认按 score 排序
-    leaderboard_data = get_leaderboard(limit=limit, min_games_played=min_games)
+    # 获取排行榜数据
+    leaderboard_data = get_leaderboard(
+        ranking_id=ranking_id, limit=limit, min_games_played=min_games
+    )
 
     ranking_list = []
     for idx, data in enumerate(leaderboard_data):
@@ -102,8 +111,10 @@ def get_user_stats(user_id):
     if not user:
         return jsonify({"success": False, "message": "用户不存在"})
 
+    ranking_id = request.args.get("ranking_id", 0, type=int)  # 新增 ranking_id 参数
+
     # 使用 get_game_stats_by_user_id 获取用户统计数据
-    stat = get_game_stats_by_user_id(user_id)
+    stat = get_game_stats_by_user_id(user_id, ranking_id=ranking_id)  # 传递 ranking_id
     if not stat:
         # 如果没有统计数据，返回成功但 stats 为空
         return jsonify(

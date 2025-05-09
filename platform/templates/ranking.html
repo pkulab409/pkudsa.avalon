@@ -4,38 +4,28 @@
 {% endblock title %}
 {% block content %}
     <div class="container mt-4">
-        <h2 class="mb-4">玩家排行榜</h2>
-        
-        <!-- 添加Font Awesome图标库 -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-        <style>
-            /* 奖牌样式 */
-            .medal-gold {
-                color: #FFD700;
-                font-size: 1.4em;
-                margin-right: 5px;
-            }
-            .medal-silver {
-                color: #C0C0C0;
-                font-size: 1.3em;
-                margin-right: 5px;
-            }
-            .medal-bronze {
-                color: #CD7F32;
-                font-size: 1.2em;
-                margin-right: 5px;
-            }
-            /* 突出显示前三名行 */
-            tr.top3 {
-                background: linear-gradient(45deg, #f8f9fa, #fff);
-                font-weight: 500;
-            }
-            tr.top3:hover {
-                background: linear-gradient(45deg, #f1f3f5, #f8f9fa);
-            }
-        </style>
-
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">玩家排行榜</h2>
+        </div>
+        <!-- 标签页导航 -->
+        <ul class="nav nav-tabs mb-3">
+            <li class="nav-item">
+                <a class="nav-link {% if current_ranking_id == 0 %}active{% endif %}"
+                   href="{{ url_for('ranking.show_ranking', ranking_id=0) }}">主排行榜</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if current_ranking_id == 1 %}active{% endif %}"
+                   href="{{ url_for('ranking.show_ranking', ranking_id=1) }}">天梯赛S1 (示例)</a>
+            </li>
+            {# 在这里可以动态添加更多排行榜的标签页 #}
+            {# 例如，如果有一个排行榜列表传递到模板中:
+      {% for rank_info in available_rankings %}
+      <li class="nav-item">
+        <a class="nav-link {% if current_ranking_id == rank_info.id %}active{% endif %}" href="{{ url_for('ranking.show_ranking', ranking_id=rank_info.id) }}">{{ rank_info.name }}</a>
+      </li>
+      {% endfor %}
+      #}
+        </ul>
         <div class="card shadow-sm">
             <div class="card-body p-0">
                 <div class="table-responsive">
