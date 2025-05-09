@@ -1134,6 +1134,127 @@ def update_battle_player(battle_player, **kwargs):
         return False
 
 
+def mark_battle_as_cancelled(battle_id, cancellation_reason=None):
+    """
+    将对战标记为已取消状态。
+
+    参数:
+        battle_id (str): 对战ID。
+        cancellation_reason (str, optional): 取消原因。
+
+    返回:
+        bool: 操作是否成功。
+    """
+    try:
+        battle = get_battle_by_id(battle_id)
+        if not battle:
+            logger.error(f"将对战标记为已取消失败: 对战 {battle_id} 不存在")
+            return False
+
+        # 检查对战状态，只允许取消特定状态的对战
+        allowed_states = ["waiting", "playing"]
+        if battle.status not in allowed_states:
+            logger.warning(f"无法取消对战 {battle_id}: 当前状态 '{battle.status}' 不允许取消")
+            return False
+
+        # 更新对战状态
+        battle.status = "cancelled"
+        battle.ended_at = datetime.datetime.now()
+
+        # 如果提供了取消原因，则更新结果字段
+        if cancellation_reason:
+            # 如果已有结果，则保留原有结果并添加取消原因
+            if battle.results:
+                try:
+                    results_data = json.loads(battle.results)
+                    results_data["cancellation_reason"] = cancellation_reason
+                    battle.results = json.dumps(results_data)
+                except (json.JSONDecodeError, TypeError):
+                    # 如果 battle.results 不是有效的 JSON，则创建新的
+                    battle.results = json.dumps({"cancellation_reason": cancellation_reason})
+            else:
+                # 如果没有结果，则创建新的
+                battle.results = json.dumps({"cancellation_reason": cancellation_reason})
+
+        if safe_commit():
+            logger.info(f"对战 {battle_id} 已标记为已取消")
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"将对战标记为已取消失败: {e}", exc_info=True)
+        db.session.rollback()
+        return False
+
+
+def handle_cancelled_battle_stats(battle_id):
+    """
+    处理已取消对战的玩家统计数据。
+
+    根据系统设计，可能需要:
+    1. 不计入玩家游戏统计
+    2. 或标记为"取消"而非输赢
+    3. 或在特定情况下给予部分ELO补偿
+
+    参数:
+        battle_id (str): 已取消对战的ID。
+
+    返回:
+        bool: 操作是否成功。
+    """
+    try:
+        battle = get_battle_by_id(battle_id)
+        if not battle:
+            logger.error(f"处理已取消对战统计失败: 对战 {battle_id} 不存在")
+            return False
+
+        if battle.status != "cancelled":
+            logger.warning(f"对战 {battle_id} 不是已取消状态，无法处理取消统计")
+            return False
+
+        # 获取对战玩家列表
+        battle_players = get_battle_players_for_battle(battle_id)
+        if not battle_players:
+            logger.warning(f"对战 {battle_id} 没有参与玩家，无需处理统计")
+            return True  # 无玩家，视为成功处理
+
+        # 解析取消原因（如果有）
+        cancellation_reason = None
+        if battle.results:
+            try:
+                results_data = json.loads(battle.results)
+                cancellation_reason = results_data.get("cancellation_reason")
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+        # 系统故障取消 vs 用户主动取消 vs 管理员取消等情况可能有不同处理
+        is_system_error = cancellation_reason and "system" in cancellation_reason.lower()
+
+        # 更新所有参与者的对战记录
+        for bp in battle_players:
+            # 设置对战结果为"取消"
+            bp.outcome = "cancelled"
+            # 对于已经开始的对战，可能需要保留ELO初始值但不计算变化
+            bp.elo_change = 0
+            db.session.add(bp)
+
+            # 根据实际需求决定是否更新游戏统计
+            # 例如：系统故障导致的取消不计入玩家的游戏场次
+            if not is_system_error:
+                # 获取用户统计
+                stats = get_game_stats_by_user_id(bp.user_id)
+                if stats:
+                    # 更新取消的对战计数（假设模型中有canceled_games字段）
+                    # 如果模型中没有，可以添加，或者选择不记录
+                    if hasattr(stats, "cancelled_games"):
+                        stats.cancelled_games += 1
+                        db.session.add(stats)
+
+        # 提交所有更改
+        return safe_commit()
+    except Exception as e:
+        logger.error(f"处理已取消对战统计失败: {e}", exc_info=True)
+        db.session.rollback()
+        return False
 # -----------------------------------------------------------------------------------------
 # Flask-Login User 加载函数 (从 models.py 移到此处或其他合适的数据加载模块)
 
