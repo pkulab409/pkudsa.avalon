@@ -1227,7 +1227,12 @@ def handle_cancelled_battle_stats(battle_id):
                 pass
 
         # 系统故障取消 vs 用户主动取消 vs 管理员取消等情况可能有不同处理
-        is_system_error = cancellation_reason and "system" in cancellation_reason.lower()
+        # 修改这里：检查 cancellation_reason 的类型
+        is_system_error = False
+        if isinstance(cancellation_reason, str) and "system" in cancellation_reason.lower():
+            is_system_error = True
+        elif isinstance(cancellation_reason, dict) and cancellation_reason.get("error") and "system" in str(cancellation_reason.get("error")).lower():
+            is_system_error = True
 
         # 更新所有参与者的对战记录
         for bp in battle_players:
