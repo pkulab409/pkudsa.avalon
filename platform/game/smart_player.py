@@ -1,5 +1,5 @@
 import random
-from collections import defaultdict
+import collections
 import re
 from game.avalon_game_helper import (
     askLLM,
