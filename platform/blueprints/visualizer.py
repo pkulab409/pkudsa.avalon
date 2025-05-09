@@ -42,7 +42,9 @@ def game_replay(game_id):
             # visualizer.py 在 platform/blueprints/
             # 目标文件在 platform/example/
             # 需要向上走一层 (..) 到 platform/，再进入 example/
-            example_replay_path = os.path.join(current_dir, '..', 'example', 'example_game_replay.json')
+            example_replay_path = os.path.join(
+                current_dir, "..", "example", "example_game_replay.json"
+            )
             # 标准化路径 (例如，处理 '..')
             log_file = os.path.normpath(example_replay_path)
 

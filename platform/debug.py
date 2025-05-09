@@ -11,14 +11,17 @@ app = create_app()
 def page_not_found(e):
     return render_template("errors/404.html"), 404  # 使用导入的render_template函数
 
+
 @app.errorhandler(500)
 def internal_server_error(e):
     return render_template("errors/500.html"), 500  # 这里也需要修改
+
 
 # 健康检查端点
 @app.route("/health")
 def health_check():
     return {"status": "ok", "service": "game-platform"}, 200
+
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)

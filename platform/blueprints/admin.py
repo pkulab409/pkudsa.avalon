@@ -15,8 +15,7 @@ admin_bp = Blueprint("admin", __name__)
 
 # 日志配置
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 
@@ -26,10 +25,19 @@ logging.basicConfig(
 @admin_bp.errorhandler(500)
 def handle_errors(e):
     """统一错误处理器（强制返回JSON）"""
-    return jsonify({
-        "error": e.name,
-        "message": e.description.split(": ")[-1] if ":" in e.description else e.description
-    }), e.code
+    return (
+        jsonify(
+            {
+                "error": e.name,
+                "message": (
+                    e.description.split(": ")[-1]
+                    if ":" in e.description
+                    else e.description
+                ),
+            }
+        ),
+        e.code,
+    )
 
 
 def admin_required(f):
@@ -44,9 +52,7 @@ def admin_required(f):
     return decorated
 
 
-
-
-@admin_bp.route('/admin/delete_user/<uuid:user_id>', methods=['POST'])
+@admin_bp.route("/admin/delete_user/<uuid:user_id>", methods=["POST"])
 @login_required
 @admin_required
 def delete_user(user_id):
@@ -59,6 +65,7 @@ def delete_user(user_id):
 
         # 0. 转移用户创建的对战到管理员（假设Battle模型有creator_id字段）
         from database.models import Battle
+
         user_created_battles = Battle.query.filter_by(creator_id=target.id).all()
         for battle in user_created_battles:
             battle.creator_id = admin_id  # 转移给管理员
@@ -68,11 +75,15 @@ def delete_user(user_id):
         ai_code_ids = [ai.id for ai in AICode.query.filter_by(user_id=target.id).all()]
 
         # 删除AI代码关联的BattlePlayer（不触发ELO回滚）
-        BattlePlayer.query.filter(BattlePlayer.selected_ai_code_id.in_(ai_code_ids)).delete(synchronize_session=False)
+        BattlePlayer.query.filter(
+            BattlePlayer.selected_ai_code_id.in_(ai_code_ids)
+        ).delete(synchronize_session=False)
         # 删除用户AI代码
         AICode.query.filter_by(user_id=target.id).delete(synchronize_session=False)
         # 删除用户参与的BattlePlayer（不触发ELO变化）
-        BattlePlayer.query.filter_by(user_id=target.id).delete(synchronize_session=False)
+        BattlePlayer.query.filter_by(user_id=target.id).delete(
+            synchronize_session=False
+        )
 
         # 2. 删除用户统计数据
         GameStats.query.filter_by(user_id=target.id).delete()
@@ -89,16 +100,27 @@ def delete_user(user_id):
         # 5. 触发前端对战列表更新（通过WebSocket或轮询机制）
         # 示例：假设使用Flask-SocketIO广播更新
         from flask_socketio import emit
-        emit('battles_updated', {'action': 'user_deleted'}, namespace='/battles', broadcast=True)
 
-        return jsonify({
-            'message': '用户及关联数据已删除',
-            'details': {
-                'deleted_ai_codes': len(ai_code_ids),
-                'transferred_battles': len(user_created_battles),
-                'cleaned_empty_battles': len(empty_battles)
-            }
-        }), 200
+        emit(
+            "battles_updated",
+            {"action": "user_deleted"},
+            namespace="/battles",
+            broadcast=True,
+        )
+
+        return (
+            jsonify(
+                {
+                    "message": "用户及关联数据已删除",
+                    "details": {
+                        "deleted_ai_codes": len(ai_code_ids),
+                        "transferred_battles": len(user_created_battles),
+                        "cleaned_empty_battles": len(empty_battles),
+                    },
+                }
+            ),
+            200,
+        )
 
     except Exception as e:
         db.session.rollback()
@@ -106,17 +128,17 @@ def delete_user(user_id):
         abort(500, description=f"删除失败: {str(e)}")
 
 
-@admin_bp.route('/admin/set_elo/<string:user_id>', methods=['POST'])
+@admin_bp.route("/admin/set_elo/<string:user_id>", methods=["POST"])
 @login_required
 @admin_required
 def set_elo(user_id):
     try:
         data = request.get_json()
-        if not data or 'elo' not in data:
+        if not data or "elo" not in data:
             abort(400, description="请求需要包含elo参数")
 
         u = User.query.get_or_404(user_id)
-        new_elo = int(data['elo'])
+        new_elo = int(data["elo"])
 
         stats = GameStats.query.filter_by(user_id=u.id).first()
         if not stats:
@@ -126,7 +148,7 @@ def set_elo(user_id):
             stats.elo_score = new_elo
 
         db.session.commit()
-        return jsonify({'message': f'Elo已更新为{new_elo}'}), 200
+        return jsonify({"message": f"Elo已更新为{new_elo}"}), 200
 
     except ValueError:
         abort(400, description="Elo必须是整数")
@@ -136,17 +158,18 @@ def set_elo(user_id):
         abort(500, description="服务器内部错误")
 
 
-@admin_bp.route('/admin/terminate_game/<string:game_id>', methods=['POST'])
+@admin_bp.route("/admin/terminate_game/<string:game_id>", methods=["POST"])
 @login_required
 @admin_required
 def terminate_game(game_id):
     try:
         game = Battle.query.get_or_404(game_id)
-        if game.status != 'playing':
+        if game.status != "playing":
             abort(400, description="只能终止进行中的对局")
 
         # 使用battle_manager取消对战，确保状态在所有地方一致
         from utils.battle_manager_utils import get_battle_manager
+
         battle_manager = get_battle_manager()
 
         # 调用battle_manager的cancel_battle方法
@@ -161,7 +184,7 @@ def terminate_game(game_id):
                     stats = GameStats.query.filter_by(user_id=bp.user_id).first()
                     if stats:
                         stats.elo_score -= bp.elo_change
-                bp.outcome = 'cancelled'
+                bp.outcome = "cancelled"
                 bp.elo_change = None
                 db.session.add(bp)
 
@@ -172,14 +195,23 @@ def terminate_game(game_id):
 
             db.session.commit()
 
-            return jsonify({
-                'message': '对局已终止',
-                'details': {
-                    'battle_id': game.id,
-                    'cancelled_at': game.ended_at.isoformat() if game.ended_at else datetime.now().isoformat(),
-                    'affected_players': [bp.user_id for bp in battle_players]
-                }
-            }), 200
+            return (
+                jsonify(
+                    {
+                        "message": "对局已终止",
+                        "details": {
+                            "battle_id": game.id,
+                            "cancelled_at": (
+                                game.ended_at.isoformat()
+                                if game.ended_at
+                                else datetime.now().isoformat()
+                            ),
+                            "affected_players": [bp.user_id for bp in battle_players],
+                        },
+                    }
+                ),
+                200,
+            )
         else:
             abort(500, description=f"取消对战失败，请检查战局状态")
 
@@ -189,13 +221,13 @@ def terminate_game(game_id):
         abort(500, description=f"终止对局失败: {str(e)}")
 
 
-@admin_bp.route('/admin/delete_game/<string:game_id>', methods=['POST'])
+@admin_bp.route("/admin/delete_game/<string:game_id>", methods=["POST"])
 @login_required
 @admin_required
 def delete_game(game_id):
     try:
         game = Battle.query.get_or_404(game_id)
-        allowed_statuses = ['completed', 'cancelled', 'error']
+        allowed_statuses = ["completed", "cancelled", "error"]
         if game.status not in allowed_statuses:
             abort(400, description="只能删除已结束的对局")
 
@@ -209,7 +241,7 @@ def delete_game(game_id):
 
         db.session.delete(game)
         db.session.commit()
-        return jsonify({'message': '对局已删除并恢复Elo'}), 200
+        return jsonify({"message": "对局已删除并恢复Elo"}), 200
 
     except Exception as e:
         db.session.rollback()
@@ -217,50 +249,59 @@ def delete_game(game_id):
         abort(500, description=f"删除对局失败: {str(e)}")
 
 
-@admin_bp.route("/admin/start_auto_match", methods=['POST'])
+@admin_bp.route("/admin/start_auto_match", methods=["POST"])
 @admin_required
 def start_auto_match():
     automatch = get_automatch()
     if automatch.start():
-        return jsonify({
-            "status": "success",
-            "message": "后台自动对战已启动",
-        }), 200
+        return (
+            jsonify(
+                {
+                    "status": "success",
+                    "message": "后台自动对战已启动",
+                }
+            ),
+            200,
+        )
     else:
-        return jsonify({
-            "status": "error",
-            "message": f"后台自动对战已在运行."
-        }), 500
+        return jsonify({"status": "error", "message": f"后台自动对战已在运行."}), 500
 
 
-@admin_bp.route("/admin/stop_auto_match", methods=['POST'])
+@admin_bp.route("/admin/stop_auto_match", methods=["POST"])
 @admin_required
 def stop_auto_match():
     automatch = get_automatch()
     if automatch.stop():
-        return jsonify({
-            "status": "success",
-            "message": "后台自动对战已停止",
-        }), 200
+        return (
+            jsonify(
+                {
+                    "status": "success",
+                    "message": "后台自动对战已停止",
+                }
+            ),
+            200,
+        )
     else:
-        return jsonify({
-            "status": "error",
-            "message": f"后台自动对战未在运行."
-        }), 500
+        return jsonify({"status": "error", "message": f"后台自动对战未在运行."}), 500
 
 
-@admin_bp.route("/admin/terminate_auto_match", methods=['POST'])
+@admin_bp.route("/admin/terminate_auto_match", methods=["POST"])
 @admin_required
 def terminate_auto_match():
     automatch = get_automatch()
     automatch.terminate()
-    return jsonify({
-        "status": "success",
-        "message": "后台自动对战已终止并重置",
-    }), 200
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "message": "后台自动对战已终止并重置",
+            }
+        ),
+        200,
+    )
 
 
-@admin_bp.route('/admin/toggle_admin/<string:user_id>', methods=['POST'])
+@admin_bp.route("/admin/toggle_admin/<string:user_id>", methods=["POST"])
 @login_required
 @admin_required
 def toggle_admin(user_id):
@@ -273,10 +314,10 @@ def toggle_admin(user_id):
         db.session.commit()
 
         action = "授予" if target.is_admin else "撤销"
-        return jsonify({
-            'message': f'管理员权限已{action}',
-            'is_admin': target.is_admin
-        }), 200
+        return (
+            jsonify({"message": f"管理员权限已{action}", "is_admin": target.is_admin}),
+            200,
+        )
 
     except Exception as e:
         db.session.rollback()
@@ -284,31 +325,38 @@ def toggle_admin(user_id):
         abort(500, description=f"操作失败: {str(e)}")
 
 
-@admin_bp.route('/admin/users')
+@admin_bp.route("/admin/users")
 @login_required
 @admin_required
 def get_users():
     try:
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 10, type=int)
+        page = request.args.get("page", 1, type=int)
+        per_page = request.args.get("per_page", 10, type=int)
 
         users = User.query.options(joinedload(User.game_stats)).paginate(
-            page=page,
-            per_page=per_page
+            page=page, per_page=per_page
         )
 
-        return jsonify({
-            "users": [{
-                "id": user.id,
-                "username": user.username,
-                "email": user.email,
-                "is_admin": user.is_admin,
-                "elo": user.game_stats.elo_score if user.game_stats else 0
-            } for user in users.items],
-            "total_pages": users.pages,
-            "current_page": users.page,
-            "total_users": users.total
-        }), 200
+        return (
+            jsonify(
+                {
+                    "users": [
+                        {
+                            "id": user.id,
+                            "username": user.username,
+                            "email": user.email,
+                            "is_admin": user.is_admin,
+                            "elo": user.game_stats.elo_score if user.game_stats else 0,
+                        }
+                        for user in users.items
+                    ],
+                    "total_pages": users.pages,
+                    "current_page": users.page,
+                    "total_users": users.total,
+                }
+            ),
+            200,
+        )
 
     except Exception as e:
         logging.error(f"获取用户列表失败: {str(e)}")
@@ -316,33 +364,43 @@ def get_users():
 
 
 # 修改 admin_dashboard 路由的查询逻辑
-@admin_bp.route('/admin/dashboard')
+@admin_bp.route("/admin/dashboard")
 @login_required
 @admin_required
 def admin_dashboard():
     # 原代码：users = User.query.options(joinedload(User.game_stats)).all()
-    users = User.query.options(joinedload(User.game_stats)).limit(10).all()  # 添加 .limit(10)
-    return render_template('admin/dashboard.html', users=users)
+    users = (
+        User.query.options(joinedload(User.game_stats)).limit(10).all()
+    )  # 添加 .limit(10)
+    return render_template("admin/dashboard.html", users=users)
 
 
-@admin_bp.route('/admin/search_user', methods=['GET'])
+@admin_bp.route("/admin/search_user", methods=["GET"])
 @login_required
 @admin_required
 def search_user():
     try:
-        username = request.args.get('username')
+        username = request.args.get("username")
         if not username:
             abort(400, description="用户名参数缺失")
         # 模糊搜索并限制结果数量
-        users = User.query.filter(User.username.ilike(f'%{username}%')).limit(10).all()
-        return jsonify({
-            "users": [{
-                "id": user.id,
-                "username": user.username,
-                "is_admin": user.is_admin,
-                "elo": user.game_stats.elo_score if user.game_stats else 0
-            } for user in users]
-        }), 200
+        users = User.query.filter(User.username.ilike(f"%{username}%")).limit(10).all()
+        return (
+            jsonify(
+                {
+                    "users": [
+                        {
+                            "id": user.id,
+                            "username": user.username,
+                            "is_admin": user.is_admin,
+                            "elo": user.game_stats.elo_score if user.game_stats else 0,
+                        }
+                        for user in users
+                    ]
+                }
+            ),
+            200,
+        )
     except Exception as e:
         logging.error(f"搜索用户失败: {str(e)}")
         abort(500, description="搜索用户失败")

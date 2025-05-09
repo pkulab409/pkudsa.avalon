@@ -1,12 +1,11 @@
 {% extends "base.html" %}
-
 {% block head %}
-{{ super() }}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    {{ super() }}
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 {% endblock %}
-
 {% block content %}
-<style>
+    <style>
   .profile-container {
     max-width: 1000px;
     margin: 2rem auto;
@@ -69,39 +68,40 @@
     opacity: 0.9;
     transform: translateY(-2px);
   }
-</style>
-
-<div class="profile-container">
-  <div class="user-card">
-    <div class="user-header">
-      <!-- 修改后的头像区块 -->
-      <div class="user-avatar">
-        {{ current_user.username[0] }}  <!-- 显示首字母 -->
-      </div>
-      <div>
-        <h1>{{ current_user.username }}</h1>
-        <p><i class="fas fa-envelope"></i> {{ current_user.email }}</p>
-        <p><i class="fas fa-chart-line"></i> Elo 分数：{{ current_user.get_elo_score()}}</p>
-      </div>
+    </style>
+    <div class="profile-container">
+        <div class="user-card">
+            <div class="user-header">
+                <!-- 修改后的头像区块 -->
+                <div class="user-avatar">
+                    {{ current_user.username[0] }}  <!-- 显示首字母 -->
+                </div>
+                <div>
+                    <h1>{{ current_user.username }}</h1>
+                    <p>
+                        <i class="fas fa-envelope"></i> {{ current_user.email }}
+                    </p>
+                    <p>
+                        <i class="fas fa-chart-line"></i> Elo 分数：{{ current_user.get_elo_score() }}
+                    </p>
+                </div>
+            </div>
+            <!-- 新增对战历史入口 -->
+            <div class="mt-4 text-center">
+                <a href="{{ url_for("profile.battle_history") }}"
+                   class="btn btn-primary btn-lg">
+                    <i class="fas fa-history me-2"></i>查看对战历史
+                </a>
+            </div>
+            {% if current_user.is_admin %}
+                <div class="admin-entry">
+                    <a href="{{ url_for("admin.admin_dashboard") }}"
+                       class="admin-button"
+                       style="text-decoration: none">
+                        <i class="fas fa-tools"></i>进入管理员面板
+                    </a>
+                </div>
+            {% endif %}
+        </div>
     </div>
-
-    <!-- 新增对战历史入口 -->
-  <div class="mt-4 text-center">
-    <a href="{{ url_for('profile.battle_history') }}" 
-       class="btn btn-primary btn-lg">
-      <i class="fas fa-history me-2"></i>查看对战历史
-    </a>
-  </div>
-
-    {% if current_user.is_admin %}
-    <div class="admin-entry">
-      <a href="{{ url_for('admin.admin_dashboard') }}" 
-         class="admin-button"
-         style="text-decoration: none">
-        <i class="fas fa-tools"></i>进入管理员面板
-      </a>
-    </div>
-    {% endif %}
-  </div>
-</div>
 {% endblock %}

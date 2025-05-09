@@ -18,7 +18,7 @@ from database import (
     create_ai_code,
     set_active_ai_code,
     User,
-    AICode
+    AICode,
 )
 
 # 初始化csrf保护
@@ -48,7 +48,9 @@ def initialize_default_data(app):
                 try:
                     email = user_config["email"]
                     is_admin = user_config.get("is_admin", False)
-                    app.logger.info(f"🔧 正在处理用户 {idx}/{len(app.config['INITIAL_USERS'])}: {email}")
+                    app.logger.info(
+                        f"🔧 正在处理用户 {idx}/{len(app.config['INITIAL_USERS'])}: {email}"
+                    )
 
                     # ================= 用户存在性检查 =================
                     existing_user = User.query.filter_by(email=email).first()
@@ -81,13 +83,17 @@ def initialize_default_data(app):
                         if user.is_admin != is_admin:
                             user.is_admin = is_admin
                             updated = True
-                            app.logger.warning(f"🛠 更新用户权限: {email} -> 管理员={is_admin}")
+                            app.logger.warning(
+                                f"🛠 更新用户权限: {email} -> 管理员={is_admin}"
+                            )
 
                         # 同步用户名
                         if user.username != user_config["username"]:
                             user.username = user_config["username"]
                             updated = True
-                            app.logger.warning(f"🛠 更新用户名: {email} -> {user_config['username']}")
+                            app.logger.warning(
+                                f"🛠 更新用户名: {email} -> {user_config['username']}"
+                            )
 
                         if updated:
                             user.modified_at = datetime.utcnow()
@@ -122,7 +128,9 @@ def initialize_default_data(app):
                         dest_path = os.path.join(user_dir, filename)
                         try:
                             shutil.copy(source_path, dest_path)
-                            app.logger.info(f"📄 复制AI代码: {source_path} -> {dest_path}")
+                            app.logger.info(
+                                f"📄 复制AI代码: {source_path} -> {dest_path}"
+                            )
                         except Exception as e:
                             app.logger.error(f"❌ 文件复制失败: {str(e)}")
                             continue
@@ -134,7 +142,7 @@ def initialize_default_data(app):
                             code_path=os.path.join(str(user.id), filename),
                             description=ai_config.get("description", ""),
                             is_active=ai_config.get("make_active", False),
-                            created_at=datetime.utcnow()
+                            created_at=datetime.utcnow(),
                         )
                         db.session.add(ai)
 
@@ -162,7 +170,7 @@ def create_app(config_object=Config):
     # 初始化 CSRF 保护
     csrf.init_app(app)
 
-    @app.template_filter('color_hash')
+    @app.template_filter("color_hash")
     def color_hash(username):
         """生成基于用户名的HSL颜色"""
         hue = hash(username) % 360  # 确保色相值在0-359之间

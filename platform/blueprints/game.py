@@ -14,7 +14,7 @@ from flask import (
     url_for,
     current_app,
     jsonify,
-    send_file
+    send_file,
 )
 from flask_login import login_required, current_user
 
@@ -49,7 +49,9 @@ def lobby():
     # waiting_battles = Battle.query.filter_by(status='waiting').order_by(Battle.created_at.desc()).limit(10).all()
     # playing_battles = Battle.query.filter_by(status='playing').order_by(Battle.started_at.desc()).limit(10).all()
     return render_template(
-        "lobby.html", recent_battles=recent_battles, automatch_is_on=get_automatch().is_on
+        "lobby.html",
+        recent_battles=recent_battles,
+        automatch_is_on=get_automatch().is_on,
     )  # 需要创建 lobby.html
 
 
@@ -69,13 +71,13 @@ def create_battle_page():
     )
 
 
-@game_bp.route('/api/battle/<int:battle_id>/status')
+@game_bp.route("/api/battle/<int:battle_id>/status")
 @login_required
 def check_battle_status(battle_id):
     battle = db_get_battle_by_id(battle_id)
     if not battle:
-        return jsonify({'error': 'Battle not found'}), 404
-    return jsonify({'status': battle.status})
+        return jsonify({"error": "Battle not found"}), 404
+    return jsonify({"status": battle.status})
 
 
 @game_bp.route("/battle/<string:battle_id>")
@@ -109,7 +111,9 @@ def view_battle(battle_id):
                 PUBLIC_LIB_FILE_DIR = game_result.get("public_log_file")
                 if not PUBLIC_LIB_FILE_DIR:
                     logger.error(f"[Battle {battle_id}] 缺少公共日志文件路径")
-                    error_info["error_msg"] = "无法获取对战详细错误信息：缺少日志文件路径"
+                    error_info["error_msg"] = (
+                        "无法获取对战详细错误信息：缺少日志文件路径"
+                    )
                 else:
                     # 读取公共日志获取错误玩家
                     try:
@@ -118,99 +122,176 @@ def view_battle(battle_id):
                             # 从日志中查找错误记录（从后向前搜索）
                             error_record = None
                             for record in reversed(data):
-                                if "type" in record and record["type"] in ["critical_player_ERROR",
-                                                                           "player_ruturn_ERROR"]:
+                                if "type" in record and record["type"] in [
+                                    "critical_player_ERROR",
+                                    "player_ruturn_ERROR",
+                                ]:
                                     error_record = record
                                     break
 
                             if error_record:
                                 error_pid_in_game = error_record.get("error_code_pid")
-                                if error_pid_in_game is not None and 1 <= error_pid_in_game <= 7:
+                                if (
+                                    error_pid_in_game is not None
+                                    and 1 <= error_pid_in_game <= 7
+                                ):
                                     error_type = error_record.get("type")
-                                    error_code_method = error_record.get("error_code_method")
+                                    error_code_method = error_record.get(
+                                        "error_code_method"
+                                    )
                                     error_msg = error_record.get("error_msg")
 
                                     # 提取错误玩家的用户ID
                                     err_player_index = error_pid_in_game - 1
                                     if err_player_index < len(battle_players):
-                                        err_user_id = battle_players[err_player_index].user_id
+                                        err_user_id = battle_players[
+                                            err_player_index
+                                        ].user_id
 
                                         # 获取玩家信息
                                         err_user = get_user_by_id(err_user_id)
-                                        err_username = err_user.username if err_user else f"玩家 {err_user_id}"
+                                        err_username = (
+                                            err_user.username
+                                            if err_user
+                                            else f"玩家 {err_user_id}"
+                                        )
 
                                         # 包装错误信息
                                         error_info["error_type"] = error_type
                                         error_info["error_user_id"] = err_user_id
                                         error_info["error_username"] = err_username
-                                        error_info["error_pid_in_game"] = error_pid_in_game
-                                        error_info["error_code_method"] = error_code_method
+                                        error_info["error_pid_in_game"] = (
+                                            error_pid_in_game
+                                        )
+                                        error_info["error_code_method"] = (
+                                            error_code_method
+                                        )
                                         error_info["error_msg"] = error_msg
 
                                         # 计算ELO扣分
-                                        err_player = next((bp for bp in battle_players if bp.user_id == err_user_id),
-                                                          None)
+                                        err_player = next(
+                                            (
+                                                bp
+                                                for bp in battle_players
+                                                if bp.user_id == err_user_id
+                                            ),
+                                            None,
+                                        )
                                         if err_player:
-                                            error_info["elo_initial"] = err_player.initial_elo
-                                            error_info["elo_change"] = err_player.elo_change
-                                            error_info["elo_final"] = err_player.initial_elo + err_player.elo_change
+                                            error_info["elo_initial"] = (
+                                                err_player.initial_elo
+                                            )
+                                            error_info["elo_change"] = (
+                                                err_player.elo_change
+                                            )
+                                            error_info["elo_final"] = (
+                                                err_player.initial_elo
+                                                + err_player.elo_change
+                                            )
 
                                         # 优化错误信息显示（针对常见错误类型）
                                         if error_code_method == "walk":
                                             if "direction type" in error_msg:
-                                                error_info[
-                                                    "friendly_msg"] = "移动方向必须是字符串类型（如'up'、'down'、'left'、'right'），而非数字或其他类型"
+                                                error_info["friendly_msg"] = (
+                                                    "移动方向必须是字符串类型（如'up'、'down'、'left'、'right'），而非数字或其他类型"
+                                                )
                                             elif "invalid move" in error_msg:
-                                                error_info["friendly_msg"] = "移动方向无效，必须是'up'、'down'、'left'、'right'之一"
+                                                error_info["friendly_msg"] = (
+                                                    "移动方向无效，必须是'up'、'down'、'left'、'right'之一"
+                                                )
                                             elif "occupied position" in error_msg:
-                                                error_info["friendly_msg"] = "移动位置已被其他玩家占据"
+                                                error_info["friendly_msg"] = (
+                                                    "移动位置已被其他玩家占据"
+                                                )
                                             else:
-                                                error_info["friendly_msg"] = "移动操作出现错误"
-                                        elif error_code_method == "decide_mission_member":
+                                                error_info["friendly_msg"] = (
+                                                    "移动操作出现错误"
+                                                )
+                                        elif (
+                                            error_code_method == "decide_mission_member"
+                                        ):
                                             if "non-list" in error_msg:
-                                                error_info["friendly_msg"] = "选择队员函数必须返回列表类型"
+                                                error_info["friendly_msg"] = (
+                                                    "选择队员函数必须返回列表类型"
+                                                )
                                             elif "invalid member" in error_msg:
-                                                error_info["friendly_msg"] = "选择的队员ID无效，必须是1-7之间的整数"
+                                                error_info["friendly_msg"] = (
+                                                    "选择的队员ID无效，必须是1-7之间的整数"
+                                                )
                                             elif "duplicate member" in error_msg:
-                                                error_info["friendly_msg"] = "选择了重复的队员"
+                                                error_info["friendly_msg"] = (
+                                                    "选择了重复的队员"
+                                                )
                                             elif "many(few)" in error_msg:
-                                                error_info["friendly_msg"] = "选择的队员数量不符合要求"
+                                                error_info["friendly_msg"] = (
+                                                    "选择的队员数量不符合要求"
+                                                )
                                             else:
-                                                error_info["friendly_msg"] = "队伍选择操作出现错误"
+                                                error_info["friendly_msg"] = (
+                                                    "队伍选择操作出现错误"
+                                                )
                                         elif error_code_method == "mission_vote2":
                                             if "non-bool" in error_msg:
-                                                error_info["friendly_msg"] = "任务投票必须返回布尔值（True/False）"
-                                            elif "Blue player" in error_msg and "against execution" in error_msg:
-                                                error_info["friendly_msg"] = "蓝方玩家不允许对任务投失败票"
+                                                error_info["friendly_msg"] = (
+                                                    "任务投票必须返回布尔值（True/False）"
+                                                )
+                                            elif (
+                                                "Blue player" in error_msg
+                                                and "against execution" in error_msg
+                                            ):
+                                                error_info["friendly_msg"] = (
+                                                    "蓝方玩家不允许对任务投失败票"
+                                                )
                                             else:
-                                                error_info["friendly_msg"] = "任务投票操作出现错误"
+                                                error_info["friendly_msg"] = (
+                                                    "任务投票操作出现错误"
+                                                )
                                         elif error_code_method == "say":
                                             if "non-string speech" in error_msg:
-                                                error_info["friendly_msg"] = "发言函数必须返回字符串"
+                                                error_info["friendly_msg"] = (
+                                                    "发言函数必须返回字符串"
+                                                )
                                             else:
-                                                error_info["friendly_msg"] = "发言操作出现错误"
+                                                error_info["friendly_msg"] = (
+                                                    "发言操作出现错误"
+                                                )
                                         elif error_code_method == "assass":
                                             if "invalid target" in error_msg:
-                                                error_info["friendly_msg"] = "刺杀目标无效，必须是1-7之间的整数（且不能是自己）"
+                                                error_info["friendly_msg"] = (
+                                                    "刺杀目标无效，必须是1-7之间的整数（且不能是自己）"
+                                                )
                                             elif "targeted himself" in error_msg:
-                                                error_info["friendly_msg"] = "刺客不能刺杀自己"
+                                                error_info["friendly_msg"] = (
+                                                    "刺客不能刺杀自己"
+                                                )
                                             else:
-                                                error_info["friendly_msg"] = "刺杀操作出现错误"
+                                                error_info["friendly_msg"] = (
+                                                    "刺杀操作出现错误"
+                                                )
                                         elif error_code_method == "__init__":
-                                            error_info["friendly_msg"] = "AI代码初始化失败，这可能是由于代码语法错误或类定义问题"
+                                            error_info["friendly_msg"] = (
+                                                "AI代码初始化失败，这可能是由于代码语法错误或类定义问题"
+                                            )
                                         else:
                                             # 通用错误提示
-                                            error_info[
-                                                "friendly_msg"] = f"AI代码在执行 {error_code_method} 函数时出现错误"
+                                            error_info["friendly_msg"] = (
+                                                f"AI代码在执行 {error_code_method} 函数时出现错误"
+                                            )
                                     else:
-                                        error_info["error_msg"] = f"无法识别玩家：索引 {err_player_index} 超出范围"
+                                        error_info["error_msg"] = (
+                                            f"无法识别玩家：索引 {err_player_index} 超出范围"
+                                        )
                                 else:
-                                    error_info["error_msg"] = f"无效的错误玩家PID: {error_pid_in_game}"
+                                    error_info["error_msg"] = (
+                                        f"无效的错误玩家PID: {error_pid_in_game}"
+                                    )
                             else:
                                 # 如果找不到标准错误记录，尝试查找最后一条记录
                                 last_record = data[-1] if data else None
                                 if last_record and "error" in str(last_record):
-                                    error_info["error_msg"] = f"游戏错误: {last_record.get('error', '未知错误')}"
+                                    error_info["error_msg"] = (
+                                        f"游戏错误: {last_record.get('error', '未知错误')}"
+                                    )
 
                                     # 尝试从错误消息提取更多信息
                                     if isinstance(last_record.get("error"), str):
@@ -218,43 +299,77 @@ def view_battle(battle_id):
 
                                         # 尝试从错误消息中提取玩家ID
                                         import re
-                                        player_match = re.search(r"Player (\d+)", error_msg)
+
+                                        player_match = re.search(
+                                            r"Player (\d+)", error_msg
+                                        )
                                         if player_match:
                                             try:
                                                 pid = int(player_match.group(1))
-                                                if 1 <= pid <= 7 and pid - 1 < len(battle_players):
-                                                    err_user_id = battle_players[pid - 1].user_id
-                                                    err_user = get_user_by_id(err_user_id)
-                                                    error_info["error_user_id"] = err_user_id
-                                                    error_info[
-                                                        "error_username"] = err_user.username if err_user else f"玩家 {err_user_id}"
-                                                    error_info["error_pid_in_game"] = pid
+                                                if 1 <= pid <= 7 and pid - 1 < len(
+                                                    battle_players
+                                                ):
+                                                    err_user_id = battle_players[
+                                                        pid - 1
+                                                    ].user_id
+                                                    err_user = get_user_by_id(
+                                                        err_user_id
+                                                    )
+                                                    error_info["error_user_id"] = (
+                                                        err_user_id
+                                                    )
+                                                    error_info["error_username"] = (
+                                                        err_user.username
+                                                        if err_user
+                                                        else f"玩家 {err_user_id}"
+                                                    )
+                                                    error_info["error_pid_in_game"] = (
+                                                        pid
+                                                    )
 
                                                     # 尝试提取错误方法
-                                                    method_match = re.search(r"method '([^']+)'|executing ([^ ]+)",
-                                                                             error_msg)
+                                                    method_match = re.search(
+                                                        r"method '([^']+)'|executing ([^ ]+)",
+                                                        error_msg,
+                                                    )
                                                     if method_match:
-                                                        method = method_match.group(1) or method_match.group(2)
-                                                        error_info["error_code_method"] = method
+                                                        method = method_match.group(
+                                                            1
+                                                        ) or method_match.group(2)
+                                                        error_info[
+                                                            "error_code_method"
+                                                        ] = method
 
                                                         # 添加友好错误消息
                                                         if "walk" in method:
-                                                            error_info["friendly_msg"] = "移动操作出现错误"
+                                                            error_info[
+                                                                "friendly_msg"
+                                                            ] = "移动操作出现错误"
                                                         elif "mission" in method:
-                                                            error_info["friendly_msg"] = "任务相关操作出现错误"
+                                                            error_info[
+                                                                "friendly_msg"
+                                                            ] = "任务相关操作出现错误"
                                                         else:
                                                             error_info[
-                                                                "friendly_msg"] = f"AI代码在执行 {method} 函数时出现错误"
+                                                                "friendly_msg"
+                                                            ] = f"AI代码在执行 {method} 函数时出现错误"
                                             except (ValueError, IndexError) as e:
-                                                logger.error(f"[Battle {battle_id}] 尝试提取玩家ID时出错: {str(e)}")
+                                                logger.error(
+                                                    f"[Battle {battle_id}] 尝试提取玩家ID时出错: {str(e)}"
+                                                )
                                 else:
                                     error_info["error_msg"] = "未找到具体错误信息"
                     except Exception as e:
-                        logger.error(f"[Battle {battle_id}] 读取公共日志失败: {str(e)}", exc_info=True)
+                        logger.error(
+                            f"[Battle {battle_id}] 读取公共日志失败: {str(e)}",
+                            exc_info=True,
+                        )
                         error_info["error_msg"] = f"读取错误日志失败: {str(e)}"
 
         except Exception as e:
-            logger.error(f"无法解析对战 {battle_id} 的结果JSON: {str(e)}", exc_info=True)
+            logger.error(
+                f"无法解析对战 {battle_id} 的结果JSON: {str(e)}", exc_info=True
+            )
             game_result = {"error": "结果解析失败", "roles": {}}  # 确保有roles键
             error_info["error_msg"] = f"结果解析失败: {str(e)}"
 
@@ -466,8 +581,8 @@ def get_battles():
 
     return jsonify({"success": True, "battles": battles_data})
 
-    
-@game_bp.route('/download_logs/<battle_id>', methods=["GET"])
+
+@game_bp.route("/download_logs/<battle_id>", methods=["GET"])
 @login_required
 def download_logs(battle_id):
     """下载对战日志"""
@@ -477,7 +592,9 @@ def download_logs(battle_id):
         current_file_dir = os.path.dirname(__file__)
 
         # 2. 计算 'data' 目录的路径
-        data_directory_path = os.path.abspath(os.path.join(current_file_dir, '..', '..', 'data'))
+        data_directory_path = os.path.abspath(
+            os.path.join(current_file_dir, "..", "..", "data")
+        )
 
         # 3. 构造日志文件名
         log_file_name = f"game_{battle_id}_archive.json"
@@ -486,22 +603,29 @@ def download_logs(battle_id):
         log_file_full_path = os.path.join(data_directory_path, log_file_name)
 
         # 打印出我们实际正在检查和试图访问的路径，用于调试验证
-        current_app.logger.info(f"[INFO] Attempting to access log at: {log_file_full_path}")
+        current_app.logger.info(
+            f"[INFO] Attempting to access log at: {log_file_full_path}"
+        )
 
         # 检查日志文件是否存在于计算出的正确路径
         if not os.path.exists(log_file_full_path):
             flash(f"对战 {battle_id} 的日志文件不存在", "danger")
-            current_app.logger.warning(f"对战 {battle_id} 的日志文件不存在，路径为: {log_file_full_path}")
-            return redirect(url_for('game.view_battle', battle_id=battle_id))
+            current_app.logger.warning(
+                f"对战 {battle_id} 的日志文件不存在，路径为: {log_file_full_path}"
+            )
+            return redirect(url_for("game.view_battle", battle_id=battle_id))
 
         # 使用 send_file 而不是 send_from_directory
         return send_file(log_file_full_path, as_attachment=True)
 
     except Exception as e:
         # 在错误日志中包含我们计算的路径，帮助排查
-        current_app.logger.error(f"下载对战 {battle_id} 日志失败 from path {log_file_full_path}: {str(e)}", exc_info=True)
+        current_app.logger.error(
+            f"下载对战 {battle_id} 日志失败 from path {log_file_full_path}: {str(e)}",
+            exc_info=True,
+        )
         flash("下载日志失败", "danger")
-        return redirect(url_for('game.view_battle', battle_id=battle_id))
+        return redirect(url_for("game.view_battle", battle_id=battle_id))
 
 
 @game_bp.route("/cancel_battle/<string:battle_id>", methods=["POST"])
@@ -517,14 +641,20 @@ def cancel_battle(battle_id):
 
         # 验证对战状态是否允许取消
         if battle.status not in ["waiting", "playing"]:
-            current_app.logger.warning(f"尝试取消状态为 {battle.status} 的对战: {battle_id}")
-            return jsonify({"success": False, "message": f"对战状态为 {battle.status}，无法取消"})
+            current_app.logger.warning(
+                f"尝试取消状态为 {battle.status} 的对战: {battle_id}"
+            )
+            return jsonify(
+                {"success": False, "message": f"对战状态为 {battle.status}，无法取消"}
+            )
 
         # 验证用户权限（可选：仅允许参与者或管理员取消）
         battle_players = db_get_battle_players_for_battle(battle_id)
         is_participant = any(bp.user_id == current_user.id for bp in battle_players)
         if not is_participant and not current_user.is_admin:
-            current_app.logger.warning(f"用户 {current_user.id} 尝试取消非本人参与的对战: {battle_id}")
+            current_app.logger.warning(
+                f"用户 {current_user.id} 尝试取消非本人参与的对战: {battle_id}"
+            )
             return jsonify({"success": False, "message": "您没有权限取消此对战"})
 
         # 获取取消原因（可选）
@@ -535,23 +665,25 @@ def cancel_battle(battle_id):
         battle_manager = get_battle_manager()
         if battle_manager.cancel_battle(battle_id, reason):
             current_app.logger.info(f"对战 {battle_id} 已成功取消: {reason}")
-            return jsonify({
-                "success": True,
-                "message": "对战已成功取消",
-                "battle_id": battle_id
-            })
+            return jsonify(
+                {"success": True, "message": "对战已成功取消", "battle_id": battle_id}
+            )
         else:
             current_app.logger.error(f"取消对战 {battle_id} 失败")
-            return jsonify({
-                "success": False,
-                "message": "取消对战失败，请稍后再试",
-                "battle_id": battle_id
-            })
+            return jsonify(
+                {
+                    "success": False,
+                    "message": "取消对战失败，请稍后再试",
+                    "battle_id": battle_id,
+                }
+            )
 
     except Exception as e:
         current_app.logger.exception(f"取消对战 {battle_id} 时发生错误: {str(e)}")
-        return jsonify({
-            "success": False,
-            "message": f"服务器内部错误: {str(e)}",
-            "battle_id": battle_id
-        })
+        return jsonify(
+            {
+                "success": False,
+                "message": f"服务器内部错误: {str(e)}",
+                "battle_id": battle_id,
+            }
+        )

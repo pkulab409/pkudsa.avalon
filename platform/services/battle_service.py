@@ -104,14 +104,18 @@ class BattleService:
                 battle = get_battle_by_id(battle_id)
                 if battle:
                     if update_battle(
-                            battle, status="error", results=json.dumps(error_details)
+                        battle, status="error", results=json.dumps(error_details)
                     ):
                         logger.info(f"数据库：对战 {battle_id} 状态更新为 error")
-                        if process_battle_results_and_update_stats(battle_id, error_details):
+                        if process_battle_results_and_update_stats(
+                            battle_id, error_details
+                        ):
                             logger.info(f"数据库：对战 {battle_id} 玩家报错处置成功")
                             return True
                         else:
-                            logger.error(f"数据库：对战 {battle_id} 玩家报错处置失败，或不需要处置玩家")
+                            logger.error(
+                                f"数据库：对战 {battle_id} 玩家报错处置失败，或不需要处置玩家"
+                            )
                     else:
                         logger.error(f"数据库：更新对战 {battle_id} 状态为 error 失败")
                         return False
@@ -145,7 +149,9 @@ class BattleService:
 
                 # 检查对战状态是否允许取消
                 if battle.status not in ["waiting", "playing"]:
-                    logger.warning(f"数据库：对战 {battle_id} 状态为 {battle.status}，不适合取消")
+                    logger.warning(
+                        f"数据库：对战 {battle_id} 状态为 {battle.status}，不适合取消"
+                    )
                     return False
 
                 # 更新对战状态为cancelled
