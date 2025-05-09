@@ -14,7 +14,7 @@
 - 备用：BattlePlayer 独立 CRUD 操作
 """
 # 准备好后面一千多行的冲击吧！
-
+MAX_TOKEN_ALLOWED = 3000
 
 from .base import db
 import logging
@@ -990,9 +990,9 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                 if team in team_elos:
                     team_elos[team].append(stats.elo_score)
 
-            tokens_standard = [tokens[ui - 1]["input"] + 3 * tokens[ui - 1]["output"] for ui in range(1,8)] #一倍输入和三倍输出的和
+            tokens_standard = [(tokens[ui - 1]["input"] + 3 * tokens[ui - 1]["output"])/4 for ui in range(1,8)] #一倍输入和三倍输出的和
 
-            tokens_avg = max(1, sum(tokens_standard) / 7)  #均值
+            tokens_avg = max(MAX_TOKEN_ALLOWED, sum(tokens_standard) / 7)  #均值, 该常量以下必不惩罚
 
             proportion = [token / tokens_avg for token in tokens_standard]  #比例
 
