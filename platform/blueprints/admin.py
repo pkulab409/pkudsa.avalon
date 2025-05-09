@@ -368,10 +368,8 @@ def get_users():
 @login_required
 @admin_required
 def admin_dashboard():
-    # 原代码：users = User.query.options(joinedload(User.game_stats)).all()
-    users = (
-        User.query.options(joinedload(User.game_stats)).limit(10).all()
-    )  # 添加 .limit(10)
+    # 原代码：users = User.query.options(joinedload(User.game_stats_entries)).limit(10).all()
+    users = User.query.limit(10).all()  # 移除了 joinedload
     return render_template("admin/dashboard.html", users=users)
 
 
