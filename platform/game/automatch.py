@@ -20,7 +20,6 @@ logger = logging.getLogger("AutoMatch")
 MAX_AUTOMATCH_PARALLEL_GAMES = 20
 
 
-
 class AutoMatch:
     def __init__(self, app: Flask):
         # 自动对战默认关闭

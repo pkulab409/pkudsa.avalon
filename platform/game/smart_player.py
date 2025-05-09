@@ -11,7 +11,6 @@ from game.avalon_game_helper import (
 MAP_SIZE = 9
 
 
-
 class Player:
     def __init__(self):
         # 基本状态
