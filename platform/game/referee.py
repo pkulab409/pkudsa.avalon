@@ -10,6 +10,7 @@ import importlib
 import traceback
 from typing import Dict, List, Any
 import time
+from copy import deepcopy
 import logging
 import importlib.util
 from datetime import datetime
@@ -374,7 +375,7 @@ class AvalonReferee:
         # 通知所有玩家地图信息
         for player_id in range(1, PLAYER_COUNT + 1):
             logger.debug(f"Sending map data to player {player_id}")
-            self.safe_execute(player_id, "pass_map", self.map_data)
+            self.safe_execute(player_id, "pass_map", deepcopy(self.map_data))
         logger.info("Map initialized and sent to players.")
 
     def night_phase(self):
@@ -850,7 +851,7 @@ class AvalonReferee:
             logger.debug(f"Sending current map to player {player_id}.")
 
             # 获取当前位置
-            current_pos = self.player_positions[player_id]
+            current_pos = deepcopy(self.player_positions[player_id])
             logger.debug(
                 f"Requesting movement from Player {player_id} at {current_pos}"
             )
@@ -903,7 +904,7 @@ class AvalonReferee:
 
                 direction = directions[i].lower()
 
-                x, y = new_pos
+                x, y = deepcopy(new_pos)
 
                 if direction == "up" and x > 0:
                     new_pos = (x - 1, y)
@@ -937,26 +938,27 @@ class AvalonReferee:
                 ]:
                     # 回退到上一个位置
                     logger.error(
-                        f"Player {player_id} attempted to move to occupied position: {new_pos}. i_index: {i}"
+                        f"Player {player_id} attempted to move to occupied position: {deepcopy(new_pos)}. i_index: {i}"
                     )
                     self.suspend_game(
                         "player_ruturn_ERROR",
                         player_id,
                         "walk",
-                        f"Attempted to move to occupied position: {new_pos}. i_index: {i}",
+                        f"Attempted to move to occupied position: {deepcopy(new_pos)}. i_index: {i}",
                     )
 
                 # 快照记录每一步移动与地图
                 self.battle_observer.make_snapshot(
-                    "Move", (player_id, [valid_moves, new_pos])
+                    "Move", (player_id, [list(valid_moves), deepcopy(new_pos)]) # 或者 valid_moves.copy()
                 )
 
             # 更新玩家位置
             logger.info(
-                f"Movement - Player {player_id}: {current_pos} -> {new_pos} via {valid_moves}"
+                f"Movement - Player {player_id}: {current_pos} -> {deepcopy(new_pos)} via {valid_moves}"
             )
-            self.player_positions[player_id] = new_pos
-            x, y = new_pos
+            
+            self.player_positions[player_id] = deepcopy(new_pos)
+            x, y = deepcopy(new_pos)
             self.map_data[x][y] = str(player_id)  # Place marker after all checks
 
             movements.append(
@@ -964,7 +966,7 @@ class AvalonReferee:
                     "player_id": player_id,
                     "requested_moves": list(directions),  # Log requested moves
                     "executed_moves": valid_moves,  # Log executed moves
-                    "final_position": new_pos,
+                    "final_position": deepcopy(new_pos),
                 }
             )
 
@@ -982,7 +984,7 @@ class AvalonReferee:
         for player_id in range(1, PLAYER_COUNT + 1):
             # 传递给玩家两种数据
             self.safe_execute(player_id, "pass_position_data", self.player_positions)
-            self.safe_execute(player_id, "pass_map", self.map_data)
+            self.safe_execute(player_id, "pass_map", deepcopy(self.map_data))
 
         # 记录移动
         self.log_public_event(
@@ -1378,9 +1380,9 @@ class AvalonReferee:
 
             # 任务阶段
             while (
-                    self.blue_wins < 3
-                    and self.red_wins < 3
-                    and self.current_round < MAX_MISSION_ROUNDS
+                self.blue_wins < 3
+                and self.red_wins < 3
+                and self.current_round < MAX_MISSION_ROUNDS
             ):
                 try:
                     self.run_mission_round()
