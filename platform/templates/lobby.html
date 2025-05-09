@@ -75,7 +75,7 @@
                     <td>
                       <a href="{{ url_for('game.view_battle', battle_id=battle.id) }}"
                          class="btn btn-sm btn-outline-primary">查看详情</a>
-                      {% if battle.status == 'completed' %}
+                      {% if battle.status in ['completed', 'error', 'playing','cancelled'] %}
                         <a href="{{ url_for('visualizer.game_replay', game_id=battle.id) }}"
                            class="btn btn-sm btn-outline-info">查看回放</a>
                       {% endif %}
