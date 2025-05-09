@@ -992,7 +992,7 @@ def process_battle_results_and_update_stats(battle_id, results_data):
 
             tokens_standard = [tokens[ui - 1]["input"] + 3 * tokens[ui - 1]["output"] for ui in range(1,8)] #一倍输入和三倍输出的和
 
-            tokens_avg = sum(tokens_standard) / 7  #均值
+            tokens_avg = max(1, sum(tokens_standard) / 7)  #均值
 
             proportion = [token / tokens_avg for token in tokens_standard]  #比例
 
