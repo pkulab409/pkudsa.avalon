@@ -275,24 +275,32 @@
                     </div>
                     <!-- 添加下载日志按钮 -->
                     <div class="text-center mt-4">
-                        <a href="{{ url_for('game.download_logs', battle_id=battle.id) }}"
-                           class="btn btn-lg btn-secondary">
-                            <i class="bi bi-download me-1"></i> 下载日志文件
-                        </a>
-                    </div>
-                {% elif battle.status == 'cancelled' %}
-                    <div class="alert alert-secondary" role="alert">
-                        <h5 class="alert-heading">
-                            <i class="bi bi-stop-circle-fill"></i> 对战已取消
-                        </h5>
-                        <p>该对战已被取消，没有最终结果。</p>
-                    </div>
-                {% else %}
-                    <p class="text-muted">暂无详细对战结果信息。</p>
-                {% endif %}
-                <hr>
-                <a href="{{ url_for("game.lobby") }}" class="btn btn-outline-secondary">返回大厅</a>
+                    </a><a href="{{ url_for('visualizer.game_replay', game_id=battle.id) }}"
+   class="btn btn-lg btn-info">
+                    <i class="bi bi-play-btn-fill me-1"></i> 查看详细回放
+                </a>
+                <a href="{{ url_for('game.download_logs', battle_id=battle.id) }}"
+                   class="btn btn-lg btn-secondary ms-3">
+                    <i class="bi bi-download me-1"></i> 下载日志文件
+                </a>
+                <a href="{{ url_for('game.download_private', battle_id=battle.id) }}"
+                   class="btn btn-lg btn-secondary ms-3">
+                    <i class="bi bi-download me-1"></i> 下载私有库
+                </a>
             </div>
-        </div>
+        {% elif battle.status == 'cancelled' %}
+            <div class="alert alert-secondary" role="alert">
+                <h5 class="alert-heading">
+                    <i class="bi bi-stop-circle-fill"></i> 对战已取消
+                </h5>
+                <p>该对战已被取消，没有最终结果。</p>
+            </div>
+        {% else %}
+            <p class="text-muted">暂无详细对战结果信息。</p>
+        {% endif %}
+        <hr>
+        <a href="{{ url_for("game.lobby") }}" class="btn btn-outline-secondary">返回大厅</a>
     </div>
+</div>
+</div>
 {% endblock content %}
