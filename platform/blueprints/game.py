@@ -33,7 +33,7 @@ from database import (
 from database.models import Battle, BattlePlayer, User, AICode
 from utils.battle_manager_utils import get_battle_manager
 from utils.automatch_utils import get_automatch
-from ..game.automatch import AutoMatch
+from game.automatch import AutoMatch
 
 game_bp = Blueprint("game", __name__)
 logger = logging.getLogger(__name__)
@@ -404,100 +404,164 @@ def view_battle(battle_id):
 @game_bp.route("/create_battle", methods=["POST"])
 @login_required
 def create_battle_action():
-    """处理创建对战的请求"""
     try:
         data = request.get_json()
-        # 添加日志记录收到的原始数据
-        current_app.logger.info(f"收到创建对战请求数据: {data}")
+        current_app.logger.info(f"Received create_battle request data: {data}")
 
         if not data:
-            current_app.logger.warning("创建对战请求未收到JSON数据")  # 修改日志记录器
-            return jsonify({"success": False, "message": "无效的请求数据"})
-
-        # participant_data: [{'user_id': '...', 'ai_code_id': '...'}, ...]
-        participant_data = data.get("participants")
-        ranking_id = data.get("ranking_id", 0)  # 添加对排行榜ID的处理，默认为0
-        # 添加日志记录解析后的参与者数据
-        current_app.logger.info(f"解析后的参与者数据: {participant_data}")
-
-        if not participant_data or not isinstance(participant_data, list):
             current_app.logger.warning(
-                "创建对战请求缺少或格式错误的参与者信息"
-            )  # 修改日志记录器
-            return jsonify({"success": False, "message": "缺少参与者信息"})
+                "Create_battle request did not receive JSON data"
+            )
+            return jsonify({"success": False, "message": "Invalid request data"})
 
-        # 验证参与者数据
-        # 至少需要当前用户
-        if not any(p.get("user_id") == current_user.id for p in participant_data):
-            current_app.logger.warning(
-                f"创建对战请求中不包含当前用户 {current_user.id}"
-            )  # 修改日志记录器
-            return jsonify({"success": False, "message": "当前用户必须参与对战"})
+        ranking_id = int(data.get("ranking_id", 0))
 
-        # 这里可以做初步检查
-        if len(participant_data) != 7:  # 阿瓦隆固定7人
-            current_app.logger.warning(
-                f"创建对战请求参与者数量不是7: {len(participant_data)}"
-            )  # 修改日志记录器
-            return jsonify({"success": False, "message": "阿瓦隆对战需要正好7位参与者"})
-
-        for p_data in participant_data:
-            if not p_data.get("user_id") or not p_data.get("ai_code_id"):
-                # 添加更详细的日志
-                current_app.logger.warning(
-                    f"创建对战请求中发现不完整的参与者数据: {p_data}"
-                )
-                return jsonify({"success": False, "message": "参与者信息不完整"})
-            # 可以在这里添加更多验证，例如检查AI代码是否属于对应用户
-
-        # 调用数据库操作创建 Battle 和 BattlePlayer 记录
-        # 使用 db_ 前缀以明确区分
-        battle = db_create_battle(
-            participant_data, ranking_id=ranking_id, status="waiting"
-        )
-
-        if battle:
+        # 处理天梯对局
+        if ranking_id != 0:
             current_app.logger.info(
-                f"用户 {current_user.id} 创建对战 {battle.id} 成功"
-            )  # 修改日志记录器
-            # 对战创建成功后，可以立即开始，或者等待某种触发条件
-            # 这里我们假设创建后就尝试启动
-            battle_manager = get_battle_manager()
-            start_success = battle_manager.start_battle(battle.id, participant_data)
-
-            if start_success:
-                return jsonify(
-                    {
-                        "success": True,
-                        "battle_id": battle.id,
-                        "message": "对战已创建并开始",
-                    }
-                )
-            else:
-                # 如果启动失败，可能需要更新 battle 状态为 error 或 cancelled
-                # db_update_battle(battle, status='error', results=json.dumps({'error': '启动失败'}))
-                current_app.logger.error(
-                    f"对战 {battle.id} 创建成功但启动失败"
-                )  # 修改日志记录器
+                f"Processing ranked match request, ranking_id: {ranking_id}"
+            )
+            ai_code_id = data.get("ai_code_id")
+            if not ai_code_id:
+                current_app.logger.warning("Ranked match request missing ai_code_id")
                 return jsonify(
                     {
                         "success": False,
-                        "battle_id": battle.id,
-                        "message": "对战创建成功但启动失败",
+                        "message": "AI code must be selected for ranked matches",
                     }
                 )
+
+            automatch_service = get_automatch()  # 使用 get_automatch() 获取服务实例
+            match_result = automatch_service.add_to_queue(
+                user_id=current_user.id, ai_code_id=ai_code_id, ranking_id=ranking_id
+            )
+
+            if match_result and match_result.get("success", True):
+                current_app.logger.info(
+                    f"User {current_user.id} successfully added to ranked queue: {match_result}"
+                )
+                return jsonify(
+                    {
+                        "success": True,
+                        "message": match_result.get(
+                            "message",
+                            "Successfully joined the match queue. Please wait for matchmaking.",
+                        ),
+                        "queue_id": match_result.get("queue_id"),
+                        "data": match_result,
+                    }
+                )
+            else:
+                error_message = (
+                    match_result.get("message", "Failed to join match queue")
+                    if match_result
+                    else "Failed to join match queue"
+                )
+                current_app.logger.error(
+                    f"User {current_user.id} failed to join ranked queue: {error_message}"
+                )
+                return jsonify({"success": False, "message": error_message})
+
+        # 处理普通对局
         else:
-            # db_create_battle 内部会记录详细错误
-            current_app.logger.error(
-                f"用户 {current_user.id} 创建对战数据库记录失败"
-            )  # 修改日志记录器
-            return jsonify({"success": False, "message": "创建对战数据库记录失败"})
+            current_app.logger.info("Processing normal match request")
+            participants = data.get("participants")
+            current_app.logger.info(f"Parsed participant data: {participants}")
+
+            if not participants or not isinstance(participants, list):
+                current_app.logger.warning(
+                    "Normal match request missing or has malformed participant data"
+                )
+                return jsonify(
+                    {
+                        "success": False,
+                        "message": "Participant data is missing or malformed",
+                    }
+                )
+
+            if len(participants) != 7:
+                current_app.logger.warning(
+                    f"Normal match participant count is not 7: {len(participants)}"
+                )
+                return jsonify(
+                    {
+                        "success": False,
+                        "message": "Avalon matches require exactly 7 participants",
+                    }
+                )
+
+            for p_data in participants:
+                if not p_data.get("user_id") or not p_data.get("ai_code_id"):
+                    current_app.logger.warning(
+                        f"Incomplete participant data found in normal match: {p_data}"
+                    )
+                    return jsonify(
+                        {
+                            "success": False,
+                            "message": "Participant information is incomplete",
+                        }
+                    )
+
+            battle = db_create_battle(
+                participant_data_list=participants,
+                ranking_id=ranking_id,
+                status="waiting",
+            )
+
+            if battle:
+                current_app.logger.info(
+                    f"User {current_user.id} created battle {battle.id} successfully in DB."
+                )
+                battle_manager = get_battle_manager()
+                start_success = battle_manager.start_battle(battle.id, participants)
+
+                if start_success:
+                    current_app.logger.info(f"Battle {battle.id} started successfully.")
+                    return jsonify(
+                        {
+                            "success": True,
+                            "battle_id": battle.id,
+                            "message": "Battle created and started successfully.",
+                        }
+                    )
+                else:
+                    current_app.logger.error(
+                        f"Battle {battle.id} created in DB but failed to start."
+                    )
+                    # 可选: 更新数据库中对战状态为 'error'
+                    # from database.action import update_battle as db_update_battle_status
+                    # from database.models import Battle # 确保导入 Battle
+                    # battle_to_update = Battle.query.get(battle.id)
+                    # if battle_to_update:
+                    #     db_update_battle_status(battle_to_update, status='error', results=json.dumps({'error': 'BattleManager failed to start the battle'}))
+                    return jsonify(
+                        {
+                            "success": False,
+                            "battle_id": battle.id,
+                            "message": "Battle created but failed to start. Check server logs.",
+                        }
+                    )
+            else:
+                current_app.logger.error(
+                    f"User {current_user.id} failed to create battle record in DB."
+                )
+                return jsonify(
+                    {
+                        "success": False,
+                        "message": "Failed to create battle record in the database.",
+                    }
+                )
 
     except Exception as e:
         current_app.logger.exception(
-            f"创建对战时发生未预料的错误: {e}"
-        )  # 修改日志记录器
-        return jsonify({"success": False, "message": f"服务器内部错误: {str(e)}"})
+            f"An unexpected error occurred during create_battle: {e}"
+        )
+        return jsonify(
+            {
+                "success": False,
+                "message": f"An internal server error occurred: {str(e)}",
+            }
+        )
 
 
 @game_bp.route("/get_game_status/<string:battle_id>", methods=["GET"])
@@ -770,75 +834,6 @@ def search_users():
     except Exception as e:
         current_app.logger.error(f"搜索用户时出错: {str(e)}")
         return jsonify({"success": False, "message": "搜索过程中发生错误", "users": []})
-
-
-# 新增用户搜索API接口
-@game_bp.route("/search_users", methods=["GET"])
-@login_required
-def search_users():
-    query = request.args.get("q", "").strip()
-    if len(query) < 2:
-        return jsonify({"users": []})
-
-    # 搜索用户名包含查询字符串的用户
-    users = User.query.filter(User.username.ilike(f"%{query}%")).limit(10).all()
-
-    result = [{"id": user.id, "username": user.username} for user in users]
-    return jsonify({"users": result})
-
-
-# 修改创建对局接口
-@game_bp.route("/create_battle", methods=["POST"])
-@login_required
-def create_battle_action():
-    try:
-        data = request.json
-        ranking_id = int(data.get("ranking_id", 0))
-
-        # 处理普通对局
-        if ranking_id == 0:
-            participants = data.get("participants", [])
-            if len(participants) != 7:
-                return jsonify({"success": False, "message": "必须有7位参与者"})
-
-            # 验证参与者信息
-            for p in participants:
-                if not p.get("user_id") or not p.get("ai_code_id"):
-                    return jsonify({"success": False, "message": "参与者信息不完整"})
-
-            # 创建对局
-            battle_id = db_create_battle(participants)
-            # 启动对局
-            BattleManager.start_battle(battle_id)
-            return jsonify(
-                {"success": True, "message": "对战创建成功", "battle_id": battle_id}
-            )
-
-        # 处理天梯对局
-        else:
-            # 获取当前用户选择的AI
-            current_user_id = current_user.id
-            ai_code_id = data.get("ai_code_id")
-
-            if not ai_code_id:
-                return jsonify({"success": False, "message": "必须选择AI代码"})
-
-            # 调用天梯匹配系统
-            match_result = RankingMatchmaker.add_to_queue(
-                user_id=current_user_id, ai_code_id=ai_code_id, ranking_id=ranking_id
-            )
-
-            return jsonify(
-                {
-                    "success": True,
-                    "message": "已成功加入匹配队列，请等待匹配结果",
-                    "queue_id": match_result.get("queue_id"),
-                }
-            )
-
-    except Exception as e:
-        current_app.logger.error(f"创建对战失败: {str(e)}")
-        return jsonify({"success": False, "message": f"操作失败: {str(e)}"})
 
 
 # 添加检查匹配状态的API

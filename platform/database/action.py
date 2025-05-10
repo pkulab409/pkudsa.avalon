@@ -146,23 +146,32 @@ def create_user(username, email, password):
     """
     try:
         # 检查用户名和邮箱是否已存在
-        if get_user_by_username(username) or get_user_by_email(email):
-            logger.warning(f"创建用户失败: 用户名或邮箱已存在 ({username}, {email})")
+        if get_user_by_username(username):
+            logger.warning(f"创建用户失败: 用户名 '{username}' 已存在。")
+            return None
+        if get_user_by_email(email):
+            logger.warning(f"创建用户失败: 邮箱 '{email}' 已存在。")
             return None
 
         user = User(username=username, email=email)
         user.set_password(password)  # 使用模型方法设置密码哈希
 
+        db.session.add(user)
+        db.session.flush()  # 获取 user.id
+
+        if not user.id:
+            logger.error(f"创建用户 {username} 后无法获取用户ID。")
+            db.session.rollback()
+            return None
+
         # 为新用户创建游戏统计记录，即使他们还没玩过游戏
         game_stats = GameStats(user_id=user.id, ranking_id=0)  # 显式设置 ranking_id
-
-        db.session.add(user)
         db.session.add(game_stats)  # 添加统计记录
 
         if safe_commit():
-            logger.info(f"用户 {username} 创建成功, ID: {user.id}")
-            return user
-        return None
+            logger.info(f"用户 {username} 创建成功。")
+            return user  # 返回创建的用户对象
+        return None  # safe_commit失败时返回None
     except Exception as e:
         logger.error(f"创建用户失败: {e}", exc_info=True)
         db.session.rollback()
@@ -184,11 +193,12 @@ def update_user(user, **kwargs):
         return False
     try:
         for key, value in kwargs.items():
-            if hasattr(user, key):
-                if key == "password":  # 特殊处理密码更新
-                    user.set_password(value)
-                elif key != "id":  # 不允许修改ID
-                    setattr(user, key, value)
+            if key == "password":
+                user.set_password(value)
+            elif hasattr(user, key):  # 确保属性存在于User模型中
+                setattr(user, key, value)
+            # else: # 可选：记录或忽略未知属性
+            # logger.warning(f"尝试更新用户 {user.id} 的未知或不可写属性: {key}")
         user.updated_at = datetime.datetime.now()  # 更新时间戳
         return safe_commit()
     except Exception as e:
@@ -330,15 +340,16 @@ def update_ai_code(ai_code, **kwargs):
         return False
     try:
         for key, value in kwargs.items():
-            if (
-                hasattr(ai_code, key)
-                and key != "id"
-                and key != "created_at"
-                and key != "user_id"
-                and key != "version"
-            ):  # 不允许修改ID, 创建日期, 用户ID, 版本
-                setattr(ai_code, key, value)
+            if hasattr(ai_code, key) and key not in {
+                "id",
+                "created_at",
+                "user_id",
+                "version",
+            }:  # 使用集合进行检查
+                setattr(ai_code, key, value)  # 设置属性值
         # AICode model doesn't have updated_at, you might add it if needed.
+        # if hasattr(ai_code, 'updated_at'):
+        #     ai_code.updated_at = datetime.datetime.now()
         return safe_commit()
     except Exception as e:
         logger.error(f"更新AI代码 {ai_code.id} 失败: {e}", exc_info=True)
@@ -359,25 +370,28 @@ def delete_ai_code(ai_code):
         if battle_players:
             # 只在同一用户的AI代码中查找替代品
             default_ai_code = AICode.query.filter(
-                AICode.user_id == ai_code.user_id,  # 限制为同一用户
+                AICode.user_id == ai_code.user_id,
                 AICode.id != ai_code.id,
             ).first()
 
             if not default_ai_code:
                 logger.error(
-                    f"删除AI代码 {ai_code.id} 失败: 该用户没有其他可用AI代码作为替代，但此AI已被用于对战"
+                    f"删除AI代码 {ai_code.id} 失败: 无法找到同一用户的其他AI代码以更新关联的BattlePlayer记录。 "
+                    f"请先确保该AI未在任何对战中使用，或手动处理这些对战，或允许selected_ai_code_id为空。"
                 )
-                return False
+                return False  # Or handle differently, e.g., set selected_ai_code_id to None if allowed by model
 
             # 更新所有引用
             for bp in battle_players:
                 bp.selected_ai_code_id = default_ai_code.id
+                db.session.add(bp)  # Stage changes for BattlePlayer
 
-            # 提交更改
+            # 提交对BattlePlayer的更改
             if not safe_commit():
                 logger.error(
-                    f"删除AI代码 {ai_code.id} 失败: 无法更新关联的BattlePlayer记录"
+                    f"删除AI代码 {ai_code.id} 失败: 无法更新关联的BattlePlayer记录。"
                 )
+                # safe_commit handles rollback
                 return False
 
         # 删除AI代码
@@ -859,7 +873,7 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                     # 检查是否是错误记录
                     if "type" in record and record["type"] in [
                         "critical_player_ERROR",
-                        "player_ruturn_ERROR",
+                        "player_return_ERROR",  # Corrected typo from player_ruturn_ERROR
                     ]:
                         error_type = record.get("type")
                         error_pid_in_game = record.get("error_code_pid")
@@ -871,10 +885,7 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                             error_pid_in_game is not None
                             and 1 <= error_pid_in_game <= 7
                         ):
-                            logger.info(
-                                f"[Battle {battle_id}] 找到错误玩家PID: {error_pid_in_game}, 错误类型: {error_type}, 错误方法: {error_code_method}"
-                            )
-                            break
+                            break  # 找到错误，停止搜索
 
                 # 如果没有找到有效的错误记录
                 if error_pid_in_game is None or not (1 <= error_pid_in_game <= 7):
@@ -1079,25 +1090,52 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                 )  # 使用对战的排行榜ID
                 if new_stats:
                     user_stats_map[user_id] = new_stats
-                    db.session.add(new_stats)
+                    # db.session.add(new_stats) # create_game_stats already adds and commits/rolls_back
                 else:
                     logger.error(
                         f"[Battle {battle_id}] 无法为玩家 {user_id} 创建统计记录"
                     )
+                    # Decide if this is a critical failure for the whole process
+                    # return False
+
+        # 初始化 team_elos 以存储每个队伍的ELO分数列表
+        team_elos = {
+            RED_TEAM: [],
+            BLUE_TEAM: [],
+        }
+        for user_id, stats in user_stats_map.items():
+            team = team_map.get(user_id)
+            if team in team_elos:
+                team_elos[team].append(stats.elo_score)
 
         # 错误处理分支 - 代码错误的玩家将受到ELO扣除
         if err_user_id is not None:
-            # 计算队伍平均ELO
-            team_elos = {RED_TEAM: [], BLUE_TEAM: []}
-            for user_id, stats in user_stats_map.items():
-                team = team_map.get(user_id)
-                if team in team_elos:
-                    team_elos[team].append(stats.elo_score)
+            # 计算队伍平均ELO (算术平均) 用于惩罚计算
+            team_avg_for_penalty = {}
+            for (
+                team_name_key,
+                elo_scores_list,
+            ) in (
+                team_elos.items()
+            ):  # team_elos is {'red': [elo1, elo2..], 'blue': [eloA, eloB..]}
+                if elo_scores_list:
+                    team_avg_for_penalty[team_name_key] = sum(elo_scores_list) / len(
+                        elo_scores_list
+                    )
+                else:
+                    team_avg_for_penalty[team_name_key] = (
+                        1200  # Default ELO if team has no players/scores
+                    )
 
             # 计算惩罚值 - 改进的惩罚计算逻辑
             # 对于代码错误，基础惩罚为30分，加上队伍差距的10%
             base_penalty = 30
-            team_diff_penalty = abs(team_avg[BLUE_TEAM] - team_avg[RED_TEAM]) * 0.1
+            # Ensure keys exist before accessing
+            blue_avg_elo_for_penalty = team_avg_for_penalty.get(BLUE_TEAM, 1200)
+            red_avg_elo_for_penalty = team_avg_for_penalty.get(RED_TEAM, 1200)
+            team_diff_penalty = (
+                abs(blue_avg_elo_for_penalty - red_avg_elo_for_penalty) * 0.1
+            )
 
             # 根据错误类型调整惩罚
             error_type_multiplier = 1.0
@@ -1163,36 +1201,66 @@ def process_battle_results_and_update_stats(battle_id, results_data):
             # 看玩家tokens数占全局tokens比例proportion,
             # 若proportion<1,按照1计算，>1,
             # 则胜率 = min{1, 胜率 * (1 + (max{proportion,1} - 1) / 3)}
-            team_elos = {RED_TEAM: [], BLUE_TEAM: []}
+            team_elos_for_calc = {
+                RED_TEAM: [],
+                BLUE_TEAM: [],
+            }  # Renamed to avoid confusion with the one used for penalty
             for user_id, stats in user_stats_map.items():
                 team = team_map.get(user_id)
-                if team in team_elos:
-                    team_elos[team].append(stats.elo_score)
+                if team in team_elos_for_calc:
+                    team_elos_for_calc[team].append(stats.elo_score)
 
             tokens_standard = [
                 (tokens[ui - 1]["input"] + 3 * tokens[ui - 1]["output"]) / 4
                 for ui in range(1, 8)
             ]  # 一倍输入和三倍输出的和
 
-            tokens_avg = max(
-                MAX_TOKEN_ALLOWED, sum(tokens_standard) / 7
-            )  # 均值, 该常量以下必不惩罚
+            tokens_avg_val = MAX_TOKEN_ALLOWED  # Renamed tokens_avg to avoid confusion with team_avg dict
+            if (
+                len(tokens_standard) > 0
+            ):  # Avoid division by zero if tokens_standard is empty for some reason
+                tokens_avg_val = max(
+                    MAX_TOKEN_ALLOWED, sum(tokens_standard) / len(tokens_standard)
+                )
 
-            proportion = [token / tokens_avg for token in tokens_standard]  # 比例
+            proportion = [
+                (token / tokens_avg_val if tokens_avg_val > 0 else 1)
+                for token in tokens_standard
+            ]  # 比例, handle division by zero
 
-            team_avg = {
-                team: (
-                    len(scores) / sum([min(1, 1 / score) for score in scores])
-                )  # 防止分母为0
-                for team, scores in team_elos.items()
-            }  # 这里改为调和平均，给有大蠢蛋参与队伍的强者发点补助
+            team_avg = {}  # This will store harmonic means
+            for team, scores in team_elos_for_calc.items():
+                if scores:
+                    try:
+                        # Harmonic mean: n / (sum of 1/x_i)
+                        # Assuming ELO scores (s) are always > 0
+                        team_avg[team] = len(scores) / sum(
+                            1 / s for s in scores if s > 0
+                        )  # ensure s > 0
+                        if any(s <= 0 for s in scores):
+                            logger.warning(
+                                f"[Battle {battle_id}] Team {team} had non-positive ELO scores: {scores}. Filtered for harmonic mean."
+                            )
+                    except ZeroDivisionError:
+                        logger.error(
+                            f"[Battle {battle_id}] ZeroDivisionError calculating harmonic team_avg for team {team} with scores {scores}"
+                        )
+                        team_avg[team] = 1200  # Fallback ELO
+                else:
+                    team_avg[team] = (
+                        1200  # Default ELO if no players or scores for the team
+                    )
 
             K_FACTOR = 100
+            # Ensure team_avg has keys before accessing
+            blue_team_harmonic_avg = team_avg.get(BLUE_TEAM, 1200)
+            red_team_harmonic_avg = team_avg.get(RED_TEAM, 1200)
+
             red_expected = 1 / (
-                1 + 10 ** ((team_avg[BLUE_TEAM] - team_avg[RED_TEAM]) / 400)
+                1 + 10 ** ((blue_team_harmonic_avg - red_team_harmonic_avg) / 400)
             )
             blue_expected = 1 / (
-                1 + 10 ** ((team_avg[RED_TEAM] - team_avg[BLUE_TEAM]) / 400)
+                1 + 10 ** ((red_team_harmonic_avg - blue_team_harmonic_avg) / 400)
             )
 
             actual_score = {
@@ -1506,193 +1574,3 @@ def handle_cancelled_battle_stats(battle_id):
 # def load_user(user_id):
 #     return get_user_by_id(user_id)
 # 注: 如果 login_manager 在 app/__init__.py 中初始化并配置了 user_loader，则无需此处再次定义。
-
-
-def process_battle_results_and_update_stats(battle_id):
-    """
-    处理对局结果并更新统计数据
-
-    参数:
-        battle_id: 对局ID
-    """
-    battle = Battle.query.get(battle_id)
-    if not battle or battle.status != "finished":
-        raise ValueError(f"对局 {battle_id} 不存在或未完成")
-
-    # 获取对局结果
-    results = get_battle_results(battle_id)
-    if not results:
-        raise ValueError(f"对局 {battle_id} 没有结果数据")
-
-    # 获取对局的排行榜ID
-    ranking_id = battle.ranking_id
-
-    # 获取参与者信息
-    participants = BattleParticipant.query.filter_by(battle_id=battle_id).all()
-
-    # 处理每个参与者的结果
-    for participant in participants:
-        user_id = participant.user_id
-        position = participant.position
-
-        # 获取该位置的结果
-        user_result = next((r for r in results if r.get("position") == position), None)
-        if not user_result:
-            continue
-
-        # 更新用户对局统计
-        win = user_result.get("win", False)
-        role = user_result.get("role", "")
-        faction = user_result.get("faction", "")
-
-        # 更新用户在此对局类型的统计数据
-        update_user_game_stats(
-            user_id=user_id,
-            ranking_id=ranking_id,  # 传递排行榜ID
-            win=win,
-            role=role,
-            faction=faction,
-        )
-
-    # 如果是排行榜对局，还需要更新ELO分数
-    if ranking_id > 0:
-        update_elo_scores(battle_id, ranking_id)
-
-    return True
-
-
-def update_user_game_stats(user_id, ranking_id, win, role, faction):
-    """
-    更新用户游戏统计数据
-
-    参数:
-        user_id: 用户ID
-        ranking_id: 排行榜ID
-        win: 是否获胜
-        role: 角色
-        faction: 阵营
-    """
-    # 查找或创建用户游戏统计记录
-    stats = GameStats.query.filter_by(
-        user_id=user_id, ranking_id=ranking_id  # 确保针对特定排行榜
-    ).first()
-
-    if not stats:
-        stats = GameStats(
-            user_id=user_id,
-            ranking_id=ranking_id,
-            games_played=0,
-            games_won=0,
-            elo_score=1500,  # 初始ELO分数
-        )
-        db.session.add(stats)
-
-    # 更新统计数据
-    stats.games_played += 1
-    if win:
-        stats.games_won += 1
-
-    # 根据角色和阵营更新特定统计
-    if role and hasattr(stats, f"{role}_games"):
-        setattr(stats, f"{role}_games", getattr(stats, f"{role}_games", 0) + 1)
-        if win and hasattr(stats, f"{role}_wins"):
-            setattr(stats, f"{role}_wins", getattr(stats, f"{role}_wins", 0) + 1)
-
-    if faction and hasattr(stats, f"{faction}_games"):
-        setattr(stats, f"{faction}_games", getattr(stats, f"{faction}_games", 0) + 1)
-        if win and hasattr(stats, f"{faction}_wins"):
-            setattr(stats, f"{faction}_wins", getattr(stats, f"{faction}_wins", 0) + 1)
-
-    db.session.commit()
-
-
-def update_elo_scores(battle_id, ranking_id):
-    """
-    更新对局参与者的ELO分数
-
-    参数:
-        battle_id: 对局ID
-        ranking_id: 排行榜ID
-    """
-    # 获取对局信息
-    battle = Battle.query.get(battle_id)
-    if not battle or battle.status != "finished":
-        return
-
-    # 获取对局结果
-    results = get_battle_results(battle_id)
-    if not results:
-        return
-
-    # 获取参与者
-    participants = BattleParticipant.query.filter_by(battle_id=battle_id).all()
-
-    # 根据胜负分两组
-    winners = []
-    losers = []
-
-    for participant in participants:
-        user_id = participant.user_id
-        position = participant.position
-
-        # 获取该位置的结果
-        user_result = next((r for r in results if r.get("position") == position), None)
-        if not user_result:
-            continue
-
-        win = user_result.get("win", False)
-
-        # 获取用户在此排行榜的统计数据
-        stats = GameStats.query.filter_by(
-            user_id=user_id, ranking_id=ranking_id
-        ).first()
-
-        if not stats:
-            continue
-
-        # 根据胜负分组
-        if win:
-            winners.append((user_id, stats.elo_score))
-        else:
-            losers.append((user_id, stats.elo_score))
-
-    # 如果没有胜者或败者，返回
-    if not winners or not losers:
-        return
-
-    # 计算平均ELO分数
-    avg_winner_elo = sum(w[1] for w in winners) / len(winners)
-    avg_loser_elo = sum(l[1] for l in losers) / len(losers)
-
-    # ELO计算参数
-    K = 32  # ELO调整因子
-
-    # 计算期望值
-    expected_win = 1 / (1 + 10 ** ((avg_loser_elo - avg_winner_elo) / 400))
-    expected_loss = 1 - expected_win
-
-    # 计算实际结果
-    actual_win = 1
-    actual_loss = 0
-
-    # 计算ELO变化
-    elo_change_win = K * (actual_win - expected_win)
-    elo_change_loss = K * (actual_loss - expected_loss)
-
-    # 更新胜者ELO
-    for user_id, _ in winners:
-        stats = GameStats.query.filter_by(
-            user_id=user_id, ranking_id=ranking_id
-        ).first()
-        if stats:
-            stats.elo_score += elo_change_win
-
-    # 更新败者ELO
-    for user_id, _ in losers:
-        stats = GameStats.query.filter_by(
-            user_id=user_id, ranking_id=ranking_id
-        ).first()
-        if stats:
-            stats.elo_score += elo_change_loss
-
-    db.session.commit()

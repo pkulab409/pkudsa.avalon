@@ -42,6 +42,7 @@ def initialize_default_data(app):
             admin_count = 0
             total_users = 0
             admin_emails = []
+            ranking_count = 0  # 记录加入天梯的用户数
 
             # ================= 用户初始化循环 =================
             for idx, user_config in enumerate(app.config.get("INITIAL_USERS", []), 1):
@@ -102,6 +103,8 @@ def initialize_default_data(app):
 
                     # ================= AI代码处理 =================
                     ai_config = user_config.get("ai_code")
+                    has_active_ai = False
+
                     if ai_config and ai_config.get("file_path"):
                         if is_admin and not ai_config.get("make_active", False):
                             app.logger.info(f"⏭ 跳过管理员 {email} 的AI代码初始化")
@@ -146,7 +149,34 @@ def initialize_default_data(app):
                         )
                         db.session.add(ai)
 
+                        # 如果设置了活跃AI，标记为有活跃AI
+                        if ai_config.get("make_active", False):
+                            has_active_ai = True
+
                     db.session.commit()
+
+                    # ================= 天梯赛处理 =================
+                    # 如果非管理员用户且有活跃AI，创建天梯统计
+                    if not is_admin and has_active_ai:
+                        from database import (
+                            get_game_stats_by_user_id,
+                            create_game_stats,
+                        )
+
+                        # 检查是否已有天梯统计
+                        existing_stats = get_game_stats_by_user_id(
+                            user.id, ranking_id=1
+                        )
+                        if not existing_stats:
+                            # 创建天梯统计
+                            stats = create_game_stats(user.id, ranking_id=1)
+                            if stats:
+                                ranking_count += 1
+                                app.logger.info(f"🏆 用户 {email} 已自动加入天梯赛")
+                            else:
+                                app.logger.warning(f"⚠️ 为用户 {email} 创建天梯统计失败")
+                        else:
+                            app.logger.info(f"🔄 用户 {email} 已有天梯统计")
 
                 except KeyError as e:
                     db.session.rollback()
@@ -156,14 +186,16 @@ def initialize_default_data(app):
                     app.logger.error(f"❌ 初始化用户 {email} 失败: {str(e)}")
 
             # ================= 最终安全检查 =================
-            app.logger.info(f"✅ 初始化完成！共处理 {total_users} 个新用户")
+            app.logger.info(
+                f"✅ 初始化完成！共处理 {total_users} 个新用户，{ranking_count} 个用户加入天梯赛"
+            )
 
         except Exception as e:
             app.logger.critical(f"💥 初始化过程严重失败: {str(e)}")
             raise
 
 
-from .game.automatch import AutoMatch
+from game.automatch import AutoMatch
 
 
 def create_app(config_object=Config):

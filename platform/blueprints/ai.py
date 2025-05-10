@@ -23,15 +23,17 @@ from werkzeug.utils import secure_filename
 
 # 导入 database 操作函数
 from database import (
-    get_user_ai_codes as db_get_user_ai_codes,
-    create_ai_code as db_create_ai_code,
-    set_active_ai_code as db_set_active_ai_code,
-    get_ai_code_by_id as db_get_ai_code_by_id,
-    update_ai_code as db_update_ai_code,
-    delete_ai_code as db_delete_ai_code,
-    get_user_active_ai_code as db_get_user_active_ai_code,
-    get_ai_code_path_full as db_get_ai_code_path_full,
-    get_user_by_id as db_get_user_by_id,
+    get_user_ai_codes,
+    create_ai_code,
+    set_active_ai_code,
+    get_ai_code_by_id,
+    update_ai_code,
+    delete_ai_code,
+    get_user_active_ai_code,
+    get_ai_code_path_full,
+    get_user_by_id,
+    get_game_stats_by_user_id,
+    create_game_stats,
 )
 from database.models import AICode  # 仍然需要模型用于类型提示或特定查询
 from datetime import datetime
@@ -63,13 +65,19 @@ def allowed_file(filename):
 
 
 # api接口定义
-@ai_bp.route("/list_ai")
+@ai_bp.route("/my_ai")
 @login_required
 def list_ai():
     """显示用户的AI代码列表"""
-    # 使用数据库操作函数
-    ai_codes = db_get_user_ai_codes(current_user.id)
-    return render_template("ai/list.html", ai_codes=ai_codes)
+    user_id = current_user.id
+    ai_codes = get_user_ai_codes(user_id)
+
+    # 检查用户是否已加入天梯
+    has_ranking_stats = get_game_stats_by_user_id(user_id, ranking_id=1) is not None
+
+    return render_template(
+        "ai/list.html", ai_codes=ai_codes, has_ranking_stats=has_ranking_stats
+    )
 
 
 @ai_bp.route("/upload_ai", methods=["GET", "POST"])
@@ -104,7 +112,7 @@ def upload_ai():
 
             # 使用数据库操作函数创建记录
             # 注意：create_ai_code 现在返回 AICode 对象或 None
-            new_ai_code = db_create_ai_code(
+            new_ai_code = create_ai_code(
                 user_id=current_user.id,
                 name=name,
                 code_path=relative_path,  # 存储相对路径
@@ -115,7 +123,7 @@ def upload_ai():
                 flash("AI代码上传成功！", "success")
                 # 如果需要设为激活
                 if make_active:
-                    if db_set_active_ai_code(current_user.id, new_ai_code.id):
+                    if set_active_ai_code(current_user.id, new_ai_code.id):
                         flash(f"'{new_ai_code.name}' 已被设为当前活跃AI", "info")
                     else:
                         flash("设置活跃AI失败", "warning")
@@ -138,11 +146,11 @@ def upload_ai():
 def activate_ai(ai_id):
     """激活指定的AI代码"""
     # 使用数据库操作函数设置激活状态
-    success = db_set_active_ai_code(current_user.id, ai_id)
+    success = set_active_ai_code(current_user.id, ai_id)
 
     if success:
         # 获取AI名称用于提示信息
-        ai_code = db_get_ai_code_by_id(ai_id)
+        ai_code = get_ai_code_by_id(ai_id)
         flash(f"已将 '{ai_code.name if ai_code else 'AI'}' 设为当前活跃AI", "success")
     else:
         # set_active_ai_code 内部会处理权限检查和日志记录
@@ -156,7 +164,7 @@ def activate_ai(ai_id):
 @login_required
 def delete_ai(ai_id):
     """删除AI代码"""
-    ai_code = db_get_ai_code_by_id(ai_id)
+    ai_code = get_ai_code_by_id(ai_id)
 
     # 检查权限
     if not ai_code or ai_code.user_id != current_user.id:
@@ -167,7 +175,7 @@ def delete_ai(ai_id):
     file_deleted = False
     try:
         # 使用 get_ai_code_path_full 获取完整路径
-        full_path = db_get_ai_code_path_full(ai_id)
+        full_path = get_ai_code_path_full(ai_id)
         if full_path and os.path.exists(full_path):
             os.remove(full_path)
             file_deleted = True
@@ -182,7 +190,7 @@ def delete_ai(ai_id):
         flash("删除AI代码文件时出错", "warning")
 
     # 尝试删除数据库记录
-    if db_delete_ai_code(ai_code):
+    if delete_ai_code(ai_code):
         flash("AI代码已删除", "success")
     else:
         flash("删除AI代码数据库记录失败", "danger")
@@ -196,7 +204,7 @@ def delete_ai(ai_id):
 @login_required
 def edit_ai(ai_id):
     """编辑AI代码信息"""
-    ai_code = db_get_ai_code_by_id(ai_id)
+    ai_code = get_ai_code_by_id(ai_id)
 
     # 检查权限
     if not ai_code or ai_code.user_id != current_user.id:
@@ -210,7 +218,7 @@ def edit_ai(ai_id):
         }
 
         # 使用数据库操作函数更新
-        update_success = db_update_ai_code(ai_code, **updates)
+        update_success = update_ai_code(ai_code, **updates)
 
         if update_success:
             flash("AI代码信息已更新", "success")
@@ -220,7 +228,7 @@ def edit_ai(ai_id):
         # 检查是否设为当前活跃AI
         make_active = request.form.get("make_active") == "on"
         if make_active and not ai_code.is_active:  # 检查更新后的状态
-            if db_set_active_ai_code(current_user.id, ai_id):
+            if set_active_ai_code(current_user.id, ai_id):
                 flash(f"'{ai_code.name}' 已被设为当前活跃AI", "info")
             else:
                 flash("设置活跃AI失败", "warning")
@@ -240,7 +248,7 @@ def edit_ai(ai_id):
 def get_active_ai():
     """API: 获取用户当前激活的AI代码信息"""
     # 使用数据库操作函数
-    active_ai = db_get_user_active_ai_code(current_user.id)
+    active_ai = get_user_active_ai_code(current_user.id)
     if not active_ai:
         return jsonify({"success": False, "message": "用户没有激活的AI代码"})
     # 使用 to_dict() 方法获取信息
@@ -253,7 +261,7 @@ def get_user_ai_codes():
     """API: 获取用户的AI代码列表"""
     try:
         # 使用数据库操作函数
-        ai_codes = db_get_user_ai_codes(current_user.id)
+        ai_codes = get_user_ai_codes(current_user.id)
         # 使用 to_dict() 方法转换列表
         result = [ai.to_dict() for ai in ai_codes]
         return jsonify({"success": True, "ai_codes": result})
@@ -269,12 +277,12 @@ def get_specific_user_ai_codes(user_id):
     """API: 获取指定用户的AI代码列表"""
     try:
         # 验证用户是否存在 (可选，但推荐)
-        user = db_get_user_by_id(user_id)
+        user = get_user_by_id(user_id)
         if not user:
             return jsonify({"success": False, "message": "用户不存在"}), 404
 
         # 使用数据库操作函数获取指定用户的AI代码
-        ai_codes = db_get_user_ai_codes(user_id)
+        ai_codes = get_user_ai_codes(user_id)
         # 使用 to_dict() 方法转换列表 (假设您的 AICode 模型有 to_dict 方法)
         # 如果没有，您需要手动构建字典列表
         # result = [ai.to_dict() for ai in ai_codes]
@@ -324,6 +332,38 @@ def get_current_user_ai_codes():
         return jsonify(
             {"success": False, "message": "获取AI代码列表失败", "ai_codes": []}
         )
+
+
+@ai_bp.route("/join_ranking", methods=["POST"])
+@login_required
+def join_ranking():
+    """加入天梯赛，创建ranking_id=1的GameStats记录"""
+    try:
+        # 检查用户是否已有活跃AI
+        active_ai = get_user_active_ai_code(current_user.id)
+        if not active_ai:
+            return jsonify(
+                {"success": False, "message": "您没有设置活跃AI，请先设置一个活跃AI"}
+            )
+
+        # 检查用户是否已有天梯统计
+        existing_stats = get_game_stats_by_user_id(current_user.id, ranking_id=1)
+        if existing_stats:
+            return jsonify({"success": False, "message": "您已经加入了天梯赛"})
+
+        # 创建新的天梯统计
+        stats = create_game_stats(current_user.id, ranking_id=1)
+        if not stats:
+            return jsonify(
+                {"success": False, "message": "创建天梯统计失败，请稍后重试"}
+            )
+
+        return jsonify(
+            {"success": True, "message": "成功加入天梯赛！您的初始ELO分数为1200"}
+        )
+    except Exception as e:
+        current_app.logger.error(f"加入天梯失败: {str(e)}")
+        return jsonify({"success": False, "message": "服务器错误，请稍后重试"})
 
 
 # 工具函数
@@ -409,7 +449,7 @@ def get_ai_module(ai_id):
         (模块对象, 错误信息) 元组，成功时错误信息为None
     """
     # 使用数据库操作函数获取完整路径
-    file_path = db_get_ai_code_path_full(ai_id)
+    file_path = get_ai_code_path_full(ai_id)
 
     if not file_path:
         # get_ai_code_path_full 内部会记录日志

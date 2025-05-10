@@ -5,9 +5,14 @@ import logging
 from datetime import datetime
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple, Set
-
-from database.models import User, AiCode, Battle, BattleParticipant, db
-from battle_manager import BattleManager
+from database import (
+    create_battle,
+    User,
+    AICode,
+    get_game_stats_by_user_id,
+    get_user_active_ai_code,
+)
+from .battle_manager import BattleManager
 
 logger = logging.getLogger(__name__)
 
@@ -34,21 +39,34 @@ class AutoMatch:
     QUEUE_TIMEOUT = 300  # 队列超时时间(秒)
 
     @classmethod
+    @property
+    def is_on(cls) -> bool:
+        return cls._running
+
+    @classmethod
     def add_to_queue(cls, user_id: int, ai_code_id: int, ranking_id: int) -> str:
-        """
-        将用户加入到匹配队列
-
-        参数:
-            user_id: 用户ID
-            ai_code_id: AI代码ID
-            ranking_id: 排行榜ID(0表示普通对局)
-
-        返回:
-            queue_entry_id: 队列条目ID(用于标识队列中的条目)
-        """
+        """将用户加入到匹配队列"""
         # 验证用户和AI代码
         user = User.query.get(user_id)
-        ai_code = AiCode.query.get(ai_code_id)
+
+        # 如果是天梯赛，只使用活跃AI并检查用户是否有天梯统计
+        if ranking_id > 0:
+            # 检查用户是否有天梯统计
+            stats = get_game_stats_by_user_id(user_id, ranking_id)
+            if not stats:
+                raise ValueError(f"用户 {user_id} 未加入排行榜 {ranking_id}")
+
+            # 获取用户的活跃AI
+            active_ai = get_user_active_ai_code(user_id)
+            if not active_ai:
+                raise ValueError(f"用户 {user_id} 没有设置活跃AI")
+
+            # 使用活跃AI替代传入的AI
+            ai_code = active_ai
+            ai_code_id = active_ai.id
+        else:
+            # 普通对局使用指定的AI
+            ai_code = AICode.query.get(ai_code_id)
 
         if not user or not ai_code:
             raise ValueError("用户或AI代码不存在")
@@ -56,10 +74,18 @@ class AutoMatch:
         if ai_code.user_id != user_id:
             raise ValueError("AI代码不属于该用户")
 
-        # 获取用户的ELO分数(假设User模型有一个elo_score字段)
-        elo_score = getattr(user, "elo_score", 1500)  # 默认1500
+        # 获取用户的ELO分数
+        elo_score = 1200  # 默认值
+        if ranking_id > 0:
+            stats = get_game_stats_by_user_id(user_id, ranking_id)
+            if stats:
+                elo_score = stats.elo_score
 
         with cls._lock:
+            # 初始化队列
+            if ranking_id not in cls._match_queues:
+                cls._match_queues[ranking_id] = []
+
             # 检查用户是否已在队列中
             for entry in cls._match_queues[ranking_id]:
                 if entry["user_id"] == user_id:
@@ -238,27 +264,29 @@ class AutoMatch:
         return battle_id
 
     @classmethod
-    def _db_create_battle(cls, participants, ranking_id=0):
-        """创建对局并保存到数据库"""
-        # 创建对局记录
-        battle = Battle(
-            status="created", created_at=datetime.now(), ranking_id=ranking_id
-        )
-        db.session.add(battle)
-        db.session.flush()  # 获取battle.id
-
-        # 创建参与者记录
-        for i, p in enumerate(participants):
-            participant = BattleParticipant(
-                battle_id=battle.id,
-                user_id=p["user_id"],
-                ai_code_id=p["ai_code_id"],
-                position=i,  # 位置从0开始
+    def _db_create_battle(cls, participants: List[dict], ranking_id: int = 0) -> int:
+        """
+        创建对局并保存到数据库，使用 database.action 中的 centralized_create_battle 函数。
+        原有的直接操作 db.session 的逻辑已移至 centralized_create_battle。
+        """
+        try:
+            battle_id = create_battle(
+                participants_details=participants,
+                ranking_id=ranking_id,
             )
-            db.session.add(participant)
-
-        db.session.commit()
-        return battle.id
+            if battle_id is None:
+                logger.error(
+                    f"create_battle failed for ranking_id {ranking_id} with participants {participants}"
+                )
+                raise Exception(
+                    "Failed to create battle using centralized database function."
+                )
+            return battle_id
+        except Exception as e:
+            logger.error(
+                f"Error calling centralized_create_battle for ranking_id {ranking_id}: {str(e)}"
+            )
+            raise  # 将异常向上传播，由调用方处理
 
     @classmethod
     def _match_loop(cls):
