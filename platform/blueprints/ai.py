@@ -21,9 +21,9 @@ from flask import (
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 
-# 导入 database 操作函数
+# 导入 database 操作函数 - 将get_user_ai_codes重命名为db_get_user_ai_codes
 from database import (
-    get_user_ai_codes,
+    get_user_ai_codes as db_get_user_ai_codes,  # 重命名以避免与路由函数冲突
     create_ai_code,
     set_active_ai_code,
     get_ai_code_by_id,
@@ -70,7 +70,7 @@ def allowed_file(filename):
 def list_ai():
     """显示用户的AI代码列表"""
     user_id = current_user.id
-    ai_codes = get_user_ai_codes(user_id)
+    ai_codes = db_get_user_ai_codes(user_id)
 
     # 检查用户是否已加入天梯
     has_ranking_stats = get_game_stats_by_user_id(user_id, ranking_id=1) is not None
@@ -261,7 +261,7 @@ def get_user_ai_codes():
     """API: 获取用户的AI代码列表"""
     try:
         # 使用数据库操作函数
-        ai_codes = get_user_ai_codes(current_user.id)
+        ai_codes = db_get_user_ai_codes(current_user.id)
         # 使用 to_dict() 方法转换列表
         result = [ai.to_dict() for ai in ai_codes]
         return jsonify({"success": True, "ai_codes": result})
@@ -282,7 +282,7 @@ def get_specific_user_ai_codes(user_id):
             return jsonify({"success": False, "message": "用户不存在"}), 404
 
         # 使用数据库操作函数获取指定用户的AI代码
-        ai_codes = get_user_ai_codes(user_id)
+        ai_codes = db_get_user_ai_codes(user_id)
         # 使用 to_dict() 方法转换列表 (假设您的 AICode 模型有 to_dict 方法)
         # 如果没有，您需要手动构建字典列表
         # result = [ai.to_dict() for ai in ai_codes]
@@ -311,7 +311,7 @@ def get_specific_user_ai_codes(user_id):
 def get_current_user_ai_codes():
     """获取当前登录用户的AI代码列表，用于天梯赛选择"""
     try:
-        ai_codes = get_user_ai_codes(current_user.id)
+        ai_codes = db_get_user_ai_codes(current_user.id)
 
         # 转换为JSON友好格式
         ai_codes_list = [
