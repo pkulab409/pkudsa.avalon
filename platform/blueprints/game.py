@@ -44,16 +44,27 @@ logger = logging.getLogger(__name__)
 @game_bp.route("/lobby")
 @login_required
 def lobby():
-    """显示游戏大厅页面，列出最近的对战"""
-    recent_battles = db_get_recent_battles(limit=20)  # 获取最近完成的对战
-    # 可以考虑也获取正在等待或进行的对战
-    # waiting_battles = Battle.query.filter_by(status='waiting').order_by(Battle.created_at.desc()).limit(10).all()
-    # playing_battles = Battle.query.filter_by(status='playing').order_by(Battle.started_at.desc()).limit(10).all()
+    """游戏大厅页面"""
+    # 获取最近的对战
+    recent_battles = db_get_recent_battles(limit=10)
+
+    # 获取正在进行的对局数量
+    from database.models import Battle
+
+    ongoing_battles_count = Battle.query.filter_by(status="playing").count()
+
+    # 检查自动匹配是否开启
+    from utils.automatch_utils import get_automatch
+
+    automatch = get_automatch()
+    automatch_is_on = automatch.is_on
+
     return render_template(
         "lobby.html",
         recent_battles=recent_battles,
-        automatch_is_on=get_automatch().is_on,
-    )  # 需要创建 lobby.html
+        automatch_is_on=automatch_is_on,
+        ongoing_battles_count=ongoing_battles_count,  # 传递正在进行的对局数量
+    )
 
 
 @game_bp.route("/create_battle_page")

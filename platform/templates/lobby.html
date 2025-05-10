@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}
-    游戏大厅 - 游戏平台
+  游戏大厅 - 游戏平台
 {% endblock title %}
 {% block content %}
-    <style>
+  <style>
   .info-box {
     background-color: #093da5;
     border-radius: 5px;
@@ -18,81 +18,119 @@
     justify-content: center;
     height: 50px;
   }
-    </style>
-    <div class="container mt-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>游戏大厅</h2>
-            <a href="{{ url_for("game.create_battle_page") }}"
-               class="btn btn-primary">
-                <i class="bi bi-plus-circle me-1"></i> 创建对战
-            </a>
+  </style>
+  <div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2>游戏大厅</h2>
+      <a href="{{ url_for('game.create_battle_page') }}"
+         class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i> 创建对战
+      </a>
+    </div>
+    <!-- 对局统计信息卡片 -->
+    <div class="row mb-4">
+      <div class="col-md-4">
+        <div class="card shadow-sm bg-light">
+          <div class="card-body text-center">
+            <h5>
+              <i class="bi bi-controller me-2"></i>正在进行的对局
+            </h5>
+            <h3 class="text-primary mb-0">{{ ongoing_battles_count|default(0) }}</h3>
+          </div>
         </div>
-        {% if automatch_is_on %}
-            <div class="info-box">
-                ⚠️ 后台自动对战正在进行中！
-            </h4>
+      </div>
+      {% if automatch_is_on %}
+        <div class="col-md-8">
+          <div class="card shadow-sm bg-warning text-dark">
+            <div class="card-body">
+              <h5 class="mb-0">
+                <i class="bi bi-info-circle-fill me-2"></i>自动对战系统已启动！
+              </h5>
+              <small>系统正在自动匹配玩家创建天梯对局</small>
+            </div>
+          </div>
         </div>
+      {% endif %}
+    </div>
+    {% if automatch_is_on and not ongoing_battles_count %}
+      <div class="info-box">
+        <h4 class="m-0 p-0">⚠️ 后台自动对战正在进行中！</h4>
+      </div>
     {% endif %}
     <div class="card shadow-sm">
-        <div class="card-header">
-            <h5 class="mb-0">最近对战</h5>
+      <div class="card-header">
+        <h5 class="mb-0">最近对战</h5>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th scope="col">对战ID</th>
+                <th scope="col">类型</th>
+                <!-- 新增的类型列 -->
+                <th scope="col">状态</th>
+                <th scope="col">创建时间</th>
+                <th scope="col">结束时间</th>
+                <th scope="col">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if recent_battles %}
+                {% for battle in recent_battles %}
+                  <tr>
+                    <td>
+                      <a href="{{ url_for('game.view_battle', battle_id=battle.id) }}">{{ battle.id[:8] }}...</a>
+                    </td>
+                    <td>
+                      {% if battle.ranking_id > 0 %}
+                        <span class="badge bg-warning text-dark">
+                          <i class="bi bi-trophy-fill me-1"></i>天梯赛
+                        </span>
+                      {% else %}
+                        <span class="badge bg-secondary">
+                          <i class="bi bi-controller me-1"></i>普通对局
+                        </span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if battle.status == 'completed' %}
+                        <span class="badge bg-success">已完成</span>
+                      {% elif battle.status == 'playing' %}
+                        <span class="badge bg-info">进行中</span>
+                      {% elif battle.status == 'waiting' %}
+                        <span class="badge bg-warning text-dark">等待中</span>
+                      {% elif battle.status == 'error' %}
+                        <span class="badge bg-danger">错误</span>
+                      {% elif battle.status == 'cancelled' %}
+                        <span class="badge bg-secondary">已取消</span>
+                      {% else %}
+                        <span class="badge bg-light text-dark">{{ battle.status }}</span>
+                      {% endif %}
+                    </td>
+                    <td>{{ battle.created_at.strftime("%Y-%m-%d %H:%M") if battle.created_at else '-' }}</td>
+                    <td>{{ battle.ended_at.strftime("%Y-%m-%d %H:%M") if battle.ended_at else '-' }}</td>
+                    <td>
+                      <a href="{{ url_for('game.view_battle', battle_id=battle.id) }}"
+                         class="btn btn-sm btn-outline-primary">查看详情</a>
+                      {% if battle.status in ['completed', 'error', 'playing','cancelled'] %}
+                        <a href="{{ url_for('visualizer.game_replay', game_id=battle.id) }}"
+                           class="btn btn-sm btn-outline-info">查看回放</a>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="6" class="text-center text-muted">暂无最近对战记录</td>
+                  <!-- 注意这里colspan从5变成6 -->
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
         </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th scope="col">对战ID</th>
-                            <th scope="col">状态</th>
-                            <th scope="col">创建时间</th>
-                            <th scope="col">结束时间</th>
-                            <th scope="col">操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if recent_battles %}
-                            {% for battle in recent_battles %}
-                                <tr>
-                                    <td>
-                                        <a href="{{ url_for('game.view_battle', battle_id=battle.id) }}">{{ battle.id[:8] }}...</a>
-                                    </td>
-                                    <td>
-                                        {% if battle.status == 'completed' %}
-                                            <span class="badge bg-success">已完成</span>
-                                        {% elif battle.status == 'playing' %}
-                                            <span class="badge bg-info">进行中</span>
-                                        {% elif battle.status == 'waiting' %}
-                                            <span class="badge bg-warning text-dark">等待中</span>
-                                        {% elif battle.status == 'error' %}
-                                            <span class="badge bg-danger">错误</span>
-                                        {% elif battle.status == 'cancelled' %}
-                                            <span class="badge bg-secondary">已取消</span>
-                                        {% else %}
-                                            <span class="badge bg-light text-dark">{{ battle.status }}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ battle.created_at.strftime("%Y-%m-%d %H:%M") if battle.created_at else '-' }}</td>
-                                    <td>{{ battle.ended_at.strftime("%Y-%m-%d %H:%M") if battle.ended_at else '-' }}</td>
-                                    <td>
-                                        <a href="{{ url_for('game.view_battle', battle_id=battle.id) }}"
-                                           class="btn btn-sm btn-outline-primary">查看详情</a>
-                                        {% if battle.status in ['completed', 'error', 'playing','cancelled'] %}
-                                            <a href="{{ url_for('visualizer.game_replay', game_id=battle.id) }}"
-                                               class="btn btn-sm btn-outline-info">查看回放</a>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr>
-                                <td colspan="5" class="text-center text-muted">暂无最近对战记录</td>
-                            </tr>
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+      </div>
     </div>
     <!-- 可以添加进行中/等待中对战列表 -->
-</div>
+  </div>
 {% endblock content %}
