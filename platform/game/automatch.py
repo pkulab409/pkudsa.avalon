@@ -180,7 +180,7 @@ class AutoMatch:
 
             # 从等待时间最长的玩家开始尝试匹配
             for anchor_idx, anchor_entry in enumerate(sorted_queue):
-                if anchor_idx + 6 >= len(sorted_queue):
+                if (anchor_idx + 6) >= len(sorted_queue):
                     break  # 剩余玩家不足以组成一场对局
 
                 anchor_elo = anchor_entry["elo_score"]
@@ -237,7 +237,7 @@ class AutoMatch:
             return None
 
     @classmethod
-    def _create_match(cls, participants: List[dict], ranking_id: int) -> int:
+    def _create_match(cls, participants: List[dict], ranking_id: int) -> str:
         """
         创建一场对局
 
@@ -246,7 +246,7 @@ class AutoMatch:
             ranking_id: 排行榜ID
 
         返回:
-            battle_id: 创建的对局ID
+            battle_id (str): 创建的对局ID
         """
         # 准备对局参与者数据
         battle_participants = [
@@ -257,34 +257,42 @@ class AutoMatch:
         # 创建对局
         battle_id = cls._db_create_battle(battle_participants, ranking_id)
 
-        # 启动对局
-        BattleManager.start_battle(battle_id)
+        # 启动对局 - 修复：获取BattleManager实例并传递正确的参数
+        from utils.battle_manager_utils import get_battle_manager
+
+        battle_manager = get_battle_manager()
+        battle_manager.start_battle(battle_id, battle_participants)
 
         logger.info(f"成功创建了ranking_id={ranking_id}的对局: battle_id={battle_id}")
         return battle_id
 
     @classmethod
-    def _db_create_battle(cls, participants: List[dict], ranking_id: int = 0) -> int:
+    def _db_create_battle(cls, participants: List[dict], ranking_id: int = 0) -> str:
         """
-        创建对局并保存到数据库，使用 database.action 中的 centralized_create_battle 函数。
-        原有的直接操作 db.session 的逻辑已移至 centralized_create_battle。
+        创建对局并保存到数据库，使用 database.action 中的 create_battle 函数。
+        原有的直接操作 db.session 的逻辑已移至 create_battle。
+
+        返回:
+            battle_id (str): 创建的对局ID
         """
         try:
-            battle_id = create_battle(
-                participants_details=participants,
+            battle = create_battle(
+                participant_data_list=participants,
                 ranking_id=ranking_id,
             )
-            if battle_id is None:
+            if battle is None:
                 logger.error(
                     f"create_battle failed for ranking_id {ranking_id} with participants {participants}"
                 )
                 raise Exception(
                     "Failed to create battle using centralized database function."
                 )
+            # 确保返回的是ID字符串而不是Battle对象
+            battle_id = battle.id
             return battle_id
         except Exception as e:
             logger.error(
-                f"Error calling centralized_create_battle for ranking_id {ranking_id}: {str(e)}"
+                f"Error calling create_battle for ranking_id {ranking_id}: {str(e)}"
             )
             raise  # 将异常向上传播，由调用方处理
 
@@ -424,3 +432,93 @@ class AutoMatch:
                 result.append(entry_copy)
 
             return result
+
+    @classmethod
+    def create_direct_ranking_match(cls, user_id: int, ranking_id: int) -> dict:
+        """
+        直接创建一个天梯赛对局，无需排队等待
+        自动选择除当前用户外的其他6名玩家参与
+
+        参数:
+            user_id: 创建对局的用户ID
+            ranking_id: 排行榜ID
+
+        返回:
+            包含battle_id的字典
+        """
+        try:
+            # 验证用户并获取活跃AI
+            user = User.query.get(user_id)
+            if not user:
+                raise ValueError(f"用户 {user_id} 不存在")
+
+            # 检查用户是否有天梯统计
+            user_stats = get_game_stats_by_user_id(user_id, ranking_id)
+            if not user_stats:
+                raise ValueError(f"用户 {user_id} 未加入排行榜 {ranking_id}")
+
+            # 获取用户的活跃AI
+            active_ai = get_user_active_ai_code(user_id)
+            if not active_ai:
+                raise ValueError(f"用户 {user_id} 没有设置活跃AI")
+
+            # 准备当前用户的参与者数据
+            participants = [
+                {
+                    "user_id": user_id,
+                    "ai_code_id": active_ai.id,
+                }
+            ]
+
+            # 查找其他6名有活跃AI且已加入天梯的用户
+            from sqlalchemy import text
+            from database.models import db, GameStats
+
+            # 联合查询：找到已加入天梯且有活跃AI的其他用户
+            other_participants_query = text(
+                """
+                SELECT u.id as user_id, ac.id as ai_code_id 
+                FROM users u
+                JOIN game_stats gs ON u.id = gs.user_id AND gs.ranking_id = :ranking_id
+                JOIN ai_codes ac ON u.id = ac.user_id AND ac.is_active = TRUE
+                WHERE u.id != :user_id
+                ORDER BY random()
+                LIMIT 6
+            """
+            )
+
+            result = db.session.execute(
+                other_participants_query, {"ranking_id": ranking_id, "user_id": user_id}
+            )
+
+            other_participants = [
+                {"user_id": row.user_id, "ai_code_id": row.ai_code_id} for row in result
+            ]
+
+            # 检查是否找到足够的参与者
+            if len(other_participants) < 6:
+                raise ValueError(
+                    f"无法找到足够的参与者，仅找到 {len(other_participants)} 名。需要6名其他参与者。"
+                )
+
+            # 合并所有参与者
+            participants.extend(other_participants)
+
+            # 创建对局
+            battle_id = cls._db_create_battle(participants, ranking_id)
+
+            # 启动对局 - 修复：获取BattleManager实例并传递正确的参数
+            from utils.battle_manager_utils import get_battle_manager
+
+            battle_manager = get_battle_manager()
+            battle_manager.start_battle(battle_id, participants)
+
+            logger.info(
+                f"用户 {user.username}(ID: {user_id}) 成功创建了直接天梯对局: battle_id={battle_id}"
+            )
+
+            return {"success": True, "battle_id": battle_id}
+
+        except Exception as e:
+            logger.error(f"创建直接天梯对局失败: {str(e)}")
+            return {"success": False, "message": str(e)}

@@ -872,3 +872,35 @@ def leave_match_queue():
     except Exception as e:
         current_app.logger.error(f"退出匹配队列失败: {str(e)}")
         return jsonify({"success": False, "message": f"操作失败: {str(e)}"})
+
+
+@game_bp.route("/create_direct_ranking_match", methods=["POST"])
+@login_required
+def create_direct_ranking_match():
+    """创建一个直接的天梯赛对局，不加入队列"""
+    try:
+        data = request.get_json()
+        ranking_id = int(data.get("ranking_id", 1))  # 默认使用ranking_id=1
+
+        # 调用AutoMatch创建直接对局
+        from utils.automatch_utils import get_automatch
+
+        automatch = get_automatch()
+        result = automatch.create_direct_ranking_match(current_user.id, ranking_id)
+
+        if result["success"]:
+            return jsonify(
+                {
+                    "success": True,
+                    "battle_id": result["battle_id"],
+                    "message": "天梯对局创建成功！",
+                }
+            )
+        else:
+            return jsonify(
+                {"success": False, "message": result.get("message", "创建天梯对局失败")}
+            )
+
+    except Exception as e:
+        current_app.logger.error(f"创建直接天梯对局失败: {str(e)}")
+        return jsonify({"success": False, "message": f"创建天梯对局失败: {str(e)}"})

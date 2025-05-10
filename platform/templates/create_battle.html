@@ -18,15 +18,13 @@
           </select>
           <div class="form-text" id="battleTypeHelp">选择"普通对局"可手动添加参与者；选择"天梯赛"将采用自动匹配。</div>
         </div>
-        <!-- 天梯赛提示和自己的AI选择界面 (默认隐藏) -->
+        <!-- 修改天梯赛提示和自己的AI选择界面 -->
         <div id="rankingModeContainer" class="mb-4" style="display: none;">
           <div class="alert alert-info">
             <i class="bi bi-info-circle-fill me-2"></i>
-            <strong>天梯赛模式</strong>：系统将自动匹配其他6位玩家。请选择您要使用的AI代码。
+            <strong>天梯赛模式</strong>：系统将立即为您创建一场包含随机6名对手的天梯对局。
             <br>
-            <small>在天梯赛中，您将使用您当前的<strong>活跃AI</strong>参与匹配，对战结果将影响您的ELO积分。</small>
-            <br>
-            <small>注意：为保证公平性，天梯赛自动匹配时不会显示各玩家的分数。</small>
+            <small>在天梯赛中，您将使用您当前的<strong>活跃AI</strong>，对战结果将影响您的ELO积分。</small>
           </div>
           <div class="card">
             <div class="card-header">您的AI选择</div>
@@ -38,9 +36,11 @@
                   <option value="" selected disabled>-- 加载中 --</option>
                 </select>
               </div>
-              <div class="d-grid">
-                <button id="joinRankingButton" type="button" class="btn btn-primary">
-                  <i class="bi bi-trophy-fill me-1"></i> 加入天梯匹配队列
+              <div>
+                <button id="createDirectRankingButton"
+                        type="button"
+                        class="btn btn-success w-100">
+                  <i class="bi bi-lightning-charge-fill me-1"></i> 创建天梯对局
                 </button>
               </div>
             </div>
@@ -156,7 +156,7 @@
       const loadingIndicator = document.getElementById('loadingIndicator');
       const resultMessage = document.getElementById('resultMessage');
       const userAiCodeSelect = document.getElementById('userAiCode');
-      const joinRankingButton = document.getElementById('joinRankingButton');
+      const createDirectRankingButton = document.getElementById('createDirectRankingButton');
       
       // 存储每个玩家的AI代码列表
       const userAiCache = {};
@@ -206,8 +206,9 @@
         }
       }
       
-      // 处理天梯赛加入按钮点击
-      joinRankingButton.addEventListener('click', function() {
+      // 处理直接创建天梯对局按钮点击
+      createDirectRankingButton.addEventListener('click', function() {
+        console.log('创建天梯对局按钮被点击'); // 调试日志
         const selectedAiId = userAiCodeSelect.value;
         const rankingId = battleTypeSelect.value;
         
@@ -225,16 +226,15 @@
         // 获取CSRF令牌
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         
-        // 发送加入天梯匹配队列请求
-        fetch('{{ url_for("game.create_battle_action") }}', {
+        // 发送直接创建天梯对局请求
+        fetch('{{ url_for("game.create_direct_ranking_match") }}', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': csrfToken
           },
           body: JSON.stringify({
-            ranking_id: rankingId,
-            ai_code_id: selectedAiId
+            ranking_id: rankingId
           })
         })
         .then(response => response.json())
@@ -242,57 +242,25 @@
           loadingIndicator.style.display = 'none';
           
           if (data.success) {
-            resultMessage.textContent = data.message;
+            resultMessage.textContent = `${data.message || '天梯对局创建成功！'} 正在跳转到对战页面...`;
             resultMessage.className = 'mt-3 alert alert-success';
             
-            // 保存队列ID用于后续查询匹配状态
-            sessionStorage.setItem('matchQueueId', data.queue_id);
-            
-            // 启动匹配状态检查
-            startMatchStatusCheck(data.queue_id, rankingId);
+            // 跳转到创建的对战页面
+            setTimeout(() => {
+              window.location.href = `{{ url_for('game.view_battle', battle_id='BATTLE_ID') }}`.replace('BATTLE_ID', data.battle_id);
+            }, 1500);
           } else {
-            resultMessage.textContent = data.message || '加入匹配队列失败';
+            resultMessage.textContent = data.message || '创建天梯对局失败';
             resultMessage.className = 'mt-3 alert alert-danger';
           }
         })
         .catch(error => {
-          console.error('加入匹配队列出错:', error);
+          console.error('创建天梯对局出错:', error);
           loadingIndicator.style.display = 'none';
           resultMessage.textContent = '网络错误，请稍后重试';
           resultMessage.className = 'mt-3 alert alert-danger';
         });
       });
-      
-      // 检查匹配状态的函数
-      function startMatchStatusCheck(queueId, rankingId) {
-        // 这里可以添加定期检查匹配状态的逻辑
-        // 例如使用WebSocket或轮询API来获取匹配结果
-        
-        // 示例实现 - 假设有一个检查匹配状态的API
-        /*
-        const statusCheckInterval = setInterval(() => {
-          fetch(`/api/match_status?queue_id=${queueId}&ranking_id=${rankingId}`)
-            .then(response => response.json())
-            .then(data => {
-              if (data.status === 'matched') {
-                clearInterval(statusCheckInterval);
-                window.location.href = `/battle/${data.battle_id}`;
-              }
-            })
-            .catch(error => {
-              console.error('检查匹配状态出错:', error);
-            });
-        }, 5000); // 每5秒检查一次
-        */
-        
-        // 简单提示用户
-        resultMessage.innerHTML = `
-          <div>您已成功加入天梯匹配队列！</div>
-          <div class="mt-2">排队ID: ${queueId}</div>
-          <div class="mt-2">匹配成功后，系统将自动跳转到对战页面。</div>
-          <div class="mt-2">您也可以到<a href="{{ url_for('profile.profile') }}">个人中心</a>查看匹配状态。</div>
-        `;
-      }
       
       // 玩家搜索功能
       playerSearches.forEach(search => {
