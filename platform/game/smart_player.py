@@ -414,9 +414,16 @@ class Player:
         """发言策略"""
         # 构建提示词
         prompt = self._build_prompt_for_speech()
-
+        invalid_sentences = [
+            "目前信息有限，我会继续认真记录每个人的建议。",
+            "相信通过充分讨论，我们一定能找到最佳方案。",
+            "虽然局势还不明朗，但我会继续仔细观察每个人的发言，努力为团队做出最合理的判断。",
+            "这轮信息有点乱，我还在认真思考",
+        ]
         # 调用LLM生成发言
         try:
+            # if self.is_evil == True:
+            #     return random.choice(invalid_sentences)
             response = askLLM(prompt)
             # 确保发言不超过长度限制
             if len(response) > 500:

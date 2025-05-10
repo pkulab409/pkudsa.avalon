@@ -35,7 +35,7 @@ INITIAL_USERS:
     ai_code:
       name: Admin Console
       description: 管理员控制台
-      file_path: null
+      file_path: game/smart_player.py
       make_active: false
   # Smart AI 用户系列
   - username: smart_user1
@@ -92,59 +92,124 @@ INITIAL_USERS:
       description: DeepSeek增强型AI玩家
       file_path: game/smart_player.py
       make_active: true
+  - username: smart_user7
+    email: smart7@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
       
-  # Basic AI 用户系列
-  - username: basic_user1
-    email: basic1@example.com
-    password: password123
-    is_admin: False
-    ai_code:
-      name: Baseline AI
-      description: 基础AI玩家
-      file_path: game/basic_player.py
-      make_active: true
-  - username: basic_user2
-    email: basic2@example.com
-    password: password123
-    is_admin: False
-    ai_code:
-      name: Baseline AI
-      description: 基础AI玩家
-      file_path: game/basic_player.py
-      make_active: true
-  - username: basic_user3
-    email: basic3@example.com
-    password: password123
-    is_admin: False
-    ai_code:
-      name: Baseline AI
-      description: 基础AI玩家
-      file_path: game/basic_player.py
-      make_active: true
-  - username: basic_user4
-    email: basic4@example.com
-    password: password123
-    is_admin: False
-    ai_code:
-      name: Baseline AI
-      description: 基础AI玩家
-      file_path: game/basic_player.py
-      make_active: true
-  - username: basic_user5
-    email: basic5@example.com
-    password: password123
-    is_admin: False
-    ai_code:
-      name: Baseline AI
-      description: 基础AI玩家
-      file_path: game/basic_player.py
-      make_active: true
-  - username: basic_user6
-    email: basic6@example.com
-    password: password123
-    is_admin: False
-    ai_code:
-      name: Baseline AI
-      description: 基础AI玩家
-      file_path: game/basic_player.py
-      make_active: true
+  # # Basic AI 用户系列
+  # - username: basic_user1
+  #   email: basic1@example.com
+  #   password: password123
+  #   is_admin: False
+  #   ai_code:
+  #     name: Baseline AI
+  #     description: 基础AI玩家
+  #     file_path: game/basic_player.py
+  #     make_active: true
+  # - username: basic_user2
+  #   email: basic2@example.com
+  #   password: password123
+  #   is_admin: False
+  #   ai_code:
+  #     name: Baseline AI
+  #     description: 基础AI玩家
+  #     file_path: game/basic_player.py
+  #     make_active: true
+  # - username: basic_user3
+  #   email: basic3@example.com
+  #   password: password123
+  #   is_admin: False
+  #   ai_code:
+  #     name: Baseline AI
+  #     description: 基础AI玩家
+  #     file_path: game/basic_player.py
+  #     make_active: true
+  # - username: basic_user4
+  #   email: basic4@example.com
+  #   password: password123
+  #   is_admin: False
+  #   ai_code:
+  #     name: Baseline AI
+  #     description: 基础AI玩家
+  #     file_path: game/basic_player.py
+  #     make_active: true
+  # - username: basic_user5
+  #   email: basic5@example.com
+  #   password: password123
+  #   is_admin: False
+  #   ai_code:
+  #     name: Baseline AI
+  #     description: 基础AI玩家
+  #     file_path: game/basic_player.py
+  #     make_active: true
+  # - username: basic_user6
+  #   email: basic6@example.com
+  #   password: password123
+  #   is_admin: False
+  #   ai_code:
+  #     name: Baseline AI
+  #     description: 基础AI玩家
+  #     file_path: game/basic_player.py
+  #     make_active: true
+
+  # # Idiot AI 用户系列
+  # - username: idoit-user1
+  #   email: idiot1@example.com
+  #   password: password123
+  #   is_admin: False
+  #   ai_code:
+  #     name: Baseline AI
+  #     description: 基础AI玩家
+  #     file_path: game/idiot_player.py
+  #     make_active: true
+  # - username: idoit-user2
+  #   email: idiot2@example.com
+  #   password: password123
+  #   is_admin: False
+  #   ai_code:
+  #     name: Baseline AI
+  #     description: 基础AI玩家
+  #     file_path: game/idiot_player.py
+  #     make_active: true
+  # - username: idoit-user3
+  #   email: idiot3@example.com
+  #   password: password123
+  #   is_admin: False
+  #   ai_code:
+  #     name: Baseline AI
+  #     description: 基础AI玩家
+  #     file_path: game/idiot_player.py
+  #     make_active: true
+  # - username: idoit-user4
+  #   email: idiot4@example.com
+  #   password: password123
+  #   is_admin: False
+  #   ai_code:
+  #     name: Baseline AI
+  #     description: 基础AI玩家
+  #     file_path: game/idiot_player.py
+  #     make_active: true
+  # - username: idoit-user5
+  #   email: idiot5@example.com
+  #   password: password123
+  #   is_admin: False
+  #   ai_code:
+  #     name: Baseline AI
+  #     description: 基础AI玩家
+  #     file_path: game/idiot_player.py
+  #     make_active: true
+  # - username: idoit-user6
+  #   email: idiot6@example.com
+  #   password: password123
+  #   is_admin: False
+  #   ai_code:
+  #     name: Baseline AI
+  #     description: 基础AI玩家
+  #     file_path: game/idiot_player.py
+  #     make_active: true
