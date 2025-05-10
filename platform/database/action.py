@@ -29,7 +29,7 @@ from .models import (
     GameStats,
     AICode,
     BattlePlayer,
-)  # 移除Room, RoomParticipant
+)
 
 # 配置 Logger
 logger = logging.getLogger(__name__)
@@ -1094,11 +1094,6 @@ def process_battle_results_and_update_stats(battle_id, results_data):
                 if team in team_elos:
                     team_elos[team].append(stats.elo_score)
 
-            team_avg = {
-                team: sum(scores) / len(scores) if scores else 0
-                for team, scores in team_elos.items()
-            }
-
             # 计算惩罚值 - 改进的惩罚计算逻辑
             # 对于代码错误，基础惩罚为30分，加上队伍差距的10%
             base_penalty = 30
@@ -1511,3 +1506,193 @@ def handle_cancelled_battle_stats(battle_id):
 # def load_user(user_id):
 #     return get_user_by_id(user_id)
 # 注: 如果 login_manager 在 app/__init__.py 中初始化并配置了 user_loader，则无需此处再次定义。
+
+
+def process_battle_results_and_update_stats(battle_id):
+    """
+    处理对局结果并更新统计数据
+
+    参数:
+        battle_id: 对局ID
+    """
+    battle = Battle.query.get(battle_id)
+    if not battle or battle.status != "finished":
+        raise ValueError(f"对局 {battle_id} 不存在或未完成")
+
+    # 获取对局结果
+    results = get_battle_results(battle_id)
+    if not results:
+        raise ValueError(f"对局 {battle_id} 没有结果数据")
+
+    # 获取对局的排行榜ID
+    ranking_id = battle.ranking_id
+
+    # 获取参与者信息
+    participants = BattleParticipant.query.filter_by(battle_id=battle_id).all()
+
+    # 处理每个参与者的结果
+    for participant in participants:
+        user_id = participant.user_id
+        position = participant.position
+
+        # 获取该位置的结果
+        user_result = next((r for r in results if r.get("position") == position), None)
+        if not user_result:
+            continue
+
+        # 更新用户对局统计
+        win = user_result.get("win", False)
+        role = user_result.get("role", "")
+        faction = user_result.get("faction", "")
+
+        # 更新用户在此对局类型的统计数据
+        update_user_game_stats(
+            user_id=user_id,
+            ranking_id=ranking_id,  # 传递排行榜ID
+            win=win,
+            role=role,
+            faction=faction,
+        )
+
+    # 如果是排行榜对局，还需要更新ELO分数
+    if ranking_id > 0:
+        update_elo_scores(battle_id, ranking_id)
+
+    return True
+
+
+def update_user_game_stats(user_id, ranking_id, win, role, faction):
+    """
+    更新用户游戏统计数据
+
+    参数:
+        user_id: 用户ID
+        ranking_id: 排行榜ID
+        win: 是否获胜
+        role: 角色
+        faction: 阵营
+    """
+    # 查找或创建用户游戏统计记录
+    stats = GameStats.query.filter_by(
+        user_id=user_id, ranking_id=ranking_id  # 确保针对特定排行榜
+    ).first()
+
+    if not stats:
+        stats = GameStats(
+            user_id=user_id,
+            ranking_id=ranking_id,
+            games_played=0,
+            games_won=0,
+            elo_score=1500,  # 初始ELO分数
+        )
+        db.session.add(stats)
+
+    # 更新统计数据
+    stats.games_played += 1
+    if win:
+        stats.games_won += 1
+
+    # 根据角色和阵营更新特定统计
+    if role and hasattr(stats, f"{role}_games"):
+        setattr(stats, f"{role}_games", getattr(stats, f"{role}_games", 0) + 1)
+        if win and hasattr(stats, f"{role}_wins"):
+            setattr(stats, f"{role}_wins", getattr(stats, f"{role}_wins", 0) + 1)
+
+    if faction and hasattr(stats, f"{faction}_games"):
+        setattr(stats, f"{faction}_games", getattr(stats, f"{faction}_games", 0) + 1)
+        if win and hasattr(stats, f"{faction}_wins"):
+            setattr(stats, f"{faction}_wins", getattr(stats, f"{faction}_wins", 0) + 1)
+
+    db.session.commit()
+
+
+def update_elo_scores(battle_id, ranking_id):
+    """
+    更新对局参与者的ELO分数
+
+    参数:
+        battle_id: 对局ID
+        ranking_id: 排行榜ID
+    """
+    # 获取对局信息
+    battle = Battle.query.get(battle_id)
+    if not battle or battle.status != "finished":
+        return
+
+    # 获取对局结果
+    results = get_battle_results(battle_id)
+    if not results:
+        return
+
+    # 获取参与者
+    participants = BattleParticipant.query.filter_by(battle_id=battle_id).all()
+
+    # 根据胜负分两组
+    winners = []
+    losers = []
+
+    for participant in participants:
+        user_id = participant.user_id
+        position = participant.position
+
+        # 获取该位置的结果
+        user_result = next((r for r in results if r.get("position") == position), None)
+        if not user_result:
+            continue
+
+        win = user_result.get("win", False)
+
+        # 获取用户在此排行榜的统计数据
+        stats = GameStats.query.filter_by(
+            user_id=user_id, ranking_id=ranking_id
+        ).first()
+
+        if not stats:
+            continue
+
+        # 根据胜负分组
+        if win:
+            winners.append((user_id, stats.elo_score))
+        else:
+            losers.append((user_id, stats.elo_score))
+
+    # 如果没有胜者或败者，返回
+    if not winners or not losers:
+        return
+
+    # 计算平均ELO分数
+    avg_winner_elo = sum(w[1] for w in winners) / len(winners)
+    avg_loser_elo = sum(l[1] for l in losers) / len(losers)
+
+    # ELO计算参数
+    K = 32  # ELO调整因子
+
+    # 计算期望值
+    expected_win = 1 / (1 + 10 ** ((avg_loser_elo - avg_winner_elo) / 400))
+    expected_loss = 1 - expected_win
+
+    # 计算实际结果
+    actual_win = 1
+    actual_loss = 0
+
+    # 计算ELO变化
+    elo_change_win = K * (actual_win - expected_win)
+    elo_change_loss = K * (actual_loss - expected_loss)
+
+    # 更新胜者ELO
+    for user_id, _ in winners:
+        stats = GameStats.query.filter_by(
+            user_id=user_id, ranking_id=ranking_id
+        ).first()
+        if stats:
+            stats.elo_score += elo_change_win
+
+    # 更新败者ELO
+    for user_id, _ in losers:
+        stats = GameStats.query.filter_by(
+            user_id=user_id, ranking_id=ranking_id
+        ).first()
+        if stats:
+            stats.elo_score += elo_change_loss
+
+    db.session.commit()

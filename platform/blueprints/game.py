@@ -33,6 +33,7 @@ from database import (
 from database.models import Battle, BattlePlayer, User, AICode
 from utils.battle_manager_utils import get_battle_manager
 from utils.automatch_utils import get_automatch
+from ..game.automatch import AutoMatch
 
 game_bp = Blueprint("game", __name__)
 logger = logging.getLogger(__name__)
@@ -415,6 +416,7 @@ def create_battle_action():
 
         # participant_data: [{'user_id': '...', 'ai_code_id': '...'}, ...]
         participant_data = data.get("participants")
+        ranking_id = data.get("ranking_id", 0)  # 添加对排行榜ID的处理，默认为0
         # 添加日志记录解析后的参与者数据
         current_app.logger.info(f"解析后的参与者数据: {participant_data}")
 
@@ -450,7 +452,9 @@ def create_battle_action():
 
         # 调用数据库操作创建 Battle 和 BattlePlayer 记录
         # 使用 db_ 前缀以明确区分
-        battle = db_create_battle(participant_data, status="waiting")
+        battle = db_create_battle(
+            participant_data, ranking_id=ranking_id, status="waiting"
+        )
 
         if battle:
             current_app.logger.info(
@@ -747,3 +751,129 @@ def cancel_battle(battle_id):
                 "battle_id": battle_id,
             }
         )
+
+
+@game_bp.route("/search_users")
+@login_required
+def search_users():
+    """搜索用户API，用于创建对战时动态搜索用户"""
+    query = request.args.get("q", "")
+    if len(query) < 2:
+        return jsonify({"success": False, "message": "搜索关键词太短", "users": []})
+
+    try:
+        # 使用SQL的LIKE进行模糊匹配
+        users = User.query.filter(User.username.like(f"%{query}%")).limit(10).all()
+
+        user_list = [{"id": user.id, "username": user.username} for user in users]
+        return jsonify({"success": True, "users": user_list})
+    except Exception as e:
+        current_app.logger.error(f"搜索用户时出错: {str(e)}")
+        return jsonify({"success": False, "message": "搜索过程中发生错误", "users": []})
+
+
+# 新增用户搜索API接口
+@game_bp.route("/search_users", methods=["GET"])
+@login_required
+def search_users():
+    query = request.args.get("q", "").strip()
+    if len(query) < 2:
+        return jsonify({"users": []})
+
+    # 搜索用户名包含查询字符串的用户
+    users = User.query.filter(User.username.ilike(f"%{query}%")).limit(10).all()
+
+    result = [{"id": user.id, "username": user.username} for user in users]
+    return jsonify({"users": result})
+
+
+# 修改创建对局接口
+@game_bp.route("/create_battle", methods=["POST"])
+@login_required
+def create_battle_action():
+    try:
+        data = request.json
+        ranking_id = int(data.get("ranking_id", 0))
+
+        # 处理普通对局
+        if ranking_id == 0:
+            participants = data.get("participants", [])
+            if len(participants) != 7:
+                return jsonify({"success": False, "message": "必须有7位参与者"})
+
+            # 验证参与者信息
+            for p in participants:
+                if not p.get("user_id") or not p.get("ai_code_id"):
+                    return jsonify({"success": False, "message": "参与者信息不完整"})
+
+            # 创建对局
+            battle_id = db_create_battle(participants)
+            # 启动对局
+            BattleManager.start_battle(battle_id)
+            return jsonify(
+                {"success": True, "message": "对战创建成功", "battle_id": battle_id}
+            )
+
+        # 处理天梯对局
+        else:
+            # 获取当前用户选择的AI
+            current_user_id = current_user.id
+            ai_code_id = data.get("ai_code_id")
+
+            if not ai_code_id:
+                return jsonify({"success": False, "message": "必须选择AI代码"})
+
+            # 调用天梯匹配系统
+            match_result = RankingMatchmaker.add_to_queue(
+                user_id=current_user_id, ai_code_id=ai_code_id, ranking_id=ranking_id
+            )
+
+            return jsonify(
+                {
+                    "success": True,
+                    "message": "已成功加入匹配队列，请等待匹配结果",
+                    "queue_id": match_result.get("queue_id"),
+                }
+            )
+
+    except Exception as e:
+        current_app.logger.error(f"创建对战失败: {str(e)}")
+        return jsonify({"success": False, "message": f"操作失败: {str(e)}"})
+
+
+# 添加检查匹配状态的API
+@game_bp.route("/match_status", methods=["GET"])
+@login_required
+def check_match_status():
+    """检查当前用户在匹配队列中的状态"""
+    ranking_id = request.args.get("ranking_id", type=int)
+    if ranking_id is None:
+        return jsonify({"success": False, "message": "缺少ranking_id参数"})
+
+    status = AutoMatch.get_queue_status(current_user.id, ranking_id)
+    return jsonify({"success": True, "data": status})
+
+
+# 添加退出匹配队列的API
+@game_bp.route("/leave_match_queue", methods=["POST"])
+@login_required
+def leave_match_queue():
+    """从匹配队列中退出"""
+    try:
+        data = request.json
+        ranking_id = int(data.get("ranking_id", 0))
+
+        if ranking_id <= 0:
+            return jsonify({"success": False, "message": "无效的排行榜ID"})
+
+        # 从队列中移除用户
+        removed = AutoMatch.remove_from_queue(current_user.id, ranking_id)
+
+        if removed:
+            return jsonify({"success": True, "message": "已成功退出匹配队列"})
+        else:
+            return jsonify({"success": False, "message": "您不在匹配队列中"})
+
+    except Exception as e:
+        current_app.logger.error(f"退出匹配队列失败: {str(e)}")
+        return jsonify({"success": False, "message": f"操作失败: {str(e)}"})

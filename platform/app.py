@@ -163,6 +163,9 @@ def initialize_default_data(app):
             raise
 
 
+from .game.automatch import AutoMatch
+
+
 def create_app(config_object=Config):
     app = Flask(__name__)
     app.config.from_object(config_object)
@@ -234,6 +237,18 @@ def create_app(config_object=Config):
 
     # 初始化自动对战管理器
     init_automatch_utils(app)
+
+    # 注册应用创建后的回调
+    @app.before_first_request
+    def before_first_request():
+        # 启动自动匹配系统
+        AutoMatch.start()
+
+    # 注册应用关闭时的回调
+    @app.teardown_appcontext
+    def teardown_appcontext(exception=None):
+        # 关闭自动匹配系统
+        AutoMatch.stop()
 
     app.logger.info("Flask应用初始化完成")
     return app

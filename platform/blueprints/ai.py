@@ -298,6 +298,34 @@ def get_specific_user_ai_codes(user_id):
         )
 
 
+@ai_bp.route("/api/current_user_ai_codes")
+@login_required
+def get_current_user_ai_codes():
+    """获取当前登录用户的AI代码列表，用于天梯赛选择"""
+    try:
+        ai_codes = get_user_ai_codes(current_user.id)
+
+        # 转换为JSON友好格式
+        ai_codes_list = [
+            {
+                "id": ai.id,
+                "name": ai.name,
+                "description": ai.description,
+                "is_active": ai.is_active,
+                "created_at": ai.created_at.isoformat() if ai.created_at else None,
+                "version": ai.version,
+            }
+            for ai in ai_codes
+        ]
+
+        return jsonify({"success": True, "ai_codes": ai_codes_list})
+    except Exception as e:
+        current_app.logger.error(f"获取当前用户AI代码失败: {str(e)}")
+        return jsonify(
+            {"success": False, "message": "获取AI代码列表失败", "ai_codes": []}
+        )
+
+
 # 工具函数
 # ------------------------------------------------------------------------------------
 def load_ai_module(file_path):
