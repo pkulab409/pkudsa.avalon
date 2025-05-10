@@ -1,121 +1,121 @@
 {% extends "base.html" %}
 {% block title %}
-  创建对战 - 游戏平台
+    创建对战 - 游戏平台
 {% endblock title %}
 {% block content %}
-  <div class="container mt-4">
-    <h2>创建新对战</h2>
-    <p class="text-muted">选择7位参与者及其使用的AI来开始一场阿瓦隆对战。</p>
-    <div class="card shadow-sm mb-4">
-      <div class="card-body">
-        <!-- 添加对局类型选择 -->
-        <div class="mb-4">
-          <label for="battleType" class="form-label">对局类型</label>
-          <select class="form-select" id="battleType" name="battleType">
-            <option value="0" selected>普通对局 (ranking_id=0)</option>
-            <option value="1">天梯赛S1 (ranking_id=1)</option>
-            <!-- 其他排行榜选项可在此添加 -->
-          </select>
-          <div class="form-text" id="battleTypeHelp">选择"普通对局"可手动添加参与者；选择"天梯赛"将采用自动匹配。</div>
-        </div>
-        <!-- 修改天梯赛提示和自己的AI选择界面 -->
-        <div id="rankingModeContainer" class="mb-4" style="display: none;">
-          <div class="alert alert-info">
-            <i class="bi bi-info-circle-fill me-2"></i>
-            <strong>天梯赛模式</strong>：系统将立即为您创建一场包含随机6名对手的天梯对局。
-            <br>
-            <small>在天梯赛中，您将使用您当前的<strong>活跃AI</strong>，对战结果将影响您的ELO积分。</small>
-          </div>
-          <div class="card">
-            <div class="card-header">您的AI选择</div>
+    <div class="container mt-4">
+        <h2>创建新对战</h2>
+        <p class="text-muted">选择7位参与者及其使用的AI来开始一场阿瓦隆对战。</p>
+        <div class="card shadow-sm mb-4">
             <div class="card-body">
-              <div class="mb-2">
-                <label for="userAiCode" class="form-label">选择您的AI代码</label>
-                <select class="form-select" id="userAiCode" name="userAiCode">
-                  <!-- 将由JavaScript加载当前用户的AI -->
-                  <option value="" selected disabled>-- 加载中 --</option>
-                </select>
-              </div>
-              <div>
-                <button id="createDirectRankingButton"
-                        type="button"
-                        class="btn btn-success w-100">
-                  <i class="bi bi-lightning-charge-fill me-1"></i> 创建天梯对局
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- 普通对局的参与者选择界面 -->
-        <form id="createBattleForm">
-          <div id="normalModeContainer">
-            <div class="row mb-3">
-              <p>请为7个位置选择玩家和他们使用的AI代码：</p>
-              {% for i in range(7) %}
-                <div class="col-md-6 col-lg-4 mb-3">
-                  <div class="card">
-                    <div class="card-header">位置 {{ i + 1 }}</div>
-                    <div class="card-body">
-                      <div class="mb-2">
-                        <!-- 修改玩家选择为搜索框 -->
-                        <label for="playerSearch_{{ i }}" class="form-label">搜索玩家</label>
-                        <div class="input-group">
-                          <input type="text"
-                                 class="form-control player-search"
-                                 id="playerSearch_{{ i }}"
-                                 placeholder="输入用户名..."
-                                 data-index="{{ i }}"
-                                 autocomplete="off">
-                          <button class="btn btn-outline-secondary clear-search"
-                                  type="button"
-                                  data-index="{{ i }}">
-                            <i class="bi bi-x"></i>
-                          </button>
-                        </div>
-                        <!-- 搜索结果容器 -->
-                        <div class="search-results" id="searchResults_{{ i }}"></div>
-                        <!-- 隐藏字段存储选中的用户ID -->
-                        <input type="hidden" id="player_{{ i }}" name="player_{{ i }}" required>
-                        <!-- 显示选中的用户 -->
-                        <div class="selected-player mt-2" id="selectedPlayer_{{ i }}"></div>
-                      </div>
-                      <div>
-                        <label for="ai_code_{{ i }}" class="form-label">选择AI代码</label>
-                        <select class="form-select ai-select"
-                                id="ai_code_{{ i }}"
-                                name="ai_code_{{ i }}"
-                                required
-                                disabled>
-                          <option value="" selected disabled>-- 请先选择玩家 --</option>
-                          <!-- AI选项将由JS动态加载 -->
-                        </select>
-                      </div>
-                    </div>
-                  </div>
+                <!-- 添加对局类型选择 -->
+                <div class="mb-4">
+                    <label for="battleType" class="form-label">对局类型</label>
+                    <select class="form-select" id="battleType" name="battleType">
+                        <option value="0" selected>普通对局 (ranking_id=0)</option>
+                        <option value="1">天梯赛S1 (ranking_id=1)</option>
+                        <!-- 其他排行榜选项可在此添加 -->
+                    </select>
+                    <div class="form-text" id="battleTypeHelp">选择"普通对局"可手动添加参与者；选择"天梯赛"将采用自动匹配。</div>
                 </div>
-              {% endfor %}
+                <!-- 修改天梯赛提示和自己的AI选择界面 -->
+                <div id="rankingModeContainer" class="mb-4" style="display: none;">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        <strong>天梯赛模式</strong>：系统将立即为您创建一场包含随机6名对手的天梯对局。
+                        <br>
+                        <small>在天梯赛中，您将使用您当前的<strong>活跃AI</strong>，对战结果将影响您的ELO积分。</small>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">您的AI选择</div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <label for="userAiCode" class="form-label">选择您的AI代码</label>
+                                <select class="form-select" id="userAiCode" name="userAiCode">
+                                    <!-- 将由JavaScript加载当前用户的AI -->
+                                    <option value="" selected disabled>-- 加载中 --</option>
+                                </select>
+                            </div>
+                            <div>
+                                <button id="createDirectRankingButton"
+                                        type="button"
+                                        class="btn btn-success w-100">
+                                    <i class="bi bi-lightning-charge-fill me-1"></i> 创建天梯对局
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 普通对局的参与者选择界面 -->
+                <form id="createBattleForm">
+                    <div id="normalModeContainer">
+                        <div class="row mb-3">
+                            <p>请为7个位置选择玩家和他们使用的AI代码：</p>
+                            {% for i in range(7) %}
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="card">
+                                        <div class="card-header">位置 {{ i + 1 }}</div>
+                                        <div class="card-body">
+                                            <div class="mb-2">
+                                                <!-- 修改玩家选择为搜索框 -->
+                                                <label for="playerSearch_{{ i }}" class="form-label">搜索玩家</label>
+                                                <div class="input-group">
+                                                    <input type="text"
+                                                           class="form-control player-search"
+                                                           id="playerSearch_{{ i }}"
+                                                           placeholder="输入用户名..."
+                                                           data-index="{{ i }}"
+                                                           autocomplete="off">
+                                                    <button class="btn btn-outline-secondary clear-search"
+                                                            type="button"
+                                                            data-index="{{ i }}">
+                                                        <i class="bi bi-x"></i>
+                                                    </button>
+                                                </div>
+                                                <!-- 搜索结果容器 -->
+                                                <div class="search-results" id="searchResults_{{ i }}"></div>
+                                                <!-- 隐藏字段存储选中的用户ID -->
+                                                <input type="hidden" id="player_{{ i }}" name="player_{{ i }}" required>
+                                                <!-- 显示选中的用户 -->
+                                                <div class="selected-player mt-2" id="selectedPlayer_{{ i }}"></div>
+                                            </div>
+                                            <div>
+                                                <label for="ai_code_{{ i }}" class="form-label">选择AI代码</label>
+                                                <select class="form-select ai-select"
+                                                        id="ai_code_{{ i }}"
+                                                        name="ai_code_{{ i }}"
+                                                        required
+                                                        disabled>
+                                                    <option value="" selected disabled>-- 请先选择玩家 --</option>
+                                                    <!-- AI选项将由JS动态加载 -->
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-play-fill me-1"></i> 开始对战
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                <div id="loadingIndicator" class="text-center mt-3" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">正在创建对战...</span>
+                    </div>
+                    <p>正在创建对战，请稍候...</p>
+                </div>
+                <div id="resultMessage" class="mt-3"></div>
             </div>
-            <div class="d-grid">
-              <button type="submit" class="btn btn-primary btn-lg">
-                <i class="bi bi-play-fill me-1"></i> 开始对战
-              </button>
-            </div>
-          </div>
-        </form>
-        <div id="loadingIndicator" class="text-center mt-3" style="display: none;">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">正在创建对战...</span>
-          </div>
-          <p>正在创建对战，请稍候...</p>
         </div>
-        <div id="resultMessage" class="mt-3"></div>
-      </div>
     </div>
-  </div>
 {% endblock content %}
 {% block scripts %}
-  {{ super() }}
-  <style>
+    {{ super() }}
+    <style>
         .search-results {
             position: absolute;
             width: 100%;
@@ -143,8 +143,8 @@
         .selected-player.active {
             display: block;
         }
-  </style>
-  <script>
+    </style>
+    <script>
     document.addEventListener('DOMContentLoaded', function() {
       // 各类DOM元素引用
       const battleTypeSelect = document.getElementById('battleType');
@@ -525,5 +525,5 @@
         };
       }
     });
-  </script>
+    </script>
 {% endblock scripts %}
