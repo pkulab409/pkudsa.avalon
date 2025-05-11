@@ -2,6 +2,7 @@
 """observer 模块：
 游戏观察者实例，用于记录指定游戏的快照。
 预留快照调用的接口，用于前端的游戏可视化。
+优化: 对局开始时就创建archive.json文件，并持续写入快照，防止对局中断导致数据丢失。
 """
 
 
@@ -12,26 +13,54 @@ import json
 import os
 from config.config import Config
 from copy import deepcopy
+import logging
 
 PLAYER_COUNT = 7
 MAP_SIZE = 9
+
+# 配置日志
+logger = logging.getLogger(__name__)
 
 
 class Observer:
     def __init__(self, battle_id):
         """
         创建一个新的观察者实例，用于记录指定游戏的快照。
-        game_id: 该实例所对应的游戏对局编号。
+        battle_id: 该实例所对应的游戏对局编号。
         snapshots: List[Dict[str, str]]：该实例所维护的消息队列，每个dict对应一次快照
         """
         self.battle_id = battle_id
         self.snapshots = []
-        self.archive = []
         self._lock = Lock()  # 添加线程锁
+
+        # 初始化并创建archive.json文件
+        self.archive_file_path = os.path.join(
+            Config._yaml_config.get("DATA_DIR", "./data"),
+            f"game_{self.battle_id}_archive.json",
+        )
+        self._init_archive_file()
+
+    def _init_archive_file(self):
+        """
+        初始化archive.json文件，创建目录并写入空数组
+        """
+        try:
+            os.makedirs(os.path.dirname(self.archive_file_path), exist_ok=True)
+
+            # 初始化为空数组
+            with open(self.archive_file_path, "w", encoding="utf-8") as f:
+                f.write("[]")
+
+            logger.info(
+                f"已初始化对局 {self.battle_id} 的归档文件: {self.archive_file_path}"
+            )
+        except Exception as e:
+            logger.error(f"初始化对局 {self.battle_id} 的归档文件失败: {str(e)}")
 
     def make_snapshot(self, event_type: str, event_data) -> None:
         """
         接收一次游戏事件并生成对应快照，加入内部消息队列中。
+        同时将快照直接追加写入archive.json文件
 
         event_type: 类型，表示事件类型，具体如下：
             Phase:Night、Global Speech、Move、Limited Speech、Public Vote、Mission。
@@ -156,9 +185,41 @@ class Observer:
             "event_type": event_type,  # 事件类型: referee, player{P}, move
             "event_data": event_data,  # 事件数据，这里保存最后需要显示的内容
         }
+
         with self._lock:  # 加锁保护写操作
+            # 添加到内存中的快照队列（供前端API获取）
             self.snapshots.append(deepcopy(snapshot))
-            self.archive.append(deepcopy(snapshot))
+
+            # 将快照追加到archive文件
+            self._append_to_archive_file(snapshot)
+
+    def _append_to_archive_file(self, snapshot) -> None:
+        """
+        将单个快照追加到archive.json文件
+        使用原子写入确保文件完整性
+        """
+        try:
+            # 读取现有文件内容
+            try:
+                with open(self.archive_file_path, "r", encoding="utf-8") as f:
+                    archive_data = json.load(f)
+            except (json.JSONDecodeError, FileNotFoundError):
+                # 文件损坏或不存在，重新初始化
+                archive_data = []
+
+            # 追加新快照
+            archive_data.append(snapshot)
+
+            # 安全写入（先写入临时文件，再重命名）
+            temp_file = f"{self.archive_file_path}.tmp"
+            with open(temp_file, "w", encoding="utf-8") as f:
+                json.dump(archive_data, f, ensure_ascii=False)
+
+            # 确保写入完成后再重命名
+            os.replace(temp_file, self.archive_file_path)
+
+        except Exception as e:
+            logger.error(f"对局 {self.battle_id} 写入快照到归档文件失败: {str(e)}")
 
     def pop_snapshots(self) -> List[Dict[str, Any]]:
         """
@@ -171,16 +232,11 @@ class Observer:
 
     def snapshots_to_json(self) -> None:
         """
-        将当前的快照列表 snapshots 保存到 JSON 文件中，路径与 visualizer.py 保持一致。
+        确保所有快照都已写入到JSON文件中
+        由于我们现在是实时写入，此方法主要用于确认归档文件存在
         """
-        file_path = os.path.join(
-            Config._yaml_config.get("DATA_DIR", "./data"),
-            f"game_{self.battle_id}_archive.json",
-        )
-        print(f"尝试写入文件到: {file_path}")
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        if not os.path.exists(self.archive_file_path):
+            logger.warning(f"对局 {self.battle_id} 的归档文件不存在，正在重新创建")
+            self._init_archive_file()
 
-        with self._lock:
-            with open(file_path, "w", encoding="utf-8") as f:
-                json.dump(self.archive, f, ensure_ascii=False, indent=4)
-            print(f"文件写入完成: {os.path.exists(file_path)}")
+        logger.info(f"对局 {self.battle_id} 的归档文件已确认: {self.archive_file_path}")
