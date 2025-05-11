@@ -100,4 +100,8 @@ RESTRICTED_BUILTINS = {
     "__build_class__": __build_class__,
     "__name__": "platform",
     "__import__": _restricted_importer,
+    # 部分异常类
+    "Exception": Exception,
+    "ValueError": ValueError,
+    "IndexError": IndexError,
 }
