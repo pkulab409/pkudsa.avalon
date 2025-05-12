@@ -513,7 +513,7 @@ class Player:
 
         # 动态调整怀疑和信任阈值
         self._adjust_thresholds()
-        protected_round =[3, 4]
+        protected_round = [3, 4]
         self.round_fail_size = 2 if self.round in protected_round else 1
 
         # 如果是邪恶方
