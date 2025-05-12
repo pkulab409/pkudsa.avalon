@@ -7,95 +7,335 @@
         <title>
             {% block title %}阿瓦隆AI对战平台{% endblock %}
         </title>
+        <!-- Google Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
         <!-- Bootstrap CSS -->
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
-              rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
         <!-- Bootstrap Icons -->
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css"
-              rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
+        <!-- Base Styles -->
+        <style>
+            :root {
+                --primary-color: #4e54c8;
+                --primary-light: #8f94fb;
+                --primary-dark: #363b99;
+                --accent-color: #6a11cb;
+                --accent-light: #2575fc;
+                --text-light: #f8f9fa;
+                --text-dark: #212529;
+                --bg-light: #f8f9fa;
+                --bg-dark: #20232a;
+                --success: #10b981;
+                --warning: #f59e0b;
+                --danger: #ef4444;
+                --info: #3b82f6;
+            }
+
+            body {
+                font-family: 'Poppins', sans-serif;
+                display: flex;
+                flex-direction: column;
+                min-height: 100vh;
+                background-color: #f0f2f5;
+                scroll-behavior: smooth;
+            }
+
+            main {
+                flex: 1;
+            }
+
+            /* Navbar Styles */
+            .navbar {
+                background: linear-gradient(to right, var(--primary-color), var(--primary-light)) !important;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                padding: 0.75rem 1rem;
+            }
+
+            .navbar-brand {
+                font-family: 'Rajdhani', sans-serif;
+                font-weight: 700;
+                font-size: 1.5rem;
+                letter-spacing: 0.5px;
+                background: linear-gradient(45deg, #ffffff, #e0e0e0);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                text-shadow: 0px 3px 3px rgba(0, 0, 0, 0.15);
+                transition: transform 0.3s ease;
+            }
+
+            .navbar-brand:hover {
+                transform: scale(1.05);
+            }
+
+            .navbar .nav-link {
+                font-weight: 500;
+                padding: 0.5rem 1rem;
+                color: rgba(255, 255, 255, 0.9) !important;
+                border-radius: 0.5rem;
+                transition: all 0.3s ease;
+                margin: 0 0.15rem;
+            }
+
+            .navbar .nav-link:hover {
+                color: white !important;
+                background-color: rgba(255, 255, 255, 0.1);
+                transform: translateY(-2px);
+            }
+
+            .navbar .nav-item.active .nav-link {
+                color: white !important;
+                background-color: rgba(0, 0, 0, 0.1);
+            }
+
+            .dropdown-menu {
+                border: none;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+                border-radius: 0.75rem;
+                padding: 0.75rem 0;
+                margin-top: 0.75rem;
+            }
+
+            .dropdown-item {
+                padding: 0.6rem 1.5rem;
+                font-weight: 500;
+                transition: all 0.2s ease;
+                border-radius: 0.5rem;
+                margin: 0.1rem 0.5rem;
+                width: auto;
+            }
+
+            .dropdown-item:hover {
+                background-color: rgba(78, 84, 200, 0.1);
+                color: var(--primary-color);
+                transform: translateX(5px);
+            }
+
+            /* Toast Notifications */
+            .toast-container {
+                z-index: 1080;
+                margin-top: 5rem;
+            }
+
+            .toast {
+                background: white;
+                border: none;
+                border-radius: 1rem;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+                backdrop-filter: blur(10px);
+                opacity: 1;
+                overflow: hidden;
+                min-width: 300px;
+            }
+
+            .toast-header {
+                border-bottom: none;
+                padding: 0.75rem 1rem;
+            }
+
+            .toast-header.bg-success {
+                background: linear-gradient(to right, #10b981, #34d399) !important;
+            }
+
+            .toast-header.bg-danger {
+                background: linear-gradient(to right, #ef4444, #f87171) !important;
+            }
+
+            .toast-header.bg-warning {
+                background: linear-gradient(to right, #f59e0b, #fbbf24) !important;
+            }
+
+            .toast-header.bg-info {
+                background: linear-gradient(to right, #3b82f6, #60a5fa) !important;
+            }
+
+            .toast-body {
+                padding: 1rem;
+                font-weight: 500;
+            }
+
+            .countdown {
+                background-color: rgba(255, 255, 255, 0.2);
+                border-radius: 50%;
+                width: 24px;
+                height: 24px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                margin-right: 0.5rem;
+            }
+
+            /* Footer */
+            footer {
+                background: var(--bg-dark);
+                color: var(--text-light);
+                padding: 1.5rem;
+                box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+                margin-top: 3rem;
+            }
+
+            footer .footer-content {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .footer-logo {
+                font-family: 'Rajdhani', sans-serif;
+                font-weight: 700;
+                font-size: 1.2rem;
+                margin-bottom: 0.5rem;
+                background: linear-gradient(45deg, #ffffff, #e0e0e0);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+
+            .footer-links {
+                display: flex;
+                gap: 1.5rem;
+            }
+
+            .footer-links a {
+                color: rgba(255, 255, 255, 0.7);
+                text-decoration: none;
+                transition: all 0.2s ease;
+            }
+
+            .footer-links a:hover {
+                color: white;
+                transform: translateY(-2px);
+            }
+
+            .copyright {
+                margin-top: 1rem;
+                color: rgba(255, 255, 255, 0.6);
+                font-size: 0.9rem;
+            }
+
+            /* Page Transition Animation */
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            main {
+                animation: fadeIn 0.5s ease-out;
+            }
+
+            /* Responsive Adjustments */
+            @media (max-width: 992px) {
+                .navbar-collapse {
+                    background: rgba(78, 84, 200, 0.95);
+                    backdrop-filter: blur(10px);
+                    border-radius: 1rem;
+                    padding: 1rem;
+                    margin-top: 0.5rem;
+                    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+                }
+
+                .footer-content {
+                    flex-direction: column;
+                    text-align: center;
+                }
+
+                .footer-links {
+                    margin: 1rem 0;
+                    justify-content: center;
+                }
+            }
+        </style>
         {% block styles %}{% endblock %}
     </head>
     <body>
         <!-- 导航栏 -->
-        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <nav class="navbar navbar-expand-lg navbar-dark">
             <div class="container">
-                <a class="navbar-brand" href="{{ url_for("main.home") }}">阿瓦隆AI对战平台</a>
-                <button class="navbar-toggler"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#navbarNav">
+                <a class="navbar-brand" href="{{ url_for('main.home') }}">
+                    <i class="bi bi-cpu me-2"></i>阿瓦隆AI对战平台
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav me-auto">
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for("main.home") }}">首页</a>
+                            <a class="nav-link" href="{{ url_for('main.home') }}">
+                                <i class="bi bi-house-door me-1"></i>首页
+                            </a>
                         </li>
                         {% if current_user.is_authenticated %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for("game.lobby") }}">游戏大厅</a>
+                                <a class="nav-link" href="{{ url_for('game.lobby') }}">
+                                    <i class="bi bi-controller me-1"></i>游戏大厅
+                                </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for("ai.list_ai") }}">我的AI</a>
+                                <a class="nav-link" href="{{ url_for('ai.list_ai') }}">
+                                    <i class="bi bi-robot me-1"></i>我的AI
+                                </a>
                             </li>
                         {% endif %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for("ranking.show_ranking") }}">排行榜</a>
+                            <a class="nav-link" href="{{ url_for('ranking.show_ranking') }}">
+                                <i class="bi bi-trophy me-1"></i>排行榜
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for("docs.index") }}">文档</a>
+                            <a class="nav-link" href="{{ url_for('docs.index') }}">
+                                <i class="bi bi-file-earmark-text me-1"></i>文档
+                            </a>
                         </li>
                     </ul>
                     <ul class="navbar-nav">
                         {% if current_user.is_authenticated %}
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle"
-                                   href="#"
-                                   id="navbarDropdown"
-                                   role="button"
-                                   data-bs-toggle="dropdown">{{ current_user.username }}</a>
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-person-circle me-1"></i>{{ current_user.username }}
+                                </a>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li>
-                                        <a class="dropdown-item" href="{{ url_for("profile.profile") }}">个人资料</a>
+                                        <a class="dropdown-item" href="{{ url_for('profile.profile') }}">
+                                            <i class="bi bi-person me-2"></i>个人资料
+                                        </a>
                                     </li>
+                                    <li><hr class="dropdown-divider"></li>
                                     <li>
-                                        <hr class="dropdown-divider">
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="{{ url_for("auth.logout") }}">退出登录</a>
+                                        <a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                                            <i class="bi bi-box-arrow-right me-2"></i>退出登录
+                                        </a>
                                     </li>
                                 </ul>
                             </li>
                         {% else %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for("auth.login") }}">登录</a>
+                                <a class="nav-link" href="{{ url_for('auth.login') }}">
+                                    <i class="bi bi-box-arrow-in-right me-1"></i>登录
+                                </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for("auth.register") }}">注册</a>
+                                <a class="nav-link" href="{{ url_for('auth.register') }}">
+                                    <i class="bi bi-person-plus me-1"></i>注册
+                                </a>
                             </li>
                         {% endif %}
                     </ul>
                 </div>
             </div>
         </nav>
+
         <!-- Flash消息显示区域 - 固定在顶部 -->
-        <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3"
-             style="z-index: 1050">
+        <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        <div class="toast show fade"
-                             role="alert"
-                             aria-live="assertive"
-                             aria-atomic="true"
-                             data-bs-autohide="false">
+                        <div class="toast show fade" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="false">
                             <div class="toast-header bg-{{ category }}">
+                                <i class="bi bi-bell-fill me-2 text-white"></i>
                                 <strong class="me-auto text-white">系统通知</strong>
-                                <small class="text-white countdown">3</small>
-                                <button type="button"
-                                        class="btn-close btn-close-white"
-                                        data-bs-dismiss="toast"
-                                        aria-label="Close"></button>
+                                <span class="countdown text-white">3</span>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
                             </div>
                             <div class="toast-body">{{ message }}</div>
                         </div>
@@ -103,51 +343,80 @@
                 {% endif %}
             {% endwith %}
         </div>
+
         <!-- 页面内容 -->
         <main>
             {% block content %}{% endblock %}
         </main>
+
         <!-- 页脚 -->
-        <footer class="footer mt-5 py-3 bg-light">
-            <div class="container text-center">
-                <span class="text-muted">© DSA 2025</span>
+        <footer>
+            <div class="container">
+                <div class="footer-content">
+                    <div>
+                        <div class="footer-logo">
+                            <i class="bi bi-cpu me-2"></i>阿瓦隆AI对战平台
+                        </div>
+                        <p class="mb-0">探索AI的奥秘，体验策略对决</p>
+                    </div>
+                    <div class="footer-links">
+                        <a href="#"><i class="bi bi-github"></i></a>
+                        <a href="#"><i class="bi bi-discord"></i></a>
+                        <a href="#"><i class="bi bi-envelope"></i></a>
+                        <a href="#"><i class="bi bi-question-circle"></i></a>
+                    </div>
+                </div>
+                <div class="copyright text-center">
+                    © DSA 2025 | 让AI策略之战激发你的灵感
+                </div>
             </div>
         </footer>
+
         <!-- Bootstrap JS Bundle with Popper -->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-        <!-- 替换原有的自动关闭Flash消息的脚本 -->
+
+        <!-- Flash消息自动关闭脚本 -->
         <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        // 获取所有toast元素
-        const toasts = document.querySelectorAll('.toast');
-        
-        toasts.forEach(function(toast) {
-          const countdownEl = toast.querySelector('.countdown');
-          let countdown = 3; // 3秒倒计时
-          
-          // 设置倒计时定时器
-          const timer = setInterval(function() {
-            countdown--;
-            if (countdownEl) countdownEl.textContent = countdown;
-            
-            if (countdown <= 0) {
-              clearInterval(timer);
-              // 使用Bootstrap的toast关闭方法
-              const bsToast = new bootstrap.Toast(toast);
-              bsToast.hide();
-            }
-          }, 1000); // 每秒更新一次
-          
-          // 点击关闭按钮时清除定时器
-          const closeBtn = toast.querySelector('.btn-close');
-          if (closeBtn) {
-            closeBtn.addEventListener('click', function() {
-              clearInterval(timer);
+            document.addEventListener('DOMContentLoaded', function() {
+                // 获取所有toast元素
+                const toasts = document.querySelectorAll('.toast');
+
+                toasts.forEach(function(toast) {
+                    const countdownEl = toast.querySelector('.countdown');
+                    let countdown = 3; // 3秒倒计时
+
+                    // 设置倒计时定时器
+                    const timer = setInterval(function() {
+                        countdown--;
+                        if (countdownEl) countdownEl.textContent = countdown;
+
+                        if (countdown <= 0) {
+                            clearInterval(timer);
+                            // 使用Bootstrap的toast关闭方法
+                            const bsToast = new bootstrap.Toast(toast);
+                            bsToast.hide();
+                        }
+                    }, 1000); // 每秒更新一次
+
+                    // 点击关闭按钮时清除定时器
+                    const closeBtn = toast.querySelector('.btn-close');
+                    if (closeBtn) {
+                        closeBtn.addEventListener('click', function() {
+                            clearInterval(timer);
+                        });
+                    }
+                });
+
+                // 高亮当前活动菜单项
+                const currentPath = window.location.pathname;
+                document.querySelectorAll('.navbar-nav .nav-link').forEach(link => {
+                    if (link.getAttribute('href') === currentPath) {
+                        link.parentElement.classList.add('active');
+                    }
+                });
             });
-          }
-        });
-      });
         </script>
+
         {% block scripts %}
         {% endblock %}
     </body>

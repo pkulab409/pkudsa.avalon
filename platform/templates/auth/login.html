@@ -3,50 +3,125 @@
     登录 - 游戏平台
 {% endblock title %}
 {% block content %}
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
     body {
         font-family: 'Poppins', sans-serif;
-        background: linear-gradient(to right, #667eea, #764ba2);
+        background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        min-height: 100vh;
+    }
+    .container {
+        padding-top: 5vh;
+        padding-bottom: 5vh;
     }
     .card {
         border: none;
-        border-radius: 1.5rem;
+        border-radius: 2rem;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+        backdrop-filter: blur(5px);
     }
     .card-header {
-        border-top-left-radius: 1.5rem;
-        border-top-right-radius: 1.5rem;
+        border-top-left-radius: 2rem;
+        border-top-right-radius: 2rem;
+        background: #4e54c8;
+        background: linear-gradient(to right, #4e54c8, #8f94fb);
+        padding: 1.5rem 1rem;
+    }
+    .card-header h3 {
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-shadow: 0px 2px 3px rgba(0,0,0,0.1);
+    }
+    .card-body {
+        padding: 2.5rem 2rem;
+        background-color: #ffffff;
+    }
+    .form-label {
+        font-weight: 600;
+        color: #444;
+        margin-bottom: 0.5rem;
+    }
+    .form-control {
+        border-radius: 0.75rem;
+        padding: 0.75rem 1.25rem;
+        border: 1px solid #e1e5ea;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background-color: #f8f9fa;
     }
     .form-control:focus {
-        border-color: #6c63ff;
-        box-shadow: 0 0 0 0.2rem rgba(108, 99, 255, 0.25);
+        border-color: #4e54c8;
+        box-shadow: 0 0 0 0.25rem rgba(78, 84, 200, 0.25);
+        background-color: #fff;
+    }
+    .form-control::placeholder {
+        color: #adb5bd;
+        font-size: 0.9rem;
+    }
+    .form-check-input:checked {
+        background-color: #4e54c8;
+        border-color: #4e54c8;
     }
     .btn-primary {
-        background-color: #6c63ff;
+        background: linear-gradient(to right, #4e54c8, #8f94fb);
         border: none;
-        transition: 0.3s ease;
+        border-radius: 0.75rem;
+        padding: 0.75rem 1.5rem;
         font-weight: 600;
+        letter-spacing: 0.5px;
+        box-shadow: 0 4px 15px rgba(78, 84, 200, 0.4);
+        transition: all 0.3s ease;
     }
     .btn-primary:hover {
-        background-color: #574b90;
+        background: linear-gradient(to right, #3a40a5, #7579e7);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(78, 84, 200, 0.5);
+    }
+    .btn-primary:active {
+        transform: translateY(0);
     }
     .text-danger {
         font-size: 0.875rem;
+        margin-top: 0.5rem;
     }
+    .card-footer {
+        background-color: #f8f9fa;
+        border-top: none;
+        padding: 1.5rem;
+    }
+    .card-footer a {
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    .card-footer a:hover {
+        color: #3a40a5 !important;
+    }
+    /* Animation for form elements */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .form-control, .form-check, .btn {
+        animation: fadeIn 0.5s ease forwards;
+    }
+    .form-control { animation-delay: 0.1s; }
+    .form-check { animation-delay: 0.2s; }
+    .btn { animation-delay: 0.3s; }
 </style>
 
-<div class="container mt-5">
+<div class="container">
     <div class="row justify-content-center">
-        <div class="col-md-7 col-lg-6">
-            <div class="card shadow-lg">
-                <div class="card-header bg-primary text-white text-center py-3">
+        <div class="col-md-7 col-lg-5">
+            <div class="card">
+                <div class="card-header text-white text-center">
                     <h3 class="mb-0">🔐 用户登录</h3>
                 </div>
-                <div class="card-body px-4">
+                <div class="card-body">
                     <form method="post" action="{{ url_for('auth.login') }}">
                         {{ form.hidden_tag() }}
 
-                        <div class="mb-3">
+                        <div class="mb-4">
                             <label for="email" class="form-label">邮箱地址</label>
                             {{ form.email(class="form-control", placeholder="请输入您的邮箱") }}
                             {% if form.email.errors %}
@@ -56,7 +131,7 @@
                             {% endif %}
                         </div>
 
-                        <div class="mb-3">
+                        <div class="mb-4">
                             <label for="password" class="form-label">密码</label>
                             {{ form.password(class="form-control", placeholder="请输入您的密码") }}
                             {% if form.password.errors %}
@@ -66,7 +141,7 @@
                             {% endif %}
                         </div>
 
-                        <div class="mb-3 form-check">
+                        <div class="mb-4 form-check">
                             {{ form.remember_me(class="form-check-input") }}
                             <label class="form-check-label" for="remember_me">记住我</label>
                         </div>
@@ -76,7 +151,7 @@
                         </div>
                     </form>
                 </div>
-                <div class="card-footer text-center py-3">
+                <div class="card-footer text-center">
                     还没有账号？<a href="{{ url_for('auth.register') }}" class="text-primary fw-semibold">立即注册</a>
                 </div>
             </div>
