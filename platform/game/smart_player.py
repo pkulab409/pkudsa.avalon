@@ -181,7 +181,7 @@ class Player:
         # 动态调整策略
         if self.is_evil:
             # 邪恶方策略：在关键轮次更倾向于混入可信玩家
-            if self.round in [2, 4]:
+            if self.round in [3, 4]:
                 self.strategy["deception"] = True
             else:
                 self.strategy["deception"] = False
@@ -513,7 +513,7 @@ class Player:
 
         # 动态调整怀疑和信任阈值
         self._adjust_thresholds()
-        protected_round = [2, 4]
+        protected_round =[3, 4]
         self.round_fail_size = 2 if self.round in protected_round else 1
 
         # 如果是邪恶方
