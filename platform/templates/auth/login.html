@@ -3,50 +3,84 @@
     登录 - 游戏平台
 {% endblock title %}
 {% block content %}
-    <div class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="card shadow">
-                    <div class="card-header bg-primary text-white">
-                        <h3 class="mb-0">用户登录</h3>
-                    </div>
-                    <div class="card-body">
-                        <form method="post" action="{{ url_for("auth.login") }}">
-                            {{ form.hidden_tag() }}
-                            <div class="mb-3">
-                                <label for="email" class="form-label">邮箱地址</label>
-                                {{ form.email(class="form-control", placeholder="请输入您的邮箱") }}
-                                {% if form.email.errors %}
-                                    <div class="text-danger">
-                                        {% for error in form.email.errors %}{{ error }}{% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="mb-3">
-                                <label for="password" class="form-label">密码</label>
-                                {{ form.password(class="form-control", placeholder="请输入您的密码") }}
-                                {% if form.password.errors %}
-                                    <div class="text-danger">
-                                        {% for error in form.password.errors %}{{ error }}{% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="mb-3 form-check">
-                                {{ form.remember_me(class="form-check-input") }}
-                                <label class="form-check-label" for="remember_me">记住我</label>
-                            </div>
-                            <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-primary">登录</button>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="card-footer text-center">
-                        <div>
-                            还没有账号? <a href="{{ url_for("auth.register") }}">立即注册</a>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<style>
+    body {
+        font-family: 'Poppins', sans-serif;
+        background: linear-gradient(to right, #667eea, #764ba2);
+    }
+    .card {
+        border: none;
+        border-radius: 1.5rem;
+    }
+    .card-header {
+        border-top-left-radius: 1.5rem;
+        border-top-right-radius: 1.5rem;
+    }
+    .form-control:focus {
+        border-color: #6c63ff;
+        box-shadow: 0 0 0 0.2rem rgba(108, 99, 255, 0.25);
+    }
+    .btn-primary {
+        background-color: #6c63ff;
+        border: none;
+        transition: 0.3s ease;
+        font-weight: 600;
+    }
+    .btn-primary:hover {
+        background-color: #574b90;
+    }
+    .text-danger {
+        font-size: 0.875rem;
+    }
+</style>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-6">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white text-center py-3">
+                    <h3 class="mb-0">🔐 用户登录</h3>
+                </div>
+                <div class="card-body px-4">
+                    <form method="post" action="{{ url_for('auth.login') }}">
+                        {{ form.hidden_tag() }}
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">邮箱地址</label>
+                            {{ form.email(class="form-control", placeholder="请输入您的邮箱") }}
+                            {% if form.email.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.email.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
-                    </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">密码</label>
+                            {{ form.password(class="form-control", placeholder="请输入您的密码") }}
+                            {% if form.password.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.password.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            {{ form.remember_me(class="form-check-input") }}
+                            <label class="form-check-label" for="remember_me">记住我</label>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">登录</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-center py-3">
+                    还没有账号？<a href="{{ url_for('auth.register') }}" class="text-primary fw-semibold">立即注册</a>
                 </div>
             </div>
         </div>
     </div>
+</div>
 {% endblock content %}

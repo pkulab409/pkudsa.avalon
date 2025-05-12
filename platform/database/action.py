@@ -1508,16 +1508,15 @@ from sqlalchemy import desc, or_, and_  # Import and_ if needed, or_ is key here
 
 def get_battles_paginated_filtered(filters=None, page=1, per_page=10, error_out=False):
     """
-    Fetches battles with optional filters and pagination.
+    Fetches battles with optional filters and pagination. Supports multi-player filtering.
 
-    :param filters: A dictionary with possible keys: 'status', 'date_from', 'date_to', 'player'.
+    :param filters: A dictionary with possible keys: 'status', 'date_from', 'date_to', 'players'.
     :param page: Current page number.
     :param per_page: Items per page.
     :param error_out: If True, raises an error for invalid page numbers.
     :return: A Flask-SQLAlchemy Pagination object.
     """
     query = Battle.query
-    player_filter_applied_successfully = True  # Assume success unless player specified but not found
 
     if filters:
         # Apply status filter
@@ -1530,33 +1529,42 @@ def get_battles_paginated_filtered(filters=None, page=1, per_page=10, error_out=
         if 'date_to' in filters and filters['date_to']:
             query = query.filter(Battle.created_at <= filters['date_to'])
 
-        # Apply player filter
-        if 'player' in filters and filters['player']:
-            player_identifier = filters['player']
+        # Apply multiple player filters
+        if 'players' in filters and filters['players']:
+            player_list = filters['players']
+            player_ids = []
 
-            # Construct conditions for user identification
-            user_conditions = [User.username == player_identifier]
-            if player_identifier.isdigit():
-                try:
-                    user_conditions.append(User.id == int(player_identifier))
-                except ValueError:  # Should not happen due to isdigit, but good practice
-                    pass
+            # Find all user IDs for the player names/IDs in the list
+            for player_identifier in player_list:
+                # Construct conditions for user identification
+                user_conditions = [User.username == player_identifier]
+                if player_identifier.isdigit():
+                    try:
+                        user_conditions.append(User.id == int(player_identifier))
+                    except ValueError:
+                        pass
 
-            user = User.query.filter(or_(*user_conditions)).first()
+                user = User.query.filter(or_(*user_conditions)).first()
+                if user:
+                    player_ids.append(user.id)
 
-            if user:
-                # If user found, join with BattlePlayer and filter by user_id
-                # Using a subquery to ensure we only get Battles where the specific user participated
-                # Ensure 'db' is imported (from .models import db or from .base import db)
-                subquery = db.session.query(BattlePlayer.battle_id).filter(BattlePlayer.user_id == user.id).subquery()
+            if player_ids:
+                # Create a subquery to find battles where any of these players participated
+                subquery = db.session.query(BattlePlayer.battle_id). \
+                    filter(BattlePlayer.user_id.in_(player_ids)). \
+                    group_by(BattlePlayer.battle_id)
+
+                # If we want to find battles where ALL specified players participated, we need to count
+                if len(player_ids) > 1:
+                    subquery = subquery.having(func.count(BattlePlayer.user_id.distinct()) == len(player_ids))
+
+                subquery = subquery.subquery()
+
+                # Join with the main query
                 query = query.join(subquery, Battle.id == subquery.c.battle_id)
             else:
-                # Player specified but not found, so no battles should match this filter combination
-                player_filter_applied_successfully = False
-
-    # If player filter was specified but the player was not found, ensure no results.
-    if not player_filter_applied_successfully:
-        query = query.filter(False)  # Effectively makes the query return no results
+                # No valid players found, return no results
+                query = query.filter(False)
 
     # Default ordering
     query = query.order_by(desc(Battle.created_at))

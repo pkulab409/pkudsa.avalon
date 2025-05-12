@@ -49,7 +49,9 @@ def lobby():
     status_filter = request.args.get('status', None, type=str)
     date_from_str = request.args.get('date_from', None, type=str)
     date_to_str = request.args.get('date_to', None, type=str)
-    player_filter = request.args.get('player', None, type=str)  # New filter parameter
+
+    # Get multiple players (can be passed as a list from form)
+    player_filters = request.args.getlist('players')  # Use getlist to get all values with the same name
 
     filters = {}
     if status_filter and status_filter != 'all':  # 'all' means no status filter
@@ -66,8 +68,9 @@ def lobby():
         filters.pop('date_from', None)
         filters.pop('date_to', None)
 
-    if player_filter:
-        filters['player'] = player_filter.strip()  # Add player filter, remove leading/trailing spaces
+    if player_filters:
+        # Pass the list of player filters to the database function
+        filters['players'] = player_filters  # Now passing a list of players instead of a single player
 
     # Fetch battles using the enhanced database function
     battles_pagination = get_battles_paginated_filtered(
@@ -76,20 +79,19 @@ def lobby():
         per_page=per_page
     )
 
-    # Fetch all users for the datalist suggestion (optional but helpful)
-    # Consider performance if you have a very large number of users.
+    # Fetch all users for the datalist suggestion
     all_users = User.query.order_by(User.username).all()
 
     return render_template(
         "lobby.html",
         battles_pagination=battles_pagination,
         automatch_is_on=get_automatch().is_on,
-        all_users=all_users,  # Pass users to the template
+        all_users=all_users,
         current_filters={  # Pass current filters back to the template
             'status': status_filter,
             'date_from': date_from_str,
             'date_to': date_to_str,
-            'player': player_filter  # Pass player filter back
+            'players': player_filters  # Now passing the list of players back to the template
         }
     )
 
