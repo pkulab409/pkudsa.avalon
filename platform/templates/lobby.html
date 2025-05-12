@@ -2,9 +2,10 @@
 {% block title %}
     游戏大厅 - 游戏平台
 {% endblock title %}
+
 {% block content %}
-    <style>
-  .info-box {
+<style>
+  .info-box { /* Your existing style from original file */
     background-color: #093da5;
     border-radius: 5px;
     border: 2px;
@@ -13,33 +14,110 @@
     padding: 20px;
     text-align: center;
     display: flex;
-    color: red;
+    color: red; /* Note: Text color red might not be ideal on blue bg, consider contrast */
     align-items: center;
     justify-content: center;
     height: 50px;
   }
-    </style>
-    <div class="container mt-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>游戏大厅</h2>
-            <a href="{{ url_for("game.create_battle_page") }}"
-               class="btn btn-primary">
-                <i class="bi bi-plus-circle me-1"></i> 创建对战
-            </a>
-        </div>
-        {% if automatch_is_on %}
-            <div class="info-box">
-                ⚠️ 后台自动对战正在进行中！
-            </h4>
-        </div>
+  .filter-form .form-control,
+  .filter-form .form-select {
+    margin-bottom: 10px; /* Spacing for stacked elements on small screens */
+  }
+
+  /* Align button with form inputs on larger screens */
+  @media (min-width: 992px) {
+    .filter-form .row > div { /* Target direct children columns of the row */
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end; /* Aligns labels at top, inputs at bottom */
+    }
+    .filter-form .btn-submit-row {
+        align-self: flex-end; /* Ensures button aligns with inputs */
+        margin-bottom: 10px; /* Matches input margin-bottom */
+    }
+  }
+   /* On medium screens, allow button to stack cleanly if it wraps */
+  @media (min-width: 768px) and (max-width: 991.98px) {
+     .filter-form .btn-submit-row {
+         margin-top: 0; /* Reset margin if it stacks */
+         width: 100%; /* Make button full width if it stacks */
+     }
+     .filter-form .btn-submit-row .btn {
+         width: 100%;
+     }
+   }
+  .pagination {
+    justify-content: center;
+    margin-top: 20px;
+  }
+</style>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>游戏大厅</h2>
+        <a href="{{ url_for('game.create_battle_page') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i> 创建对战
+        </a>
+    </div>
+
+    {% if automatch_is_on %}
+    <div class="info-box">
+        ⚠️ 后台自动对战正在进行中！
+    </div>
     {% endif %}
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">筛选对战</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('game.lobby') }}" class="filter-form">
+                <div class="row g-2"> {# Removed align-items-end for more control via CSS if needed #}
+                    <div class="col-lg-2 col-md-6 col-sm-12">
+                        <label for="date_from" class="form-label">开始日期:</label>
+                        <input type="date" id="date_from" name="date_from" class="form-control form-control-sm" value="{{ current_filters.date_from or '' }}">
+                    </div>
+                    <div class="col-lg-2 col-md-6 col-sm-12">
+                        <label for="date_to" class="form-label">结束日期:</label>
+                        <input type="date" id="date_to" name="date_to" class="form-control form-control-sm" value="{{ current_filters.date_to or '' }}">
+                    </div>
+                    <div class="col-lg-2 col-md-6 col-sm-12">
+                        <label for="status" class="form-label">状态:</label>
+                        <select id="status" name="status" class="form-select form-select-sm">
+                            <option value="all" {% if not current_filters.status or current_filters.status == 'all' %}selected{% endif %}>所有状态</option>
+                            <option value="waiting" {% if current_filters.status == 'waiting' %}selected{% endif %}>等待中</option>
+                            <option value="playing" {% if current_filters.status == 'playing' %}selected{% endif %}>进行中</option>
+                            <option value="completed" {% if current_filters.status == 'completed' %}selected{% endif %}>已完成</option>
+                            <option value="error" {% if current_filters.status == 'error' %}selected{% endif %}>错误</option>
+                            <option value="cancelled" {% if current_filters.status == 'cancelled' %}selected{% endif %}>已取消</option>
+                        </select>
+                    </div>
+                     <div class="col-lg-3 col-md-6 col-sm-12">
+                        <label for="player" class="form-label">玩家 (用户名/ID):</label>
+                        <input type="text" id="player" name="player" class="form-control form-control-sm" list="player-list" value="{{ current_filters.player or '' }}" placeholder="输入用户名或ID">
+                        {% if all_users %}
+                        <datalist id="player-list">
+                            {% for user in all_users %}
+                            <option value="{{ user.username }}">{{ user.username }}</option> {# Explicitly set text content #}
+                            {% endfor %}
+                        </datalist>
+                        {% endif %}
+                    </div>
+                    <div class="col-lg-auto col-md-12 col-sm-12 btn-submit-row"> {# Specific class for button row styling #}
+                        <button type="submit" class="btn btn-info btn-sm w-100">筛选</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="card shadow-sm">
         <div class="card-header">
-            <h5 class="mb-0">最近对战</h5>
+             <h5 class="mb-0">对战列表 {% if battles_pagination %}(共 {{ battles_pagination.total }} 条){% endif %}</h5>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
                         <tr>
                             <th scope="col">对战ID</th>
@@ -50,8 +128,8 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% if recent_battles %}
-                            {% for battle in recent_battles %}
+                        {% if battles_pagination and battles_pagination.items %}
+                            {% for battle in battles_pagination.items %}
                                 <tr>
                                     <td>
                                         <a href="{{ url_for('game.view_battle', battle_id=battle.id) }}">{{ battle.id[:8] }}...</a>
@@ -75,24 +153,65 @@
                                     <td>{{ battle.ended_at.strftime("%Y-%m-%d %H:%M") if battle.ended_at else '-' }}</td>
                                     <td>
                                         <a href="{{ url_for('game.view_battle', battle_id=battle.id) }}"
-                                           class="btn btn-sm btn-outline-primary">查看详情</a>
+                                           class="btn btn-sm btn-outline-primary">详情</a>
                                         {% if battle.status in ['completed', 'error', 'playing','cancelled'] %}
                                             <a href="{{ url_for('visualizer.game_replay', game_id=battle.id) }}"
-                                               class="btn btn-sm btn-outline-info">查看回放</a>
+                                               class="btn btn-sm btn-outline-info">回放</a>
                                         {% endif %}
                                     </td>
                                 </tr>
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="5" class="text-center text-muted">暂无最近对战记录</td>
+                                <td colspan="5" class="text-center text-muted">
+                                    {% if current_filters.status or current_filters.date_from or current_filters.date_to or current_filters.player %}
+                                        没有找到符合筛选条件的对战记录
+                                    {% else %}
+                                        暂无对战记录
+                                    {% endif %}
+                                </td>
                             </tr>
                         {% endif %}
                     </tbody>
                 </table>
             </div>
         </div>
+
+        {% if battles_pagination and battles_pagination.pages > 1 %}
+        <div class="card-footer">
+            <nav aria-label="Page navigation">
+                <ul class="pagination pagination-sm">
+                    <li class="page-item {% if not battles_pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" {% if battles_pagination.has_prev %}href="{{ url_for('game.lobby', page=battles_pagination.prev_num, status=current_filters.status, date_from=current_filters.date_from, date_to=current_filters.date_to, player=current_filters.player) }}"{% else %}href="#" aria-disabled="true"{% endif %}>
+                            上一页
+                        </a>
+                    </li>
+
+                    {% for page_num in battles_pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                        {% if page_num %}
+                            {% if battles_pagination.page == page_num %}
+                                <li class="page-item active" aria-current="page">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                            {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('game.lobby', page=page_num, status=current_filters.status, date_from=current_filters.date_from, date_to=current_filters.date_to, player=current_filters.player) }}">{{ page_num }}</a>
+                                </li>
+                            {% endif %}
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    <li class="page-item {% if not battles_pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" {% if battles_pagination.has_next %}href="{{ url_for('game.lobby', page=battles_pagination.next_num, status=current_filters.status, date_from=current_filters.date_from, date_to=current_filters.date_to, player=current_filters.player) }}"{% else %}href="#" aria-disabled="true"{% endif %}>
+                            下一页
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
     </div>
-    <!-- 可以添加进行中/等待中对战列表 -->
 </div>
 {% endblock content %}
