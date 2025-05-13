@@ -22,4 +22,14 @@
 
 - **奥伯伦**： `/platform/static/images/oberon.png`
 
-- **骑士**： `/platform/static/images/knight.png`
+- **骑士1**： `/platform/static/images/knight1.png`
+
+- **骑士2**： `/platform/static/images/knight2.png`
+
+### TODO
+
+- **监听对局流程**，改变地图
+
+- **2个骑士分开**
+
+- **用户名**
