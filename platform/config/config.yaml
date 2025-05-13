@@ -36,7 +36,7 @@ INITIAL_USERS:
       name: Admin Console
       description: 管理员控制台
       file_path: game/smart_player.py
-      make_active: false
+      make_active: True
   # Smart AI 用户系列
   - username: smart_user1
     email: smart1@example.com
