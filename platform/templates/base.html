@@ -13,6 +13,23 @@
         <!-- Bootstrap Icons -->
         <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css"
               rel="stylesheet">
+        <style>
+            html, body {
+                height: 100%;
+                margin: 0;
+            }
+            body {
+                display: flex;
+                flex-direction: column;
+                min-height: 100vh;
+            }
+            main {
+                flex: 1 0 auto;
+            }
+            .footer {
+                flex-shrink: 0;
+            }
+        </style>
         {% block styles %}{% endblock %}
     </head>
     <body>
