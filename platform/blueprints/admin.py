@@ -369,7 +369,7 @@ def get_users():
 @admin_required
 def admin_dashboard():
     # 原代码：users = User.query.options(joinedload(User.game_stats_entries)).limit(10).all()
-    users = User.query.limit(10).all()  # 移除了 joinedload
+    users = User.query.all()  # 移除了 joinedload
     return render_template("admin/dashboard.html", users=users)
 
 
@@ -381,8 +381,8 @@ def search_user():
         username = request.args.get("username")
         if not username:
             abort(400, description="用户名参数缺失")
-        # 模糊搜索并限制结果数量
-        users = User.query.filter(User.username.ilike(f"%{username}%")).limit(10).all()
+        # 模糊搜索，不限制结果数量
+        users = User.query.filter(User.username.ilike(f"%{username}%")).all()
         return (
             jsonify(
                 {
@@ -391,7 +391,7 @@ def search_user():
                             "id": user.id,
                             "username": user.username,
                             "is_admin": user.is_admin,
-                            "elo": user.game_stats.elo_score if user.game_stats else 0,
+                            "elo": user.get_elo_score(),
                         }
                         for user in users
                     ]
