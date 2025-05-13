@@ -56,6 +56,14 @@
                                                 </button>
                                             </form>
                                         {% endif %}
+                                        <!-- 添加测试按钮 -->
+                                        <button type="button"
+                                                class="btn btn-outline-info me-2"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#testAiModal-{{ ai.id }}"
+                                                title="测试">
+                                            <i class="bi bi-play-circle me-1"></i> 测试
+                                        </button>
                                         <a href="{{ url_for('ai.edit_ai', ai_id=ai.id) }}"
                                            class="btn btn-outline-primary me-2"
                                            data-bs-toggle="tooltip"
@@ -113,6 +121,76 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- 测试AI模态框 -->
+                    <div class="modal fade"
+                         id="testAiModal-{{ ai.id }}"
+                         tabindex="-1"
+                         aria-labelledby="testAiModalLabel-{{ ai.id }}"
+                         aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="testAiModalLabel-{{ ai.id }}">测试 AI: {{ ai.name }}</h5>
+                                    <button type="button"
+                                            class="btn-close"
+                                            data-bs-dismiss="modal"
+                                            aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form id="testAiForm-{{ ai.id }}">
+                                        <input type="hidden" name="ai_id" value="{{ ai.id }}">
+                                        <div class="mb-3">
+                                            <label class="form-label">选择对手类型</label>
+                                            <div class="d-flex flex-wrap">
+                                                <div class="form-check me-3 mb-2">
+                                                    <input class="form-check-input" type="radio" name="opponent_type"
+                                                           id="opponent-smart-{{ ai.id }}" value="smart" checked>
+                                                    <label class="form-check-label" for="opponent-smart-{{ ai.id }}">
+                                                        Smart AI (高级对手)
+                                                    </label>
+                                                </div>
+                                                <div class="form-check me-3 mb-2">
+                                                    <input class="form-check-input" type="radio" name="opponent_type"
+                                                           id="opponent-basic-{{ ai.id }}" value="basic">
+                                                    <label class="form-check-label" for="opponent-basic-{{ ai.id }}">
+                                                        Basic AI (基础对手)
+                                                    </label>
+                                                </div>
+                                                <div class="form-check mb-2">
+                                                    <input class="form-check-input" type="radio" name="opponent_type"
+                                                           id="opponent-idiot-{{ ai.id }}" value="idiot">
+                                                    <label class="form-check-label" for="opponent-idiot-{{ ai.id }}">
+                                                        Idiot AI (弱智对手)
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="player-position-{{ ai.id }}" class="form-label">选择您的位置 (1-7)</label>
+                                            <select class="form-select" id="player-position-{{ ai.id }}" name="player_position">
+                                                <option value="1">位置 1</option>
+                                                <option value="2">位置 2</option>
+                                                <option value="3">位置 3</option>
+                                                <option value="4">位置 4</option>
+                                                <option value="5">位置 5</option>
+                                                <option value="6">位置 6</option>
+                                                <option value="7">位置 7</option>
+                                            </select>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                        <i class="bi bi-x me-1"></i> 取消
+                                    </button>
+                                    <button type="button" class="btn btn-primary" onclick="setupTestBattle('{{ ai.id }}')">
+                                        <i class="bi bi-play-circle me-1"></i> 开始测试
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 {% endfor %}
             </div>
         {% else %}
@@ -132,3 +210,29 @@
         {% endif %}
     </div>
 {% endblock content %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        // 测试对战功能
+        function setupTestBattle(aiId) {
+            const form = document.getElementById(`testAiForm-${aiId}`);
+            const opponentType = form.querySelector('input[name="opponent_type"]:checked').value;
+            const playerPosition = form.querySelector('select[name="player_position"]').value;
+
+            // 存储测试配置到 localStorage，以便在创建对战页面使用
+            localStorage.setItem('testBattle', JSON.stringify({
+                aiId: aiId,
+                opponentType: opponentType,
+                playerPosition: playerPosition
+            }));
+
+            // 关闭模态框
+            const modal = bootstrap.Modal.getInstance(document.getElementById(`testAiModal-${aiId}`));
+            if (modal) modal.hide();
+
+            // 跳转到创建对战页面
+            window.location.href = "{{ url_for('game.create_battle_page') }}";
+        }
+    </script>
+{% endblock scripts %}

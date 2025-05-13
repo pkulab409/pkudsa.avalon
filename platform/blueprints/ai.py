@@ -298,6 +298,54 @@ def get_specific_user_ai_codes(user_id):
         )
 
 
+# 添加测试AI功能的路由
+@ai_bp.route("/test_ai/<string:ai_id>", methods=["GET", "POST"])
+@login_required
+def test_ai(ai_id):
+    """测试AI代码功能
+
+    GET请求: 显示测试配置表单
+    POST请求: 处理测试配置并重定向到创建对战页面
+    """
+    ai_code = db_get_ai_code_by_id(ai_id)
+
+    # 检查AI代码是否存在且属于当前用户
+    if not ai_code or ai_code.user_id != current_user.id:
+        flash("您没有权限测试此AI代码或AI不存在", "danger")
+        return redirect(url_for("ai.list_ai"))
+
+    if request.method == "POST":
+        # 获取表单数据
+        opponent_type = request.form.get("opponent_type", "smart")
+        player_position = request.form.get("player_position", "1")
+
+        # 验证数据
+        if opponent_type not in ["smart", "basic", "idiot"]:
+            flash("无效的对手类型", "danger")
+            return redirect(url_for("ai.test_ai", ai_id=ai_id))
+
+        try:
+            pos = int(player_position)
+            if pos < 1 or pos > 7:
+                raise ValueError("位置必须在1-7之间")
+        except ValueError:
+            flash("无效的玩家位置", "danger")
+            return redirect(url_for("ai.test_ai", ai_id=ai_id))
+
+        # 这里不需要存储任何会话数据，因为我们将在前端使用 localStorage
+
+        # 将参数传递给创建对战页面
+        # 我们可以使用查询参数，或者依赖前端的 localStorage（已实现）
+        return redirect(url_for("game.create_battle_page",
+                                test_mode=True,
+                                ai_id=ai_id,
+                                opponent_type=opponent_type,
+                                player_position=player_position))
+
+    # GET请求显示测试配置表单
+    return render_template("ai/test.html", ai_code=ai_code)
+
+
 # 工具函数
 # ------------------------------------------------------------------------------------
 def load_ai_module(file_path):
@@ -393,6 +441,5 @@ def get_ai_module(ai_id):
         return None, "AI代码加载或验证失败"
 
     return module, None
-
 
 # ------------------------------------------------------------------------------------

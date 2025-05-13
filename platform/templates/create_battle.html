@@ -149,32 +149,30 @@
         select.addEventListener('change', () => {
           updateAiSelect(select, correspondingAiSelect);
         });
-        // 初始加载（如果需要默认填充第一个玩家）
-        // updateAiSelect(select, correspondingAiSelect);
       });
-      
+
       // 处理表单提交
       form.addEventListener('submit', async function(event) {
         event.preventDefault();
         loadingIndicator.style.display = 'block';
         resultMessage.textContent = '';
         resultMessage.className = 'mt-3'; // Reset class
-        
+
         const participants = [];
         let isValid = true;
         const selectedUsers = new Set();
-        
+
         for (let i = 0; i < 7; i++) {
           const playerSelect = document.getElementById(`player_${i}`);
           const aiSelect = document.getElementById(`ai_code_${i}`);
-          
+
           if (!playerSelect.value || !aiSelect.value) {
             isValid = false;
             resultMessage.textContent = `位置 ${i + 1} 的玩家或AI未选择完整。`;
             resultMessage.classList.add('alert', 'alert-danger');
             break;
           }
-          
+
           // 检查玩家是否重复选择
           if (selectedUsers.has(playerSelect.value)) {
             isValid = false;
@@ -184,18 +182,18 @@
             break;
           }
           selectedUsers.add(playerSelect.value);
-          
+
           participants.push({
             user_id: playerSelect.value,
             ai_code_id: aiSelect.value
           });
         }
-        
+
         if (!isValid) {
           loadingIndicator.style.display = 'none';
           return;
         }
-        
+
         // 发送创建请求
         try {
           // 获取 CSRF token 从 meta 标签
@@ -240,6 +238,111 @@
           loadingIndicator.style.display = 'none';
         }
       });
+
+      // 检查是否有测试对战配置并自动填充
+      const testBattleConfig = localStorage.getItem('testBattle');
+      if (testBattleConfig) {
+        try {
+          const config = JSON.parse(testBattleConfig);
+          // 清除localStorage，避免下次访问页面时自动填充
+          localStorage.removeItem('testBattle');
+
+          // 获取对手用户名前缀
+          const opponentPrefix = config.opponentType === 'idiot' ? 'idiot-user' : `${config.opponentType}_user`;
+
+          // 显示测试模式提示
+          const testModeAlert = document.createElement('div');
+          testModeAlert.className = 'alert alert-info mt-3 mb-3';
+          testModeAlert.innerHTML = `<strong>测试模式:</strong> 正在为您的AI准备对战环境，使用 ${config.opponentType} 模式的对手，您的AI将在位置 ${config.playerPosition}`;
+          form.parentNode.insertBefore(testModeAlert, form);
+
+          // 设置延时自动填充表单
+          setTimeout(() => {
+            autoFillTestBattle(parseInt(config.playerPosition) - 1, config.aiId, opponentPrefix);
+          }, 300);
+        } catch (error) {
+          console.error('解析测试配置时出错:', error);
+        }
+      }
     });
+
+    // 自动填充测试对战表单的函数
+    function autoFillTestBattle(playerPos, aiId, opponentPrefix) {
+      const playerSelects = document.querySelectorAll('.player-select');
+      const currentUserId = "{{ current_user.id }}";
+
+      console.log(`自动填充测试对战: 玩家位置=${playerPos+1}, AI ID=${aiId}, 对手前缀=${opponentPrefix}`);
+
+      // 填充所有位置
+      for (let i = 0; i < playerSelects.length; i++) {
+        const playerSelect = playerSelects[i];
+        const index = parseInt(playerSelect.dataset.index);
+
+        if (index === playerPos) {
+          // 在选定位置设置当前用户
+          console.log(`在位置 ${index+1} 设置当前用户`);
+          playerSelect.value = currentUserId;
+
+          // 触发change事件加载AI
+          playerSelect.dispatchEvent(new Event('change'));
+
+          // 设置延时选择指定的AI
+          setTimeout(() => {
+            const aiSelect = document.getElementById(`ai_code_${index}`);
+            if (aiSelect) {
+              // 查找并选择指定的AI
+              for (let opt of aiSelect.options) {
+                if (opt.value === aiId) {
+                  opt.selected = true;
+                  console.log(`在位置 ${index+1} 选择 AI ID=${aiId}`);
+                  break;
+                }
+              }
+            }
+          }, 500);
+        } else {
+          // 计算对手编号 (1-6)
+          let opponentNum = i < playerPos ? i + 1 : i;
+
+          // 调整对手编号以获得1-6范围，跳过玩家位置
+          if (opponentNum >= playerPos) {
+            opponentNum -= playerPos;
+          }
+          if (opponentNum > 6) opponentNum = 6;
+          if (opponentNum < 1) opponentNum = 1;
+
+          const opponentUsername = `${opponentPrefix}${opponentNum}`;
+          console.log(`查找对手 ${opponentUsername} 在位置 ${index+1}`);
+
+          // 查找对手
+          for (let j = 0; j < playerSelect.options.length; j++) {
+            const opt = playerSelect.options[j];
+            if (opt.dataset.username && opt.dataset.username.toLowerCase() === opponentUsername.toLowerCase()) {
+              playerSelect.selectedIndex = j;
+
+              // 触发change事件加载AI
+              playerSelect.dispatchEvent(new Event('change'));
+
+              // 设置延时选择第一个可用的AI
+              setTimeout(() => {
+                const aiSelect = document.getElementById(`ai_code_${index}`);
+                if (aiSelect && aiSelect.options.length > 0) {
+                  // 选择第一个非禁用的选项
+                  for (let k = 0; k < aiSelect.options.length; k++) {
+                    if (!aiSelect.options[k].disabled) {
+                      aiSelect.selectedIndex = k;
+                      console.log(`在位置 ${index+1} 为 ${opponentUsername} 选择 AI`);
+                      break;
+                    }
+                  }
+                }
+              }, 500);
+
+              break;
+            }
+          }
+        }
+      }
+    }
     </script>
 {% endblock scripts %}
