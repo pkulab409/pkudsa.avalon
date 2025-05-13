@@ -1,0 +1,394 @@
+/* 导入中世纪风格字体 */
+@import url('https://fonts.googleapis.com/css2?family=Uncial+Antiqua&family=MedievalSharp&display=swap');
+
+/* 定义中世纪颜色变量 */
+:root {
+    --medieval-primary: #800000;    /* 深红 */
+    --medieval-secondary: #642500;  /* 深红 */
+    --medieval-accent: #FFD700;     /* 金色 */
+    --medieval-background: #8B4513; /* 棕色 */
+    --medieval-info: #4A6B8A;       /* 暗淡的蓝色 */
+    --medieval-danger: #8B0000;     /* 暗淡的红色 */
+    --medieval-parchment: #F4E4BC;  /* 羊皮纸色 */
+    --medieval-border: #5C4033;     /* 深木色 */
+}
+
+/* 中世纪风格背景色类 */
+.bg-primary {
+    background-image: url('../images/wood-texture.jpg');
+    background-size: cover;
+    color: var(--medieval-accent) !important;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    border: 2px solid var(--medieval-border);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+.bg-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(rgba(128, 0, 0, 0.3), rgba(128, 0, 0, 0.3));
+    pointer-events: none;
+}
+
+.bg-secondary {
+    background-color: var(--medieval-secondary) !important;
+    color: #fff !important;
+}
+
+.bg-success {
+    background-color: #6e9227 !important; /* 海绿色 */
+    color: #fff !important;
+}
+
+.bg-info {
+    background-color: var(--medieval-info) !important;
+    color: #fff !important;
+}
+
+.bg-danger {
+    background-color: var(--medieval-danger) !important;
+    color: #fff !important;
+}
+
+/* 中世纪风格文本颜色类 */
+.text-info, .text-primary {
+    color: var(--medieval-info) !important;
+}
+
+.text-danger {
+    color: var(--medieval-danger) !important;
+}
+
+/* 设置页面背景为羊皮纸纹理 */
+body {
+    background-image: url('../images/wooden-floor-background.jpg');
+    background-size: cover;
+    font-family: 'MedievalSharp', 'Uncial Antiqua', cursive;
+    color: #333;
+    position: relative;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('../images/wooden-floor-background.png');
+    opacity: 0.1;
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Bootstrap按钮样式调整 */
+.btn {
+    background-color: var(--medieval-primary);
+    border: 2px solid var(--medieval-accent);
+    color: #fff;
+    font-family: 'MedievalSharp', 'Uncial Antiqua', cursive;
+    padding: 8px 16px;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+    );
+    transition: 0.5s;
+}
+
+.btn:hover::before {
+    left: 100%;
+}
+
+.btn-primary {
+    background-color: var(--medieval-primary);
+    border-color: var(--medieval-accent);
+}
+
+.btn-primary:hover {
+    background-color: var(--medieval-secondary);
+}
+
+/* 导航栏样式 */
+.navbar {
+    background-color: var(--medieval-background);
+    border-bottom: 3px solid var(--medieval-accent);
+    padding: 1rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.navbar-brand, .nav-link {
+    color: #fff !important;
+    font-family: 'MedievalSharp', 'Uncial Antiqua', cursive;
+    text-transform: uppercase;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    position: relative;
+}
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: var(--medieval-accent);
+    transition: width 0.3s ease;
+}
+
+.nav-link:hover::after {
+    width: 100%;
+}
+
+.navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(255, 215, 0, 1)' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+/* 卡片样式 */
+.card, .chat-container {
+    background-color: var(--medieval-parchment);
+    border: 2px solid var(--medieval-border);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url('../images/parchment-texture.png');
+    opacity: 0.1;
+    pointer-events: none;
+}
+
+.card-header {
+    background-color: var(--medieval-secondary);
+    color: #fff;
+    font-family: 'MedievalSharp', 'Uncial Antiqua', cursive;
+    border-bottom: 2px solid var(--medieval-accent);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.card-title {
+    font-family: 'Uncial Antiqua', cursive;
+    color: var(--medieval-primary);
+}
+
+.card-text {
+    color: #333;
+}
+
+.list-group-item {
+    background-color: var(--medieval-parchment);
+}
+
+/* 标题装饰 */
+h1, h2, h3 {
+    border-bottom: 3px solid var(--medieval-accent);
+    padding-bottom: 10px;
+    color: var(--medieval-primary);
+    font-family: 'MedievalSharp', 'Uncial Antiqua', cursive;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+h1::after, h2::after, h3::after {
+    content: '❧';
+    position: absolute;
+    right: 0;
+    bottom: -10px;
+    color: var(--medieval-accent);
+    font-size: 1.2em;
+}
+
+/* 表单样式 */
+.form-control {
+    border: 2px solid var(--medieval-border);
+    background-color: var(--medieval-parchment);
+    font-family: 'MedievalSharp', 'Uncial Antiqua', cursive;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.form-control:focus {
+    border-color: var(--medieval-accent);
+    box-shadow: 0 0 8px var(--medieval-accent);
+    background-color: #fff;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    body {
+        background-size: auto;
+    }
+
+    .navbar-brand, .nav-link {
+        font-size: 1rem;
+    }
+
+    .btn {
+        padding: 6px 12px;
+    }
+}
+
+/* 添加装饰性边框 */
+.decorative-border {
+    border: 8px solid transparent;
+    border-image: url('../images/medieval-border.png') 8 repeat;
+    padding: 15px;
+    margin: 10px 0;
+}
+
+.message-wrapper {
+    position: relative;
+    margin: 15px 0;
+    display: flex;
+    align-items: flex-start;
+}
+
+.message-wrapper-blue {
+    justify-content: flex-start;
+}
+
+.message-wrapper-red {
+    justify-content: flex-end;
+}
+
+.message-content {
+    max-width: 80%;
+}
+
+.card-decoration {
+    width: 40px;
+    height: 60px;
+    border: 2px solid #8b4513;
+    border-radius: 5px;
+    position: relative;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+    margin: 0 10px;
+}
+
+.card-decoration::before {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    right: 5px;
+    bottom: 5px;
+    border: 1px solid #8b4513;
+    border-radius: 3px;
+}
+
+.card-decoration.left {
+    transform: rotate(-10deg);
+}
+
+.card-decoration.right {
+    transform: rotate(10deg);
+}
+
+.message-wrapper-blue .card-decoration {
+    background: linear-gradient(135deg, #e6f3ff 0%, #ffffff 100%);
+}
+
+.message-wrapper-red .card-decoration {
+    background: linear-gradient(135deg, #ffe6e6 0%, #ffffff 100%);
+}
+
+.player-tag {
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.message-bubble {
+    padding: 10px 15px;
+    border-radius: 10px;
+    position: relative;
+}
+
+.message-blue {
+    background-color: #e6f3ff;
+    border: 1px solid #b3d9ff;
+}
+
+.message-red {
+    background-color: #ffe6e6;
+    border: 1px solid #ffb3b3;
+}
+
+.private-speech {
+    border-style: dashed;
+}
+
+.speech-badge {
+    font-size: 0.8em;
+    margin-left: 5px;
+}
+
+.hearers-tags {
+    display: inline-block;
+    margin-left: 5px;
+} 
+
+.card-decoration.left.merlin {
+    background-image: url('../images/default_avatar.png');
+    background-size: cover;
+    background-position: center;
+}
+
+.card-decoration.left.knight {
+    background-image: url('../images/default_avatar.png');
+    background-size: cover;
+    background-position: center;
+}
+
+.card-decoration.left.percival {
+    background-image: url('../images/default_avatar.png');
+    background-size: cover;
+    background-position: center;
+}
+
+.card-decoration.right.oberon {
+    background-image: url('../images/default_avatar.png');
+    background-size: cover;
+    background-position: center;
+}
+
+.card-decoration.right.assassin {
+    background-image: url('../images/default_avatar.png');
+    background-size: cover;
+    background-position: center;
+}
+
+.card-decoration.right.morgana {
+    background-image: url('../images/default_avatar.png');
+    background-size: cover;
+    background-position: center;
+}
+
+/*
+---------------- 图片接口在上面 -----------------
+*/
