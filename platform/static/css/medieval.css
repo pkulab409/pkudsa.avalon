@@ -354,37 +354,37 @@ h1::after, h2::after, h3::after {
 } 
 
 .card-decoration.left.merlin {
-    background-image: url('../images/default_avatar.png');
+    background-image: url('../images/merlin.png');
     background-size: cover;
     background-position: center;
 }
 
 .card-decoration.left.knight {
-    background-image: url('../images/default_avatar.png');
+    background-image: url('../images/knight.png');
     background-size: cover;
     background-position: center;
 }
 
 .card-decoration.left.percival {
-    background-image: url('../images/default_avatar.png');
+    background-image: url('../images/percival.png');
     background-size: cover;
     background-position: center;
 }
 
 .card-decoration.right.oberon {
-    background-image: url('../images/default_avatar.png');
+    background-image: url('../images/oberon.png');
     background-size: cover;
     background-position: center;
 }
 
 .card-decoration.right.assassin {
-    background-image: url('../images/default_avatar.png');
+    background-image: url('../images/assassin.png');
     background-size: cover;
     background-position: center;
 }
 
 .card-decoration.right.morgana {
-    background-image: url('../images/default_avatar.png');
+    background-image: url('../images/morgana.png');
     background-size: cover;
     background-position: center;
 }
