@@ -31,7 +31,6 @@
                                                 {% for opponent in potential_opponents %}
                                                     <option value="{{ opponent.id }}" data-username="{{ opponent.username }}">{{ opponent.username }}</option>
                                                 {% endfor %}
-                                                <!-- 可以添加搜索或更多玩家选项 -->
                                             </select>
                                         </div>
                                         <div>
@@ -42,13 +41,16 @@
                                                     required
                                                     disabled>
                                                 <option value="" selected disabled>-- 请先选择玩家 --</option>
-                                                <!-- AI选项将由JS动态加载 -->
                                             </select>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         {% endfor %}
+                    </div>
+                    <!-- 新增按钮：随机填充剩余位置 -->
+                    <div class="mb-3 text-end">
+                        <button type="button" class="btn btn-secondary" id="fillRandomBtn">随机填充剩余位置</button>
                     </div>
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary btn-lg">
@@ -70,176 +72,164 @@
 {% block scripts %}
     {{ super() }}
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const playerSelects = document.querySelectorAll('.player-select');
-      const aiSelects = document.querySelectorAll('.ai-select');
-      const form = document.getElementById('createBattleForm');
-      const loadingIndicator = document.getElementById('loadingIndicator');
-      const resultMessage = document.getElementById('resultMessage');
-      
-      // 存储每个玩家的AI代码列表
-      const userAiCache = {};
-      
-      // 获取指定用户的AI代码列表
-      async function fetchUserAiCodes(userId) {
-        if (userAiCache[userId]) {
-          return userAiCache[userId];
-        }
+document.addEventListener('DOMContentLoaded', function () {
+    const playerSelects = document.querySelectorAll('.player-select');
+    const aiSelects = document.querySelectorAll('.ai-select');
+    const form = document.getElementById('createBattleForm');
+    const fillRandomBtn = document.getElementById('fillRandomBtn');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const resultMessage = document.getElementById('resultMessage');
+
+    const userAiCache = {};
+    const currentUserId = "{{ current_user.id }}";
+
+    async function fetchUserAiCodes(userId) {
+        if (userAiCache[userId]) return userAiCache[userId];
         try {
-          const apiUrl = `{{ url_for('ai.get_specific_user_ai_codes', user_id='USER_ID_PLACEHOLDER') }}`.replace('USER_ID_PLACEHOLDER', userId);
-          const response = await fetch(apiUrl);
-          if (!response.ok) {
-            // 处理用户不存在或其他错误
-            const errorData = await response.json().catch(() => ({})); // 尝试解析错误信息
-            console.error(`获取用户 ${userId} AI列表失败: ${response.status}`, errorData.message || '未知错误');
-            throw new Error(`获取AI列表失败 (${response.status})`);
-          }
-          const data = await response.json();
-          if (data.success) {
-            userAiCache[userId] = data.ai_codes;
-            return data.ai_codes;
-          } else {
-            throw new Error(data.message || '获取AI列表失败');
-          }
-        } catch (error) {
-          console.error('获取AI代码时出错:', error);
-          userAiCache[userId] = []; // 出错时返回空
-          return [];
+            const apiUrl = `{{ url_for('ai.get_specific_user_ai_codes', user_id='USER_ID_PLACEHOLDER') }}`.replace('USER_ID_PLACEHOLDER', userId);
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+            if (data.success) {
+                userAiCache[userId] = data.ai_codes;
+                return data.ai_codes;
+            }
+        } catch (e) {
+            console.error('AI代码加载错误:', e);
         }
-      }
-      
-      // 更新AI下拉列表
-      async function updateAiSelect(playerSelect, aiSelect) {
+        userAiCache[userId] = [];
+        return [];
+    }
+
+    async function updateAiSelect(playerSelect, aiSelect) {
         const selectedUserId = playerSelect.value;
         aiSelect.innerHTML = '<option value="" selected disabled>-- 正在加载AI --</option>';
         aiSelect.disabled = true;
-        
         if (!selectedUserId) {
-          aiSelect.innerHTML = '<option value="" selected disabled>-- 请先选择玩家 --</option>';
-          return;
+            aiSelect.innerHTML = '<option value="" selected disabled>-- 请先选择玩家 --</option>';
+            return;
         }
-        
         const aiCodes = await fetchUserAiCodes(selectedUserId);
-        
-        aiSelect.innerHTML = ''; // 清空选项
+        aiSelect.innerHTML = '';
         if (aiCodes.length > 0) {
-          // 查找是否有激活的AI
-          const activeAi = aiCodes.find(ai => ai.is_active);
-          
-          aiCodes.forEach(ai => {
-            const option = document.createElement('option');
-            option.value = ai.id;
-            option.textContent = `${ai.name} ${ai.is_active ? '(活跃)' : ''}`;
-            if (activeAi && ai.id === activeAi.id) {
-              option.selected = true; // 默认选中活跃AI
-            }
-            aiSelect.appendChild(option);
-          });
-          aiSelect.disabled = false;
+            const activeAi = aiCodes.find(ai => ai.is_active);
+            aiCodes.forEach(ai => {
+                const option = document.createElement('option');
+                option.value = ai.id;
+                option.textContent = `${ai.name} ${ai.is_active ? '(活跃)' : ''}`;
+                if (activeAi && ai.id === activeAi.id) option.selected = true;
+                aiSelect.appendChild(option);
+            });
+            aiSelect.disabled = false;
         } else {
-          aiSelect.innerHTML = '<option value="" selected disabled>-- 该玩家无可用AI --</option>';
-          aiSelect.disabled = true;
+            aiSelect.innerHTML = '<option value="" selected disabled>-- 该玩家无可用AI --</option>';
+            aiSelect.disabled = true;
         }
-      }
-      
-      // 为每个玩家选择框添加事件监听
-      playerSelects.forEach(select => {
+    }
+
+    playerSelects.forEach(select => {
         const index = select.dataset.index;
         const correspondingAiSelect = document.getElementById(`ai_code_${index}`);
-        select.addEventListener('change', () => {
-          updateAiSelect(select, correspondingAiSelect);
-        });
-        // 初始加载（如果需要默认填充第一个玩家）
-        // updateAiSelect(select, correspondingAiSelect);
-      });
-      
-      // 处理表单提交
-      form.addEventListener('submit', async function(event) {
+        select.addEventListener('change', () => updateAiSelect(select, correspondingAiSelect));
+    });
+
+    form.addEventListener('submit', async function (event) {
         event.preventDefault();
         loadingIndicator.style.display = 'block';
         resultMessage.textContent = '';
-        resultMessage.className = 'mt-3'; // Reset class
-        
+        resultMessage.className = 'mt-3';
+
         const participants = [];
         let isValid = true;
         const selectedUsers = new Set();
-        
+
         for (let i = 0; i < 7; i++) {
-          const playerSelect = document.getElementById(`player_${i}`);
-          const aiSelect = document.getElementById(`ai_code_${i}`);
-          
-          if (!playerSelect.value || !aiSelect.value) {
-            isValid = false;
-            resultMessage.textContent = `位置 ${i + 1} 的玩家或AI未选择完整。`;
-            resultMessage.classList.add('alert', 'alert-danger');
-            break;
-          }
-          
-          // 检查玩家是否重复选择
-          if (selectedUsers.has(playerSelect.value)) {
-            isValid = false;
-            const username = playerSelect.options[playerSelect.selectedIndex].dataset.username;
-            resultMessage.textContent = `玩家 ${username} 被重复选择。`;
-            resultMessage.classList.add('alert', 'alert-danger');
-            break;
-          }
-          selectedUsers.add(playerSelect.value);
-          
-          participants.push({
-            user_id: playerSelect.value,
-            ai_code_id: aiSelect.value
-          });
-        }
-        
-        if (!isValid) {
-          loadingIndicator.style.display = 'none';
-          return;
-        }
-        
-        // 发送创建请求
-        try {
-          // 获取 CSRF token 从 meta 标签
-          const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-          const response = await fetch('{{ url_for("game.create_battle_action") }}', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              // 添加 CSRF token header
-              'X-CSRFToken': csrfToken
-            },
-            body: JSON.stringify({ participants: participants })
-          });
-
-          // 检查响应是否真的是 JSON
-          const contentType = response.headers.get("content-type");
-          if (contentType && contentType.indexOf("application/json") !== -1) {
-              const data = await response.json(); // 只有当响应是 JSON 时才解析
-
-              if (data.success) {
-                resultMessage.textContent = `${data.message || '对战创建成功！'} 正在跳转到对战页面...`;
-                resultMessage.classList.add('alert', 'alert-success');
-                // 跳转到对战页面
-                window.location.href = `{{ url_for('game.view_battle', battle_id='BATTLE_ID') }}`.replace('BATTLE_ID', data.battle_id);
-              } else {
-                resultMessage.textContent = `创建失败: ${data.message || '未知错误'}`;
+            const playerSelect = document.getElementById(`player_${i}`);
+            const aiSelect = document.getElementById(`ai_code_${i}`);
+            if (!playerSelect.value || !aiSelect.value) {
+                isValid = false;
+                resultMessage.textContent = `位置 ${i + 1} 的玩家或AI未选择完整。`;
                 resultMessage.classList.add('alert', 'alert-danger');
-              }
-          } else {
-              // 如果响应不是 JSON，显示错误文本
-              const errorText = await response.text();
-              console.error('服务器返回非JSON响应:', errorText);
-              resultMessage.textContent = `创建失败: 服务器返回了意外的响应 (状态码: ${response.status})。请检查服务器日志。`;
-              resultMessage.classList.add('alert', 'alert-danger');
-          }
-        } catch (error) {
-          console.error('创建对战时出错:', error);
-          resultMessage.textContent = `创建对战时发生网络或服务器错误: ${error.message}`;
-          resultMessage.classList.add('alert', 'alert-danger');
-        } finally {
-          loadingIndicator.style.display = 'none';
+                break;
+            }
+            if (selectedUsers.has(playerSelect.value)) {
+                const username = playerSelect.options[playerSelect.selectedIndex].dataset.username;
+                resultMessage.textContent = `玩家 ${username} 被重复选择。`;
+                resultMessage.classList.add('alert', 'alert-danger');
+                isValid = false;
+                break;
+            }
+            selectedUsers.add(playerSelect.value);
+            participants.push({ user_id: playerSelect.value, ai_code_id: aiSelect.value });
         }
-      });
+
+        if (!isValid) {
+            loadingIndicator.style.display = 'none';
+            return;
+        }
+
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            const response = await fetch('{{ url_for("game.create_battle_action") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ participants })
+            });
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                const data = await response.json();
+                if (data.success) {
+                    resultMessage.textContent = `${data.message || '对战创建成功！'} 正在跳转到对战页面...`;
+                    resultMessage.classList.add('alert', 'alert-success');
+                    window.location.href = `{{ url_for('game.view_battle', battle_id='BATTLE_ID') }}`.replace('BATTLE_ID', data.battle_id);
+                } else {
+                    resultMessage.textContent = `创建失败: ${data.message || '未知错误'}`;
+                    resultMessage.classList.add('alert', 'alert-danger');
+                }
+            } else {
+                const errorText = await response.text();
+                resultMessage.textContent = `创建失败: 非预期响应 (状态码: ${response.status})`;
+                resultMessage.classList.add('alert', 'alert-danger');
+            }
+        } catch (e) {
+            console.error('提交错误:', e);
+            resultMessage.textContent = `创建对战时出错: ${e.message}`;
+            resultMessage.classList.add('alert', 'alert-danger');
+        } finally {
+            loadingIndicator.style.display = 'none';
+        }
     });
+
+    // 新功能：随机填充剩余位置
+    fillRandomBtn.addEventListener('click', async () => {
+        const usedIds = new Set([currentUserId]);
+        for (let i = 0; i < 7; i++) {
+            const val = document.getElementById(`player_${i}`).value;
+            if (val) usedIds.add(val);
+        }
+
+        const allOptions = Array.from(document.querySelector(`#player_1`).options)
+            .filter(opt => opt.value && !usedIds.has(opt.value));
+
+        if (allOptions.length < 6 - usedIds.size + 1) {
+            alert("可用玩家不足，无法填充。");
+            return;
+        }
+
+        // 随机挑选6个不重复用户
+        const shuffled = allOptions.sort(() => 0.5 - Math.random()).slice(0, 6 - (usedIds.size - 1));
+        for (let i = 1; i < 7; i++) {
+            const playerSelect = document.getElementById(`player_${i}`);
+            const aiSelect = document.getElementById(`ai_code_${i}`);
+            if (!playerSelect.value) {
+                const randomOpt = shuffled.shift();
+                playerSelect.value = randomOpt.value;
+                await updateAiSelect(playerSelect, aiSelect);
+            }
+        }
+    });
+});
     </script>
 {% endblock scripts %}
