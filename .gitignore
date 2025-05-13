@@ -180,4 +180,4 @@ data/
 platform/uploads/
 platform.db
 uploads/
-config.yaml
+platform/config/config.yaml
