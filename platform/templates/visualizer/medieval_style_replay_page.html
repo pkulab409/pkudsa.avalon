@@ -853,83 +853,95 @@
              chatHtml += `<div class="message-system">等待队长 ${event.leader || '?'}号 选择队伍...</div>`;
           }
 
-          // Speeches
-          if (event.speeches && event.speeches.length > 0) {
-            event.speeches.forEach(speech => {
-              // speech 现在是四元组: [playerId, message, speechType, hearers]
-              const playerId = speech[0];
-              const message = speech[1];
-              const speechType = speech.length > 3 ? speech[2] : "public"; // 默认为public
-              const hearers = speech[3]
-
-              const playerInfo = getPlayerInfo(playerId);
-              const wrapperClass = playerInfo.faction === 'blue' ? 'message-wrapper-blue' : 'message-wrapper-red';
-              const tagColorClass = playerInfo.faction === 'blue' ? 'text-primary' : 'text-danger';
-              const bubbleClass = `message-${playerInfo.faction} ${speechType === "private" ? "private-speech" : ""}`;
-
-              // 添加发言类型标记
-              const speechBadge = speechType === "private" 
-                  ? '<span class="badge bg-secondary speech-badge">有限范围</span>'
-                  : '<span class="badge bg-info text-dark speech-badge">公开</span>';
-              
-              const hearersTags = speechType === "private" && hearers
-                  ? `<span class="badge bg-secondary speech-badge">${hearers}</span>`
-                  : '';
-
-              chatHtml += `
-                <div class="message-wrapper ${wrapperClass}">
-                  ${playerInfo.role === 'Merlin' ? '<div class="card-decoration left merlin"></div>' : ''}
-                  ${playerInfo.role === 'Percival' ? '<div class="card-decoration left percival"></div>' : ''}
-                  ${playerInfo.role === 'Knight1' ? '<div class="card-decoration left knight1"></div>' : ''}
-                  ${playerInfo.role === 'Knight2' ? '<div class="card-decoration left knight2"></div>' : ''}
-                  <div class="message-content">
-                    <div class="player-tag ${tagColorClass}">
-                       ${playerInfo.id}号 (${playerInfo.name}) ${speechBadge} ${hearersTags ? `<div class="hearers-tags">${hearersTags}</div>` : ""}                     
+          // Process all events in chronological order
+          if (event.events && event.events.length > 0) {
+            event.events.forEach(eventItem => {
+              if (eventItem.type === "team_propose") {
+                const leader = eventItem.data.leader;
+                const team_members = eventItem.data.team_members
+                if (leader) {
+                  const leaderInfo = getPlayerInfo(leader);
+                  chatHtml += `
+                    <div class="message-system">
+                      <i class="bi bi-person-badge"></i> <strong>队长:</strong> ${leaderInfo.id}号 (${leaderInfo.name})<br>
+                      <i class="bi bi-people-fill"></i> <strong>提议队伍:</strong>
+                      ${team_members && team_members.length > 0
+                        ? team_members.map(memberId => `<span class="badge bg-secondary mx-1">${getPlayerInfo(memberId).id}号</span>`).join('')
+                        : '无'}
                     </div>
-                    <div class="message-bubble ${bubbleClass}">
-                      ${message}
+                  `;
+                }
+              }
+
+
+              if (eventItem.type === "speech") {
+                const [playerId, message, speechType, hearers] = eventItem.data;
+                const playerInfo = getPlayerInfo(playerId);
+                const wrapperClass = playerInfo.faction === 'blue' ? 'message-wrapper-blue' : 'message-wrapper-red';
+                const tagColorClass = playerInfo.faction === 'blue' ? 'text-primary' : 'text-danger';
+                const bubbleClass = `message-${playerInfo.faction} ${speechType === "private" ? "private-speech" : ""}`;
+
+                // 添加发言类型标记
+                const speechBadge = speechType === "private" 
+                    ? '<span class="badge bg-secondary speech-badge">有限范围</span>'
+                    : '<span class="badge bg-info text-dark speech-badge">公开</span>';
+                
+                const hearersTags = speechType === "private" && hearers
+                    ? `<span class="badge bg-secondary speech-badge">${hearers}</span>`
+                    : '';
+
+                chatHtml += `
+                  <div class="message-wrapper ${wrapperClass}">
+                    ${playerInfo.role === 'Merlin' ? '<div class="card-decoration left merlin"></div>' : ''}
+                    ${playerInfo.role === 'Percival' ? '<div class="card-decoration left percival"></div>' : ''}
+                    ${playerInfo.role === 'Knight1' ? '<div class="card-decoration left knight1"></div>' : ''}
+                    ${playerInfo.role === 'Knight2' ? '<div class="card-decoration left knight2"></div>' : ''}
+                    <div class="message-content">
+                      <div class="player-tag ${tagColorClass}">
+                         ${playerInfo.id}号 (${playerInfo.name}) ${speechBadge} ${hearersTags ? `<div class="hearers-tags">${hearersTags}</div>` : ""}                     
+                      </div>
+                      <div class="message-bubble ${bubbleClass}">
+                        ${message}
+                      </div>
                     </div>
+                    ${playerInfo.role === 'Assassin' ? '<div class="card-decoration right assassin"></div>' : ''}
+                    ${playerInfo.role === 'Morgana' ? '<div class="card-decoration right morgana"></div>' : ''}
+                    ${playerInfo.role === 'Oberon' ? '<div class="card-decoration right oberon"></div>' : ''}
                   </div>
-                  ${playerInfo.role === 'Assassin' ? '<div class="card-decoration right assassin"></div>' : ''}
-                  ${playerInfo.role === 'Morgana' ? '<div class="card-decoration right morgana"></div>' : ''}
-                  ${playerInfo.role === 'Oberon' ? '<div class="card-decoration right oberon"></div>' : ''}
-                </div>
-                <div class="clearfix"></div>
-              `;
+                  <div class="clearfix"></div>
+                `;
+              } else if (eventItem.type === "vote_attempt") {
+                const voteAttempt = eventItem.data;
+                const approved = voteAttempt.approved;
+                chatHtml += `
+                  <div class="vote-info">
+                    <strong>队伍投票结果:</strong>
+                    <span class="badge fs-6 ${approved ? 'bg-success' : 'bg-warning text-dark'}">
+                      ${approved ? '通过' : '拒绝'}
+                    </span>
+                    <small class="text-muted">(${voteAttempt.approve_count || 0} 赞成 / ${voteAttempt.reject_count || 0} 反对)</small>
+                    <div class="mt-2">`; // Container for individual votes
+
+                // Display individual votes if available
+                if (voteAttempt.votes && Object.keys(voteAttempt.votes).length > 0) {
+                     // Sort votes by player ID for consistent order
+                     const sortedPlayerIds = Object.keys(voteAttempt.votes).sort((a, b) => parseInt(a) - parseInt(b));
+
+                     sortedPlayerIds.forEach(playerId => {
+                        const vote = voteAttempt.votes[playerId]; // true for Approve, false for Reject
+                        const playerInfo = getPlayerInfo(playerId);
+                        chatHtml += `
+                          <span class="vote-badge badge ${vote ? 'bg-success-light' : 'bg-danger-light'} border ${vote ? 'border-success' : 'border-danger'} text-dark">
+                            ${playerInfo.id}号: ${vote ? '<i class="bi bi-check-circle"></i> 赞成' : '<i class="bi bi-x-circle"></i> 反对'}
+                          </span>
+                        `;
+                     });
+                } else {
+                     chatHtml += `<small class="text-muted d-block">（未记录具体投票）</small>`;
+                }
+                chatHtml += `</div></div>`; // Close vote-info
+              }
             });
-          }
-
-          // Vote Results
-          if (event.vote_result) {
-            const voteResult = event.vote_result;
-            const approved = voteResult.approved;
-            chatHtml += `
-              <div class="vote-info">
-                <strong>队伍投票结果:</strong>
-                <span class="badge fs-6 ${approved ? 'bg-success' : 'bg-warning text-dark'}">
-                  ${approved ? '通过' : '拒绝'}
-                </span>
-                <small class="text-muted">(${voteResult.approve_count || 0} 赞成 / ${voteResult.reject_count || 0} 反对)</small>
-                <div class="mt-2">`; // Container for individual votes
-
-            // Display individual votes if available
-            if (event.votes && Object.keys(event.votes).length > 0) {
-                 // Sort votes by player ID for consistent order
-                 const sortedPlayerIds = Object.keys(event.votes).sort((a, b) => parseInt(a) - parseInt(b));
-
-                 sortedPlayerIds.forEach(playerId => {
-                    const vote = event.votes[playerId]; // true for Approve, false for Reject
-                    const playerInfo = getPlayerInfo(playerId);
-                    chatHtml += `
-                      <span class="vote-badge badge ${vote ? 'bg-success-light' : 'bg-danger-light'} border ${vote ? 'border-success' : 'border-danger'} text-dark">
-                        ${playerInfo.id}号: ${vote ? '<i class="bi bi-check-circle"></i> 赞成' : '<i class="bi bi-x-circle"></i> 反对'}
-                      </span>
-                    `;
-                 });
-            } else {
-                 chatHtml += `<small class="text-muted d-block">（未记录具体投票）</small>`;
-            }
-            chatHtml += `</div></div>`; // Close vote-info
           }
 
           // Mission Execution Results
