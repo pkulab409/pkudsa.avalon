@@ -37,6 +37,7 @@ def game_replay(game_id):
 
     def _get_user_names(game_id) -> list:
         from database import get_battle_by_id
+
         battle_obj = get_battle_by_id(game_id)
         player_objs = battle_obj.get_players()
         return [player.username for player in player_objs]
