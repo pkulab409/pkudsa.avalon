@@ -29,6 +29,7 @@ from .models import (
     GameStats,
     AICode,
     BattlePlayer,
+    db,
 )  # 移除Room, RoomParticipant
 
 # 配置 Logger
@@ -1500,6 +1501,75 @@ def handle_cancelled_battle_stats(battle_id):
         logger.error(f"处理已取消对战统计失败: {e}", exc_info=True)
         db.session.rollback()
         return False
+
+
+from sqlalchemy import desc, or_, and_  # Import and_ if needed, or_ is key here
+
+
+def get_battles_paginated_filtered(filters=None, page=1, per_page=10, error_out=False):
+    """
+    Fetches battles with optional filters and pagination.
+
+    :param filters: A dictionary with possible keys: 'status', 'date_from', 'date_to', 'player'.
+    :param page: Current page number.
+    :param per_page: Items per page.
+    :param error_out: If True, raises an error for invalid page numbers.
+    :return: A Flask-SQLAlchemy Pagination object.
+    """
+    query = Battle.query
+    player_filter_applied_successfully = (
+        True  # Assume success unless player specified but not found
+    )
+
+    if filters:
+        # Apply status filter
+        if "status" in filters and filters["status"] and filters["status"] != "all":
+            query = query.filter(Battle.status == filters["status"])
+
+        # Apply date filters
+        if "date_from" in filters and filters["date_from"]:
+            query = query.filter(Battle.created_at >= filters["date_from"])
+        if "date_to" in filters and filters["date_to"]:
+            query = query.filter(Battle.created_at <= filters["date_to"])
+
+        # Apply player filter
+        if "player" in filters and filters["player"]:
+            player_identifier = filters["player"]
+
+            # Construct conditions for user identification
+            user_conditions = [User.username == player_identifier]
+            if player_identifier.isdigit():
+                try:
+                    user_conditions.append(User.id == int(player_identifier))
+                except (
+                    ValueError
+                ):  # Should not happen due to isdigit, but good practice
+                    pass
+
+            user = User.query.filter(or_(*user_conditions)).first()
+
+            if user:
+                # If user found, join with BattlePlayer and filter by user_id
+                # Using a subquery to ensure we only get Battles where the specific user participated
+                # Ensure 'db' is imported (from .models import db or from .base import db)
+                subquery = (
+                    db.session.query(BattlePlayer.battle_id)
+                    .filter(BattlePlayer.user_id == user.id)
+                    .subquery()
+                )
+                query = query.join(subquery, Battle.id == subquery.c.battle_id)
+            else:
+                # Player specified but not found, so no battles should match this filter combination
+                player_filter_applied_successfully = False
+
+    # If player filter was specified but the player was not found, ensure no results.
+    if not player_filter_applied_successfully:
+        query = query.filter(False)  # Effectively makes the query return no results
+
+    # Default ordering
+    query = query.order_by(desc(Battle.created_at))
+
+    return query.paginate(page=page, per_page=per_page, error_out=error_out)
 
 
 # -----------------------------------------------------------------------------------------

@@ -26,13 +26,14 @@ from database import (
     get_user_active_ai_code,
     create_battle as db_create_battle,
     get_battle_by_id as db_get_battle_by_id,
-    get_recent_battles as db_get_recent_battles,
     get_battle_players_for_battle as db_get_battle_players_for_battle,
     get_user_ai_codes as db_get_user_ai_codes,
+    get_battles_paginated_filtered,
 )
 from database.models import Battle, BattlePlayer, User, AICode
 from utils.battle_manager_utils import get_battle_manager
 from utils.automatch_utils import get_automatch
+from datetime import datetime  # For date filtering
 
 game_bp = Blueprint("game", __name__)
 logger = logging.getLogger(__name__)
@@ -43,16 +44,57 @@ logger = logging.getLogger(__name__)
 @game_bp.route("/lobby")
 @login_required
 def lobby():
-    """显示游戏大厅页面，列出最近的对战"""
-    recent_battles = db_get_recent_battles(limit=20)  # 获取最近完成的对战
-    # 可以考虑也获取正在等待或进行的对战
-    # waiting_battles = Battle.query.filter_by(status='waiting').order_by(Battle.created_at.desc()).limit(10).all()
-    # playing_battles = Battle.query.filter_by(status='playing').order_by(Battle.started_at.desc()).limit(10).all()
+    """显示游戏大厅页面，列出最近的对战，支持筛选和分页"""
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 10, type=int)  # Or your preferred default
+    status_filter = request.args.get("status", None, type=str)
+    date_from_str = request.args.get("date_from", None, type=str)
+    date_to_str = request.args.get("date_to", None, type=str)
+    player_filter = request.args.get("player", None, type=str)  # New filter parameter
+
+    filters = {}
+    if status_filter and status_filter != "all":  # 'all' means no status filter
+        filters["status"] = status_filter
+
+    try:
+        if date_from_str:
+            filters["date_from"] = datetime.strptime(date_from_str, "%Y-%m-%d")
+        if date_to_str:
+            # Adjust to include the whole day
+            filters["date_to"] = datetime.strptime(
+                date_to_str + " 23:59:59", "%Y-%m-%d %H:%M:%S"
+            )
+    except ValueError:
+        flash("日期格式无效，请使用 YYYY-MM-DD 格式。", "danger")
+        filters.pop("date_from", None)
+        filters.pop("date_to", None)
+
+    if player_filter:
+        filters["player"] = (
+            player_filter.strip()
+        )  # Add player filter, remove leading/trailing spaces
+
+    # Fetch battles using the enhanced database function
+    battles_pagination = get_battles_paginated_filtered(
+        filters=filters, page=page, per_page=per_page
+    )
+
+    # Fetch all users for the datalist suggestion (optional but helpful)
+    # Consider performance if you have a very large number of users.
+    all_users = User.query.order_by(User.username).all()
+
     return render_template(
         "lobby.html",
-        recent_battles=recent_battles,
+        battles_pagination=battles_pagination,
         automatch_is_on=get_automatch().is_on,
-    )  # 需要创建 lobby.html
+        all_users=all_users,  # Pass users to the template
+        current_filters={  # Pass current filters back to the template
+            "status": status_filter,
+            "date_from": date_from_str,
+            "date_to": date_to_str,
+            "player": player_filter,  # Pass player filter back
+        },
+    )
 
 
 @game_bp.route("/create_battle_page")

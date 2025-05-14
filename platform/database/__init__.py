@@ -59,6 +59,7 @@ from .action import (
     # 其他可能需要的函数...
     mark_battle_as_cancelled,
     handle_cancelled_battle_stats,
+    get_battles_paginated_filtered,
 )
 
 
