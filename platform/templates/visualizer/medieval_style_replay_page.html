@@ -974,7 +974,7 @@
 
 
       // --- Update Display for Round ---
-      function updateDisplayForRound(round) {
+      function updateDisplayForRound(round, shouldScroll = true) {
         currentMapRound = round; // Update the tracked round
 
         // Update Map
@@ -985,40 +985,95 @@
         currentRoundBadge.textContent = roundText;
         mapCurrentRoundDisplay.textContent = roundText; // Keep map header consistent
 
-        // Scroll Chat View to the corresponding round divider
-        const roundElement = document.getElementById(`round-${round}`);
-        if (roundElement) {
-          // Calculate position relative to the container's scroll top
-          const offsetTop = roundElement.offsetTop - chatContainer.offsetTop - 10; // Adjust 10 for desired padding/offset
-          chatContainer.scrollTo({ top: offsetTop, behavior: 'smooth' });
-        } else if (round === 0) {
-            // Scroll to top for round 0
-            chatContainer.scrollTo({ top: 0, behavior: 'smooth' });
-        } else if (round === 'assassination') {
-             const assassElement = document.getElementById(`round-assassination`);
-             if (assassElement) {
-                 const offsetTop = assassElement.offsetTop - chatContainer.offsetTop - 10;
-                 chatContainer.scrollTo({ top: offsetTop, behavior: 'smooth' });
-             }
+        // 只有在shouldScroll为true时才滚动聊天容器
+        if (shouldScroll) {
+          // Scroll Chat View to the corresponding round divider
+          const roundElement = document.getElementById(`round-${round}`);
+          if (roundElement) {
+            // Calculate position relative to the container's scroll top
+            const offsetTop = roundElement.offsetTop - chatContainer.offsetTop - 10; // Adjust 10 for desired padding/offset
+            chatContainer.scrollTo({ top: offsetTop, behavior: 'smooth' });
+          } else if (round === 0) {
+              // Scroll to top for round 0
+              chatContainer.scrollTo({ top: 0, behavior: 'smooth' });
+          } else if (round === 'assassination') {
+               const assassElement = document.getElementById(`round-assassination`);
+               if (assassElement) {
+                   const offsetTop = assassElement.offsetTop - chatContainer.offsetTop - 10;
+                   chatContainer.scrollTo({ top: offsetTop, behavior: 'smooth' });
+               }
+          }
         }
       }
 
       // --- Event Listeners ---
       mapPrevRoundBtn.addEventListener('click', () => {
         if (currentMapRound > 0) {
-          updateDisplayForRound(currentMapRound - 1);
+          updateDisplayForRound(currentMapRound - 1, true); // 点击按钮时允许滚动
         }
       });
 
       mapNextRoundBtn.addEventListener('click', () => {
         // Allow going up to maxRound, even if it's just the end state
         if (currentMapRound < maxRound) {
-          updateDisplayForRound(currentMapRound + 1);
+          updateDisplayForRound(currentMapRound + 1, true); // 点击按钮时允许滚动
         }
-        // Potentially handle 'assassination' step if needed
       });
 
       scrollToBottomBtn.addEventListener('click', scrollToBottom);
+
+      // 添加滚动监听，自动更新地图
+      let scrollTimeout;
+      chatContainer.addEventListener('scroll', () => {
+        // 如果正在自动滚动，不触发地图更新
+        if (isSmoothScrolling) return;
+
+        // 清除之前的定时器
+        clearTimeout(scrollTimeout);
+        
+        // 设置新的定时器，避免频繁更新
+        scrollTimeout = setTimeout(() => {
+          // 获取所有轮数分隔符
+          const roundDividers = Array.from(document.querySelectorAll('.round-divider'));
+          
+          // 找到最接近视口顶部的轮数分隔符
+          const containerTop = chatContainer.scrollTop;
+          const containerHeight = chatContainer.clientHeight;
+          const viewportMiddle = containerTop + containerHeight / 2;
+
+          let closestDivider = null;
+          let minDistance = Infinity;
+
+          roundDividers.forEach(divider => {
+            const dividerTop = divider.offsetTop - chatContainer.offsetTop;
+            const distance = Math.abs(dividerTop - viewportMiddle);
+            
+            if (distance < minDistance) {
+              minDistance = distance;
+              closestDivider = divider;
+            }
+          });
+
+          if (closestDivider) {
+            // 从divider的id中提取轮数
+            const roundId = closestDivider.id;
+            let roundNum;
+            
+            if (roundId === 'round-0') {
+              roundNum = 0;
+            } else if (roundId === 'round-assassination') {
+              roundNum = 'assassination';
+            } else {
+              roundNum = parseInt(roundId.replace('round-', ''));
+            }
+
+            // 如果轮数发生变化，更新地图，但不滚动聊天容器
+            if (roundNum !== currentMapRound) {
+              updateDisplayForRound(roundNum, false); // 手动滚动时不改变聊天容器位置
+            }
+          }
+        }, 150); // 150ms的防抖延迟
+      });
 
       // --- Initialization ---
       if (!gameInfo || !gameEvents || !playerMovements || mapSize <= 0) {
