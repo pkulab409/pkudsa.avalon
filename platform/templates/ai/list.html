@@ -84,39 +84,81 @@
                     </div>
 
                     <!-- 删除确认模态框 -->
+                    <!-- 测试AI模态框 -->
                     <div class="modal fade"
-                         id="deleteAiModal-{{ ai.id }}"
-                         tabindex="-1"
-                         aria-labelledby="deleteAiModalLabel-{{ ai.id }}"
-                         aria-hidden="true">
+                        id="testAiModal-{{ ai.id }}"
+                        tabindex="-1"
+                        aria-labelledby="testAiModalLabel-{{ ai.id }}"
+                        aria-hidden="true">
                         <div class="modal-dialog modal-dialog-centered">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title" id="deleteAiModalLabel-{{ ai.id }}">确认删除</h5>
+                                    <h5 class="modal-title" id="testAiModalLabel-{{ ai.id }}">测试 AI: {{ ai.name }}</h5>
                                     <button type="button"
                                             class="btn-close"
                                             data-bs-dismiss="modal"
                                             aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
-                                    <div class="text-center mb-4">
-                                        <i class="bi bi-exclamation-triangle text-warning" style="font-size: 3rem;"></i>
-                                        <h4 class="mt-3">确定要删除此AI代码吗？</h4>
-                                        <p class="text-muted">您将要删除 <strong>"{{ ai.name }}"</strong>，此操作不可恢复。</p>
-                                    </div>
+                                    <form id="testAiForm-{{ ai.id }}">
+                                        <input type="hidden" name="ai_id" value="{{ ai.id }}">
+                                        <div class="mb-3">
+                                            <label class="form-label">选择对手类型</label>
+                                            <div class="d-flex flex-wrap">
+                                                <div class="form-check me-3 mb-2">
+                                                    <input class="form-check-input" type="radio" name="opponent_type"
+                                                            id="opponent-smart-{{ ai.id }}" value="smart" checked>
+                                                    <label class="form-check-label" for="opponent-smart-{{ ai.id }}">
+                                                        Smart AI (高级对手)
+                                                    </label>
+                                                </div>
+                                                <div class="form-check me-3 mb-2">
+                                                    <input class="form-check-input" type="radio" name="opponent_type"
+                                                            id="opponent-basic-{{ ai.id }}" value="basic">
+                                                    <label class="form-check-label" for="opponent-basic-{{ ai.id }}">
+                                                        Basic AI (基础对手)
+                                                    </label>
+                                                </div>
+                                                <div class="form-check me-3 mb-2">
+                                                    <input class="form-check-input" type="radio" name="opponent_type"
+                                                            id="opponent-idiot-{{ ai.id }}" value="idiot">
+                                                    <label class="form-check-label" for="opponent-idiot-{{ ai.id }}">
+                                                        Idiot AI (傻瓜对手)
+                                                    </label>
+                                                </div>
+                                                <div class="form-check mb-2">
+                                                    <input class="form-check-input" type="radio" name="opponent_type"
+                                                            id="opponent-mixed-{{ ai.id }}" value="mixed">
+                                                    <label class="form-check-label" for="opponent-mixed-{{ ai.id }}">
+                                                        Mixed AI (混合对手)
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="form-text">
+                                                系统会确保每个AI实例在游戏中最多出现一次
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="player-position-{{ ai.id }}" class="form-label">选择您的位置 (1-7)</label>
+                                            <select class="form-select" id="player-position-{{ ai.id }}" name="player_position">
+                                                <option value="1">位置 1</option>
+                                                <option value="2">位置 2</option>
+                                                <option value="3">位置 3</option>
+                                                <option value="4">位置 4</option>
+                                                <option value="5">位置 5</option>
+                                                <option value="6">位置 6</option>
+                                                <option value="7">位置 7</option>
+                                            </select>
+                                        </div>
+                                    </form>
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                                         <i class="bi bi-x me-1"></i> 取消
                                     </button>
-                                    <form action="{{ url_for('ai.delete_ai', ai_id=ai.id) }}"
-                                          method="post"
-                                          class="d-inline">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-danger">
-                                            <i class="bi bi-trash me-1"></i> 确认删除
-                                        </button>
-                                    </form>
+                                    <button type="button" class="btn btn-primary" onclick="setupTestBattle('{{ ai.id }}')">
+                                        <i class="bi bi-play-circle me-1"></i> 开始测试
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -161,7 +203,7 @@
                                                     <input class="form-check-input" type="radio" name="opponent_type"
                                                            id="opponent-idiot-{{ ai.id }}" value="idiot">
                                                     <label class="form-check-label" for="opponent-idiot-{{ ai.id }}">
-                                                        Idiot AI (弱智对手)
+                                                        Idiot AI (傻瓜对手)
                                                     </label>
                                                 </div>
                                             </div>

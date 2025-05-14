@@ -13,6 +13,8 @@
 - 【对战功能】 创建对战、更新对战、对战用户管理、对战历史、*ELO*等
 - 备用：BattlePlayer 独立 CRUD 操作
 """
+from flask import current_app
+
 # 准备好后面一千多行的冲击吧！
 MAX_TOKEN_ALLOWED = 3000
 
@@ -1506,6 +1508,7 @@ def handle_cancelled_battle_stats(battle_id):
 from sqlalchemy import desc, or_, and_  # Import and_ if needed, or_ is key here
 
 
+
 def get_battles_paginated_filtered(filters=None, page=1, per_page=10, error_out=False):
     """
     Fetches battles with optional filters and pagination. Supports multi-player filtering.
@@ -1570,6 +1573,231 @@ def get_battles_paginated_filtered(filters=None, page=1, per_page=10, error_out=
     query = query.order_by(desc(Battle.created_at))
 
     return query.paginate(page=page, per_page=per_page, error_out=error_out)
+
+
+def create_battle_instance(created_by, ranking_id=0):
+    """
+    创建新的对战实例
+
+    参数:
+        created_by (str): 创建者的用户ID
+        ranking_id (int): 排行榜ID，默认为0
+
+    返回:
+        Battle: 新创建的对战实例
+    """
+    try:
+        # 创建一个新的对战实例
+        new_battle = Battle(
+            status="waiting",  # 初始状态：等待中
+            ranking_id=ranking_id,
+            created_at=datetime.utcnow(),
+            # 其他字段会使用默认值或在后续更新
+        )
+
+        # 保存到数据库
+        db.session.add(new_battle)
+        db.session.commit()
+
+        current_app.logger.info(f"创建了新对战 ID: {new_battle.id}, 创建者: {created_by}")
+
+        return new_battle
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"创建对战实例失败: {str(e)}")
+        # 可以选择重新抛出异常或返回None
+        return None
+
+
+def add_player_to_battle(battle_id, position, user_id, ai_code_id=None):
+    """
+    将玩家添加到对战中
+
+    参数:
+        battle_id (str): 对战ID
+        position (int): 玩家位置 (1-7)
+        user_id (str): 用户ID
+        ai_code_id (str, optional): AI代码ID，如果要使用特定AI
+
+    返回:
+        BattlePlayer: 新创建的对战玩家实例
+    """
+    try:
+        # 验证对战存在
+        battle = db.session.query(Battle).filter(Battle.id == battle_id).first()
+        if not battle:
+            current_app.logger.error(f"添加玩家失败: 对战ID {battle_id} 不存在")
+            return None
+
+        # 验证位置未被占用
+        existing_player = db.session.query(BattlePlayer).filter(
+            BattlePlayer.battle_id == battle_id,
+            BattlePlayer.position == position
+        ).first()
+
+        if existing_player:
+            current_app.logger.error(f"添加玩家失败: 对战 {battle_id} 的位置 {position} 已被占用")
+            return None
+
+        # 检查AI代码是否存在
+        if ai_code_id:
+            ai_code = db.session.query(AICode).filter(AICode.id == ai_code_id).first()
+            if not ai_code:
+                current_app.logger.error(f"添加玩家失败: AI代码 {ai_code_id} 不存在")
+                return None
+
+        # 创建新的对战玩家记录
+        new_player = BattlePlayer(
+            battle_id=battle_id,
+            user_id=user_id,
+            position=position,
+            selected_ai_code_id=ai_code_id,
+            join_time=datetime.utcnow()
+        )
+
+        # 保存到数据库
+        db.session.add(new_player)
+        db.session.commit()
+
+        # 更新对战的玩家计数
+        update_battle_player_count(battle_id)
+
+        current_app.logger.info(f"添加玩家成功: 用户 {user_id} 加入对战 {battle_id} 的位置 {position}")
+
+        return new_player
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"添加玩家到对战失败: {str(e)}")
+        # 可以选择重新抛出异常或返回None
+        return None
+
+
+def update_battle_player_count(battle_id):
+    """
+    更新对战的玩家计数
+
+    参数:
+        battle_id (str): 对战ID
+    """
+    try:
+        # 计算当前玩家数量
+        player_count = db.session.query(BattlePlayer).filter(
+            BattlePlayer.battle_id == battle_id
+        ).count()
+
+        # 获取对战实例
+        battle = db.session.query(Battle).filter(Battle.id == battle_id).first()
+        if battle:
+            # 如果已满员，可以更新对战状态
+            if player_count >= 7:  # 阿瓦隆需要7名玩家
+                battle.status = "ready"
+
+            db.session.commit()
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"更新对战玩家计数失败: {str(e)}")
+
+def load_initial_users_from_config():
+    """
+    从 config.yaml 加载 INITIAL_USERS 配置。
+    """
+    try:
+        # 假设 config.yaml 与 action.py 在同一目录或可以通过 current_app.config 访问其路径
+        # 或者提供一个绝对/相对路径到 config.yaml
+        # 为简单起见，我们这里假设 config.yaml 在项目根目录
+        config_path = os.path.join(current_app.root_path, '..', 'config.yaml') # 调整路径
+        if not os.path.exists(config_path):
+            # 尝试备用路径，例如在当前应用的根目录下
+            config_path = os.path.join(current_app.root_path, 'config.yaml')
+
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config_data = yaml.safe_load(f)
+        return config_data.get('INITIAL_USERS', [])
+    except Exception as e:
+        current_app.logger.error(f"加载 config.yaml 失败: {e}", exc_info=True)
+        return []
+def get_available_ai_instances(username_prefix=None, specific_usernames=None):
+    """
+    获取可用的AI实例，基于config.yaml中的用户名。
+
+    参数:
+        username_prefix (str, optional): 用户名前缀 (例如 "smart_user", "basic_user").
+        specific_usernames (list, optional): 特定的用户名列表。
+
+    返回:
+        list: 符合条件的已激活的 AICode 实例列表。
+    """
+    try:
+        initial_users_config = load_initial_users_from_config()
+        if not initial_users_config:
+            return []
+
+        target_usernames = set()
+
+        if specific_usernames:
+            for uname in specific_usernames:
+                target_usernames.add(uname)
+        elif username_prefix:
+            for user_config in initial_users_config:
+                if user_config.get('username', '').startswith(username_prefix):
+                    target_usernames.add(user_config['username'])
+        else:
+            # 如果两者都未提供，默认获取所有在config中定义的用户的AI
+            for user_config in initial_users_config:
+                target_usernames.add(user_config['username'])
+
+
+        if not target_usernames:
+            current_app.logger.warning(f"根据条件 {username_prefix=} {specific_usernames=} 未找到目标用户")
+            return []
+
+        # 从数据库中查询这些用户的已激活AI
+        # 首先获取这些用户的User对象，以便通过user_id查询AICode
+        users = User.query.filter(User.username.in_(list(target_usernames))).all()
+        user_ids = [user.id for user in users]
+
+        if not user_ids:
+            current_app.logger.warning(f"未在数据库中找到用户: {target_usernames}")
+            return []
+
+        # 查询这些用户所有已激活的AI
+        available_ai_codes = AICode.query.filter(
+            AICode.user_id.in_(user_ids),
+            AICode.is_active == True
+        ).all()
+
+        # 进一步根据 config.yaml 中的 file_path 进行匹配 (可选，但更精确)
+        # 因为一个用户可能有多个AI，但config中只指定了一个初始AI
+        # 如果需要严格匹配config中的AI，可以这样做：
+        ai_instances = []
+        user_config_map = {uc['username']: uc.get('ai_code', {}).get('file_path') for uc in initial_users_config}
+
+        for ai_code in available_ai_codes:
+            user = get_user_by_id(ai_code.user_id) # 获取AI代码对应的用户
+            if user and user.username in user_config_map:
+                # config_ai_filepath = user_config_map[user.username]
+                # 数据库中存储的 code_path 通常是相对路径，需要与 config 中的 file_path 比较
+                # 这里的比较逻辑可能需要根据实际存储情况调整
+                # 例如，如果 config 中的 file_path 是 'game/smart_player.py'
+                # 而数据库中的 code_path 是 'user_id_xxx/smart_player.py' (上传后的路径)
+                # 这种情况下，直接比较 file_path 可能不准确。
+                # 更稳妥的方式是，只要是这个用户的激活AI，就认为是可用的。
+                # 如果要严格按config.yaml的file_path，那么在创建用户和AI时就要确保路径一致性。
+                # 为了简化，我们先假设用户的激活AI就是我们想要的。
+                ai_instances.append(ai_code)
+
+
+        if not ai_instances:
+            current_app.logger.warning(f"用户 {target_usernames} 没有找到已激活的AI代码")
+
+        return ai_instances
+
+    except Exception as e:
+        current_app.logger.error(f"获取AI实例时出错: {str(e)}", exc_info=True)
+        return []
 # -----------------------------------------------------------------------------------------
 # Flask-Login User 加载函数 (从 models.py 移到此处或其他合适的数据加载模块)
 

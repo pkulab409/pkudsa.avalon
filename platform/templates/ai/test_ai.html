@@ -38,10 +38,21 @@
                                 <input class="form-check-input" type="radio" name="opponent_type" 
                                        id="opponent-idiot" value="idiot">
                                 <label class="form-check-label" for="opponent-idiot">
-                                    <strong>Idiot AI</strong> (弱智对手)
-                                    <div class="text-muted small">弱智AI，几乎没有策略性</div>
+                                    <strong>Idiot AI</strong> (傻瓜对手)
+                                    <div class="text-muted small">傻瓜AI，几乎没有策略性</div>
                                 </label>
                             </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="opponent_type" 
+                                       id="opponent-mixed" value="mixed">
+                                <label class="form-check-label" for="opponent-mixed">
+                                    <strong>Mixed AI</strong> (混合对手)
+                                    <div class="text-muted small">从所有AI类型中随机抽取，更贴近真实对战</div>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-text mt-2">
+                            <i class="bi bi-info-circle me-1"></i> 系统会确保每个AI实例在游戏中最多出现一次，避免重复使用相同的AI。
                         </div>
                     </div>
                     

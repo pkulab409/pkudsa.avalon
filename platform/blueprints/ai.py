@@ -7,6 +7,7 @@
 # 包含页面 html:ai/list.html, ai/upload.html, ai/edit.html
 
 import os
+import random
 import uuid
 from flask import (
     Blueprint,
@@ -32,6 +33,10 @@ from database import (
     get_user_active_ai_code as db_get_user_active_ai_code,
     get_ai_code_path_full as db_get_ai_code_path_full,
     get_user_by_id as db_get_user_by_id,
+    get_available_ai_instances,
+    update_battle_player_count,
+    add_player_to_battle,
+    create_battle_instance,
 )
 from database.models import AICode  # 仍然需要模型用于类型提示或特定查询
 from datetime import datetime
@@ -298,14 +303,14 @@ def get_specific_user_ai_codes(user_id):
         )
 
 
-# 添加测试AI功能的路由
+# 增强test_ai函数，使其集成新的对战创建逻辑
 @ai_bp.route("/test_ai/<string:ai_id>", methods=["GET", "POST"])
 @login_required
 def test_ai(ai_id):
     """测试AI代码功能
 
     GET请求: 显示测试配置表单
-    POST请求: 处理测试配置并重定向到创建对战页面
+    POST请求: 处理测试配置并创建测试对战
     """
     ai_code = db_get_ai_code_by_id(ai_id)
 
@@ -320,7 +325,7 @@ def test_ai(ai_id):
         player_position = request.form.get("player_position", "1")
 
         # 验证数据
-        if opponent_type not in ["smart", "basic", "idiot"]:
+        if opponent_type not in ["smart", "basic", "idiot", "mixed"]:
             flash("无效的对手类型", "danger")
             return redirect(url_for("ai.test_ai", ai_id=ai_id))
 
@@ -332,19 +337,159 @@ def test_ai(ai_id):
             flash("无效的玩家位置", "danger")
             return redirect(url_for("ai.test_ai", ai_id=ai_id))
 
-        # 这里不需要存储任何会话数据，因为我们将在前端使用 localStorage
+        # 创建测试对战
+        try:
+            # 创建对战实例
+            battle = create_battle_instance(created_by=current_user.id)
+            if not battle:
+                flash("创建测试对战失败", "danger")
+                return redirect(url_for("ai.list_ai"))
 
-        # 将参数传递给创建对战页面
-        # 我们可以使用查询参数，或者依赖前端的 localStorage（已实现）
-        return redirect(url_for("game.create_battle_page",
-                                test_mode=True,
-                                ai_id=ai_id,
-                                opponent_type=opponent_type,
-                                player_position=player_position))
+            # 添加用户的AI到指定位置
+            player = add_player_to_battle(
+                battle_id=battle.id,
+                user_id=current_user.id,
+                position=pos,
+                ai_code_id=ai_id
+            )
+
+            if not player:
+                flash("将AI添加到对战失败", "danger")
+                return redirect(url_for("ai.list_ai"))
+
+            # 填充其余位置的AI
+            positions = [i for i in range(1, 8) if i != pos]
+
+            if opponent_type == "mixed":
+                # 混合模式：随机选择不同类型的AI
+                setup_mixed_ai_opponents(battle.id, positions)
+            else:
+                # 统一模式：使用同一类型的AI
+                setup_uniform_ai_opponents(battle.id, positions, opponent_type)
+
+            flash("测试对战创建成功！", "success")
+            return redirect(url_for("battle.view", battle_id=battle.id))
+
+        except Exception as e:
+            current_app.logger.error(f"创建测试对战时出错: {str(e)}")
+            flash("创建测试对战时出错", "danger")
+            return redirect(url_for("ai.list_ai"))
 
     # GET请求显示测试配置表单
     return render_template("ai/test.html", ai_code=ai_code)
 
+
+def setup_mixed_ai_opponents(battle_id, positions):
+    """设置混合AI对手，确保不重复且按位置顺序分配
+
+    参数:
+        battle_id: 对战ID
+        positions: 需要填充的位置列表
+    """
+    # 将AI类型映射到用户名前缀
+    ai_type_to_prefix_map = {
+        "smart": "smart_user",  # 假设smart AI用户的用户名前缀是 "smart_user"
+        "basic": "basic_user",  # 假设basic AI用户的用户名前缀是 "basic_user"
+        "idiot": "idiot_user",  # 假设idiot AI用户的用户名前缀是 "idiot_user"
+    }
+    ai_prefixes = list(ai_type_to_prefix_map.values()) # ["smart_user", "basic_user", "idiot_user"]
+
+
+    used_ai_ids = [] # 已使用的AI实例ID列表，确保不重复使用
+
+    for position in positions:
+        random.shuffle(ai_prefixes) # 每次都随机打乱前缀顺序，以实现混合
+        selected_ai_instance = None
+
+        for prefix in ai_prefixes:
+            # 获取此用户名前缀的所有可用AI实例 (过滤掉已使用的)
+            available_ai_for_prefix = get_available_ai_instances(username_prefix=prefix)
+            unused_ai_for_prefix = [ai for ai in available_ai_for_prefix if ai.id not in used_ai_ids]
+
+            if unused_ai_for_prefix:
+                selected_ai_instance = random.choice(unused_ai_for_prefix)
+                break # 找到一个就跳出内层循环
+
+        ai_code_id_to_add = None
+        user_id_for_ai = None # AI的user_id
+
+        if selected_ai_instance:
+            ai_code_id_to_add = selected_ai_instance.id
+            user_id_for_ai = selected_ai_instance.user_id # 获取AI所属用户的ID
+            used_ai_ids.append(ai_code_id_to_add)
+            current_app.logger.info(f"为位置 {position} 分配AI: {selected_ai_instance.name} (ID: {ai_code_id_to_add}, 用户ID: {user_id_for_ai})")
+        else:
+            # 如果所有类型的AI都用完了或者没有找到
+            current_app.logger.warning(f"没有足够的未使用AI实例来填充位置 {position}。可能需要添加更多AI用户或检查配置。")
+            # 可以在这里添加一个备用逻辑，比如从一个默认的 "system_ai_pool" 用户获取AI
+            # 或者如果允许，甚至可以不填充这个位置，但这取决于游戏逻辑
+            # 为了简单起见，我们暂时不填充
+            # ai_code_id_to_add = None # 或者一个系统默认AI的ID
+            # user_id_for_ai = some_system_user_id # 系统AI的用户ID
+
+        if user_id_for_ai: # 只有当成功获取到AI时才添加
+            add_player_to_battle(
+                battle_id=battle_id,
+                user_id=user_id_for_ai,  # 使用AI所属用户的ID
+                position=position,
+                ai_code_id=ai_code_id_to_add
+            )
+        else:
+            # 处理无法分配AI的情况，例如跳过该位置或记录错误
+            current_app.logger.error(f"无法为位置 {position} 分配AI")
+
+
+def setup_uniform_ai_opponents(battle_id, positions, opponent_type):
+    """设置统一类型的AI对手，确保不重复且按位置顺序分配
+
+    参数:
+        battle_id: 对战ID
+        positions: 需要填充的位置列表
+        opponent_type: AI类型 ("smart", "basic", "idiot")
+    """
+    ai_type_to_prefix_map = {
+        "smart": "smart_user",
+        "basic": "basic_user",
+        "idiot": "idiot_user",
+    }
+    target_prefix = ai_type_to_prefix_map.get(opponent_type)
+
+    if not target_prefix:
+        current_app.logger.error(f"无效的对手类型: {opponent_type}，无法映射到用户名前缀。")
+        return
+
+    # 获取此类型的所有可用AI实例
+    available_ai = get_available_ai_instances(username_prefix=target_prefix)
+    used_ai_ids = []
+
+    for position in positions:
+        unused_ai_for_prefix = [ai for ai in available_ai if ai.id not in used_ai_ids]
+        selected_ai_instance = None
+        ai_code_id_to_add = None
+        user_id_for_ai = None
+
+        if unused_ai_for_prefix:
+            selected_ai_instance = random.choice(unused_ai_for_prefix)
+            ai_code_id_to_add = selected_ai_instance.id
+            user_id_for_ai = selected_ai_instance.user_id
+            used_ai_ids.append(ai_code_id_to_add)
+            current_app.logger.info(f"为位置 {position} 分配 {opponent_type} AI: {selected_ai_instance.name} (ID: {ai_code_id_to_add}, 用户ID: {user_id_for_ai})")
+        else:
+            current_app.logger.warning(
+                f"没有足够的 {opponent_type} (前缀: {target_prefix}) 类型未使用AI实例来填充位置 {position}。"
+            )
+            # ai_code_id_to_add = None
+            # user_id_for_ai = some_system_user_id
+
+        if user_id_for_ai:
+            add_player_to_battle(
+                battle_id=battle_id,
+                user_id=user_id_for_ai, # 使用AI所属用户的ID
+                position=position,
+                ai_code_id=ai_code_id_to_add
+            )
+        else:
+            current_app.logger.error(f"无法为位置 {position} 分配 {opponent_type} AI")
 
 # 工具函数
 # ------------------------------------------------------------------------------------

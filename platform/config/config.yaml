@@ -41,7 +41,6 @@ INITIAL_USERS:
   - username: smart_user1
     email: smart1@example.com
     password: password123
-    is_admin: False
     ai_code:
       name: Smart AI
       description: DeepSeek增强型AI玩家
@@ -159,7 +158,7 @@ INITIAL_USERS:
       make_active: true
 
   # Idiot AI 用户系列
-  - username: idiot-user1
+  - username: idiot_user1
     email: idiot1@example.com
     password: password123
     is_admin: False
@@ -168,7 +167,7 @@ INITIAL_USERS:
       description: 基础AI玩家
       file_path: game/idiot_player.py
       make_active: true
-  - username: idiot-user2
+  - username: idiot_user2
     email: idiot2@example.com
     password: password123
     is_admin: False
@@ -177,7 +176,7 @@ INITIAL_USERS:
       description: 基础AI玩家
       file_path: game/idiot_player.py
       make_active: true
-  - username: idiot-user3
+  - username: idiot_user3
     email: idiot3@example.com
     password: password123
     is_admin: False
@@ -186,7 +185,7 @@ INITIAL_USERS:
       description: 基础AI玩家
       file_path: game/idiot_player.py
       make_active: true
-  - username: idiot-user4
+  - username: idiot_user4
     email: idiot4@example.com
     password: password123
     is_admin: False
@@ -195,7 +194,7 @@ INITIAL_USERS:
       description: 基础AI玩家
       file_path: game/idiot_player.py
       make_active: true
-  - username: idiot-user5
+  - username: idiot_user5
     email: idiot5@example.com
     password: password123
     is_admin: False
@@ -204,7 +203,7 @@ INITIAL_USERS:
       description: 基础AI玩家
       file_path: game/idiot_player.py
       make_active: true
-  - username: idiot-user6
+  - username: idiot_user6
     email: idiot6@example.com
     password: password123
     is_admin: False
