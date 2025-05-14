@@ -286,6 +286,7 @@
                                     <thead class="table-light">
                                         <tr>
                                             <th>玩家</th>
+                                            <th>用户名</th>
                                             <th>角色</th>
                                             <th>阵营</th>
                                         </tr>
@@ -296,6 +297,11 @@
                                             {% set player_id_str = player_id | string %}
                                             <tr>
                                                 <td class="text-center">{{ player_id_str }}</td>
+                                                {% if player_usernames %}
+                                                    <td>{{ player_usernames[player_id|int - 1] }}</td>
+                                                {% else %}
+                                                    <td>未知</td>
+                                                {% endif %}
                                                 <td>
                                                     {% set role_name = role %}
                                                     {% set is_blue = role in ["Merlin", "Percival", "Knight"] %}

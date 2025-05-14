@@ -34,6 +34,13 @@ def game_index(game_id):
 @login_required
 def game_replay(game_id):
     """游戏对局重放页面"""
+
+    def _get_user_names(game_id) -> list:
+        from database import get_battle_by_id
+        battle_obj = get_battle_by_id(game_id)
+        player_objs = battle_obj.get_players()
+        return [player.username for player in player_objs]
+
     try:
         # 处理示例回放的特殊情况
         if game_id == "example":
@@ -115,6 +122,7 @@ def game_replay(game_id):
             game_events=game_events,
             player_movements=player_movements,
             map_size=game_info["map_size"],
+            player_usernames=_get_user_names(game_id),
         )
     except Exception as e:
         flash(f"加载对局记录时发生意外错误: {str(e)}", "danger")

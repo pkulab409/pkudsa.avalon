@@ -180,7 +180,7 @@ body::before {
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: url('../images/parchment-texture.png');
+    background-image: url('../images/wooden-floor-background.png');
     opacity: 0.1;
     pointer-events: none;
 }
