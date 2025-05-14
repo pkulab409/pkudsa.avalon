@@ -13,6 +13,9 @@
 - 【对战功能】 创建对战、更新对战、对战用户管理、对战历史、*ELO*等
 - 备用：BattlePlayer 独立 CRUD 操作
 """
+import os
+
+import yaml
 from flask import current_app
 
 # 准备好后面一千多行的冲击吧！
@@ -21,7 +24,7 @@ MAX_TOKEN_ALLOWED = 3000
 from .base import db
 import logging
 from sqlalchemy import select, update, or_, func
-import datetime
+from datetime import datetime
 import json
 import math
 import uuid
@@ -192,7 +195,7 @@ def update_user(user, **kwargs):
                     user.set_password(value)
                 elif key != "id":  # 不允许修改ID
                     setattr(user, key, value)
-        user.updated_at = datetime.datetime.now()  # 更新时间戳
+        user.updated_at = datetime.now()  # 开始时间戳  # 更新时间戳
         return safe_commit()
     except Exception as e:
         logger.error(f"更新用户 {user.id} 失败: {e}", exc_info=True)
@@ -644,7 +647,7 @@ def create_battle(
         battle = Battle(
             status=status,
             ranking_id=ranking_id,
-            created_at=datetime.datetime.now(),
+            created_at=datetime.now()  # 开始时间戳,
             # started_at 在对战真正开始时设置
             # results 在对战结束时设置
             # game_log_uuid 在对战结束时设置
@@ -667,7 +670,7 @@ def create_battle(
                 selected_ai_code_id=data["ai_code_id"],  # <--- 修改这里
                 position=i + 1,  # 简单设置位置
                 initial_elo=initial_elo,
-                join_time=datetime.datetime.now(),
+                join_time=datetime.now()  # 开始时间戳,
             )
             battle_players.append(bp)
             db.session.add(bp)  # 添加BattlePlayer 记录
@@ -729,12 +732,12 @@ def update_battle(battle, **kwargs):
         if "status" in kwargs:
             new_status = kwargs["status"]
             if new_status == "playing" and battle.started_at is None:
-                battle.started_at = datetime.datetime.now()
+                battle.started_at = datetime.now()  # 开始时间戳
             elif (
                 new_status in ["completed", "error", "cancelled"]
                 and battle.ended_at is None
             ):
-                battle.ended_at = datetime.datetime.now()
+                battle.ended_at = datetime.now()  # 开始时间戳
 
         return safe_commit()
     except Exception as e:
@@ -826,6 +829,57 @@ def process_battle_results_and_update_stats(battle_id, results_data):
             logger.error(f"[Battle {battle_id}] 对战记录不存在")
             return False
 
+        # --- 新增检查 ---
+        if battle.is_elo_exempt:
+            logger.info(
+                f"[Battle {battle_id}] 此对战 (类型: {battle.battle_type}) 被标记为ELO豁免，将跳过ELO和统计更新。")
+            # 只需要更新battle的状态和结果，不进行统计和ELO计算
+            battle.status = "completed"  # 或者根据results_data判断是否error
+            if "error" in results_data:  # 确保result_data被正确解析
+                try:
+                    parsed_results = json.loads(results_data) if isinstance(results_data, str) else results_data
+                    if "error" in parsed_results: battle.status = "error"
+                except:
+                    pass  # 保持completed
+
+            battle.ended_at = datetime.now()  # 开始时间戳  # 使用 datetime.datetime.utcnow() 如果你的时间都是UTC
+            battle.results = json.dumps(results_data) if not isinstance(results_data, str) else results_data
+            battle.game_log_uuid = results_data.get("game_log_uuid") if isinstance(results_data, dict) else None
+
+            # 对于BattlePlayer，我们可能仍想记录他们的outcome (win/loss/draw)但没有elo_change
+            battle_players = get_battle_players_for_battle(battle_id)
+            roles_data = results_data.get("roles", {}) if isinstance(results_data, dict) else {}
+            # ... (可以复用之前的 player_roles 和 team_map, user_outcomes 的逻辑来确定 outcome) ...
+            # 例如:
+            # player_roles = {} ...
+            # team_map = {} ...
+            # user_outcomes = {} ... (基于 winner_team)
+            winner_team = results_data.get("winner") if isinstance(results_data, dict) else None
+            if winner_team:
+                team_outcomes = {
+                    RED_TEAM: "win" if winner_team == RED_TEAM else "loss",
+                    BLUE_TEAM: "win" if winner_team == BLUE_TEAM else "loss",
+                }
+                # 假设可以获取到角色和队伍映射
+                # user_outcomes = { bp.user_id: team_outcomes[get_team_for_user(bp.user_id, roles_data)] for bp in battle_players }
+
+                for bp in battle_players:
+                    # outcome = user_outcomes.get(bp.user_id, "draw") # 默认为平局如果无法确定
+                    # bp.outcome = outcome
+                    if bp.initial_elo is None:
+                        user_stats = get_game_stats_by_user_id(bp.user_id, battle.ranking_id)
+                        bp.initial_elo = user_stats.elo_score if user_stats else 1200  # Fallback to default
+
+                    bp.elo_change = 0  # 明确ELO变化为0 for exempt battles
+                    db.session.add(bp)
+
+            if safe_commit():
+                logger.info(f"[Battle {battle_id}] ELO豁免的对战结果已记录，无统计更新。")
+                return True
+            else:
+                logger.error(f"[Battle {battle_id}] ELO豁免的对战结果记录失败（数据库提交错误）。")
+                return False
+        # --- 结束新增检查 ---
         battle_ranking_id = battle.ranking_id  # 获取对战的排行榜ID
 
         if battle.status == "completed":
@@ -939,7 +993,7 @@ def process_battle_results_and_update_stats(battle_id, results_data):
         # 阶段2：基础数据更新
         # ----------------------------------
         battle.status = "completed" if err_user_id is None else "error"
-        battle.ended_at = datetime.datetime.now()
+        battle.ended_at = datetime.now()  # 开始时间戳
         battle.results = json.dumps(results_data)
         battle.game_log_uuid = results_data.get("game_log_uuid")
 
@@ -1386,7 +1440,7 @@ def mark_battle_as_cancelled(battle_id, cancellation_reason=None):
 
         # 更新对战状态
         battle.status = "cancelled"
-        battle.ended_at = datetime.datetime.now()
+        battle.ended_at = datetime.now()  # 开始时间戳
 
         # 如果提供了取消原因，则更新结果字段
         if cancellation_reason:
@@ -1521,6 +1575,21 @@ def get_battles_paginated_filtered(filters=None, page=1, per_page=10, error_out=
     """
     query = Battle.query
 
+    # 默认不显示 'ready' 状态的对局，除非过滤器明确要求
+    # (这种方式可能更复杂，取决于你如何组合查询)
+    # 一个简单的方法是，如果状态过滤器不是 'ready'，则排除 'ready'
+    status_filter_value = filters.get('status') if filters else None
+
+    if status_filter_value and status_filter_value.lower() == 'ready':
+        query = query.filter(Battle.status == 'ready')
+    elif status_filter_value and status_filter_value.lower() != 'all':
+        query = query.filter(Battle.status == status_filter_value)
+        # 如果不是 'all' 也不是 'ready'，我们可能仍想排除 ready，但这取决于需求
+        # query = query.filter(Battle.status != 'ready') # 如果总是想排除ready，除非明确选择
+    elif not status_filter_value or status_filter_value.lower() == 'all':
+        # 当选择 "all" 或没有状态过滤器时，默认排除 "ready"
+        query = query.filter(Battle.status != 'ready')
+
     if filters:
         # Apply status filter
         if 'status' in filters and filters['status'] and filters['status'] != 'all':
@@ -1591,7 +1660,7 @@ def create_battle_instance(created_by, ranking_id=0):
         new_battle = Battle(
             status="waiting",  # 初始状态：等待中
             ranking_id=ranking_id,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(),
             # 其他字段会使用默认值或在后续更新
         )
 
@@ -1653,7 +1722,7 @@ def add_player_to_battle(battle_id, position, user_id, ai_code_id=None):
             user_id=user_id,
             position=position,
             selected_ai_code_id=ai_code_id,
-            join_time=datetime.utcnow()
+            join_time=datetime.now()
         )
 
         # 保存到数据库
@@ -1708,7 +1777,7 @@ def load_initial_users_from_config():
         # 假设 config.yaml 与 action.py 在同一目录或可以通过 current_app.config 访问其路径
         # 或者提供一个绝对/相对路径到 config.yaml
         # 为简单起见，我们这里假设 config.yaml 在项目根目录
-        config_path = os.path.join(current_app.root_path, '..', 'config.yaml') # 调整路径
+        config_path = os.path.join(current_app.root_path, 'config', 'config.yaml') # 调整路径
         if not os.path.exists(config_path):
             # 尝试备用路径，例如在当前应用的根目录下
             config_path = os.path.join(current_app.root_path, 'config.yaml')

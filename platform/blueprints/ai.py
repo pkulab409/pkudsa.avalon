@@ -37,14 +37,15 @@ from database import (
     update_battle_player_count,
     add_player_to_battle,
     create_battle_instance,
+    update_battle,
 )
-from database.models import AICode  # 仍然需要模型用于类型提示或特定查询
+from database.models import AICode,BattlePlayer # 仍然需要模型用于类型提示或特定查询
 from datetime import datetime
 import importlib.util
 import sys
 import inspect
 import pickle
-
+from utils.battle_manager_utils import get_battle_manager
 # 创建蓝图
 ai_bp = Blueprint("ai", __name__)
 
@@ -588,3 +589,167 @@ def get_ai_module(ai_id):
     return module, None
 
 # ------------------------------------------------------------------------------------
+@ai_bp.route("/start_ai_series_test", methods=["POST"])
+@login_required
+def start_ai_series_test():
+    data = request.get_json()
+    ai_code_id_to_test = data.get("ai_code_id")
+
+    if not ai_code_id_to_test:
+        return jsonify({"success": False, "message": "未提供要测试的AI代码ID"}), 400
+
+    ai_to_test = db_get_ai_code_by_id(ai_code_id_to_test)
+    if not ai_to_test or ai_to_test.user_id != current_user.id:
+        return jsonify({"success": False, "message": "AI代码不存在或您没有权限测试此AI"}), 403
+
+    current_app.logger.info(
+        f"用户 {current_user.username} (ID: {current_user.id}) 请求为AI {ai_to_test.name} (ID: {ai_code_id_to_test}) 启动系列测试。")
+
+    # 获取 "smart_user" 前缀的AI用于填充
+    # 假设您的 get_available_ai_instances 接受 username_prefix
+    # 并且 config.yaml 中有 smart_user1, smart_user2... smart_user6/7 这样的用户
+    smart_ai_prefix = "smart_user"
+    available_smart_ais = get_available_ai_instances(username_prefix=smart_ai_prefix)
+
+    if len(available_smart_ais) < 6:  # 需要至少6个不同的smart AI来填充
+        current_app.logger.error(
+            f"系列测试启动失败：没有足够的 Smart AI (需要至少6个，实际找到 {len(available_smart_ais)}) 来填充对战。请检查config.yaml中的用户定义。")
+        return jsonify({"success": False,
+                        "message": f"Smart AI 数量不足 (需要至少6个，找到 {len(available_smart_ais)} 个)，无法启动系列测试。"}), 500
+
+    battle_manager = get_battle_manager()
+    battles_created_ids = []
+
+    MAX_PLAYERS = 7
+    for position_of_test_ai in range(1, MAX_PLAYERS + 1):
+        try:
+            # 1. 创建对战实例
+            # 注意：create_battle_instance 只是创建了Battle记录，并不添加玩家
+            # ranking_id可以设为特殊值，或者依赖 is_elo_exempt
+            battle = create_battle_instance(created_by=current_user.id, ranking_id=0)  # 或一个特殊的ranking_id for tests
+            if not battle:
+                current_app.logger.error(f"系列测试：为位置 {position_of_test_ai} 创建Battle记录失败。")
+                continue  # 跳过这个位置的测试
+
+            # 2. 更新Battle记录为ELO豁免和测试类型
+            update_success = update_battle(battle, is_elo_exempt=True, battle_type="ai_series_test")
+            if not update_success:
+                current_app.logger.error(f"系列测试：更新Battle {battle.id} 的豁免状态失败。")
+                # 可以选择删除已创建的battle或标记为错误
+
+            # 3. 准备参与者数据列表
+            participant_data_for_bm = []  # 用于传递给 BattleManager
+            players_for_db_battle = []  # 用于直接操作BattlePlayer表 (如果需要的话)
+
+            # 添加被测试的AI
+            # add_player_to_battle 会创建 BattlePlayer 记录
+            player_added = add_player_to_battle(
+                battle_id=battle.id,
+                user_id=ai_to_test.user_id,  # AI的拥有者
+                position=position_of_test_ai,
+                ai_code_id=ai_to_test.id
+            )
+            if not player_added:
+                current_app.logger.error(
+                    f"系列测试：无法将测试AI {ai_to_test.id} 添加到对战 {battle.id} 的位置 {position_of_test_ai}。")
+                # 可能需要清理这个battle
+                continue
+            participant_data_for_bm.append({"user_id": ai_to_test.user_id, "ai_code_id": ai_to_test.id})
+
+            # 填充剩余的Smart AI
+            smart_ais_to_fill = random.sample(available_smart_ais, k=MAX_PLAYERS - 1)  # 随机选6个不重复的
+
+            current_smart_ai_index = 0
+            for pos in range(1, MAX_PLAYERS + 1):
+                if pos == position_of_test_ai:
+                    continue  # 跳过测试AI的位置
+
+                if current_smart_ai_index >= len(smart_ais_to_fill):
+                    current_app.logger.error(f"系列测试：Smart AI 样本不足以填充位置 {pos} (对战 {battle.id})。")
+                    # 这个情况理论上不应该发生，因为前面检查了数量并用了sample
+                    break
+
+                smart_ai_opponent = smart_ais_to_fill[current_smart_ai_index]
+                current_smart_ai_index += 1
+
+                opponent_added = add_player_to_battle(
+                    battle_id=battle.id,
+                    user_id=smart_ai_opponent.user_id,  # Smart AI的拥有者
+                    position=pos,
+                    ai_code_id=smart_ai_opponent.id
+                )
+                if not opponent_added:
+                    current_app.logger.error(
+                        f"系列测试：无法将Smart AI {smart_ai_opponent.id} 添加到对战 {battle.id} 的位置 {pos}。")
+                    # 标记此battle为失败并跳过启动
+                    update_battle(battle, status="error",
+                                  results=json.dumps({"error": f"Failed to add Smart AI to pos {pos}"}))
+                    break  # 中断这个battle的填充
+                participant_data_for_bm.append(
+                    {"user_id": smart_ai_opponent.user_id, "ai_code_id": smart_ai_opponent.id})
+
+            # 如果填充参与者过程中断，跳过启动
+            if len(participant_data_for_bm) != MAX_PLAYERS:
+                current_app.logger.error(
+                    f"系列测试：未能为对战 {battle.id} 集齐 {MAX_PLAYERS} 位玩家。实际数量: {len(participant_data_for_bm)}")
+                if battle.status != "error":  # 如果之前没标记错误
+                    update_battle(battle, status="error",
+                                  results=json.dumps({"error": f"Failed to gather {MAX_PLAYERS} players."}))
+                continue  # 跳到下一个位置的测试
+
+            # 4. 启动对战 (通过BattleManager)
+            # BattleManager 的 start_battle 需要完整的 participant_data (包含user_id和ai_code_id)
+            # 它内部会根据ai_code_id去获取路径
+            # 注意：participant_data_for_bm 中的顺序可能不重要，因为 BattleManager/Referee 会根据 BattlePlayer 表中的 position 来安排
+            # 但最好是按照位置顺序来组织，尽管 add_player_to_battle 已经按位置创建了记录
+
+            # 获取实际创建的 BattlePlayer 记录，确保顺序和数据正确
+            # db_battle_players = BattlePlayer.query.filter_by(battle_id=battle.id).order_by(BattlePlayer.position).all()
+            # final_participant_data_for_bm = [
+            #     {"user_id": bp.user_id, "ai_code_id": bp.selected_ai_code_id} for bp in db_battle_players
+            # ]
+            # 为简化，我们假设 add_player_to_battle 成功后，BattleManager能正确处理
+            # BattleManager 的 start_battle 现在只需要 battle_id 和 participant_data (包含user_id, ai_code_id)
+
+            # 重新从数据库获取完整的参与者信息，确保顺序和信息正确传递给BattleManager
+            final_participants_from_db = []
+            battle_players_for_this_game = BattlePlayer.query.filter_by(battle_id=battle.id).order_by(
+                BattlePlayer.position).all()
+            if len(battle_players_for_this_game) == MAX_PLAYERS:
+                for bp_db in battle_players_for_this_game:
+                    final_participants_from_db.append({
+                        "user_id": bp_db.user_id,
+                        "ai_code_id": bp_db.selected_ai_code_id
+                        # BattleManager的start_battle会用ai_code_id获取路径
+                    })
+
+                start_success = battle_manager.start_battle(battle.id, final_participants_from_db)
+                if start_success:
+                    battles_created_ids.append(battle.id)
+                    current_app.logger.info(
+                        f"系列测试：对战 {battle.id} (测试AI位置: {position_of_test_ai}) 已成功启动。")
+                else:
+                    current_app.logger.error(f"系列测试：启动对战 {battle.id} 失败。BattleManager返回错误。")
+                    # BattleManager内部应该已经标记了错误状态
+            else:
+                current_app.logger.error(
+                    f"系列测试：对战 {battle.id} 玩家数量不足 ({len(battle_players_for_this_game)}/{MAX_PLAYERS})，无法启动。")
+                update_battle(battle, status="error",
+                              results=json.dumps({"error": "Player count mismatch before start."}))
+
+            # 可选：在创建每个对战之间加入短暂延时，避免瞬间大量请求
+            time.sleep(0.5)  # 0.5秒延时
+
+        except Exception as e:
+            current_app.logger.error(
+                f"为AI {ai_to_test.name} 创建位置 {position_of_test_ai} 的系列测试赛时发生严重错误: {str(e)}",
+                exc_info=True)
+            # 这里可以记录更详细的错误到某个地方或返回给用户
+
+    if battles_created_ids:
+        return jsonify({"success": True,
+                        "message": f"已为AI '{ai_to_test.name}' 启动 {len(battles_created_ids)}/{MAX_PLAYERS} 场系列测试赛。请在对战大厅查看。",
+                        "battle_ids": battles_created_ids})
+    else:
+        return jsonify(
+            {"success": False, "message": f"未能为AI '{ai_to_test.name}' 启动任何系列测试赛。请检查日志。"}), 500

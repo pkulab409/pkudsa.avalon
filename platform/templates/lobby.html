@@ -263,9 +263,10 @@
                         <tr>
                             <th scope="col" width="15%">对战ID</th>
                             <th scope="col" width="15%">状态</th>
+                            <th scope="col" width="10%">类型</th> {# 新增类型列 #}
                             <th scope="col" width="20%">创建时间</th>
                             <th scope="col" width="20%">结束时间</th>
-                            <th scope="col" width="30%">操作</th>
+                            <th scope="col" width="20%">操作</th> {# 调整宽度以适应新列 #}
                         </tr>
                     </thead>
                     <tbody>
@@ -288,6 +289,15 @@
                                             <span class="badge status-cancelled">已取消</span>
                                         {% else %}
                                             <span class="badge bg-light text-dark">{{ battle.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td> {# 显示对战类型 #}
+                                        {% if battle.battle_type == 'ai_series_test' %}
+                                            <span class="badge bg-secondary" data-bs-toggle="tooltip" title="AI系列位置测试赛 (不计ELO)">系列测试</span>
+                                        {% elif battle.is_elo_exempt %}
+                                             <span class="badge bg-light text-dark" data-bs-toggle="tooltip" title="此对战不计入ELO/统计">豁免赛</span>
+                                        {% else %}
+                                            <span class="badge bg-info">标准赛</span>
                                         {% endif %}
                                     </td>
                                     <td>{{ battle.created_at.strftime("%Y-%m-%d %H:%M") if battle.created_at else '-' }}</td>
