@@ -359,8 +359,14 @@ h1::after, h2::after, h3::after {
     background-position: center;
 }
 
-.card-decoration.left.knight {
-    background-image: url('../images/knight.png');
+.card-decoration.left.knight1 {
+    background-image: url('../images/knight1.png');
+    background-size: cover;
+    background-position: center;
+}
+
+.card-decoration.left.knight2 {
+    background-image: url('../images/knight2.png');
     background-size: cover;
     background-position: center;
 }

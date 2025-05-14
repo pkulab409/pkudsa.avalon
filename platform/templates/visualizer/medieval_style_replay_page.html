@@ -554,13 +554,17 @@
 
       // --- Role Info ---
       const roleNames = {
-        "Merlin": "梅林", "Percival": "派西维尔", "Knight": "骑士",
+        "Merlin": "梅林", "Percival": "派西维尔", "Knight1": "骑士", "Knight2": "骑士",
         "Assassin": "刺客", "Morgana": "莫甘娜", "Mordred": "莫德雷德", "Oberon": "奥伯伦"
       };
       const roleFactions = {
-        "Merlin": "blue", "Percival": "blue", "Knight": "blue",
+        "Merlin": "blue", "Percival": "blue", "Knight1": "blue", "Knight2": "blue",
         "Assassin": "red", "Morgana": "red", "Mordred": "red", "Oberon": "red"
       };
+
+      // 用于跟踪骑士分配
+      let knightCount = 0;
+      const knightAssignments = new Map();
 
       // --- DOM Elements ---
       const chatContainer = document.getElementById('chatContainer');
@@ -676,7 +680,15 @@
       // --- Helper Functions ---
       function getPlayerInfo(playerId) {
           const idStr = String(playerId); // Ensure string key
-          const role = roles[idStr] || '未知角色';
+          let role = roles[idStr] || '未知角色';
+          // 如果是骑士，根据玩家ID的大小顺序分配不同的骑士角色
+          if (role === 'Knight') {
+              if (!knightAssignments.has(idStr)) {
+                  knightCount++;
+                  knightAssignments.set(idStr, knightCount);
+              }
+              role = knightAssignments.get(idStr) === 1 ? 'Knight1' : 'Knight2';
+          }
           const name = roleNames[role] || role;
           const faction = roleFactions[role] || 'unknown';
           return { id: idStr, role: role, name: name, faction: faction };
@@ -685,6 +697,25 @@
       function scrollToBottom() {
         chatContainer.scrollTop = chatContainer.scrollHeight;
       }
+
+      // 在生成聊天历史之前，先初始化骑士分配
+      function initializeKnightAssignments() {
+          knightCount = 0;
+          knightAssignments.clear();
+          // 获取所有骑士的ID并按数字大小排序
+          const knightIds = Object.entries(roles)
+              .filter(([_, role]) => role === 'Knight')
+              .map(([id, _]) => parseInt(id))
+              .sort((a, b) => a - b);
+          
+          // 按顺序分配骑士1和骑士2
+          knightIds.forEach((id, index) => {
+              knightAssignments.set(id.toString(), index + 1);
+          });
+      }
+
+      // 在生成聊天历史之前调用初始化
+      initializeKnightAssignments();
 
       // --- Map Rendering Logic ---
       function renderMap(roundNum) {
@@ -844,7 +875,8 @@
                 <div class="message-wrapper ${wrapperClass}">
                   ${playerInfo.role === 'Merlin' ? '<div class="card-decoration left merlin"></div>' : ''}
                   ${playerInfo.role === 'Percival' ? '<div class="card-decoration left percival"></div>' : ''}
-                  ${playerInfo.role === 'Knight' ? '<div class="card-decoration left knight"></div>' : ''}
+                  ${playerInfo.role === 'Knight1' ? '<div class="card-decoration left knight1"></div>' : ''}
+                  ${playerInfo.role === 'Knight2' ? '<div class="card-decoration left knight2"></div>' : ''}
                   <div class="message-content">
                     <div class="player-tag ${tagColorClass}">
                        ${playerInfo.id}号 (${playerInfo.name}) ${speechBadge} ${hearersTags ? `<div class="hearers-tags">${hearersTags}</div>` : ""}                     
