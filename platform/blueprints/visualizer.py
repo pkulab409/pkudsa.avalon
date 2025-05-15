@@ -625,6 +625,17 @@ def process_game_events(game_data):
                     current_round["mission_execution"]["success"] = success
                     # Also store simplified mission result for badge color
                     current_round["mission_result"] = {"success": success}
+            # 处理玩家移动
+            elif event_type == "Move":
+                if isinstance(event_data, (int, list)) and len(event_data) == 2:
+                    current_round["events"].append({
+                        "type": "move",
+                        "data": {
+                            "player_id": int(event_data[0]),
+                            "valid_moves": deepcopy(event_data[1][0]),
+                            "new_pos": deepcopy(event_data[1][1]),
+                        }
+                    })
 
     # Convert dict to list and sort by round number
     game_events_list = sorted(events_by_round.values(), key=lambda x: x["round"])

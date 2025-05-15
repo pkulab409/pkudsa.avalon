@@ -873,6 +873,35 @@
                 }
               }
 
+              if (eventItem.type === "move") {
+                const playerId = eventItem.data.player_id;
+                const validMoves = eventItem.data.valid_moves;
+                const lastMove = validMoves[validMoves.length - 1];
+                let lastMoveDisplay = ""; // Declare lastMoveDisplay outside the if-else blocks
+
+                if (lastMove === "left") {
+                    lastMoveDisplay = "⬅️ 向左";
+                } else if (lastMove === "up") {
+                    lastMoveDisplay = "⬆️ 向上";
+                } else if (lastMove === "down") {
+                    lastMoveDisplay = "⬇️ 向下";
+                } else if (lastMove === "right") {
+                    lastMoveDisplay = "➡️ 向右";
+                }
+
+                const newPos = eventItem.data.new_pos;
+                if (playerId) {
+                  chatHtml += `
+                    <div class="message-system">
+                      <i class="bi bi-person-badge"></i> <strong>${playerId}号 玩家</strong> 进行了移动
+                      <strong>有效移动:</strong> ${lastMoveDisplay}
+                      <strong>新位置:</strong> ${newPos}
+                    </div>
+                  `;
+                }
+              }
+
+
 
               if (eventItem.type === "speech") {
                 const [playerId, message, speechType, hearers] = eventItem.data;
