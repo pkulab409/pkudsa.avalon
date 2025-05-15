@@ -36,7 +36,7 @@ class RegisterForm(FlaskForm):
             EqualTo("password", message="两次输入的密码不匹配"),
         ],
     )
-    type= "player"
+    type = "player"
     submit = SubmitField("注册")
 
     # 自定义验证器

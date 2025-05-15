@@ -2,12 +2,12 @@
 {% block title %}
     创建对战 - 游戏平台
 {% endblock title %}
-
 {% block content %}
     <div class="container mt-4">
         <h2>创建新对战</h2>
         <p class="text-muted">选择7位参与者及其使用的AI来开始一场阿瓦隆对战。</p>
-        <div id="testModeAlertContainer"></div> <div class="card shadow-sm">
+        <div id="testModeAlertContainer"></div>
+        <div class="card shadow-sm">
             <div class="card-body">
                 <form id="createBattleForm">
                     <div class="row mb-3">
@@ -29,7 +29,8 @@
                                                         data-username="{{ current_user.username }}">
                                                     {{ current_user.username }} (自己)
                                                 </option>
-                                                {% for opponent in potential_opponents %} {# 确保后端传递了 potential_opponents #}
+                                                {% for opponent in potential_opponents %}
+                                                    {# 确保后端传递了 potential_opponents #}
                                                     <option value="{{ opponent.id }}" data-username="{{ opponent.username }}">{{ opponent.username }}</option>
                                                 {% endfor %}
                                             </select>
@@ -49,13 +50,11 @@
                             </div>
                         {% endfor %}
                     </div>
-
                     <div class="mb-3 d-flex justify-content-end">
                         <button type="button" class="btn btn-outline-secondary" id="fillRandomBtn">
                             <i class="bi bi-shuffle me-1"></i> 随机填充剩余空位
                         </button>
                     </div>
-
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary btn-lg">
                             <i class="bi bi-play-fill me-1"></i> 开始对战
@@ -73,7 +72,6 @@
         </div>
     </div>
 {% endblock content %}
-
 {% block scripts %}
     {{ super() }}
     <script>

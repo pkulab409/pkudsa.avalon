@@ -27,7 +27,7 @@ ranking_bp = Blueprint("ranking", __name__)
 def show_ranking():
     """显示排行榜页面"""
     # 获取分页参数
-    page = request.args.get('page', 1, type=int)
+    page = request.args.get("page", 1, type=int)
     per_page = 15  # 固定每页20条
 
     # 获取其他参数
@@ -39,7 +39,7 @@ def show_ranking():
     full_leaderboard = get_leaderboard(
         ranking_id=ranking_id,
         limit=None,  # 获取全部数据用于分页
-        min_games_played=min_games
+        min_games_played=min_games,
     )
 
     # 手动实现分页逻辑
@@ -47,7 +47,7 @@ def show_ranking():
     pages = (total - 1) // per_page + 1  # 计算总页数
     page = max(min(page, pages), 1)  # 限制页码范围
     offset = (page - 1) * per_page
-    leaderboard_data = full_leaderboard[offset:offset+per_page]
+    leaderboard_data = full_leaderboard[offset : offset + per_page]
 
     # 在 blueprints/ranking.py 中修改分页类
     class Pagination:
@@ -63,14 +63,19 @@ def show_ranking():
             self.has_next = page < self.pages
 
         # 新增迭代页码范围的方法
-        def iter_pages(self, left_edge=2, left_current=2,
-                    right_current=4, right_edge=2):
+        def iter_pages(
+            self, left_edge=2, left_current=2, right_current=4, right_edge=2
+        ):
             last = 0
             for num in range(1, self.pages + 1):
-                if num <= left_edge or \
-                (num > self.page - left_current - 1 and 
-                    num < self.page + right_current) or \
-                num > self.pages - right_edge:
+                if (
+                    num <= left_edge
+                    or (
+                        num > self.page - left_current - 1
+                        and num < self.page + right_current
+                    )
+                    or num > self.pages - right_edge
+                ):
                     if last + 1 != num:
                         yield None  # 生成省略号占位符
                     yield num
@@ -79,24 +84,23 @@ def show_ranking():
     # 生成分页数据
     ranking_items = []
     for idx, data in enumerate(leaderboard_data):
-        ranking_items.append({
-            "rank": offset + idx + 1,  # 保持全局排名
-            "username": data["username"],
-            "user_id": data["user_id"],
-            "score": data["elo_score"],
-            "wins": data["wins"],
-            "losses": data["losses"],
-            "draws": data["draws"],
-            "total": data["games_played"],
-            "win_rate": data['win_rate']
-        })
+        ranking_items.append(
+            {
+                "rank": offset + idx + 1,  # 保持全局排名
+                "username": data["username"],
+                "user_id": data["user_id"],
+                "score": data["elo_score"],
+                "wins": data["wins"],
+                "losses": data["losses"],
+                "draws": data["draws"],
+                "total": data["games_played"],
+                "win_rate": data["win_rate"],
+            }
+        )
 
     # 创建分页对象
     pagination = Pagination(
-        items=ranking_items,
-        page=page,
-        per_page=per_page,
-        total=total
+        items=ranking_items, page=page, per_page=per_page, total=total
     )
 
     return render_template(
@@ -105,8 +109,9 @@ def show_ranking():
         sort_by=sort_by,
         current_ranking_id=ranking_id,
         # 保持向下兼容
-        ranking_items=ranking_items  # 可选，建议模板迁移到使用pagination
+        ranking_items=ranking_items,  # 可选，建议模板迁移到使用pagination
     )
+
 
 @ranking_bp.route("/api/ranking")
 def get_ranking_data():

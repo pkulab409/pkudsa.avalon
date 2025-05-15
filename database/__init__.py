@@ -10,6 +10,8 @@ from .base import db, login_manager
 from .models import User, AICode, GameStats, Battle, BattlePlayer
 
 from flask import current_app
+
+
 # 定义数据库初始化函数
 def initialize_database(app):
     """初始化数据库并关联应用"""
@@ -125,6 +127,3 @@ __all__ = [
     "add_player_to_battle",
     "create_battle_instance",
 ]
-
-
-

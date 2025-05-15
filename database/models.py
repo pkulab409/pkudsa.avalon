@@ -183,8 +183,12 @@ class Battle(db.Model):
     # 存储更详细的对战全局结果，而非单个玩家的结果
     results = db.Column(db.Text, nullable=True)  # JSON存储全局结果数据
     # 新增字段
-    is_elo_exempt = db.Column(db.Boolean, default=False, nullable=False)  # True表示这场比赛不计入ELO和统计
-    battle_type = db.Column(db.String(50), nullable=True)  # 例如 "standard", "ai_series_test"
+    is_elo_exempt = db.Column(
+        db.Boolean, default=False, nullable=False
+    )  # True表示这场比赛不计入ELO和统计
+    battle_type = db.Column(
+        db.String(50), nullable=True
+    )  # 例如 "standard", "ai_series_test"
     # 关系:
     # players: 参与这场对战的所有 BattlePlayer 记录 (一对多 Battle -> BattlePlayer)
     # cascade="all, delete-orphan": 当删除一个 Battle 时，相关的 BattlePlayer 记录也会被删除

@@ -5,15 +5,13 @@
 {% block content %}
     <div class="container mt-4">
         <h2 class="mb-4">{{ user.username }}的对战历史 (共 {{ total_battles }} 场)</h2>
-        
         <!-- 返回用户资料按钮 -->
         <div class="mb-4">
-            <a href="{{ url_for('profile.user_profile', user_id=user.id) }}" 
+            <a href="{{ url_for('profile.user_profile', user_id=user.id) }}"
                class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> 返回{{ user.username }}的资料
             </a>
         </div>
-
         <div class="card shadow-sm">
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -34,9 +32,7 @@
                                     {% set battle_player_stats = battle.get_player_battlestats(user.id) %}
                                     <tr>
                                         <td>
-                                            <a href="{{ url_for('game.view_battle', battle_id=battle.id) }}">
-                                                {{ battle.id|string|truncate(9, True, '') }}
-                                            </a>
+                                            <a href="{{ url_for('game.view_battle', battle_id=battle.id) }}">{{ battle.id|string|truncate(9, True, '') }}</a>
                                         </td>
                                         <td>{{ battle.game_mode }}</td>
                                         <td>
@@ -90,7 +86,6 @@
                         </tbody>
                     </table>
                 </div>
-                
                 <!-- 分页导航 -->
                 {% if total_pages > 1 %}
                     <div class="card-footer">

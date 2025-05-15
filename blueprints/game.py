@@ -32,12 +32,12 @@ from database import (
     get_user_ai_codes as db_get_user_ai_codes,
     get_battles_paginated_filtered,
     get_available_ai_instances,
-
 )
 from database.models import Battle, BattlePlayer, User, AICode
 from utils.battle_manager_utils import get_battle_manager
 from utils.automatch_utils import get_automatch
-from datetime import datetime # For date filtering
+from datetime import datetime  # For date filtering
+
 game_bp = Blueprint("game", __name__)
 logger = logging.getLogger(__name__)
 
@@ -48,39 +48,43 @@ logger = logging.getLogger(__name__)
 @login_required
 def lobby():
     """显示游戏大厅页面，列出最近的对战，支持筛选和分页"""
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 10, type=int)  # Or your preferred default
-    status_filter = request.args.get('status', None, type=str)
-    date_from_str = request.args.get('date_from', None, type=str)
-    date_to_str = request.args.get('date_to', None, type=str)
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 10, type=int)  # Or your preferred default
+    status_filter = request.args.get("status", None, type=str)
+    date_from_str = request.args.get("date_from", None, type=str)
+    date_to_str = request.args.get("date_to", None, type=str)
 
     # Get multiple players (can be passed as a list from form)
-    player_filters = request.args.getlist('players')  # Use getlist to get all values with the same name
+    player_filters = request.args.getlist(
+        "players"
+    )  # Use getlist to get all values with the same name
 
     filters = {}
-    if status_filter and status_filter != 'all':  # 'all' means no status filter
-        filters['status'] = status_filter
+    if status_filter and status_filter != "all":  # 'all' means no status filter
+        filters["status"] = status_filter
 
     try:
         if date_from_str:
-            filters['date_from'] = datetime.strptime(date_from_str, '%Y-%m-%d')
+            filters["date_from"] = datetime.strptime(date_from_str, "%Y-%m-%d")
         if date_to_str:
             # Adjust to include the whole day
-            filters['date_to'] = datetime.strptime(date_to_str + " 23:59:59", '%Y-%m-%d %H:%M:%S')
+            filters["date_to"] = datetime.strptime(
+                date_to_str + " 23:59:59", "%Y-%m-%d %H:%M:%S"
+            )
     except ValueError:
-        flash('日期格式无效，请使用 YYYY-MM-DD 格式。', 'danger')
-        filters.pop('date_from', None)
-        filters.pop('date_to', None)
+        flash("日期格式无效，请使用 YYYY-MM-DD 格式。", "danger")
+        filters.pop("date_from", None)
+        filters.pop("date_to", None)
 
     if player_filters:
         # Pass the list of player filters to the database function
-        filters['players'] = player_filters  # Now passing a list of players instead of a single player
+        filters["players"] = (
+            player_filters  # Now passing a list of players instead of a single player
+        )
 
     # Fetch battles using the enhanced database function
     battles_pagination = get_battles_paginated_filtered(
-        filters=filters,
-        page=page,
-        per_page=per_page
+        filters=filters, page=page, per_page=per_page
     )
 
     # Fetch all users for the datalist suggestion
@@ -92,36 +96,36 @@ def lobby():
         automatch_is_on=get_automatch().is_on,
         all_users=all_users,
         current_filters={  # Pass current filters back to the template
-            'status': status_filter,
-            'date_from': date_from_str,
-            'date_to': date_to_str,
-            'players': player_filters  # Now passing the list of players back to the template
-        }
+            "status": status_filter,
+            "date_from": date_from_str,
+            "date_to": date_to_str,
+            "players": player_filters,  # Now passing the list of players back to the template
+        },
     )
-
 
 
 # 辅助函数：从config.yaml获取AI玩家的用户名
 def get_ai_player_usernames_from_config():
     try:
         # 根据您的项目结构调整config.yaml的路径
-        config_path = os.path.join(current_app.root_path, 'config', 'config.yaml')
+        config_path = os.path.join(current_app.root_path, "config", "config.yaml")
         if not os.path.exists(config_path):
-            config_path = os.path.join(current_app.root_path, 'config.yaml')
+            config_path = os.path.join(current_app.root_path, "config.yaml")
 
-        with open(config_path, 'r', encoding='utf-8') as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             config_data = yaml.safe_load(f)
-        initial_users_config = config_data.get('INITIAL_USERS', [])
+        initial_users_config = config_data.get("INITIAL_USERS", [])
         # 筛选出在config.yaml中定义为AI的用户的用户名
         ai_usernames = [
-            user_conf.get('username')
+            user_conf.get("username")
             for user_conf in initial_users_config
-            if user_conf.get('username') and 'ai_code' in user_conf # 确保是AI用户
+            if user_conf.get("username") and "ai_code" in user_conf  # 确保是AI用户
         ]
-        return list(set(ai_usernames)) # 返回去重后的用户名列表
+        return list(set(ai_usernames))  # 返回去重后的用户名列表
     except Exception as e:
         current_app.logger.error(f"从config.yaml加载AI用户名失败: {e}", exc_info=True)
         return []
+
 
 @game_bp.route("/create_battle_page", methods=["GET"])
 @login_required
@@ -136,16 +140,18 @@ def create_battle_page():
         player_position = int(request.args.get("player_position", "1"))
         return setup_test_battle(ai_id, opponent_type, player_position)
 
-
     potential_opponents = []
     try:
         ai_player_usernames = get_ai_player_usernames_from_config()
         if ai_player_usernames:
             # 查询数据库，获取这些用户名的User对象，同时排除当前登录用户
-            potential_opponents = User.query.filter(
-                User.username.in_(ai_player_usernames),
-                User.id != current_user.id
-            ).order_by(User.username).all()
+            potential_opponents = (
+                User.query.filter(
+                    User.username.in_(ai_player_usernames), User.id != current_user.id
+                )
+                .order_by(User.username)
+                .all()
+            )
         else:
             current_app.logger.warning("未能从config.yaml加载AI玩家用户名。")
             # 可以考虑一个备选方案，比如加载所有非当前用户，但这可能过于宽泛
@@ -157,7 +163,9 @@ def create_battle_page():
 
     try:
         # 将获取到的对手列表传递给模板
-        return render_template("create_battle.html", potential_opponents=potential_opponents)
+        return render_template(
+            "create_battle.html", potential_opponents=potential_opponents
+        )
     except Exception as e:
         current_app.logger.warning(f"模板 'create_battle.html' 渲染出错: {str(e)}")
         # ... (您现有的模板加载错误处理逻辑) ...
@@ -165,6 +173,7 @@ def create_battle_page():
 
 
 # 修改game.py中的setup_test_battle函数
+
 
 def setup_test_battle(ai_id, opponent_type, player_position):
     """设置测试对战，确保AI按位置顺序分配且不重复
@@ -191,14 +200,16 @@ def setup_test_battle(ai_id, opponent_type, player_position):
             return redirect(url_for("ai.list_ai"))
 
         # 记录测试配置
-        current_app.logger.info(f"创建测试对战: AI={ai_id}, 类型={opponent_type}, 位置={player_position}")
+        current_app.logger.info(
+            f"创建测试对战: AI={ai_id}, 类型={opponent_type}, 位置={player_position}"
+        )
 
         # 添加用户的AI到指定位置
         player = add_player_to_battle(
             battle_id=battle.id,
             user_id=current_user.id,
             position=player_position,
-            ai_code_id=ai_id
+            ai_code_id=ai_id,
         )
 
         if not player:
@@ -225,6 +236,7 @@ def setup_test_battle(ai_id, opponent_type, player_position):
 
 
 # 修改game.py中的setup_mixed_ai_opponents函数
+
 
 def setup_mixed_ai_opponents(game_id, player_position):
     """设置混合AI对手，确保不重复且按位置顺序分配
@@ -271,7 +283,9 @@ def setup_mixed_ai_opponents(game_id, player_position):
 
         # 如果仍然没有可用的AI实例，使用系统默认AI
         if not unused_ai:
-            current_app.logger.warning(f"没有足够的未使用AI实例，位置{position}将使用系统默认AI")
+            current_app.logger.warning(
+                f"没有足够的未使用AI实例，位置{position}将使用系统默认AI"
+            )
             ai_code_id = None
             position_ai_map[position] = f"系统默认AI (类型: {ai_type})"
         else:
@@ -279,14 +293,16 @@ def setup_mixed_ai_opponents(game_id, player_position):
             selected_ai = random.choice(unused_ai)
             ai_code_id = selected_ai.id
             used_ai_ids.append(ai_code_id)
-            position_ai_map[position] = f"AI: {selected_ai.name} (ID: {ai_code_id}, 类型: {ai_type})"
+            position_ai_map[position] = (
+                f"AI: {selected_ai.name} (ID: {ai_code_id}, 类型: {ai_type})"
+            )
 
         # 添加AI到游戏
         add_player_to_battle(
             battle_id=game_id,
             user_id=None,  # 系统AI没有对应的用户
             position=position,
-            ai_code_id=ai_code_id
+            ai_code_id=ai_code_id,
         )
 
     # 记录AI分配情况
@@ -294,6 +310,7 @@ def setup_mixed_ai_opponents(game_id, player_position):
 
 
 # 修改game.py中的setup_uniform_ai_opponents函数
+
 
 def setup_uniform_ai_opponents(game_id, player_position, opponent_type):
     """设置统一类型的AI对手，确保不重复且按位置顺序分配
@@ -323,7 +340,9 @@ def setup_uniform_ai_opponents(game_id, player_position, opponent_type):
 
         # 如果没有足够的未使用AI实例，使用系统默认AI
         if not unused_ai:
-            current_app.logger.warning(f"没有足够的{opponent_type}类型未使用AI实例，位置{position}将使用系统默认AI")
+            current_app.logger.warning(
+                f"没有足够的{opponent_type}类型未使用AI实例，位置{position}将使用系统默认AI"
+            )
             ai_code_id = None
             position_ai_map[position] = f"系统默认AI (类型: {opponent_type})"
         else:
@@ -338,7 +357,7 @@ def setup_uniform_ai_opponents(game_id, player_position, opponent_type):
             battle_id=game_id,
             user_id=None,  # 系统AI没有对应的用户
             position=position,
-            ai_code_id=ai_code_id
+            ai_code_id=ai_code_id,
         )
 
     # 记录AI分配情况
@@ -673,6 +692,7 @@ def view_battle(battle_id):
 
 # 添加到game.py中，用于处理测试对战的创建
 
+
 @game_bp.route("/create_battle_test", methods=["POST"])
 @login_required
 def create_battle_test():
@@ -707,6 +727,7 @@ def create_battle_test():
         current_app.logger.error(f"创建测试对战请求处理失败: {str(e)}", exc_info=True)
         flash(f"创建测试对战失败: {str(e)}", "danger")
         return redirect(url_for("game.lobby"))
+
 
 # =================== API 路由 ===================
 

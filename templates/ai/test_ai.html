@@ -10,41 +10,52 @@
             </div>
             <div class="card-body">
                 <p class="mb-4">选择对手类型和您希望在游戏中的位置。完成设置后，系统将创建一个测试对战，您的AI将在指定位置参与，其他位置将由系统自动填充对应类型的AI。</p>
-                
                 <form action="{{ url_for('ai.test_ai', ai_id=ai_code.id) }}" method="post">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    
                     <div class="mb-4">
                         <label class="form-label fw-bold">选择对手类型</label>
                         <div class="mb-2 text-muted small">选择您的AI将要面对的对手</div>
                         <div class="d-flex flex-wrap gap-3">
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="opponent_type" 
-                                       id="opponent-smart" value="smart" checked>
+                                <input class="form-check-input"
+                                       type="radio"
+                                       name="opponent_type"
+                                       id="opponent-smart"
+                                       value="smart"
+                                       checked>
                                 <label class="form-check-label" for="opponent-smart">
                                     <strong>Smart AI</strong> (高级对手)
                                     <div class="text-muted small">DeepSeek增强型AI，具有较高策略性</div>
                                 </label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="opponent_type" 
-                                       id="opponent-basic" value="basic">
+                                <input class="form-check-input"
+                                       type="radio"
+                                       name="opponent_type"
+                                       id="opponent-basic"
+                                       value="basic">
                                 <label class="form-check-label" for="opponent-basic">
                                     <strong>Basic AI</strong> (基础对手)
                                     <div class="text-muted small">基础AI，具有一般策略性</div>
                                 </label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="opponent_type" 
-                                       id="opponent-idiot" value="idiot">
+                                <input class="form-check-input"
+                                       type="radio"
+                                       name="opponent_type"
+                                       id="opponent-idiot"
+                                       value="idiot">
                                 <label class="form-check-label" for="opponent-idiot">
                                     <strong>Idiot AI</strong> (傻瓜对手)
                                     <div class="text-muted small">傻瓜AI，几乎没有策略性</div>
                                 </label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="opponent_type" 
-                                       id="opponent-mixed" value="mixed">
+                                <input class="form-check-input"
+                                       type="radio"
+                                       name="opponent_type"
+                                       id="opponent-mixed"
+                                       value="mixed">
                                 <label class="form-check-label" for="opponent-mixed">
                                     <strong>Mixed AI</strong> (混合对手)
                                     <div class="text-muted small">从所有AI类型中随机抽取，更贴近真实对战</div>
@@ -55,22 +66,21 @@
                             <i class="bi bi-info-circle me-1"></i> 系统会确保每个AI实例在游戏中最多出现一次，避免重复使用相同的AI。
                         </div>
                     </div>
-                    
                     <div class="mb-4">
                         <label for="player-position" class="form-label fw-bold">选择您的位置 (1-7)</label>
                         <div class="mb-2 text-muted small">选择您的AI在游戏中的位置编号</div>
-                        <select class="form-select" id="player-position" name="player_position" style="max-width: 200px;">
-                            {% for i in range(1, 8) %}
-                                <option value="{{ i }}">位置 {{ i }}</option>
-                            {% endfor %}
+                        <select class="form-select"
+                                id="player-position"
+                                name="player_position"
+                                style="max-width: 200px">
+                            {% for i in range(1, 8) %}<option value="{{ i }}">位置 {{ i }}</option>{% endfor %}
                         </select>
                         <div class="form-text mt-2">
                             <i class="bi bi-info-circle me-1"></i> 在阿瓦隆中，不同位置会被分配不同的角色，请尝试不同位置来测试您的AI在各种角色下的表现。
                         </div>
                     </div>
-                    
                     <div class="d-flex gap-2">
-                        <a href="{{ url_for('ai.list_ai') }}" class="btn btn-outline-secondary">
+                        <a href="{{ url_for("ai.list_ai") }}" class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left me-1"></i> 返回列表
                         </a>
                         <button type="submit" class="btn btn-primary">

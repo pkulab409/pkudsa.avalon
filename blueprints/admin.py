@@ -368,20 +368,20 @@ def get_users():
 @admin_required
 def admin_dashboard():
     # 新增分页参数处理
-    page = request.args.get('page', 1, type=int)
+    page = request.args.get("page", 1, type=int)
     per_page = 10  # 每页显示15个用户
 
     # 修改查询方式为分页查询
     users_pagination = User.query.order_by(User.username.asc()).paginate(
-        page=page, 
-        per_page=per_page,
-        error_out=False
+        page=page, per_page=per_page, error_out=False
     )
-    
-    return render_template("admin/dashboard.html", 
-                         users=users_pagination,
-                         current_page=page,
-                         total_pages=users_pagination.pages)
+
+    return render_template(
+        "admin/dashboard.html",
+        users=users_pagination,
+        current_page=page,
+        total_pages=users_pagination.pages,
+    )
 
 
 @admin_bp.route("/admin/search_user", methods=["GET"])
