@@ -481,100 +481,177 @@
       let isSmoothScrolling = false; // 标记是否正在平滑滚动
       const scrollSpeed = 1; // 滚动速度（像素/帧），可以调整这个值
 
-      // --- Smooth Scrolling Functions ---
+      // --- 新增：监听聊天滚动，联动地图 ---
+      let scrollTimeout;
+      let lastProcessedMoveIndex = -1; // 记录上次处理的移动索引
+      
+      chatContainer.addEventListener('scroll', () => {
+        if (isSmoothScrolling) return; // 如果正在自动滚动，不处理
+        
+        // 使用防抖，避免频繁触发
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+          // 获取所有移动消息
+          const moveMsgs = Array.from(chatContainer.querySelectorAll('.move-message'));
+          if (moveMsgs.length === 0) return;
+
+          const containerTop = chatContainer.scrollTop;
+          const containerHeight = chatContainer.clientHeight;
+          const containerCenter = containerTop + containerHeight / 2;
+
+          // 找到最接近容器中心的移动消息
+          let closestMsg = null;
+          let minDist = Infinity;
+          
+          moveMsgs.forEach(msg => {
+            const msgRect = msg.getBoundingClientRect();
+            const containerRect = chatContainer.getBoundingClientRect();
+            const msgCenter = msgRect.top + msgRect.height / 2 - containerRect.top;
+            const dist = Math.abs(msgCenter - containerHeight / 2);
+            
+            /* if (msgRect.top >= containerRect.top && msgRect.bottom <= containerRect.bottom)  */
+              if (dist < minDist) {
+                minDist = dist;
+                closestMsg = msg;
+              }
+          });
+
+          // 如果找到了最近的移动消息，更新地图
+          if (closestMsg) {
+            const moveIdx = parseInt(closestMsg.getAttribute('data-move-index'));
+            if (!isNaN(moveIdx) && moveIdx !== lastProcessedMoveIndex) {
+              lastProcessedMoveIndex = moveIdx;
+              renderMapByMoveIndex(moveIdx);
+            }
+          } 
+          if (containerTop < 50) { // 如果滚动到顶部附近，显示初始状态
+            lastProcessedMoveIndex = -1;
+            renderMapByMoveIndex(-1);
+          }
+        }, 200); // 增加防抖延迟到200ms
+      });
+
+      // --- 修改自动滚动功能，确保在自动滚动时也更新地图 ---
       function startSmoothScroll() {
-              // 如果已经在滚动，或者内容不足以滚动，则不执行
-              if (isSmoothScrolling || chatContainer.scrollHeight <= chatContainer.clientHeight) {
-                  return;
+        if (isSmoothScrolling || chatContainer.scrollHeight <= chatContainer.clientHeight) {
+          return;
+        }
+
+        isSmoothScrolling = true;
+        autoplayBtnFlow.innerHTML = '<i class="bi bi-pause-fill"></i> 暂停滚动';
+        autoplayBtnFlow.classList.remove('btn-outline-primary');
+        autoplayBtnFlow.classList.add('btn-outline-warning');
+
+        let lastMoveIndex = -1;
+        function step() {
+          const currentScroll = chatContainer.scrollTop;
+          const maxScroll = chatContainer.scrollHeight - chatContainer.clientHeight;
+
+          if (currentScroll < maxScroll) {
+            chatContainer.scrollTop += scrollSpeed;
+            
+            // 在自动滚动时也检查并更新地图
+            const moveMsgs = Array.from(chatContainer.querySelectorAll('.move-message'));
+            const containerTop = chatContainer.scrollTop;
+            const containerHeight = chatContainer.clientHeight;
+            const containerCenter = containerTop + containerHeight / 2;
+
+            let closestMsg = null;
+            let minDist = Infinity;
+            
+            moveMsgs.forEach(msg => {
+              const msgRect = msg.getBoundingClientRect();
+              const containerRect = chatContainer.getBoundingClientRect();
+              const msgCenter = msgRect.top + msgRect.height / 2 - containerRect.top;
+              const dist = Math.abs(msgCenter - containerHeight / 2);
+              
+              // 只有当消息在视口范围内时才考虑
+              if (msgRect.top >= containerRect.top && msgRect.bottom <= containerRect.bottom) {
+                if (dist < minDist) {
+                  minDist = dist;
+                  closestMsg = msg;
+                }
               }
+            });
 
-              // 可选：每次开始时都从顶部开始滚动
-              // chatContainer.scrollTop = 0;
-
-              isSmoothScrolling = true;
-              autoplayBtnFlow.innerHTML = '<i class="bi bi-pause-fill"></i> 暂停滚动';
-              autoplayBtnFlow.classList.remove('btn-outline-primary');
-              autoplayBtnFlow.classList.add('btn-outline-warning');
-
-              // 定义滚动步骤函数
-              function step() {
-                  const currentScroll = chatContainer.scrollTop;
-                  const maxScroll = chatContainer.scrollHeight - chatContainer.clientHeight;
-
-                  if (currentScroll < maxScroll) {
-                      // 增加滚动位置
-                      chatContainer.scrollTop += scrollSpeed;
-                      // 请求下一帧动画
-                      scrollAnimationId = requestAnimationFrame(step);
-                  } else {
-                      // 到达底部，停止滚动
-                      stopSmoothScroll();
-                      // 确保精确滚动到底部
-                      chatContainer.scrollTop = maxScroll;
-                  }
+            if (closestMsg) {
+              const moveIdx = parseInt(closestMsg.getAttribute('data-move-index'));
+              if (!isNaN(moveIdx) && moveIdx !== lastMoveIndex) {
+                lastMoveIndex = moveIdx;
+                renderMapByMoveIndex(moveIdx);
               }
+            } else if (containerTop < 50) { // 如果滚动到顶部附近，显示初始状态
+              lastMoveIndex = -1;
+              renderMapByMoveIndex(-1);
+            }
 
-              // 开始动画循环
-              scrollAnimationId = requestAnimationFrame(step);
+            scrollAnimationId = requestAnimationFrame(step);
+          } else {
+            stopSmoothScroll();
+            chatContainer.scrollTop = maxScroll;
           }
+        }
 
-          function stopSmoothScroll() {
-              if (!isSmoothScrolling) return;
+        scrollAnimationId = requestAnimationFrame(step);
+      }
 
-              cancelAnimationFrame(scrollAnimationId); // 取消动画帧请求
-              scrollAnimationId = null;
-              isSmoothScrolling = false;
-              autoplayBtnFlow.innerHTML = '<i class="bi bi-play-fill"></i> 自动播放';
-              autoplayBtnFlow.classList.remove('btn-outline-warning');
-              autoplayBtnFlow.classList.add('btn-outline-primary');
-          }
+      function stopSmoothScroll() {
+        if (!isSmoothScrolling) return;
 
-          // --- Event Listeners ---
-          if (autoplayBtnFlow) {
-              autoplayBtnFlow.addEventListener('click', () => {
-                  if (isSmoothScrolling) {
+        cancelAnimationFrame(scrollAnimationId); // 取消动画帧请求
+        scrollAnimationId = null;
+        isSmoothScrolling = false;
+        autoplayBtnFlow.innerHTML = '<i class="bi bi-play-fill"></i> 自动播放';
+        autoplayBtnFlow.classList.remove('btn-outline-warning');
+        autoplayBtnFlow.classList.add('btn-outline-primary');
+      }
+
+      // --- Event Listeners ---
+      if (autoplayBtnFlow) {
+          autoplayBtnFlow.addEventListener('click', () => {
+              if (isSmoothScrolling) {
+                  stopSmoothScroll();
+              } else {
+                  startSmoothScroll();
+              }
+          });
+      }
+
+      // 当用户手动滚动时，停止自动滚动
+      if (chatContainer) {
+          chatContainer.addEventListener('scroll', () => {
+              // 检查是否是用户手动触发的滚动（这是一个简化判断，可能不够完美）
+              // 如果正在自动滚动，并且 scrollAnimationId 存在，说明可能是程序触发的
+              // 但如果用户快速滚动，也可能触发此事件，所以简单处理：只要用户滚动就停止自动播放
+              if (isSmoothScrolling && !scrollAnimationId) {
+                  // A more robust check might be needed if scrollSpeed is high
+                  // or if other programmatic scrolls happen.
+                  // For now, any scroll event while isSmoothScrolling is true
+                  // but *after* the animation frame has potentially finished
+                  // could indicate user interaction. A simpler approach:
+                  // stopSmoothScroll(); // Uncomment this line if you want *any* scroll event to stop autoplay
+              }
+              // 更简单的逻辑：如果用户手动滚动（非程序触发），则停止自动滚动
+              // 这个判断比较困难，一个常用策略是设置一个标记，在程序滚动前后设置/取消
+              // 或者简单地：如果用户点击了滚动条或使用了滚轮，就停止。
+              // 最简单的方式：只要滚动事件发生且不是由 requestAnimationFrame 触发的瞬间，就停止
+              // (这个实现有点复杂，暂时省略，先实现基础功能)
+
+              // 替代方案：如果用户点击了"滚动到底部"按钮，也停止自动滚动
+              if (scrollToBottomBtn) {
+                  scrollToBottomBtn.addEventListener('click', () => {
                       stopSmoothScroll();
-                  } else {
-                      startSmoothScroll();
-                  }
-              });
-          }
+                      // 执行原有的滚动到底部逻辑
+                      chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+                  });
+              }
+              // 如果用户点击了聊天区域内部（可能意图是选中文字或暂停），也停止
+              chatContainer.addEventListener('mousedown', stopSmoothScroll); // 鼠标按下时停止
+              chatContainer.addEventListener('wheel', stopSmoothScroll);    // 滚轮滚动时停止
+              chatContainer.addEventListener('touchstart', stopSmoothScroll); // 触摸开始时停止
 
-          // 当用户手动滚动时，停止自动滚动
-          if (chatContainer) {
-              chatContainer.addEventListener('scroll', () => {
-                  // 检查是否是用户手动触发的滚动（这是一个简化判断，可能不够完美）
-                  // 如果正在自动滚动，并且 scrollAnimationId 存在，说明可能是程序触发的
-                  // 但如果用户快速滚动，也可能触发此事件，所以简单处理：只要用户滚动就停止自动播放
-                  if (isSmoothScrolling && !scrollAnimationId) {
-                      // A more robust check might be needed if scrollSpeed is high
-                      // or if other programmatic scrolls happen.
-                      // For now, any scroll event while isSmoothScrolling is true
-                      // but *after* the animation frame has potentially finished
-                      // could indicate user interaction. A simpler approach:
-                      // stopSmoothScroll(); // Uncomment this line if you want *any* scroll event to stop autoplay
-                  }
-                  // 更简单的逻辑：如果用户手动滚动（非程序触发），则停止自动滚动
-                  // 这个判断比较困难，一个常用策略是设置一个标记，在程序滚动前后设置/取消
-                  // 或者简单地：如果用户点击了滚动条或使用了滚轮，就停止。
-                  // 最简单的方式：只要滚动事件发生且不是由 requestAnimationFrame 触发的瞬间，就停止
-                  // (这个实现有点复杂，暂时省略，先实现基础功能)
-
-                  // 替代方案：如果用户点击了"滚动到底部"按钮，也停止自动滚动
-                  if (scrollToBottomBtn) {
-                      scrollToBottomBtn.addEventListener('click', () => {
-                          stopSmoothScroll();
-                          // 执行原有的滚动到底部逻辑
-                          chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
-                      });
-                  }
-                  // 如果用户点击了聊天区域内部（可能意图是选中文字或暂停），也停止
-                  chatContainer.addEventListener('mousedown', stopSmoothScroll); // 鼠标按下时停止
-                  chatContainer.addEventListener('wheel', stopSmoothScroll);    // 滚轮滚动时停止
-                  chatContainer.addEventListener('touchstart', stopSmoothScroll); // 触摸开始时停止
-
-              }, { passive: true }); // Use passive listener for better scroll performance
-          }
+          }, { passive: true }); // Use passive listener for better scroll performance
+      }
 
 
       // --- Helper Functions ---
@@ -617,75 +694,127 @@
       // 在生成聊天历史之前调用初始化
       initializeKnightAssignments();
 
-      // --- Map Rendering Logic ---
-      function renderMap(roundNum) {
-        currentMapRound = roundNum; // Update global state
-        gameMapContainer.innerHTML = ''; // Clear previous map
+      // --- 新增：批次移动数据结构 ---
+      // moveSteps: [{moveIndex, round, playerId, move, newPos, chatMsgId}]
+      let moveSteps = [];
+      let moveIndexToRound = [];
+      let moveIndexToMsgId = [];
+      let msgIdToMoveIndex = {};
 
-        // Update map round display
-        mapCurrentRoundDisplay.textContent = roundNum === 0 ? '初始状态' : `第 ${roundNum} 轮`;
+      // --- 预处理所有移动事件，生成moveSteps ---
+      function preprocessMoveSteps() {
+        moveSteps = [];
+        moveIndexToRound = [];
+        moveIndexToMsgId = [];
+        msgIdToMoveIndex = {};
+        let moveIndex = 0;
+        let msgId = 0;
+        gameEvents.forEach((event) => {
+          if (event.round === 'assassination') return;
+          if (event.events && event.events.length > 0) {
+            event.events.forEach(eventItem => {
+              if (eventItem.type === "move") {
+                moveSteps.push({
+                  moveIndex,
+                  round: event.round,
+                  playerId: eventItem.data.player_id,
+                  move: eventItem.data.valid_moves[eventItem.data.valid_moves.length-1],
+                  newPos: eventItem.data.new_pos,
+                  msgId
+                });
+                moveIndexToRound.push(event.round);
+                moveIndexToMsgId.push(msgId);
+                msgIdToMoveIndex[msgId] = moveIndex;
+                moveIndex++;
+              }
+              msgId++;
+            });
+          } else {
+            if (event.events) msgId += event.events.length;
+          }
+        });
+      }
+      preprocessMoveSteps();
 
-        // Enable/disable buttons
-        mapPrevRoundBtn.disabled = roundNum <= 0;
-        mapNextRoundBtn.disabled = roundNum >= maxRound;
+      // --- 修改地图渲染函数，支持moveIndex ---
+      function renderMapByMoveIndex(moveIdx) {
+        gameMapContainer.innerHTML = '';
+        // 计算到当前moveIdx为止所有玩家的最新位置
+        let playerPos = {};
+        
+        // 如果是初始状态（moveIdx < 0），使用playerMovements中的初始位置
+        if (true) {
+          Object.entries(playerMovements).forEach(([playerId, moves]) => {
+            if (moves && moves.length > 0) {
+              // 找到第一轮的第一个移动
+              const initialMove = moves.find(move => move.round === 0);
+              if (initialMove) {
+                playerPos[playerId] = initialMove.position;
+              }
+            }
+          });
+        }
+        if (moveIdx >= 0) {
+          // 正常情况：计算到当前moveIdx为止所有玩家的最新位置
+          for (let i = 0; i <= moveIdx && i < moveSteps.length; i++) {
+            const step = moveSteps[i];
+            playerPos[step.playerId] = step.newPos;
+          }
+        }
 
-        // Create map cells
+        // 获取当前轮次
+        let currentRound = moveIdx >= 0 && moveIdx < moveSteps.length ? moveSteps[moveIdx].round : 0;
+        currentMapRound = currentRound; // 更新当前轮次
+        
+        // 更新按钮状态
+        mapPrevRoundBtn.disabled = currentRound <= 0;
+        mapNextRoundBtn.disabled = currentRound >= maxRound;
+
+        // 创建地图格子
         for (let r = 0; r < mapSize; r++) {
           for (let c = 0; c < mapSize; c++) {
             const cell = document.createElement('div');
             cell.classList.add('map-cell');
             cell.dataset.row = r;
             cell.dataset.col = c;
-            // Optional: Add coordinates text
-            // cell.textContent = `${r},${c}`;
-            // cell.style.color = '#ccc';
             gameMapContainer.appendChild(cell);
           }
         }
 
-        // Determine player positions for the given round
-        Object.keys(playerMovements).forEach(playerId => {
-          const movements = playerMovements[playerId] || [];
-          let position = null;
-          // Find the latest position up to or exactly at the current round
-          for (let i = movements.length - 1; i >= 0; i--) {
-             const movement = movements[i];
-             if (movement.round <= roundNum) {
-                 position = movement.position;
-                 break; // Found the latest position for this round or earlier
-             }
-          }
-
-          if (position && Array.isArray(position) && position.length === 2) {
-            const [row, col] = position;
-            // Ensure row/col are within bounds
+        // 渲染玩家
+        Object.keys(playerPos).forEach(playerId => {
+          const pos = playerPos[playerId];
+          if (pos && Array.isArray(pos) && pos.length === 2) {
+            const [row, col] = pos;
             if (row >= 0 && row < mapSize && col >= 0 && col < mapSize) {
-                const cell = gameMapContainer.querySelector(`[data-row="${row}"][data-col="${col}"]`);
-                if (cell) {
-                  const playerInfo = getPlayerInfo(playerId);
-                  const playerToken = document.createElement('div');
-                  playerToken.classList.add('player-token', `player-${playerInfo.faction}`);
-                  playerToken.textContent = playerInfo.id; // Display player ID
-                  playerToken.title = `${playerInfo.id}号 - ${playerInfo.name}`; // Tooltip
-                  // Initialize Bootstrap tooltip (if Bootstrap JS is loaded)
-                  // new bootstrap.Tooltip(playerToken);
-                  cell.appendChild(playerToken);
-                } else {
-                   console.warn(`Map cell not found for player ${playerId} at [${row}, ${col}] in round ${roundNum}`);
-                }
-            } else {
-                 console.warn(`Invalid position [${row}, ${col}] for player ${playerId} in round ${roundNum}`);
+              const cell = gameMapContainer.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+              if (cell) {
+                const playerInfo = getPlayerInfo(playerId);
+                const playerToken = document.createElement('div');
+                playerToken.classList.add('player-token', `player-${playerInfo.faction}`);
+                playerToken.textContent = playerInfo.id;
+                playerToken.title = `${playerInfo.id}号 - ${playerInfo.name}`;
+                cell.appendChild(playerToken);
+              }
             }
-          } else {
-             // console.log(`No position found for player ${playerId} up to round ${roundNum}`);
           }
         });
-      }
-      // --- END: Map Rendering Logic ---
 
-      // --- Chat History Generation ---
+        // 更新地图批次显示
+        if (moveIdx >= 0) {
+          const step = moveSteps[moveIdx];
+          mapCurrentRoundDisplay.textContent = `第${step.round}轮-第${moveIdx+1}步`;
+        } else {
+          mapCurrentRoundDisplay.textContent = '初始状态';
+        }
+        currentRoundBadge.textContent = mapCurrentRoundDisplay.textContent;
+      }
+
+      // --- 修改聊天历史生成，插入data-move-index ---
       function generateChatHistory() {
         let chatHtml = '';
+        let msgId = 0;
+        let moveCount = 0; // 添加移动计数器
 
         // 1. Game Start Info
         chatHtml += `
@@ -714,12 +843,12 @@
                      结果: <span class="badge ${event.assassination.success ? 'bg-danger' : 'bg-success'}">${event.assassination.success ? '成功' : '失败'}</span>
                    </div>`;
              }
-             return; // Skip rest of round processing for assassination
+             return;
           }
 
           // --- Regular Round Processing ---
           const roundNum = event.round;
-          const missionSuccess = event.mission_result ? event.mission_result.success : null; // Check if mission happened and result
+          const missionSuccess = event.mission_result ? event.mission_result.success : null;
           const roundBadgeClass = missionSuccess === true ? 'bg-info text-dark' : (missionSuccess === false ? 'bg-danger' : 'bg-secondary');
           const roundResultText = missionSuccess === true ? '成功' : (missionSuccess === false ? '失败' : '进行中');
 
@@ -753,7 +882,7 @@
             event.events.forEach(eventItem => {
               if (eventItem.type === "team_propose") {
                 const leader = eventItem.data.leader;
-                const team_members = eventItem.data.team_members
+                const team_members = eventItem.data.team_members;
                 if (leader) {
                   const leaderInfo = getPlayerInfo(leader);
                   chatHtml += `
@@ -766,17 +895,43 @@
                     </div>
                   `;
                 }
-              }
+              } else if (eventItem.type === "move") {
+                const playerId = eventItem.data.player_id;
+                const validMoves = eventItem.data.valid_moves;
+                const lastMove = validMoves[validMoves.length - 1];
+                let lastMoveDisplay = "";
 
+                if (lastMove === "left") {
+                    lastMoveDisplay = "⬅️ 向左";
+                } else if (lastMove === "up") {
+                    lastMoveDisplay = "⬆️ 向上";
+                } else if (lastMove === "down") {
+                    lastMoveDisplay = "⬇️ 向下";
+                } else if (lastMove === "right") {
+                    lastMoveDisplay = "➡️ 向右";
+                }
 
-              if (eventItem.type === "speech") {
+                const newPos = eventItem.data.new_pos;
+                if (playerId) {
+                  moveCount++; // 增加移动计数
+                  // 查找moveIndex
+                  let moveIndex = msgIdToMoveIndex[msgId];
+                  chatHtml += `
+                    <div class="message-system move-message" data-move-index="${moveIndex}">
+                      <i class="bi bi-person-badge"></i> <strong>${playerId}号 玩家</strong> 进行了移动
+                      <span class="badge bg-secondary ms-2">第${moveCount}步</span><br>
+                      <strong>有效移动:</strong> ${lastMoveDisplay}<br>
+                      <strong>新位置:</strong> ${newPos}
+                    </div>
+                  `;
+                }
+              } else if (eventItem.type === "speech") {
                 const [playerId, message, speechType, hearers] = eventItem.data;
                 const playerInfo = getPlayerInfo(playerId);
                 const wrapperClass = playerInfo.faction === 'blue' ? 'message-wrapper-blue' : 'message-wrapper-red';
                 const tagColorClass = playerInfo.faction === 'blue' ? 'text-primary' : 'text-danger';
                 const bubbleClass = `message-${playerInfo.faction} ${speechType === "private" ? "private-speech" : ""}`;
 
-                // 添加发言类型标记
                 const speechBadge = speechType === "private" 
                     ? '<span class="badge bg-secondary speech-badge">有限范围</span>'
                     : '<span class="badge bg-info text-dark speech-badge">公开</span>';
@@ -815,15 +970,12 @@
                       ${approved ? '通过' : '拒绝'}
                     </span>
                     <small class="text-muted">(${voteAttempt.approve_count || 0} 赞成 / ${voteAttempt.reject_count || 0} 反对)</small>
-                    <div class="mt-2">`; // Container for individual votes
+                    <div class="mt-2">`;
 
-                // Display individual votes if available
                 if (voteAttempt.votes && Object.keys(voteAttempt.votes).length > 0) {
-                     // Sort votes by player ID for consistent order
                      const sortedPlayerIds = Object.keys(voteAttempt.votes).sort((a, b) => parseInt(a) - parseInt(b));
-
                      sortedPlayerIds.forEach(playerId => {
-                        const vote = voteAttempt.votes[playerId]; // true for Approve, false for Reject
+                        const vote = voteAttempt.votes[playerId];
                         const playerInfo = getPlayerInfo(playerId);
                         chatHtml += `
                           <span class="vote-badge badge ${vote ? 'bg-success-light' : 'bg-danger-light'} border ${vote ? 'border-success' : 'border-danger'} text-dark">
@@ -834,15 +986,16 @@
                 } else {
                      chatHtml += `<small class="text-muted d-block">（未记录具体投票）</small>`;
                 }
-                chatHtml += `</div></div>`; // Close vote-info
+                chatHtml += `</div></div>`;
               }
+              msgId++;
             });
           }
 
           // Mission Execution Results
           if (event.mission_execution) {
              const execution = event.mission_execution;
-             const success = execution.success; // Should align with mission_result.success
+             const success = execution.success;
              chatHtml += `
                <div class="mission-result-info">
                  <div class="alert ${success ? 'alert-info' : 'alert-danger'} d-inline-block py-1 px-3">
@@ -853,9 +1006,8 @@
                </div>
              `;
           }
-           chatHtml += `<div class="clearfix"></div>`; // Ensure floats are cleared before next round divider
-
-        }); // End of gameEvents loop
+           chatHtml += `<div class="clearfix"></div>`;
+        });
 
         // 3. Game End Info
         chatHtml += `
@@ -871,44 +1023,38 @@
           </div>
         `;
 
-        // Update chat container
         chatContainer.innerHTML = chatHtml;
-
-        // Scroll to bottom initially
         scrollToBottom();
       }
-      // --- END: Chat History Generation ---
-
 
       // --- Update Display for Round ---
       function updateDisplayForRound(round, shouldScroll = true) {
-        currentMapRound = round; // Update the tracked round
-
-        // Update Map
-        renderMap(round);
-
-        // Update Chat Footer Badge
-        const roundText = round === 0 ? '初始状态' : `第 ${round} 轮`;
-        currentRoundBadge.textContent = roundText;
-        mapCurrentRoundDisplay.textContent = roundText; // Keep map header consistent
+        // 找到该轮D一个moveIndex
+        let lastMoveIdx = -1;
+        for (let i = 0; i <= moveSteps.length - 1; i++) {
+          if (moveSteps[i].round == round) {
+            lastMoveIdx = i;
+            break;
+          }
+        }
+        
+        // 更新地图显示
+        renderMapByMoveIndex(lastMoveIdx);
 
         // 只有在shouldScroll为true时才滚动聊天容器
         if (shouldScroll) {
-          // Scroll Chat View to the corresponding round divider
           const roundElement = document.getElementById(`round-${round}`);
           if (roundElement) {
-            // Calculate position relative to the container's scroll top
-            const offsetTop = roundElement.offsetTop - chatContainer.offsetTop - 10; // Adjust 10 for desired padding/offset
+            const offsetTop = roundElement.offsetTop - chatContainer.offsetTop - 10;
             chatContainer.scrollTo({ top: offsetTop, behavior: 'smooth' });
           } else if (round === 0) {
-              // Scroll to top for round 0
-              chatContainer.scrollTo({ top: 0, behavior: 'smooth' });
+            chatContainer.scrollTo({ top: 0, behavior: 'smooth' });
           } else if (round === 'assassination') {
-               const assassElement = document.getElementById(`round-assassination`);
-               if (assassElement) {
-                   const offsetTop = assassElement.offsetTop - chatContainer.offsetTop - 10;
-                   chatContainer.scrollTo({ top: offsetTop, behavior: 'smooth' });
-               }
+            const assassElement = document.getElementById(`round-assassination`);
+            if (assassElement) {
+              const offsetTop = assassElement.offsetTop - chatContainer.offsetTop - 10;
+              chatContainer.scrollTo({ top: offsetTop, behavior: 'smooth' });
+            }
           }
         }
       }
@@ -916,71 +1062,17 @@
       // --- Event Listeners ---
       mapPrevRoundBtn.addEventListener('click', () => {
         if (currentMapRound > 0) {
-          updateDisplayForRound(currentMapRound - 1, true); // 点击按钮时允许滚动
+          updateDisplayForRound(currentMapRound - 1, true);
         }
       });
 
       mapNextRoundBtn.addEventListener('click', () => {
-        // Allow going up to maxRound, even if it's just the end state
         if (currentMapRound < maxRound) {
-          updateDisplayForRound(currentMapRound + 1, true); // 点击按钮时允许滚动
+          updateDisplayForRound(currentMapRound + 1, true);
         }
       });
 
       scrollToBottomBtn.addEventListener('click', scrollToBottom);
-
-      // 添加滚动监听，自动更新地图
-      let scrollTimeout;
-      chatContainer.addEventListener('scroll', () => {
-        // 如果正在自动滚动，不触发地图更新
-        if (isSmoothScrolling) return;
-
-        // 清除之前的定时器
-        clearTimeout(scrollTimeout);
-        
-        // 设置新的定时器，避免频繁更新
-        scrollTimeout = setTimeout(() => {
-          // 获取所有轮数分隔符
-          const roundDividers = Array.from(document.querySelectorAll('.round-divider'));
-          
-          // 找到最接近视口顶部的轮数分隔符
-          const containerTop = chatContainer.scrollTop;
-          const containerHeight = chatContainer.clientHeight;
-          const viewportMiddle = containerTop + containerHeight / 2;
-
-          let closestDivider = null;
-          let minDistance = Infinity;
-
-          roundDividers.forEach(divider => {
-            const dividerTop = divider.offsetTop - chatContainer.offsetTop;
-            const distance = Math.abs(dividerTop - viewportMiddle);
-            
-            if (distance < minDistance) {
-              minDistance = distance;
-              closestDivider = divider;
-            }
-          });
-
-          if (closestDivider) {
-            // 从divider的id中提取轮数
-            const roundId = closestDivider.id;
-            let roundNum;
-            
-            if (roundId === 'round-0') {
-              roundNum = 0;
-            } else if (roundId === 'round-assassination') {
-              roundNum = 'assassination';
-            } else {
-              roundNum = parseInt(roundId.replace('round-', ''));
-            }
-
-            // 如果轮数发生变化，更新地图，但不滚动聊天容器
-            if (roundNum !== currentMapRound) {
-              updateDisplayForRound(roundNum, false); // 手动滚动时不改变聊天容器位置
-            }
-          }
-        }, 150); // 150ms的防抖延迟
-      });
 
       // --- Initialization ---
       if (!gameInfo || !gameEvents || !playerMovements || mapSize <= 0) {

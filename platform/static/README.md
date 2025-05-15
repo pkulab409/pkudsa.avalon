@@ -10,6 +10,20 @@
 
 - **一些图片补充**：在 `/platform/static/images`
 
+### 🪙新增 & 修复
+
+- 实现了地图同步聊天容器滚动位置更新
+
+- 实现了对局重放页面用户名显示
+
+- 修复对局重放中提议队伍被拒绝、重新选择队长无法显示的问题
+
+- 实现聊天框中显示玩家移动
+
+- 实现监听聊天滚动，联动地图
+
+（`/platform/templates/visualizer/medieval_style_replay.html` 和 `platform/templates/visualizer/game_replay.html` 均实现）
+
 ### ✅待上传的角色卡片
 
 - **梅林**： `/platform/static/images/merlin.png`
@@ -28,4 +42,4 @@
 
 ### TODO
 
-- **把玩家移动加入 chatbox 中，并优化监听对局流程 改变地图的时机与过程**
+- 更具观赏感的前端页面：不展示身份信息
