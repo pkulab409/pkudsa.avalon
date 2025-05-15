@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}
+    500 - 服务器错误
+{% endblock title %}
+{% block content %}
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow">
+                    <div class="card-header bg-danger text-white">
+                        <h3 class="mb-0">500 - 服务器错误</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-4">
+                            <i class="bi bi-exclamation-circle big-icon"></i>
+                        </div>
+                        <p class="card-text text-center">很抱歉，服务器遇到了一个错误。请稍后再试或联系管理员。</p>
+                        <div class="d-grid gap-2 mt-4">
+                            <a href="{{ url_for("main.home") }}" class="btn btn-primary">返回首页</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

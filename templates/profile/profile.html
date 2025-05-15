@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+{% endblock %}
+{% block content %}
+    <style>
+  .profile-container {
+    max-width: 1000px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #f8f9fa;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .user-card {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    position: relative;
+  }
+
+  .user-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  /* 自动生成头像的颜色，包括用户名的第一个首字母 */
+  .user-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: white;
+    font-weight: 500;
+    text-transform: uppercase;
+    background: {{ current_user.username | color_hash }}; /* 关键修改 */
+  }
+
+  .admin-entry {
+    margin-top: 2rem;
+    text-align: center;
+  }
+
+  .admin-button {
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 8px;
+    background: #786fa6;
+    color: white;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .admin-button:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+  }
+    </style>
+    <div class="profile-container">
+        <div class="user-card">
+            <div class="user-header">
+                <!-- 修改后的头像区块 -->
+                <div class="user-avatar">
+                    {{ current_user.username[0] }}  <!-- 显示首字母 -->
+                </div>
+                <div>
+                    <h1>{{ current_user.username }}</h1>
+                    <p>
+                        <i class="fas fa-envelope"></i> {{ current_user.email }}
+                    </p>
+                    <p>
+                        <i class="fas fa-chart-line"></i> Elo 分数：{{ current_user.get_elo_score() }}
+                    </p>
+                </div>
+            </div>
+            <!-- 新增对战历史入口 -->
+            <div class="mt-4 text-center">
+                <a href="{{ url_for("profile.battle_history") }}"
+                   class="btn btn-primary btn-lg">
+                    <i class="fas fa-history me-2"></i>查看对战历史
+                </a>
+            </div>
+            {% if current_user.is_admin %}
+                <div class="admin-entry">
+                    <a href="{{ url_for("admin.admin_dashboard") }}"
+                       class="admin-button"
+                       style="text-decoration: none">
+                        <i class="fas fa-tools"></i>进入管理员面板
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

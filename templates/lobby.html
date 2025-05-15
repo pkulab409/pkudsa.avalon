@@ -1,0 +1,441 @@
+{% extends "base.html" %}
+{% block title %}
+    游戏大厅 - 游戏平台
+{% endblock title %}
+
+{% block content %}
+<style>
+  .info-box {
+    background-color: #f8d7da;
+    border-radius: 5px;
+    border: 1px solid #f5c6cb;
+    margin: 10px 0;
+    padding: 15px;
+    text-align: center;
+    display: flex;
+    color: #721c24;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+  }
+
+  .filter-form .form-control,
+  .filter-form .form-select {
+    margin-bottom: 10px;
+  }
+
+  /* Multi-player tags styling */
+  .player-tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px;
+    min-height: 32px;
+    padding: 5px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+  }
+
+  .player-tag {
+    display: inline-flex;
+    align-items: center;
+    background: #e9ecef;
+    border-radius: 4px;
+    padding: 2px 8px;
+    margin: 2px 0;
+    font-size: 0.85rem;
+  }
+
+  .player-tag .remove-tag {
+    margin-left: 5px;
+    cursor: pointer;
+    color: #6c757d;
+    font-weight: bold;
+  }
+
+  .player-tag .remove-tag:hover {
+    color: #dc3545;
+  }
+
+  /* Status badge custom colors */
+  .status-waiting {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+  }
+
+  .status-playing {
+    background-color: #17a2b8 !important;
+    color: #fff !important;
+  }
+
+  .status-completed {
+    background-color: #28a745 !important;
+  }
+
+  .status-error {
+    background-color: #dc3545 !important;
+  }
+
+  .status-cancelled {
+    background-color: #6c757d !important;
+  }
+
+  /* Card hover effect for better interaction feedback */
+  .battle-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .battle-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+
+  /* Align button with form inputs on larger screens */
+  @media (min-width: 992px) {
+    .filter-form .row > div {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+    }
+    .filter-form .btn-submit-row {
+        align-self: flex-end;
+        margin-bottom: 10px;
+    }
+  }
+
+  /* On medium screens, allow button to stack cleanly if it wraps */
+  @media (min-width: 768px) and (max-width: 991.98px) {
+     .filter-form .btn-submit-row {
+         margin-top: 0;
+         width: 100%;
+     }
+     .filter-form .btn-submit-row .btn {
+         width: 100%;
+     }
+   }
+
+  .pagination {
+    justify-content: center;
+    margin-top: 20px;
+  }
+
+  /* Enhanced table styling */
+  .battle-table th {
+    font-weight: 600;
+    color: #495057;
+  }
+
+  .battle-table tr:hover {
+    background-color: rgba(0,123,255,0.03);
+  }
+
+  /* Battle ID styling */
+  .battle-id {
+    font-family: monospace;
+    font-weight: 500;
+  }
+
+  /* Button styling */
+  .action-btn {
+    margin-right: 5px;
+    transition: all 0.2s;
+  }
+
+  .action-btn:hover {
+    transform: translateY(-2px);
+  }
+
+  /* No results message styling */
+  .no-results {
+    padding: 20px;
+    color: #6c757d;
+    font-style: italic;
+  }
+
+  /* Create battle button animation */
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.4); }
+    70% { box-shadow: 0 0 0 8px rgba(0, 123, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0); }
+  }
+
+  .create-battle-btn {
+    animation: pulse 2s infinite;
+    border-radius: 50px;
+    padding: 8px 20px;
+    transition: all 0.3s;
+  }
+
+  .create-battle-btn:hover {
+    transform: scale(1.05);
+    animation: none;
+  }
+</style>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-controller me-2"></i>游戏大厅</h2>
+        <a href="{{ url_for('game.create_battle_page') }}" class="btn btn-primary create-battle-btn">
+            <i class="bi bi-plus-circle me-1"></i> 创建对战
+        </a>
+    </div>
+
+    {% if automatch_is_on %}
+    <div class="info-box">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> 后台自动对战正在进行中！
+    </div>
+    {% endif %}
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>筛选对战</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('game.lobby') }}" class="filter-form" id="battleFilterForm">
+                <div class="row g-2">
+                    <div class="col-lg-2 col-md-6 col-sm-12">
+                        <label for="date_from" class="form-label">开始日期:</label>
+                        <input type="date" id="date_from" name="date_from" class="form-control form-control-sm" value="{{ current_filters.date_from or '' }}">
+                    </div>
+                    <div class="col-lg-2 col-md-6 col-sm-12">
+                        <label for="date_to" class="form-label">结束日期:</label>
+                        <input type="date" id="date_to" name="date_to" class="form-control form-control-sm" value="{{ current_filters.date_to or '' }}">
+                    </div>
+                    <div class="col-lg-2 col-md-6 col-sm-12">
+                        <label for="status" class="form-label">状态:</label>
+                        <select id="status" name="status" class="form-select form-select-sm">
+                            <option value="all" {% if not current_filters.status or current_filters.status == 'all' %}selected{% endif %}>所有状态</option>
+                            <option value="waiting" {% if current_filters.status == 'waiting' %}selected{% endif %}>等待中</option>
+                            <option value="playing" {% if current_filters.status == 'playing' %}selected{% endif %}>进行中</option>
+                            <option value="completed" {% if current_filters.status == 'completed' %}selected{% endif %}>已完成</option>
+                            <option value="error" {% if current_filters.status == 'error' %}selected{% endif %}>错误</option>
+                            <option value="cancelled" {% if current_filters.status == 'cancelled' %}selected{% endif %}>已取消</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-4 col-md-6 col-sm-12">
+                        <label for="player_input" class="form-label">玩家 (最多7位):</label>
+                        <div class="input-group input-group-sm">
+                            <input type="text" id="player_input" class="form-control" list="player-list" placeholder="输入用户名或ID后按Enter添加">
+                            <button type="button" id="addPlayerBtn" class="btn btn-outline-secondary">
+                                <i class="bi bi-plus"></i>
+                            </button>
+                        </div>
+                        {% if all_users %}
+                        <datalist id="player-list">
+                            {% for user in all_users %}
+                            <option value="{{ user.username }}">{{ user.username }}</option>
+                            {% endfor %}
+                        </datalist>
+                        {% endif %}
+
+                        <!-- Player tags container -->
+                        <div class="player-tags-container" id="playerTagsContainer">
+                            {% if current_filters.players %}
+                                {% for player in current_filters.players %}
+                                <div class="player-tag">
+                                    {{ player }}
+                                    <span class="remove-tag" data-player="{{ player }}">×</span>
+                                    <input type="hidden" name="players" value="{{ player }}">
+                                </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-lg-auto col-md-12 col-sm-12 btn-submit-row">
+                        <button type="submit" class="btn btn-info btn-sm w-100">
+                            <i class="bi bi-search me-1"></i> 筛选
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+             <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>对战列表 {% if battles_pagination %}(共 {{ battles_pagination.total }} 条){% endif %}</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0 battle-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col" width="15%">对战ID</th>
+                            <th scope="col" width="15%">状态</th>
+                            <th scope="col" width="10%">类型</th> {# 新增类型列 #}
+                            <th scope="col" width="20%">创建时间</th>
+                            <th scope="col" width="20%">结束时间</th>
+                            <th scope="col" width="20%">操作</th> {# 调整宽度以适应新列 #}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if battles_pagination and battles_pagination.items %}
+                            {% for battle in battles_pagination.items %}
+                                <tr class="battle-card">
+                                    <td>
+                                        <a href="{{ url_for('game.view_battle', battle_id=battle.id) }}" class="battle-id text-decoration-none">{{ battle.id[:8] }}...</a>
+                                    </td>
+                                    <td>
+                                        {% if battle.status == 'completed' %}
+                                            <span class="badge status-completed">已完成</span>
+                                        {% elif battle.status == 'playing' %}
+                                            <span class="badge status-playing">进行中</span>
+                                        {% elif battle.status == 'waiting' %}
+                                            <span class="badge status-waiting">等待中</span>
+                                        {% elif battle.status == 'error' %}
+                                            <span class="badge status-error">错误</span>
+                                        {% elif battle.status == 'cancelled' %}
+                                            <span class="badge status-cancelled">已取消</span>
+                                        {% else %}
+                                            <span class="badge bg-light text-dark">{{ battle.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td> {# 显示对战类型 #}
+                                        {% if battle.battle_type == 'ai_series_test' %}
+                                            <span class="badge bg-secondary" data-bs-toggle="tooltip" title="AI系列位置测试赛 (不计ELO)">系列测试</span>
+                                        {% elif battle.is_elo_exempt %}
+                                             <span class="badge bg-light text-dark" data-bs-toggle="tooltip" title="此对战不计入ELO/统计">豁免赛</span>
+                                        {% else %}
+                                            <span class="badge bg-info">标准赛</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ battle.created_at.strftime("%Y-%m-%d %H:%M") if battle.created_at else '-' }}</td>
+                                    <td>{{ battle.ended_at.strftime("%Y-%m-%d %H:%M") if battle.ended_at else '-' }}</td>
+                                    <td>
+                                        <a href="{{ url_for('game.view_battle', battle_id=battle.id) }}"
+                                           class="btn btn-sm btn-outline-primary action-btn">
+                                           <i class="bi bi-info-circle me-1"></i> 详情
+                                        </a>
+                                        {% if battle.status in ['completed', 'error', 'playing','cancelled'] %}
+                                            <a href="{{ url_for('visualizer.game_replay', game_id=battle.id) }}"
+                                               class="btn btn-sm btn-outline-info action-btn">
+                                               <i class="bi bi-play-fill me-1"></i> 回放
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center no-results py-4">
+                                    {% if current_filters.status or current_filters.date_from or current_filters.date_to or current_filters.players %}
+                                        <i class="bi bi-search me-2"></i>没有找到符合筛选条件的对战记录
+                                    {% else %}
+                                        <i class="bi bi-controller me-2"></i>暂无对战记录
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% if battles_pagination and battles_pagination.pages > 1 %}
+        <div class="card-footer">
+            <nav aria-label="Page navigation">
+                <ul class="pagination pagination-sm">
+                    <li class="page-item {% if not battles_pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" {% if battles_pagination.has_prev %}href="{{ url_for('game.lobby', page=battles_pagination.prev_num, status=current_filters.status, date_from=current_filters.date_from, date_to=current_filters.date_to, players=current_filters.players) }}"{% else %}href="#" aria-disabled="true"{% endif %}>
+                            <i class="bi bi-chevron-left"></i> 上一页
+                        </a>
+                    </li>
+
+                    {% for page_num in battles_pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                        {% if page_num %}
+                            {% if battles_pagination.page == page_num %}
+                                <li class="page-item active" aria-current="page">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                            {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('game.lobby', page=page_num, status=current_filters.status, date_from=current_filters.date_from, date_to=current_filters.date_to, players=current_filters.players) }}">{{ page_num }}</a>
+                                </li>
+                            {% endif %}
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    <li class="page-item {% if not battles_pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" {% if battles_pagination.has_next %}href="{{ url_for('game.lobby', page=battles_pagination.next_num, status=current_filters.status, date_from=current_filters.date_from, date_to=current_filters.date_to, players=current_filters.players) }}"{% else %}href="#" aria-disabled="true"{% endif %}>
+                            下一页 <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const playerInput = document.getElementById('player_input');
+    const addPlayerBtn = document.getElementById('addPlayerBtn');
+    const playerTagsContainer = document.getElementById('playerTagsContainer');
+    const form = document.getElementById('battleFilterForm');
+
+    // Function to add a player tag
+    function addPlayerTag(playerName) {
+        if (!playerName) return;
+
+        // Check if we already have this player
+        const existingTags = playerTagsContainer.querySelectorAll('.player-tag');
+        for (let tag of existingTags) {
+            if (tag.textContent.trim().replace('×', '') === playerName) {
+                return; // Player already exists
+            }
+        }
+
+        // Check if we reached the maximum of 7 players
+        if (existingTags.length >= 7) {
+            alert('最多只能选择7位玩家');
+            return;
+        }
+
+        // Create the player tag element
+        const tag = document.createElement('div');
+        tag.className = 'player-tag';
+        tag.innerHTML = `
+            ${playerName}
+            <span class="remove-tag" data-player="${playerName}">×</span>
+            <input type="hidden" name="players" value="${playerName}">
+        `;
+
+        // Add remove functionality
+        const removeBtn = tag.querySelector('.remove-tag');
+        removeBtn.addEventListener('click', function() {
+            tag.remove();
+        });
+
+        // Add to container
+        playerTagsContainer.appendChild(tag);
+
+        // Clear input
+        playerInput.value = '';
+    }
+
+    // Add player on button click
+    addPlayerBtn.addEventListener('click', function() {
+        addPlayerTag(playerInput.value.trim());
+    });
+
+    // Add player on Enter key
+    playerInput.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            addPlayerTag(playerInput.value.trim());
+        }
+    });
+
+    // Handle removing existing tags
+    playerTagsContainer.addEventListener('click', function(event) {
+        if (event.target.classList.contains('remove-tag')) {
+            event.target.closest('.player-tag').remove();
+        }
+    });
+});
+</script>
+{% endblock content %}
