@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}
+    上传AI代码 - 游戏平台
+{% endblock title %}
+{% block content %}
+    <div class="container">
+        <!-- 统一标题栏卡片 -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-primary text-white p-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-1">上传新AI代码</h2>
+                        <p class="mb-0 opacity-75">上传包含您的游戏策略的Python文件</p>
+                    </div>
+                    <i class="bi bi-cloud-upload" style="font-size: 1.5rem;"></i>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">
+                            AI名称 <span class="text-danger">*</span>
+                        </label>
+                        <input type="text"
+                               class="form-control"
+                               id="name"
+                               name="name"
+                               placeholder="例如：终极策略AI"
+                               required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">描述（可选）</label>
+                        <textarea class="form-control"
+                                  id="description"
+                                  name="description"
+                                  rows="2"
+                                  placeholder="简要描述AI策略..."></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label for="ai_code" class="form-label">
+                            选择文件 <span class="text-danger">*</span>
+                        </label>
+                        <input type="file"
+                               class="form-control"
+                               id="ai_code"
+                               name="ai_code"
+                               accept=".py"
+                               required>
+                        <div class="form-text mt-1">
+                            <i class="bi bi-info-circle me-1"></i> 仅支持包含 <code>Player</code> 类的Python文件
+                        </div>
+                    </div>
+                    <div class="form-check mb-4">
+                        <input class="form-check-input"
+                               type="checkbox"
+                               id="make_active"
+                               name="make_active">
+                        <label class="form-check-label" for="make_active">
+                            <i class="bi bi-lightning-charge-fill me-1"></i> 设为当前活跃AI
+                        </label>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for("ai.list_ai") }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle me-1"></i> 取消
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-cloud-upload me-1"></i> 上传AI
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

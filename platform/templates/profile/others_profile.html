@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+{% endblock %}
+{% block content %}
+    <style>
+  .profile-container {
+    max-width: 1000px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #f8f9fa;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .user-card {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    position: relative;
+  }
+
+  .user-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .user-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: white;
+    font-weight: 500;
+    text-transform: uppercase;
+    background: {{ user.username | color_hash }};
+  }
+
+    </style>
+    <div class="profile-container">
+        <div class="user-card">
+            <div class="user-header">
+                <div class="user-avatar">{{ user.username[0] }}</div>
+                <div>
+                    <h1>{{ user.username }}</h1>
+                    <p>
+                        <i class="fas fa-envelope"></i> {{ user.email }}
+                    </p>
+                    <p>
+                        <i class="fas fa-chart-line"></i> Elo 分数：{{ user.get_elo_score() }}
+                    </p>
+                </div>
+            </div>
+            <!-- 他人对战历史入口 -->
+            <div class="mt-4 text-center">
+                <a href="{{ url_for('profile.public_battle_history', user_id=user.id) }}"
+                   class="btn btn-primary btn-lg">
+                    <i class="fas fa-history me-2"></i>查看{{ user.username }}的对战记录
+                </a>
+            </div>
+        </div>
+    </div>
+{% endblock %}
