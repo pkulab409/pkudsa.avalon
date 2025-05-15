@@ -6,6 +6,7 @@
     <div class="container mt-4">
         <h2>创建新对战</h2>
         <p class="text-muted">选择7位参与者及其使用的AI来开始一场阿瓦隆对战。</p>
+        <div id="testModeAlertContainer"></div>
         <div class="card shadow-sm">
             <div class="card-body">
                 <form id="createBattleForm">
@@ -29,6 +30,7 @@
                                                     {{ current_user.username }} (自己)
                                                 </option>
                                                 {% for opponent in potential_opponents %}
+                                                    {# 确保后端传递了 potential_opponents #}
                                                     <option value="{{ opponent.id }}" data-username="{{ opponent.username }}">{{ opponent.username }}</option>
                                                 {% endfor %}
                                             </select>
@@ -48,9 +50,10 @@
                             </div>
                         {% endfor %}
                     </div>
-                    <!-- 新增按钮：随机填充剩余位置 -->
-                    <div class="mb-3 text-end">
-                        <button type="button" class="btn btn-secondary" id="fillRandomBtn">随机填充剩余位置</button>
+                    <div class="mb-3 d-flex justify-content-end">
+                        <button type="button" class="btn btn-outline-secondary" id="fillRandomBtn">
+                            <i class="bi bi-shuffle me-1"></i> 随机填充剩余空位
+                        </button>
                     </div>
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary btn-lg">
@@ -72,164 +75,369 @@
 {% block scripts %}
     {{ super() }}
     <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const playerSelects = document.querySelectorAll('.player-select');
-    const aiSelects = document.querySelectorAll('.ai-select');
-    const form = document.getElementById('createBattleForm');
-    const fillRandomBtn = document.getElementById('fillRandomBtn');
-    const loadingIndicator = document.getElementById('loadingIndicator');
-    const resultMessage = document.getElementById('resultMessage');
+    document.addEventListener('DOMContentLoaded', async function () { // Make outer function async
+        const playerSelects = document.querySelectorAll('.player-select');
+        const aiSelects = document.querySelectorAll('.ai-select');
+        const form = document.getElementById('createBattleForm');
+        const fillRandomBtn = document.getElementById('fillRandomBtn');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const resultMessage = document.getElementById('resultMessage');
+        const testModeAlertContainer = document.getElementById('testModeAlertContainer');
 
-    const userAiCache = {};
-    const currentUserId = "{{ current_user.id }}";
+        const userAiCache = {}; // Cache for AI codes to avoid refetching
+        const currentUserId = "{{ current_user.id }}"; // Passed from Flask template
 
-    async function fetchUserAiCodes(userId) {
-        if (userAiCache[userId]) return userAiCache[userId];
-        try {
-            const apiUrl = `{{ url_for('ai.get_specific_user_ai_codes', user_id='USER_ID_PLACEHOLDER') }}`.replace('USER_ID_PLACEHOLDER', userId);
-            const response = await fetch(apiUrl);
-            const data = await response.json();
-            if (data.success) {
-                userAiCache[userId] = data.ai_codes;
-                return data.ai_codes;
+        // --- Utility Functions ---
+        async function fetchUserAiCodes(userId) {
+            if (userAiCache[userId]) {
+                return userAiCache[userId];
             }
-        } catch (e) {
-            console.error('AI代码加载错误:', e);
-        }
-        userAiCache[userId] = [];
-        return [];
-    }
+            if (!userId) return []; // No user ID, no AI codes
 
-    async function updateAiSelect(playerSelect, aiSelect) {
-        const selectedUserId = playerSelect.value;
-        aiSelect.innerHTML = '<option value="" selected disabled>-- 正在加载AI --</option>';
-        aiSelect.disabled = true;
-        if (!selectedUserId) {
-            aiSelect.innerHTML = '<option value="" selected disabled>-- 请先选择玩家 --</option>';
-            return;
-        }
-        const aiCodes = await fetchUserAiCodes(selectedUserId);
-        aiSelect.innerHTML = '';
-        if (aiCodes.length > 0) {
-            const activeAi = aiCodes.find(ai => ai.is_active);
-            aiCodes.forEach(ai => {
-                const option = document.createElement('option');
-                option.value = ai.id;
-                option.textContent = `${ai.name} ${ai.is_active ? '(活跃)' : ''}`;
-                if (activeAi && ai.id === activeAi.id) option.selected = true;
-                aiSelect.appendChild(option);
-            });
-            aiSelect.disabled = false;
-        } else {
-            aiSelect.innerHTML = '<option value="" selected disabled>-- 该玩家无可用AI --</option>';
-            aiSelect.disabled = true;
-        }
-    }
-
-    playerSelects.forEach(select => {
-        const index = select.dataset.index;
-        const correspondingAiSelect = document.getElementById(`ai_code_${index}`);
-        select.addEventListener('change', () => updateAiSelect(select, correspondingAiSelect));
-    });
-
-    form.addEventListener('submit', async function (event) {
-        event.preventDefault();
-        loadingIndicator.style.display = 'block';
-        resultMessage.textContent = '';
-        resultMessage.className = 'mt-3';
-
-        const participants = [];
-        let isValid = true;
-        const selectedUsers = new Set();
-
-        for (let i = 0; i < 7; i++) {
-            const playerSelect = document.getElementById(`player_${i}`);
-            const aiSelect = document.getElementById(`ai_code_${i}`);
-            if (!playerSelect.value || !aiSelect.value) {
-                isValid = false;
-                resultMessage.textContent = `位置 ${i + 1} 的玩家或AI未选择完整。`;
-                resultMessage.classList.add('alert', 'alert-danger');
-                break;
-            }
-            if (selectedUsers.has(playerSelect.value)) {
-                const username = playerSelect.options[playerSelect.selectedIndex].dataset.username;
-                resultMessage.textContent = `玩家 ${username} 被重复选择。`;
-                resultMessage.classList.add('alert', 'alert-danger');
-                isValid = false;
-                break;
-            }
-            selectedUsers.add(playerSelect.value);
-            participants.push({ user_id: playerSelect.value, ai_code_id: aiSelect.value });
-        }
-
-        if (!isValid) {
-            loadingIndicator.style.display = 'none';
-            return;
-        }
-
-        try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-            const response = await fetch('{{ url_for("game.create_battle_action") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                },
-                body: JSON.stringify({ participants })
-            });
-            const contentType = response.headers.get("content-type");
-            if (contentType && contentType.includes("application/json")) {
-                const data = await response.json();
-                if (data.success) {
-                    resultMessage.textContent = `${data.message || '对战创建成功！'} 正在跳转到对战页面...`;
-                    resultMessage.classList.add('alert', 'alert-success');
-                    window.location.href = `{{ url_for('game.view_battle', battle_id='BATTLE_ID') }}`.replace('BATTLE_ID', data.battle_id);
-                } else {
-                    resultMessage.textContent = `创建失败: ${data.message || '未知错误'}`;
-                    resultMessage.classList.add('alert', 'alert-danger');
+            try {
+                const apiUrl = `{{ url_for('ai.get_specific_user_ai_codes', user_id='USER_ID_PLACEHOLDER') }}`.replace('USER_ID_PLACEHOLDER', userId);
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: `HTTP error ${response.status}` }));
+                    console.error(`获取用户 ${userId} AI列表失败: ${response.status}`, errorData.message);
+                    userAiCache[userId] = [];
+                    return [];
                 }
-            } else {
-                const errorText = await response.text();
-                resultMessage.textContent = `创建失败: 非预期响应 (状态码: ${response.status})`;
-                resultMessage.classList.add('alert', 'alert-danger');
-            }
-        } catch (e) {
-            console.error('提交错误:', e);
-            resultMessage.textContent = `创建对战时出错: ${e.message}`;
-            resultMessage.classList.add('alert', 'alert-danger');
-        } finally {
-            loadingIndicator.style.display = 'none';
-        }
-    });
-
-    // 新功能：随机填充剩余位置
-    fillRandomBtn.addEventListener('click', async () => {
-        const usedIds = new Set([currentUserId]);
-        for (let i = 0; i < 7; i++) {
-            const val = document.getElementById(`player_${i}`).value;
-            if (val) usedIds.add(val);
-        }
-
-        const allOptions = Array.from(document.querySelector(`#player_1`).options)
-            .filter(opt => opt.value && !usedIds.has(opt.value));
-
-        if (allOptions.length < 6 - usedIds.size + 1) {
-            alert("可用玩家不足，无法填充。");
-            return;
-        }
-
-        // 随机挑选6个不重复用户
-        const shuffled = allOptions.sort(() => 0.5 - Math.random()).slice(0, 6 - (usedIds.size - 1));
-        for (let i = 1; i < 7; i++) {
-            const playerSelect = document.getElementById(`player_${i}`);
-            const aiSelect = document.getElementById(`ai_code_${i}`);
-            if (!playerSelect.value) {
-                const randomOpt = shuffled.shift();
-                playerSelect.value = randomOpt.value;
-                await updateAiSelect(playerSelect, aiSelect);
+                const data = await response.json();
+                if (data.success && Array.isArray(data.ai_codes)) {
+                    userAiCache[userId] = data.ai_codes;
+                    return data.ai_codes;
+                } else {
+                    console.error(`获取用户 ${userId} AI列表API返回失败或格式错误:`, data.message || data);
+                    userAiCache[userId] = [];
+                    return [];
+                }
+            } catch (error) {
+                console.error(`获取用户 ${userId} AI代码时发生网络错误:`, error);
+                userAiCache[userId] = [];
+                return [];
             }
         }
+
+        async function updateAiSelect(playerSelect, aiSelect) {
+            return new Promise(async (resolve, reject) => {
+                const selectedUserId = playerSelect.value;
+                aiSelect.innerHTML = '<option value="" selected disabled>-- 正在加载AI --</option>';
+                aiSelect.disabled = true;
+
+                if (!selectedUserId) {
+                    aiSelect.innerHTML = '<option value="" selected disabled>-- 请先选择玩家 --</option>';
+                    resolve();
+                    return;
+                }
+
+                try {
+                    const aiCodes = await fetchUserAiCodes(selectedUserId);
+                    aiSelect.innerHTML = ''; // Clear current options
+
+                    if (aiCodes.length > 0) {
+                        const activeAi = aiCodes.find(ai => ai.is_active);
+                        aiCodes.forEach(ai => {
+                            const option = document.createElement('option');
+                            option.value = ai.id;
+                            option.textContent = `${ai.name} ${ai.is_active ? '(活跃)' : ''}`;
+                            aiSelect.appendChild(option);
+                        });
+                        // Default select active AI if available, otherwise first if exists
+                        if (activeAi) {
+                             aiSelect.value = activeAi.id;
+                        } else if (aiCodes.length > 0) {
+                            aiSelect.value = aiCodes[0].id;
+                        }
+                        aiSelect.disabled = false;
+                    } else {
+                        aiSelect.innerHTML = '<option value="" selected disabled>-- 该玩家无可用AI --</option>';
+                        aiSelect.disabled = true; // Keep disabled if no AI
+                    }
+                    resolve();
+                } catch (error) {
+                    console.error(`Error in updateAiSelect for user ${selectedUserId}:`, error);
+                    aiSelect.innerHTML = '<option value="" selected disabled>-- 加载AI失败 --</option>';
+                    aiSelect.disabled = true;
+                    reject(error);
+                }
+            });
+        }
+
+        // --- Event Listeners ---
+        playerSelects.forEach(select => {
+            const index = select.dataset.index;
+            const correspondingAiSelect = document.getElementById(`ai_code_${index}`);
+            select.addEventListener('change', () => {
+                updateAiSelect(select, correspondingAiSelect).catch(err => console.error("Error updating AI select on change:", err));
+            });
+        });
+
+        form.addEventListener('submit', async function (event) {
+            event.preventDefault();
+            loadingIndicator.style.display = 'block';
+            resultMessage.textContent = '';
+            resultMessage.className = 'mt-3';
+
+            const participants = [];
+            let isValid = true;
+            const selectedUserIds = new Set(); // Use a Set to track selected user IDs
+
+            for (let i = 0; i < 7; i++) {
+                const playerSelect = document.getElementById(`player_${i}`);
+                const aiSelect = document.getElementById(`ai_code_${i}`);
+
+                if (!playerSelect.value || !aiSelect.value) {
+                    isValid = false;
+                    resultMessage.textContent = `位置 ${i + 1} 的玩家或AI未选择完整。`;
+                    resultMessage.className = 'alert alert-danger mt-3';
+                    break;
+                }
+
+                if (selectedUserIds.has(playerSelect.value)) {
+                    const username = playerSelect.options[playerSelect.selectedIndex].dataset.username || `ID: ${playerSelect.value}`;
+                    resultMessage.textContent = `玩家 ${username} 被重复选择。`;
+                    resultMessage.className = 'alert alert-danger mt-3';
+                    isValid = false;
+                    break;
+                }
+                selectedUserIds.add(playerSelect.value);
+
+                participants.push({
+                    user_id: playerSelect.value,
+                    ai_code_id: aiSelect.value
+                });
+            }
+
+            if (!isValid) {
+                loadingIndicator.style.display = 'none';
+                return;
+            }
+
+            try {
+                const csrfTokenEl = document.querySelector('meta[name="csrf-token"]');
+                if (!csrfTokenEl) {
+                    throw new Error("CSRF token meta tag not found.");
+                }
+                const csrfToken = csrfTokenEl.getAttribute('content');
+
+                const response = await fetch('{{ url_for("game.create_battle_action") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ participants: participants })
+                });
+
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    const data = await response.json();
+                    if (data.success) {
+                        resultMessage.textContent = `${data.message || '对战创建成功！'} 正在跳转到对战页面...`;
+                        resultMessage.className = 'alert alert-success mt-3';
+                        window.location.href = `{{ url_for('game.view_battle', battle_id='BATTLE_ID_PLACEHOLDER') }}`.replace('BATTLE_ID_PLACEHOLDER', data.battle_id);
+                    } else {
+                        resultMessage.textContent = `创建失败: ${data.message || '未知错误'}`;
+                        resultMessage.className = 'alert alert-danger mt-3';
+                    }
+                } else {
+                    const errorText = await response.text();
+                    console.error('服务器返回非JSON响应:', errorText);
+                    resultMessage.textContent = `创建失败: 服务器返回了意外的响应 (状态码: ${response.status})。请检查服务器日志。`;
+                    resultMessage.className = 'alert alert-danger mt-3';
+                }
+            } catch (error) {
+                console.error('创建对战时出错:', error);
+                resultMessage.textContent = `创建对战时发生网络或服务器错误: ${error.message}`;
+                resultMessage.className = 'alert alert-danger mt-3';
+            } finally {
+                loadingIndicator.style.display = 'none';
+            }
+        });
+
+        // --- Random Fill Functionality ---
+        fillRandomBtn.addEventListener('click', async () => {
+            const filledPlayerIds = new Set();
+            let firstEmptySlot = -1;
+
+            // Identify already filled slots and the first empty one
+            for (let i = 0; i < 7; i++) {
+                const playerSelect = document.getElementById(`player_${i}`);
+                if (playerSelect.value) {
+                    filledPlayerIds.add(playerSelect.value);
+                } else if (firstEmptySlot === -1) {
+                    firstEmptySlot = i;
+                }
+            }
+
+            // Get all potential players from the first (or any) player dropdown, excluding already selected ones and placeholders
+            // This assumes all player dropdowns are populated with the same list of potential_opponents + current_user
+            const sourcePlayerSelect = document.getElementById(`player_0`); // Use first dropdown as source
+            const availableOpponentOptions = Array.from(sourcePlayerSelect.options)
+                .filter(opt => opt.value && !filledPlayerIds.has(opt.value)); // Filter out empty/placeholder and already used
+
+            // Shuffle the available opponents
+            for (let i = availableOpponentOptions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [availableOpponentOptions[i], availableOpponentOptions[j]] = [availableOpponentOptions[j], availableOpponentOptions[i]];
+            }
+
+            let opponentOptionIndex = 0;
+            for (let i = 0; i < 7; i++) {
+                const playerSelect = document.getElementById(`player_${i}`);
+                if (!playerSelect.value) { // If this slot is empty
+                    if (opponentOptionIndex < availableOpponentOptions.length) {
+                        const opponentToFill = availableOpponentOptions[opponentOptionIndex++];
+                        playerSelect.value = opponentToFill.value;
+                        const aiSelect = document.getElementById(`ai_code_${i}`);
+                        try {
+                            await updateAiSelect(playerSelect, aiSelect);
+                             // AI should be auto-selected by updateAiSelect if active or first
+                        } catch (err) {
+                            console.error("Error updating AI for randomly filled slot:", err);
+                        }
+                    } else {
+                        console.warn("Not enough unique opponents to fill all empty slots.");
+                        resultMessage.textContent = '可用玩家不足，无法填满所有空位。';
+                        resultMessage.className = 'alert alert-warning mt-3';
+                        break; // Stop if we run out of unique opponents
+                    }
+                }
+            }
+        });
+
+        // --- Test Battle Auto-Fill Functionality ---
+        async function autoFillTestBattle(playerTestPositionIndex, playerAiId, opponentUsernamePrefix) {
+            console.log(`--- Starting autoFillTestBattle ---`);
+            console.log(`Player Position (0-indexed): ${playerTestPositionIndex}, Player AI ID: ${playerAiId}, Opponent Prefix: ${opponentUsernamePrefix}, Current User ID: ${currentUserId}`);
+
+            for (let i = 0; i < 7; i++) { // Iterate through all 7 positions
+                const currentPlayerSelect = document.getElementById(`player_${i}`);
+                const currentAiSelect = document.getElementById(`ai_code_${i}`);
+                const currentIndex = parseInt(currentPlayerSelect.dataset.index); // 0-indexed
+
+                console.log(`Processing position ${currentIndex + 1} for auto-fill.`);
+
+                if (!currentAiSelect) {
+                    console.error(`  ERROR: AI Select dropdown for position ${currentIndex + 1} not found!`);
+                    continue;
+                }
+
+                if (currentIndex === playerTestPositionIndex) { // This is the player's AI slot
+                    console.log(`  Setting current user (${currentUserId}) for their AI at position ${currentIndex + 1}`);
+                    currentPlayerSelect.value = currentUserId;
+                    try {
+                        await updateAiSelect(currentPlayerSelect, currentAiSelect);
+                        console.log(`  AI list loaded for current user. Options:`, Array.from(currentAiSelect.options).map(o => ({v: o.value, t: o.text})));
+                        let aiFoundAndSet = false;
+                        for (let opt of currentAiSelect.options) {
+                            if (opt.value === playerAiId) {
+                                currentAiSelect.value = playerAiId; // Set the value directly
+                                aiFoundAndSet = true;
+                                console.log(`  SUCCESS: Selected player's AI (ID: ${playerAiId}) at position ${currentIndex + 1}`);
+                                break;
+                            }
+                        }
+                        if (!aiFoundAndSet) console.error(`  ERROR: Player's AI (ID: ${playerAiId}) NOT FOUND in options for position ${currentIndex + 1}`);
+                    } catch (error) {
+                        console.error(`  ERROR loading or setting AI for current user at position ${currentIndex + 1}:`, error);
+                    }
+                } else { // This is an opponent slot
+                    // Determine which opponent number this slot represents (1 through 6)
+                    const opponentIndices = Array.from({length: 7}, (_, k) => k).filter(idx => idx !== playerTestPositionIndex);
+                    const logicalOpponentIndexInSequence = opponentIndices.indexOf(currentIndex); // 0 to 5
+
+                    if (logicalOpponentIndexInSequence === -1) {
+                        console.error(`  LOGIC ERROR: Position ${currentIndex + 1} is not a valid opponent position during auto-fill.`);
+                        continue;
+                    }
+                    const opponentNumForUsername = logicalOpponentIndexInSequence + 1; // 1-based for username (e.g., smart_user1)
+                    const targetOpponentUsername = `${opponentUsernamePrefix}${opponentNumForUsername}`;
+                    console.log(`  Attempting to set opponent ${targetOpponentUsername} at position ${currentIndex + 1}`);
+
+                    let opponentUserOptionFound = null;
+                    for (let opt of currentPlayerSelect.options) {
+                        if (opt.dataset.username && opt.dataset.username.toLowerCase() === targetOpponentUsername.toLowerCase()) {
+                            opponentUserOptionFound = opt;
+                            break;
+                        }
+                    }
+
+                    if (opponentUserOptionFound) {
+                        currentPlayerSelect.value = opponentUserOptionFound.value;
+                        console.log(`    Selected opponent user ${targetOpponentUsername} (ID: ${opponentUserOptionFound.value})`);
+                        try {
+                            await updateAiSelect(currentPlayerSelect, currentAiSelect);
+                            console.log(`    AI list loaded for ${targetOpponentUsername}. Options:`, Array.from(currentAiSelect.options).map(o => ({v:o.value, t:o.text})));
+                             // AI should be auto-selected to active/first by updateAiSelect
+                            if (currentAiSelect.value) {
+                                console.log(`    SUCCESS: AI for ${targetOpponentUsername} at pos ${currentIndex + 1} is set to: ${currentAiSelect.options[currentAiSelect.selectedIndex].text}`);
+                            } else if (currentAiSelect.options.length > 0 && currentAiSelect.options[0].value) { // Check if placeholder is the only thing
+                                console.warn(`    WARN: No AI explicitly selected for ${targetOpponentUsername}, but options might exist. Defaulting may occur.`);
+                            } else {
+                                console.error(`    ERROR: No AI options available or selectable for ${targetOpponentUsername} at pos ${currentIndex + 1}`);
+                            }
+                        } catch (error) {
+                            console.error(`    ERROR loading or setting AI for ${targetOpponentUsername} at pos ${currentIndex + 1}:`, error);
+                        }
+                    } else {
+                        console.error(`  ERROR: Opponent user ${targetOpponentUsername} NOT FOUND in player dropdown for position ${currentIndex + 1}. Available:`, Array.from(currentPlayerSelect.options).map(o => o.dataset.username));
+                    }
+                }
+            }
+            console.log(`--- Finished autoFillTestBattle ---`);
+        }
+
+        // --- Initial Page Load Logic (for Test Battle Auto-Fill) ---
+        const testBattleConfigRaw = localStorage.getItem('testBattle');
+        console.log('Raw testBattle config from localStorage:', testBattleConfigRaw);
+
+        if (testBattleConfigRaw) {
+            try {
+                const config = JSON.parse(testBattleConfigRaw);
+                console.log('Parsed testBattle config:', config);
+                localStorage.removeItem('testBattle'); // Clear after use
+
+                const opponentTypeFromStorage = config.opponentType.toLowerCase();
+                let determinedOpponentPrefix = "";
+                // This mapping MUST align with your config.yaml AI user naming scheme
+                if (opponentTypeFromStorage === "smart") determinedOpponentPrefix = "smart_user";
+                else if (opponentTypeFromStorage === "basic") determinedOpponentPrefix = "basic_user";
+                else if (opponentTypeFromStorage === "idiot") determinedOpponentPrefix = "idiot_user";
+                else if (opponentTypeFromStorage === "mixed") {
+                     determinedOpponentPrefix = "basic_user"; // Fallback for mixed, adjust as needed. Server handles true mixing.
+                     console.warn("Autofill: 'mixed' opponent type. Using prefix: " + determinedOpponentPrefix);
+                } else {
+                    console.error("Autofill: Unknown opponent type from localStorage:", opponentTypeFromStorage);
+                }
+                console.log('Determined opponentPrefix for autofill:', determinedOpponentPrefix);
+
+                if (testModeAlertContainer && config.playerPosition && config.aiId && determinedOpponentPrefix) {
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-info mt-3 mb-3';
+                    alertDiv.innerHTML = `<strong>测试模式进行中:</strong> 您的AI (ID: ${config.aiId}) 将位于位置 ${config.playerPosition}，对手类型为 "${config.opponentType}". 其余位置将由 <strong>${determinedOpponentPrefix}X</strong> 系列AI填充。`;
+                    testModeAlertContainer.appendChild(alertDiv);
+
+                    // Call autoFillTestBattle
+                    await autoFillTestBattle(parseInt(config.playerPosition) - 1, config.aiId, determinedOpponentPrefix);
+                    console.log("Auto-fill process for test battle completed or attempted.");
+                    // Optional: auto-submit after a short delay if desired
+                    // setTimeout(() => {
+                    //     if (confirm("测试环境已自动填充完毕，是否立即开始对战？")) {
+                    //         form.requestSubmit();
+                    //     }
+                    // }, 1000);
+                } else {
+                    console.error("Autofill: Missing necessary config data (playerPosition, aiId, or prefix) to proceed.");
+                    if(testModeAlertContainer) testModeAlertContainer.innerHTML = '<div class="alert alert-danger mt-3">测试配置数据不完整，无法自动填充。</div>';
+                }
+
+            } catch (error) {
+                console.error('解析或执行 localStorage 测试配置时出错:', error);
+                 if(testModeAlertContainer) testModeAlertContainer.innerHTML = '<div class="alert alert-danger mt-3">加载测试配置失败。</div>';
+            }
+        }
     });
-});
     </script>
 {% endblock scripts %}
