@@ -26,6 +26,9 @@ class AutoMatch:
     # 类变量 - 每个ranking_id对应一个匹配队列
     _match_queues: Dict[int, List[dict]] = defaultdict(list)
 
+    # 指定匹配的排行榜列表
+    _target_ranking_ids: Optional[List[int]] = None 
+
     # 线程控制
     _running: bool = False
     _match_thread: Optional[threading.Thread] = None
@@ -303,15 +306,40 @@ class AutoMatch:
 
         while cls._running:
             try:
-                # 获取所有活跃的排行榜ID
-                ranking_ids = list(cls._match_queues.keys())
+                current_target_ids: Optional[List[int]] = None
+                # 在锁内读取共享变量 _target_ranking_ids
+                with cls._lock:
+                    if cls._target_ranking_ids is not None:
+                        # 创建副本以安全迭代，即使原始列表在其他线程中被修改
+                        current_target_ids = list(cls._target_ranking_ids)
 
-                for ranking_id in ranking_ids:
-                    # 跳过普通对局(ranking_id=0)
+                # 获取所有当前活跃的排行榜ID的副本，用于迭代
+                # 这样即使在迭代过程中_match_queues发生变化（例如队列变空被删除），也不会影响当前迭代轮次
+                all_active_queues_keys: List[int]
+                with cls._lock:
+                    all_active_queues_keys = list(cls._match_queues.keys())
+
+                # 决定实际要检查的ranking_ids
+                ids_to_process: List[int]
+                if current_target_ids is not None:
+                    # 如果配置了目标榜单，则只在这些榜单中且当前有队列的榜单进行匹配
+                    ids_to_process = [rid for rid in current_target_ids if rid in all_active_queues_keys]
+                    if not ids_to_process and current_target_ids: # 检查是否目标列表非空但无对应活跃队列
+                        logger.debug(
+                            f"配置了目标排行榜 {current_target_ids}, 但这些榜单当前均无活跃队列或玩家。"
+                        )
+                else:
+                    # 否则，处理所有当前有队列的榜单
+                    ids_to_process = all_active_queues_keys
+                
+                for ranking_id in ids_to_process:
+                    # 跳过普通对局(ranking_id=0)的天梯匹配逻辑
+                    # ELO匹配等逻辑主要针对天梯榜单 (ranking_id > 0)
                     if ranking_id == 0:
                         continue
 
-                    with cls._lock:
+                    queue_size = 0
+                    with cls._lock: # 获取队列大小时加锁
                         queue_size = len(cls._match_queues.get(ranking_id, []))
 
                     # 只有当队列中有足够多的玩家时才尝试匹配
@@ -331,10 +359,15 @@ class AutoMatch:
                                 logger.error(f"创建对局时出错: {str(e)}")
                                 # 将这些玩家重新加入队列
                                 with cls._lock:
-                                    cls._match_queues[ranking_id].extend(
-                                        matched_players
-                                    )
-
+                                    # 确保队列仍然存在，因为可能在处理过程中被清理
+                                    if ranking_id in cls._match_queues:
+                                        cls._match_queues[ranking_id].extend(
+                                            matched_players
+                                        )
+                                    else:
+                                        logger.warning(
+                                            f"Ranking ID {ranking_id} 队列不再存在。无法将玩家 { [p['user_id'] for p in matched_players] } 重新加入队列。"
+                                        )
                 # 清理超时的队列条目
                 cls._cleanup_queues()
 
@@ -343,7 +376,7 @@ class AutoMatch:
 
             except Exception as e:
                 logger.error(f"匹配循环中发生错误: {str(e)}")
-                time.sleep(cls.MATCH_CHECK_INTERVAL)
+                time.sleep(cls.MATCH_CHECK_INTERVAL) # 发生错误时也休眠，避免快速连续失败
 
     @classmethod
     def _cleanup_queues(cls):
@@ -522,3 +555,44 @@ class AutoMatch:
         except Exception as e:
             logger.error(f"创建直接天梯对局失败: {str(e)}")
             return {"success": False, "message": str(e)}
+        
+    @classmethod
+    def configure_target_rankings(cls, ranking_ids: Optional[List[int]]):
+        """
+        配置自动匹配系统只在指定的排行榜ID列表中进行匹配。
+        如果传入 None 或空列表，则匹配所有活跃的排行榜。
+        参数 ranking_ids 中的元素应为整数。
+        """
+        with cls._lock:
+            if ranking_ids is not None and ranking_ids: # 确保列表不为None且非空
+                try:
+                    # 验证并处理ID：确保是整数，去重，排序（可选，但有助于一致性）
+                    processed_ids = sorted(list(set(int(rid) for rid in ranking_ids)))
+                    cls._target_ranking_ids = processed_ids
+                    logger.info(f"自动匹配系统已配置为只处理排行榜: {cls._target_ranking_ids}")
+                except ValueError:
+                    logger.error(f"提供的排行榜ID列表包含无效值: {ranking_ids}。配置未更改。")
+                    # 可以选择是否在此处维持旧配置或清除配置
+                    # 当前行为：如果转换失败，_target_ranking_ids 不会被更新
+            else:
+                cls._target_ranking_ids = None
+                logger.info("自动匹配系统已配置为处理所有排行榜。")
+                
+    @classmethod
+    def terminate(cls):
+        """
+        终止并重置自动匹配系统
+        
+        与stop方法不同，terminate方法在停止匹配系统后还会清空所有匹配队列，重置系统状态
+        """
+        with cls._lock:
+            # 首先停止系统
+            if cls._running:
+                cls.stop()
+            
+            # 清空所有队列
+            cls._match_queues.clear()
+            cls._target_ranking_ids = None
+            
+            logger.info("自动匹配系统已终止并重置所有队列")
+            return True

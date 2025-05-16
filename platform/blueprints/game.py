@@ -25,6 +25,7 @@ from database import (
     get_ai_code_by_id,
     get_user_active_ai_code,
     create_battle as db_create_battle,
+    get_recent_battles as db_get_recent_battles,
     get_battle_by_id as db_get_battle_by_id,
     get_battle_players_for_battle as db_get_battle_players_for_battle,
     get_user_ai_codes as db_get_user_ai_codes,
@@ -32,7 +33,7 @@ from database import (
 )
 from database.models import Battle, BattlePlayer, User, AICode
 from utils.battle_manager_utils import get_battle_manager
-from utils.automatch_utils import get_automatch
+from game.automatch import AutoMatch
 from game.automatch import AutoMatch
 from datetime import datetime  # For date filtering
 
@@ -87,7 +88,7 @@ def lobby():
     return render_template(
         "lobby.html",
         battles_pagination=battles_pagination,
-        automatch_is_on=get_automatch().is_on,
+        automatch_is_on=AutoMatch.is_on,
         all_users=all_users,  # Pass users to the template
         current_filters={  # Pass current filters back to the template
             "status": status_filter,
@@ -860,11 +861,7 @@ def create_direct_ranking_match():
         data = request.get_json()
         ranking_id = int(data.get("ranking_id", 1))  # 默认使用ranking_id=1
 
-        # 调用AutoMatch创建直接对局
-        from utils.automatch_utils import get_automatch
-
-        automatch = get_automatch()
-        result = automatch.create_direct_ranking_match(current_user.id, ranking_id)
+        result = AutoMatch.create_direct_ranking_match(current_user.id, ranking_id)
 
         if result["success"]:
             return jsonify(

@@ -279,8 +279,12 @@ def create_app(config_object=Config):
     # 注册应用关闭时的回调
     @app.teardown_appcontext
     def teardown_appcontext(exception=None):
-        # 关闭自动匹配系统
-        AutoMatch.stop()
+        # 不在每次请求结束后停止自动匹配系统
+        pass
+        
+    # 应用关闭前停止自动匹配系统
+    import atexit
+    atexit.register(AutoMatch.stop)
 
     app.logger.info("Flask应用初始化完成")
     return app

@@ -8,7 +8,7 @@ from functools import wraps
 from sqlalchemy.orm import joinedload
 from database.models import User, Battle, GameStats, AICode, BattlePlayer
 from database import db
-from utils.automatch_utils import get_automatch
+from game.automatch import AutoMatch
 
 # 管理员蓝图
 admin_bp = Blueprint("admin", __name__)
@@ -252,8 +252,7 @@ def delete_game(game_id):
 @admin_bp.route("/admin/start_auto_match", methods=["POST"])
 @admin_required
 def start_auto_match():
-    automatch = get_automatch()
-    if automatch.start():
+    if AutoMatch.start():
         return (
             jsonify(
                 {
@@ -270,8 +269,7 @@ def start_auto_match():
 @admin_bp.route("/admin/stop_auto_match", methods=["POST"])
 @admin_required
 def stop_auto_match():
-    automatch = get_automatch()
-    if automatch.stop():
+    if AutoMatch.stop():
         return (
             jsonify(
                 {
@@ -288,8 +286,7 @@ def stop_auto_match():
 @admin_bp.route("/admin/terminate_auto_match", methods=["POST"])
 @admin_required
 def terminate_auto_match():
-    automatch = get_automatch()
-    automatch.terminate()
+    AutoMatch.terminate()
     return (
         jsonify(
             {
