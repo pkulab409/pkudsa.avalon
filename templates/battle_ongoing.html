@@ -415,10 +415,15 @@
                             <i class="bi bi-trophy me-2"></i>游戏结果
                           </div>
                           <div class="card-body">
-                            <h3 class="card-title text-center text-${isBlue ? 'primary' : 'danger'} mb-3">
+                            <h3 class="card-title text-center mb-3 ${isBlue ? 'text-primary' : 'text-danger'}">
                               ${isBlue ? '蓝队胜利!' : '红队胜利!'}
                             </h3>
                             <p class="card-text text-center">${reason}</p>
+                            <div class="text-center mt-3">
+                              <a href="{{ url_for('visualizer.game_replay', game_id=battle.id) }}" class="btn btn-info">
+                                <i class="bi bi-play-btn-fill me-1"></i> 查看详细回放
+                              </a>
+                            </div>
                           </div>
                         </div>
                       </div>`;
@@ -433,31 +438,51 @@
                         <div class="card-header bg-secondary text-white py-2">
                           <i class="bi bi-geo-alt me-2"></i>${eventType === "Positions" ? '当前位置' : '初始位置'}
                         </div>
-                        <div class="card-body">
-                          <div class="table-responsive">
-                            <table class="table table-sm">
-                              <thead>
-                                <tr>
-                                  <th>玩家</th>
-                                  <th>位置</th>
-                                </tr>
-                              </thead>
-                              <tbody>`;
+                        <div class="position-display">
+                            <div class="row">
+                              <div class="col-md-8">
+                                <div class="table-responsive">
+                                  <table class="table table-sm table-hover">
+                                    <thead>
+                                      <tr>
+                                        <th>玩家</th>
+                                        <th>位置</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>`;
                   
                   // 如果eventData是对象且有键
                   if (typeof eventData === 'object' && eventData !== null) {
                     for (const [player, position] of Object.entries(eventData)) {
+                      const playerNum = parseInt(player);
+                      // 获取与玩家对应的BattlePlayer对象
+                      const battlePlayer = battlePlayers.find(bp => bp.player_index === playerNum);
+                      const playerName = battlePlayer ? battlePlayer.user.username : `玩家${player}`;
+                      
                       snapshotHtml += `
                         <tr>
-                          <td>玩家 ${player}</td>
+                          <td>
+                            <span class="badge ${playerNum % 2 === 0 ? 'bg-primary' : 'bg-danger'} me-1">${player}号</span>
+                            ${playerName}
+                          </td>
                           <td>(${Array.isArray(position) ? position.join(', ') : position})</td>
                         </tr>`;
                     }
                   }
                   
                   snapshotHtml += `
-                              </tbody>
-                            </table>
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                              <div class="col-md-4 d-none d-md-block">
+                                <!-- 可以在这里添加一个简单的地图可视化 -->
+                                <div class="text-center text-muted">
+                                  <i class="bi bi-map" style="font-size: 3rem;"></i>
+                                  <p class="small">地图数据可用于回放中查看</p>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
