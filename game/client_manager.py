@@ -97,6 +97,39 @@ class ClientManager:
                     logger.warning(
                         "Could not find .env file. Will try using system environment variables."
                     )
+                # 先尝试加载无后缀的客户端配置
+        client_count = 0
+        api_key = os.environ.get("OPENAI_API_KEY")
+        base_url = os.environ.get("OPENAI_BASE_URL")
+        model_name = os.environ.get("OPENAI_MODEL_NAME")
+
+        if api_key and base_url and model_name:
+            logger.info(f"Found default OpenAI configuration without suffix")
+            try:
+                logger.info(f"Creating default client with model: {model_name}")
+                new_client = OpenAI(
+                    api_key=api_key, base_url=base_url, timeout=None  # 设置为无超时限制
+                )
+                try:
+                    # 验证客户端是否正常工作
+                    models = new_client.models.list()
+                    logger.info(f"Default client connection verified successfully")
+                except Exception as conn_err:
+                    raise Exception(f"Default API connection test failed: {conn_err}")
+
+                # 创建client_id
+                client_count += 1
+                client_id = f"client_{client_count}"
+                self._add_client(client_id, new_client, model_name)
+                logger.info(
+                    f"Successfully created default client, client_id={client_id}"
+                )
+            except Exception as e:
+                logger.error(f"Error creating default client: {e}", exc_info=True)
+        else:
+            logger.info(
+                "No default OpenAI configuration found, checking suffix-based configs"
+            )
 
         # 检查环境变量是否成功加载
         loaded_env = False
@@ -112,7 +145,6 @@ class ClientManager:
             logger.warning("No OPENAI_API_KEY_X variables found in environment")
 
         # 直接按顺序从1开始尝试加载客户端配置
-        client_count = 0
         suffix_num = 1
 
         # 持续尝试递增的后缀直到找不到配置
@@ -134,11 +166,7 @@ class ClientManager:
                 logger.info(
                     f"Creating client with suffix {suffix_num}, model: {model_name}"
                 )
-                new_client = OpenAI(
-                    api_key=api_key,
-                    base_url=base_url,
-                    timeout=3.0,  # 添加超时设置，防止无限等待
-                )
+                new_client = OpenAI(api_key=api_key, base_url=base_url)
                 try:
                     # 执行一个轻量级的操作，验证客户端是否正常工作
                     models = new_client.models.list()

@@ -157,84 +157,46 @@ class GameHelper:
 
         client_instance, client_id, client_model_name = None, None, None
 
-        # 设置获取客户端的超时时间
-        import threading
-
-        client_acquired = threading.Event()
-        client_data = [None, None, None]  # 用于存储客户端信息
-
-        def get_client_with_timeout():
-            try:
-                result = self.client_manager.get_client()
-                client_data[0], client_data[1], client_data[2] = result
-                client_acquired.set()
-            except Exception as e:
-                logger.error(f"获取客户端失败: {str(e)}")
-                client_acquired.set()
-
-        # 启动独立线程获取客户端，避免死锁
-        client_thread = threading.Thread(target=get_client_with_timeout)
-        client_thread.daemon = True
-        client_thread.start()
-
-        # 等待客户端获取，最多等待5秒
-        if not client_acquired.wait(5.0):
-            return "LLM调用错误：获取客户端超时，请稍后再试"
-
-        client_instance, client_id, client_model_name = client_data
-
-        if client_instance is None:
-            logger.error(
-                f"Player {self.current_player_id} failed to get an OpenAI client"
-            )
-            return "LLM调用错误：没有可用的OpenAI客户端"
-
         try:
+            # 获取客户端，不设置超时
+            client_instance, client_id, client_model_name = (
+                self.client_manager.get_client()
+            )
+
+            if client_instance is None:
+                logger.error(
+                    f"Player {self.current_player_id} failed to get an OpenAI client"
+                )
+                return "LLM调用错误：没有可用的OpenAI客户端"
+
             logger.info(f"Player {self.current_player_id} using client {client_id}")
 
             import time
 
             start_time = time.time()
 
-            # 使用带超时的API调用
-            from concurrent.futures import ThreadPoolExecutor, TimeoutError
-            from openai import APITimeoutError
+            # 直接调用API，不使用ThreadPoolExecutor和超时参数
+            completion = client_instance.chat.completions.create(
+                model=client_model_name,
+                messages=history + [{"role": "user", "content": cur_prompt}],
+                stream=False,
+                temperature=_TEMPERATURE,
+                max_tokens=_MAX_OUTPUT_TOKENS,
+                top_p=_TOP_P,
+                presence_penalty=_PRESENCE_PENALTY,
+                frequency_penalty=_FREQUENCY_PENALTY,
+                # 移除超时参数
+            )
 
-            response_content = None
+            response_content = completion.choices[0].message.content
 
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(
-                    client_instance.chat.completions.create,
-                    model=client_model_name,
-                    messages=history + [{"role": "user", "content": cur_prompt}],
-                    stream=False,
-                    temperature=_TEMPERATURE,
-                    max_tokens=_MAX_OUTPUT_TOKENS,
-                    top_p=_TOP_P,
-                    presence_penalty=_PRESENCE_PENALTY,
-                    frequency_penalty=_FREQUENCY_PENALTY,
-                    timeout=8.0,  # API调用超时
-                )
+            elapsed = time.time() - start_time
+            token = len(response_content)
+            self.tokens[self.current_player_id - 1]["output"] += token
 
-                try:
-                    # 最多等待12秒
-                    completion = future.result(timeout=12.0)
-                    response_content = completion.choices[0].message.content
-
-                    elapsed = time.time() - start_time
-                    token = len(response_content)
-                    self.tokens[self.current_player_id - 1]["output"] += token
-
-                    logger.info(
-                        f"Player {self.current_player_id} received response in {elapsed:.2f}s"
-                    )
-
-                except TimeoutError:
-                    logger.error(f"ThreadPoolExecutor timeout after 12s")
-                    return "LLM调用执行超时，请稍后再试"
-                except APITimeoutError:
-                    logger.error(f"OpenAI API timeout")
-                    return "OpenAI API调用超时，请稍后再试"
+            logger.info(
+                f"Player {self.current_player_id} received response in {elapsed:.2f}s"
+            )
 
             return response_content or "LLM调用未返回有效结果"
 
@@ -244,17 +206,13 @@ class GameHelper:
             )
             return f"LLM调用错误: {str(e)[:100]}..."
         finally:
-            # 在单独的线程中释放客户端，避免阻塞当前线程
+            # 释放客户端
             if client_id is not None:
-
-                def release_client_safe():
-                    try:
-                        self.client_manager.release_client(client_id)
-                        logger.info(f"Released client {client_id}")
-                    except Exception as e:
-                        logger.error(f"Error releasing client {client_id}: {str(e)}")
-
-                threading.Thread(target=release_client_safe, daemon=True).start()
+                try:
+                    self.client_manager.release_client(client_id)
+                    logger.info(f"Released client {client_id}")
+                except Exception as e:
+                    logger.error(f"Error releasing client {client_id}: {str(e)}")
 
     def _get_private_lib_content(self) -> dict:
         """
