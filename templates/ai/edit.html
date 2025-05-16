@@ -42,14 +42,14 @@
                             <label class="form-label">文件名</label>
                             <input type="text"
                                    class="form-control"
-                                   value="{{ ai_code.code_path.split("/")[-1] }}"
+                                   value="{{ ai_code.code_path.split('/')[-1] }}"
                                    disabled>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">上传时间</label>
                             <input type="text"
                                    class="form-control"
-                                   value="{{ ai_code.created_at.strftime("%Y-%m-%d %H:%M") }}"
+                                   value="{{ ai_code.created_at.strftime('%Y-%m-%d %H:%M') }}"
                                    disabled>
                         </div>
                     </div>
@@ -72,7 +72,7 @@
                         </label>
                     </div>
                     <div class="d-flex justify-content-end gap-2">
-                        <a href="{{ url_for("ai.list_ai") }}" class="btn btn-outline-secondary">
+                        <a href="{{ url_for('ai.list_ai') }}" class="btn btn-outline-secondary">
                             <i class="bi bi-x-circle me-1"></i> 取消
                         </a>
                         <button type="submit" class="btn btn-primary">

@@ -33,7 +33,7 @@
                                 <label class="form-label">文件名</label>
                                 <input type="text"
                                        class="form-control"
-                                       value="{{ ai_code.code_path.split("/")[-1] }}"
+                                       value="{{ ai_code.code_path.split('/')[-1] }}"
                                        disabled
                                        readonly>
                             </div>
@@ -41,7 +41,7 @@
                                 <label class="form-label">上传时间</label>
                                 <input type="text"
                                        class="form-control"
-                                       value="{{ ai_code.created_at.strftime("%Y-%m-%d %H:%M:%S") }}"
+                                       value="{{ ai_code.created_at.strftime('%Y-%m-%d %H:%M:%S') }}"
                                        disabled
                                        readonly>
                             </div>
@@ -58,7 +58,7 @@
                                 <label class="form-check-label" for="make_active">设为当前活跃AI</label>
                             </div>
                             <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                                <a href="{{ url_for("ai.list_ai") }}" class="btn btn-outline-secondary">取消</a>
+                                <a href="{{ url_for('ai.list_ai') }}" class="btn btn-outline-secondary">取消</a>
                                 <button type="submit" class="btn btn-primary">
                                     <i class="bi bi-save me-1"></i> 保存更改
                                 </button>

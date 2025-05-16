@@ -140,7 +140,7 @@
                             <div class="step"></div>
                             <div class="step"></div>
                         </div>
-                        <form method="post" action="{{ url_for("auth.register") }}">
+                        <form method="post" action="{{ url_for('auth.register') }}">
                             {{ form.hidden_tag() }}
                             <div class="mb-4">
                                 <label for="username" class="form-label">用户名</label>
@@ -184,7 +184,7 @@
                         </form>
                     </div>
                     <div class="card-footer text-center">
-                        已有账号？<a href="{{ url_for("auth.login") }}" class="text-primary fw-semibold">立即登录</a>
+                        已有账号？<a href="{{ url_for('auth.login') }}" class="text-primary fw-semibold">立即登录</a>
                     </div>
                 </div>
             </div>
