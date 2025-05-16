@@ -117,7 +117,7 @@ def game_replay(game_id):
             game_info["map_size"] = map_size_fallback  # Use fallback
 
         return render_template(
-            "visualizer/medieval_style_replay_page.html",
+            "visualizer/game_reveal.html",
             game_id=game_id,
             game_info=game_info,
             game_events=game_events,

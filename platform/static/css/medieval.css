@@ -395,6 +395,12 @@ h1::after, h2::after, h3::after {
     background-position: center;
 }
 
+.card-decoration.left.avalon {
+    background-image: url('../images/default_avatar.png');
+    background-size: cover;
+    background-position: center;
+}
+
 /*
 ---------------- 图片接口在上面 -----------------
 */
