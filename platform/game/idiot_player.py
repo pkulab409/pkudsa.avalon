@@ -41,9 +41,6 @@ class Player:
         self.mission_history = {}  # 任务历史记录
         self.known_merlin = None  # 已知的梅林(刺客专用)
 
-        # 初始化信任集合包含自己
-        self.trusted.add(self.index)
-
         # 关键地点
         self.key_locations = {
             "meeting": (4, 4),  # 会议地点
@@ -53,6 +50,8 @@ class Player:
     def set_player_index(self, index: int):
         self.index = index
         write_into_private(f"你的编号是{index}")
+        # 初始化信任集合包含自己
+        self.trusted.add(self.index)
 
     def set_role_type(self, role_type: str):
         self.role = role_type
@@ -95,6 +94,7 @@ class Player:
 
     def pass_map(self, map_data: list[list[str]]):
         self.map = map_data
+        self.map_size = len(map_data)
         # 分析地图寻找关键路径
         self.analyze_map()
 
@@ -102,6 +102,9 @@ class Player:
         """分析地图特征，寻找关键路径和障碍"""
         if not self.map:
             return
+
+        # 清空任务地点列表
+        self.key_locations["mission"].clear()
 
         # 寻找任务地点
         for y in range(len(self.map)):
@@ -183,6 +186,7 @@ class Player:
             你是{self.index}号玩家，角色是{self.role}。
             请分析这段话的可信度和可能的阵营。
             回答要简洁，口语化。绝对不要暴露自己的身份。
+            最多50字
             """
             analysis = askLLM(prompt)
             write_into_private(f"对{speaker}号发言的分析: {analysis}")
@@ -206,83 +210,80 @@ class Player:
         """队长选择任务队员"""
         write_into_private(f"作为队长，选择{team_size}名队员")
 
-        # 根据角色选择策略
-        if self.is_evil:
-            # 邪恶方策略: 尽量包含自己人
-            candidates = list(self.trusted)
-            if not candidates:  # 如果没有已知队友，随机选择
-                candidates = [
-                    i for i in range(1, self.player_count + 1) if i != self.index
-                ]
+        # 获取所有玩家编号
+        all_players = list(range(1, self.player_count + 1))
 
-            # 确保不全部选择自己人(避免太明显)
-            team = random.sample(candidates, min(len(candidates), team_size - 1))
-            remaining = [
-                i
-                for i in range(1, self.player_count + 1)
-                if i not in team and i != self.index
-            ]
-            if remaining:
-                team.append(random.choice(remaining))
-            return team[:team_size]
-        else:
-            # 善良方策略: 选择信任的玩家
+        # 善良方策略
+        if not self.is_evil:
+            # 优先选择信任的玩家
             trusted = list(self.trusted)
-            if len(trusted) >= team_size:
-                return random.sample(trusted, team_size)
+            team = []
+
+            # 添加信任的玩家到队伍
+            for player in trusted:
+                if len(team) < team_size:
+                    team.append(player)
 
             # 如果信任的玩家不足，补充未被怀疑的玩家
             neutral = [
                 i
-                for i in range(1, self.player_count + 1)
-                if i not in self.suspects and i != self.index
+                for i in all_players
+                if i not in self.suspects and i != self.index and i not in team
             ]
-            team = trusted + random.sample(neutral, team_size - len(trusted))
+            while len(team) < team_size and neutral:
+                team.append(neutral.pop(0))
+
+            # 如果仍不足，随机补充剩余玩家
+            remaining = [i for i in all_players if i not in team and i != self.index]
+            while len(team) < team_size and remaining:
+                team.append(remaining.pop(0))
+
+            return team[:team_size]
+
+        # 邪恶方策略
+        else:
+            # 优先选择队友
+            trusted = list(self.trusted)
+            team = []
+
+            # 添加队友到队伍
+            for player in trusted:
+                if len(team) < team_size:
+                    team.append(player)
+
+            # 确保队伍中不全是队友，避免过于明显
+            remaining = [i for i in all_players if i not in team and i != self.index]
+            while len(team) < team_size and remaining:
+                team.append(remaining.pop(0))
+
             return team[:team_size]
 
     def walk(self) -> tuple[str, ...]:
-        """移动策略"""
+        """最简单的移动策略，确保不出错"""
         if not self.location:
             return tuple()
 
-        # 根据游戏阶段选择目标
-        if self.round == 0:  # 初始阶段前往中心
-            target = self.key_locations["meeting"]
-        else:  # 根据任务需要移动
-            mission_locs = self.key_locations["mission"]
-            target = mission_locs[self.round % len(mission_locs)]
+        x, y = self.location
+        directions = [("Up", -1, 0), ("Down", 1, 0), ("Left", 0, -1), ("Right", 0, 1)]
+        valid_moves = []
 
-        # 计算路径
-        path = self.calculate_path(self.location, target)
-        return path[:3]  # 最多返回3步
+        # 检查每个方向是否有效
+        for direction, dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            if (
+                0 <= nx < self.map_size  # 检查水平边界
+                and 0 <= ny < self.map_size  # 检查垂直边界
+                and (nx, ny)
+                not in self.player_positions.values()  # 检查是否与其他玩家位置冲突
+            ):
+                valid_moves.append(direction)
 
-    def calculate_path(self, start, end) -> tuple[str, ...]:
-        """计算从起点到终点的路径"""
-        dx = end[0] - start[0]
-        dy = end[1] - start[1]
+        # 如果有有效移动，随机选择一个方向
+        if valid_moves:
+            return (random.choice(valid_moves),)
 
-        moves = []
-        # 水平移动
-        if dx > 0:
-            moves.extend(["Right"] * dx)
-        elif dx < 0:
-            moves.extend(["Left"] * -dx)
-
-        # 垂直移动
-        if dy > 0:
-            moves.extend(["Up"] * dy)
-        elif dy < 0:
-            moves.extend(["Down"] * -dy)
-
-        # 随机打乱顺序以增加不可预测性
-        if len(moves) > 1:
-            first_part = moves[: len(moves) // 2]
-            second_part = moves[len(moves) // 2 :]
-            random.shuffle(first_part)
-            random.shuffle(second_part)
-            moves = first_part + second_part
-
-        return tuple(moves[:3])  # 最多返回3步
+        # 如果没有有效移动，原地不动
+        return tuple()
 
     def say(self) -> str:
         """发言策略"""
@@ -324,8 +325,8 @@ class Player:
             prompt = f"""
             在阿瓦隆游戏中，你是{self.index}号玩家，角色是{self.role}。
             当前回合是{self.round}，已知信息:
-            信任的玩家: {list(self.trusted)}
-            可疑的玩家: {list(self.suspects)}
+            信任的玩家: {list(self.trusted) if self.trusted else "暂无"}
+            可疑的玩家: {list(self.suspects) if self.suspects else "暂无"}
             请生成一句合适的发言，帮助好人阵营但绝对不要暴露身份。
             发言要简短，口语化。
             """
@@ -333,65 +334,57 @@ class Player:
 
     def mission_vote1(self) -> bool:
         """对队伍提案进行投票"""
-        # 邪恶方策略
         if self.is_evil:
-            # 计算队伍中邪恶玩家的数量
+            # 邪恶方策略
             evil_in_team = len([p for p in self.last_team if p in self.trusted])
-
-            # 如果有队友在队伍中，支持提案
             if evil_in_team > 0:
                 write_into_private(f"支持提案，因为队伍中有{evil_in_team}名队友")
                 return True
-
-            # 随机决定是否支持，避免模式固定
             return random.random() < 0.3
-
-        # 善良方策略
         else:
-            # 检查队伍中是否有可疑玩家
+            # 善良方策略
             suspicious_in_team = len([p for p in self.last_team if p in self.suspects])
-
             if suspicious_in_team > 0:
                 write_into_private(
                     f"反对提案，因为队伍中有{suspicious_in_team}名可疑玩家"
                 )
                 return False
-
-            # 如果没有可疑玩家，支持提案
+            # 根据历史任务结果调整策略
+            if (
+                len(self.memory["mission_results"]) > 0
+                and not self.memory["mission_results"][-1]
+            ):
+                write_into_private("反对提案，因为上次任务失败")
+                return False
             return True
 
     def mission_vote2(self) -> bool:
         """任务执行投票"""
-        # 邪恶方可以破坏任务
         if self.is_evil and self.index in self.last_team:
-            # 计算队伍中邪恶玩家的数量
-            evil_in_team = len([p for p in self.last_team if p in self.trusted])
-
-            # 如果有多个邪恶玩家，随机决定是否破坏以避免全部破坏
-            if evil_in_team > 1:
-                return random.random() < 0.7  # 70%概率破坏
-
-            # 只有自己一个邪恶玩家时破坏
-            return False
-
-        # 善良方必须支持任务
+            # 动态调整破坏概率
+            good_in_team = len([p for p in self.last_team if p not in self.trusted])
+            return random.random() < (0.5 + 0.1 * good_in_team)
         return True
 
     def assass(self) -> int:
         """刺客刺杀梅林"""
         if not self.known_merlin:
+            # 分析发言记录
+            for player_id, speeches in self.memory["speech"].items():
+                for speech in speeches:
+                    prompt = f"""
+                    在阿瓦隆游戏中，{player_id}号玩家说:"{speech}"。
+                    你是{self.index}号玩家，角色是{self.role}。
+                    请判断这段发言是否可能来自梅林。
+                    回答是或否。
+                    """
+                    analysis = askLLM(prompt)
+                    if "是" in analysis:
+                        self.known_merlin = player_id
+                        break
             # 如果没有明确目标，选择最可疑的玩家
-            suspects = list(self.suspects)
-            if suspects:
-                self.known_merlin = random.choice(suspects)
-            else:
-                # 如果没有可疑玩家，随机选择
-                good_players = [
-                    i
-                    for i in range(1, self.player_count + 1)
-                    if i not in self.trusted and i != self.index
-                ]
-                self.known_merlin = random.choice(good_players) if good_players else 1
-
+            if not self.known_merlin:
+                suspects = list(self.suspects)
+                self.known_merlin = random.choice(suspects) if suspects else 1
         write_into_private(f"选择刺杀{self.known_merlin}号玩家")
         return self.known_merlin

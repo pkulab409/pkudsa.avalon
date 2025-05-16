@@ -30,6 +30,7 @@ class Player:
         self.player_count = 7  # 总玩家数
         self.mission_team_sizes = [2, 3, 3, 4, 4]  # 每轮任务队伍大小
         self.consecutive_rejections = 0  # 连续拒绝次数
+        self.round_fail_size = 1  # 失败所需邪恶玩家
 
         # 历史记录
         self.memory = {
@@ -177,6 +178,20 @@ class Player:
         # 获取当前轮次
         self.round = len(self.memory["teams"]) + 1
 
+        # 动态调整策略
+        if self.is_evil:
+            # 邪恶方策略：在关键轮次更倾向于混入可信玩家
+            if self.round in [3, 4]:
+                self.strategy["deception"] = True
+            else:
+                self.strategy["deception"] = False
+        else:
+            # 正义方策略：在后期更严格地怀疑玩家
+            if self.round >= 4:
+                self.strategy["suspect_threshold"] = 0.5
+            else:
+                self.strategy["suspect_threshold"] = 0.6
+
         # 构建提示词，请求LLM帮助选择队员
         prompt = self._build_prompt_for_team_selection(team_size)
         response = askLLM(prompt)
@@ -187,27 +202,36 @@ class Player:
             numbers = re.findall(r"\d+", response)
             team = [int(num) for num in numbers if 1 <= int(num) <= 7][:team_size]
 
-            # 如果提取失败或数量不对，使用备选策略
-            if len(team) != team_size:
-                team = self._fallback_team_selection(team_size)
+            # 检查并纠正队员列表
+            team = self._correct_team_selection(team, team_size)
         except:
             team = self._fallback_team_selection(team_size)
 
-        # 确保自己在队伍中
-        if self.index not in team and len(team) > 0:
-            team[0] = self.index
+        write_into_private(f"我选择的队员: {team}")
+        return team
 
-        # 确保队伍大小正确
+    def _correct_team_selection(self, team: list[int], team_size: int) -> list[int]:
+        """检查并纠正队员列表"""
+        # 去重
+        team = list(set(team))
+
+        # 移除超出范围的编号
+        team = [player for player in team if 1 <= player <= 7]
+
+        # 如果队伍数量不足，顺序递补玩家
         while len(team) < team_size:
             for i in range(1, 8):
                 if i not in team:
                     team.append(i)
                     break
 
-        # 如果队伍过大，裁剪
+        # 如果队伍数量过多，裁剪到正确大小
         team = team[:team_size]
 
-        write_into_private(f"我选择的队员: {team}")
+        # 确保自己在队伍中
+        if self.index not in team:
+            team[0] = self.index
+
         return team
 
     def _fallback_team_selection(self, team_size: int) -> list[int]:
@@ -414,7 +438,6 @@ class Player:
         """发言策略"""
         # 构建提示词
         prompt = self._build_prompt_for_speech()
-
         # 调用LLM生成发言
         try:
             response = askLLM(prompt)
@@ -430,11 +453,13 @@ class Player:
     def _fallback_speech(self) -> str:
         """备选发言策略"""
         if self.is_evil:
+            # 邪恶方发言策略
             if self.strategy["deception"]:
                 return f"我是{self.index}号玩家，我认为我们应该更加关注投票模式。上一轮任务{self.round-1}的结果很值得思考，我们需要找出真正的邪恶方。"
             else:
                 return f"我是{self.index}号玩家，我相信目前的队伍组成是合理的。我们应该继续观察，不要轻易否决任务。"
         else:
+            # 正义方发言策略
             if self.role == "Merlin":
                 # 梅林谨慎提示
                 suspicious = list(self.suspects)[:2]
@@ -446,7 +471,6 @@ class Player:
         """对队长提案进行投票"""
         # 获取当前轮次和队伍信息
         current_round = len(self.memory["teams"])
-        leader = self.last_leader
         team = self.last_team
 
         # 构建提示词
@@ -486,6 +510,12 @@ class Player:
 
     def _fallback_vote1_strategy(self, team) -> bool:
         """备选的公投策略"""
+
+        # 动态调整怀疑和信任阈值
+        self._adjust_thresholds()
+        protected_round = [3, 4]
+        self.round_fail_size = 2 if self.round in protected_round else 1
+
         # 如果是邪恶方
         if self.is_evil:
             # 如果队伍中有足够多的邪恶方，支持
@@ -526,7 +556,7 @@ class Player:
                 return True
 
             # 如果队伍中有可疑成员，根据可疑程度决定
-            return suspicious_count < len(team) / 2
+            return suspicious_count < self.round_fail_size
 
     def mission_vote2(self) -> bool:
         """任务执行投票"""
@@ -671,6 +701,17 @@ class Player:
             else random.choice([i for i in range(1, 8) if i != self.index])
         )
 
+    def _adjust_thresholds(self):
+        """根据游戏进程动态调整怀疑和信任阈值"""
+        if self.round >= 4:
+            # 后期更严格地怀疑玩家
+            self.strategy["suspect_threshold"] = 0.5
+            self.strategy["trust_threshold"] = 0.8
+        else:
+            # 前期更宽松
+            self.strategy["suspect_threshold"] = 0.6
+            self.strategy["trust_threshold"] = 0.7
+
     def _analyze_speech(self, speaker_idx: int, message: str):
         """分析发言内容"""
         # 更新发言分析统计
@@ -753,7 +794,7 @@ class Player:
             for member in team:
                 if member != self.index:
                     self.evil_probability[member] = max(
-                        0.1, self.evil_probability.get(member, 0.5) - 0.1
+                        0.1, self.evil_probability.get(member, 0.5) - 0.2
                     )
             self.successful_missions.append(self.round)
         else:
@@ -761,7 +802,7 @@ class Player:
             for member in team:
                 if member != self.index:
                     self.evil_probability[member] = min(
-                        0.9, self.evil_probability.get(member, 0.5) + 0.2
+                        0.9, self.evil_probability.get(member, 0.5) + 0.1
                     )
             self.failed_missions.append(self.round)
 
@@ -789,30 +830,31 @@ class Player:
 
         if self.memory["mission_results"]:
             prompt += "\n【历史任务结果】\n"
-            for i, result in enumerate(self.memory["mission_results"]):
-                prompt += f"第{i+1}轮: {'成功' if result else '失败'}\n"
+            for i, (success, fail_count) in enumerate(self.memory["mission_results"]):
+                result = "成功" if success else f"失败（失败票数: {fail_count}）"
+                prompt += f"第{i+1}轮: {result}\n"
 
         # 添加玩家评估
         prompt += "\n【玩家评估】\n"
         for player, prob in self.evil_probability.items():
             if player != self.index:
                 status = "可疑" if prob > 0.6 else "中立" if prob > 0.4 else "可信"
-                prompt += f"{player}号玩家: {status}\n"
+                prompt += f"{player}号玩家: {status}(邪恶概率: {prob:.2f})\n"
 
         # 添加决策要求
         if self.is_evil:
             prompt += f"""
             【决策要求】
-            作为邪恶方，你需要选择一个能够让任务失败的队伍。
-            可以考虑选择自己和其他邪恶方成员，或者选择一些看起来可信的玩家来混淆视听。
-            请直接返回{team_size}个玩家编号，用逗号分隔，确保包含自己({self.index}号)。
+            作为邪恶方，你需要选择一个能够让任务失败的队伍，本次任务失败需要{self.round_fail_size}个邪恶方在队伍中。
+            可以考虑选择自己和其他邪恶方成员，但是尽量不要选择大家一致怀疑的人，在尽可能在避免怀疑的前提下保证任务失败。
+            请不要说其他话，直接返回{team_size}个玩家编号，用逗号分隔，例如回复“1，2，3”，确保包含自己({self.index}号)。
             """
         else:
             prompt += f"""
             【决策要求】
-            作为正义方，你需要选择一个能够让任务成功的队伍。
+            作为正义方，你需要选择一个能够让任务成功的队伍，本次任务如果有{self.round_fail_size}个邪恶方在队伍中就会失败。
             应该选择你最信任的玩家，避免选择可疑的玩家。
-            请直接返回{team_size}个玩家编号，用逗号分隔，确保包含自己({self.index}号)。
+            请不要说其他话，直接返回{team_size}个玩家编号，用逗号分隔，例如回复“1，2，3”，确保包含自己({self.index}号)。
             """
 
         return prompt
@@ -944,7 +986,11 @@ class Player:
         prompt += "\n【玩家评估】\n"
         for player, prob in self.evil_probability.items():
             if player != self.index:
-                status = "可疑" if prob > 0.6 else "中立" if prob > 0.4 else "可信"
+                status = (
+                    "非常可疑"
+                    if prob > 0.8
+                    else "可疑" if prob > 0.6 else "中立" if prob > 0.4 else "可信"
+                )
                 prompt += f"{player}号玩家: {status}\n"
 
         # 添加决策要求
@@ -952,7 +998,9 @@ class Player:
             prompt += f"""
             【决策要求】
             作为邪恶方，你需要评估这个队伍是否有利于你们。
-            如果队伍中有你或其他邪恶方成员，你可能希望同意。
+            如果队伍中有你或其他邪恶方成员，你必须同意。
+            如果队伍中可疑的人很多，你必须同意。
+            在其他情况下你可以综合考虑进行抉择。
             如果连续4次投票都被否决，第5次会强制通过，需要考虑战略价值。
             当前连续否决次数: {self.consecutive_rejections}
             请直接回答"同意"或"反对"。
@@ -961,7 +1009,8 @@ class Player:
             prompt += f"""
             【决策要求】
             作为正义方，你需要评估这个队伍是否可信。
-            如果队伍中有可疑成员，你可能希望反对。
+            如果队伍中可疑程度很高，你需要否定这次任务。
+            这次任务有{self.round_fail_size}个邪恶方就会失败，当可疑程度较小时，你需要衡量你的选择。
             如果连续4次投票都被否决，第5次会强制通过，需要考虑战略价值。
             当前连续否决次数: {self.consecutive_rejections}
             请直接回答"同意"或"反对"。
