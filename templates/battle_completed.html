@@ -36,7 +36,7 @@
             | replace("IndexError", "索引错误")
             | replace("Permission denied", "权限不足")
             | replace("Connection error", "连接错误")
-            | replace("SyntaxError", "语法错误") %}
+        | replace("SyntaxError", "语法错误") %}
     {# 第二步：使用split+join处理特殊保留格式 #}
     {% set temp = translated.split() %}
     {% for part in temp %}
