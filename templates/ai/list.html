@@ -13,7 +13,7 @@
                         </h2>
                         <p class="text-muted mb-0">管理您的游戏AI策略，上传新代码或修改现有代码。</p>
                     </div>
-                    <a href="{{ url_for("ai.upload_ai") }}" class="btn btn-primary">
+                    <a href="{{ url_for('ai.upload_ai') }}" class="btn btn-primary">
                         <i class="bi bi-cloud-upload me-2"></i> 上传新AI
                     </a>
                 </div>
@@ -235,7 +235,7 @@
                     </div>
                     <h4 class="card-title">您还没有上传任何AI代码</h4>
                     <p class="card-text text-muted mb-4">上传您的第一个AI代码，开始与其他玩家或AI进行对战和测试吧！</p>
-                    <a href="{{ url_for("ai.upload_ai") }}" class="btn btn-primary btn-lg">
+                    <a href="{{ url_for('ai.upload_ai') }}" class="btn btn-primary btn-lg">
                         <i class="bi bi-cloud-upload me-2"></i> 立即上传您的第一个AI
                     </a>
                 </div>

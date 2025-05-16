@@ -18,7 +18,7 @@
                             <p>{{ message | default('抱歉，处理您的请求时遇到了问题。', true) }}</p>
                         </div>
                         <div class="text-center mt-4">
-                            <a href="{{ url_for("main.home") }}" class="btn btn-primary me-2">返回首页</a>
+                            <a href="{{ url_for('main.home') }}" class="btn btn-primary me-2">返回首页</a>
                             <button onclick="window.history.back();" class="btn btn-outline-secondary">返回上一页</button>
                         </div>
                     </div>
