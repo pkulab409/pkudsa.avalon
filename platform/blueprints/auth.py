@@ -8,13 +8,14 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError
 from database.models import User
 from database.base import db
 
 auth = Blueprint("auth", __name__)
 
+PARTITION_NUMBER = 6
 
 # 创建登录表单类
 class LoginForm(FlaskForm):
@@ -27,6 +28,12 @@ class LoginForm(FlaskForm):
 # 创建注册表单类
 class RegisterForm(FlaskForm):
     username = StringField("用户名", validators=[DataRequired(), Length(min=3, max=20)])
+    partition = SelectField(
+        "赛区",
+        coerce=int,  # 转换为整数类型
+        choices=[(i+1, f"分区{i+1}") for i in range(PARTITION_NUMBER)],
+        validators=[DataRequired()],
+    )
     email = StringField("邮箱", validators=[DataRequired(), Email()])
     password = PasswordField("密码", validators=[DataRequired(), Length(min=6)])
     password2 = PasswordField(
@@ -88,7 +95,7 @@ def register():
     # 处理表单提交
     if form.validate_on_submit():
         # 创建新用户
-        user = User(username=form.username.data, email=form.email.data)
+        user = User(username=form.username.data, email=form.email.data, partition=form.partition.data)
         user.set_password(form.password.data)
 
         # 保存到数据库

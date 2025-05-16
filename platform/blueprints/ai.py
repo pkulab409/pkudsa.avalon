@@ -35,12 +35,14 @@ from database import (
     get_game_stats_by_user_id,
     create_game_stats,
 )
-from database.models import AICode  # 仍然需要模型用于类型提示或特定查询
+from database.models import User, AICode  # 仍然需要模型用于类型提示或特定查询
 from datetime import datetime
 import importlib.util
 import sys
 import inspect
 import pickle
+
+PARTITION_NUMBER = 6
 
 # 创建蓝图
 ai_bp = Blueprint("ai", __name__)
@@ -337,7 +339,11 @@ def get_current_user_ai_codes():
 @ai_bp.route("/join_ranking", methods=["POST"])
 @login_required
 def join_ranking():
-    """加入天梯赛，创建ranking_id=1的GameStats记录"""
+    """
+    加入天梯赛初赛(分区赛)
+    后续晋级将自动注册到新榜单
+    创建ranking_id=1~6的GameStats记录
+    """
     try:
         # 检查用户是否已有活跃AI
         active_ai = get_user_active_ai_code(current_user.id)
@@ -347,12 +353,12 @@ def join_ranking():
             )
 
         # 检查用户是否已有天梯统计
-        existing_stats = get_game_stats_by_user_id(current_user.id, ranking_id=1)
+        existing_stats = get_game_stats_by_user_id(current_user.id, ranking_id=current_user.partition)
         if existing_stats:
             return jsonify({"success": False, "message": "您已经加入了天梯赛"})
 
         # 创建新的天梯统计
-        stats = create_game_stats(current_user.id, ranking_id=1)
+        stats = create_game_stats(current_user.id, ranking_id=current_user.partition)
         if not stats:
             return jsonify(
                 {"success": False, "message": "创建天梯统计失败，请稍后重试"}

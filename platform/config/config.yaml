@@ -21,6 +21,29 @@ AI_CODE_UPLOAD_FOLDER: uploads/
 
 
 # AI代码配置
+ranking_groups:
+  - id: 0
+    name: 测试赛
+    type: test
+  - id: 1
+    name: 初赛分组1
+    type: primary
+  - id: 2  
+    name: 初赛分组2  
+    type: primary
+  - id: 3
+    name: 初赛分组3
+    type: primary
+  - id: 4
+    name: 初赛分组4  
+    type: primary
+  - id: 5
+    name: 初赛分组5
+    type: primary
+  - id: 6
+    name: 初赛分组6
+    type: primary
+
 ai:
   allowed_extensions: # 允许的文件扩展名
     - .py
@@ -29,6 +52,7 @@ ai:
 INITIAL_USERS:
   # admin 用户
   - username: admin
+    partition: 0
     email: admin@avalon.com
     password: Tuavalon
     is_admin: True
@@ -39,6 +63,7 @@ INITIAL_USERS:
       make_active: false
   # Smart AI 用户系列
   - username: smart_user1
+    partition: 0
     email: smart1@example.com
     password: password123
     is_admin: False
@@ -48,6 +73,7 @@ INITIAL_USERS:
       file_path: game/smart_player.py
       make_active: true
   - username: smart_user2
+    partition: 0
     email: smart2@example.com
     password: password123
     is_admin: False
@@ -57,6 +83,7 @@ INITIAL_USERS:
       file_path: game/smart_player.py
       make_active: true
   - username: smart_user3
+    partition: 0
     email: smart3@example.com
     password: password123
     is_admin: False
@@ -66,6 +93,7 @@ INITIAL_USERS:
       file_path: game/smart_player.py
       make_active: true
   - username: smart_user4
+    partition: 0
     email: smart4@example.com
     password: password123
     is_admin: False
@@ -75,6 +103,7 @@ INITIAL_USERS:
       file_path: game/smart_player.py
       make_active: true
   - username: smart_user5
+    partition: 0
     email: smart5@example.com
     password: password123
     is_admin: False
@@ -84,6 +113,7 @@ INITIAL_USERS:
       file_path: game/smart_player.py
       make_active: true
   - username: smart_user6
+    partition: 0
     email: smart6@example.com
     password: password123
     is_admin: False
@@ -95,6 +125,7 @@ INITIAL_USERS:
       
   # Basic AI 用户系列
   - username: basic_user1
+    partition: 0
     email: basic1@example.com
     password: password123
     is_admin: False
@@ -104,6 +135,7 @@ INITIAL_USERS:
       file_path: game/basic_player.py
       make_active: true
   - username: basic_user2
+    partition: 0
     email: basic2@example.com
     password: password123
     is_admin: False
@@ -113,6 +145,7 @@ INITIAL_USERS:
       file_path: game/basic_player.py
       make_active: true
   - username: basic_user3
+    partition: 0
     email: basic3@example.com
     password: password123
     is_admin: False
@@ -122,6 +155,7 @@ INITIAL_USERS:
       file_path: game/basic_player.py
       make_active: true
   - username: basic_user4
+    partition: 0
     email: basic4@example.com
     password: password123
     is_admin: False
@@ -131,6 +165,7 @@ INITIAL_USERS:
       file_path: game/basic_player.py
       make_active: true
   - username: basic_user5
+    partition: 0
     email: basic5@example.com
     password: password123
     is_admin: False
@@ -140,6 +175,7 @@ INITIAL_USERS:
       file_path: game/basic_player.py
       make_active: true
   - username: basic_user6
+    partition: 0
     email: basic6@example.com
     password: password123
     is_admin: False

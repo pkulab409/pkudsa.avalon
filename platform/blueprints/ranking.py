@@ -12,7 +12,7 @@
 """
 
 
-from flask import Blueprint, render_template, jsonify, request
+from flask import Blueprint, render_template, jsonify, request, current_app
 from flask_login import current_user
 
 # 导入需要的数据库操作函数和模型
@@ -56,11 +56,16 @@ def show_ranking():
                 ),
             }
         )
+    
+    # 获取分榜配置
+    groups = current_app.config.get('RANKING_GROUPS', [])
+    
     return render_template(
         "ranking.html",
         ranking_items=ranking_items,
         sort_by=sort_by,
-        current_ranking_id=ranking_id,  # 将 ranking_id 传递给模板
+        current_ranking_id=ranking_id,
+        available_groups=groups  # 传递分榜配置到模板
     )
 
 
