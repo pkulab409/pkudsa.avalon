@@ -9,39 +9,13 @@ import logging
 import threading
 from typing import Dict, Any, List, Tuple, Optional
 from dotenv import load_dotenv
-from openai import OpenAI
-
+from .client_manager import ClientManager, get_client_manager
 
 # 配置日志
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger("GameHelper")
-
-
-# 为LLM的API自动加载.env文件
-if not load_dotenv():
-    logger.error(
-        f"Error when loading environment variables from `.env` at current file directory."
-    )
-    # 这里只要有一个环境变量被读取成功就不会报错
-# 在和avalon_game_helper相同目录下创建一个`.env`文件，包含三行：
-# OPENAI_API_KEY={API_KEY}（需要填入）
-# OPENAI_BASE_URL=https://chat.noc.pku.edu.cn/v1
-# OPENAI_MODEL_NAME=deepseek-v3-250324-64k-local
-
-# openai初始配置
-try:
-    client = OpenAI()  # 自动读取（来自load_dotenv的）环境变量
-    models = client.models.list()
-    # 不出意外的话这里有三个模型：
-    #   - deepseek-v3-250324
-    #   - deepseek-v3-250324-64k-local
-    #   - deepseek-r1-64k-local
-except Exception as e:
-    logger.error(f"Error when initializing LLM MODEL - {e}")
-else:
-    logger.info(f"Successfully imported LLM MODELs - {models}")
 
 
 # LLM相关配置
@@ -76,6 +50,7 @@ class GameHelper:
         self.current_round = None
         self.call_count_added = 0
         self.tokens = [{"input": 0, "output": 0} for i in range(7)]
+        self.client_manager = get_client_manager()
 
     def set_current_context(self, player_id: int, game_id: str) -> None:
         """
@@ -175,31 +150,69 @@ class GameHelper:
     def _fetch_LLM_reply(self, history, cur_prompt) -> str:
         """
         从历史记录和当前提示中获取LLM回复。
-
-        参数:
-            history (list): 包含先前对话的消息列表。
-            cur_prompt (str): 当前用户输入的提示。
-
-        返回:
-            str: LLM的回复内容。
         """
-        model_name = os.environ.get("OPENAI_MODEL_NAME", None)
-        completion = client.chat.completions.create(
-            model=model_name,
-            messages=history + [{"role": "user", "content": cur_prompt}],
-            stream=_USE_STREAM,
-            temperature=_TEMPERATURE,
-            # max_tokens=_MAX_OUTPUT_TOKENS,
-            top_p=_TOP_P,
-            presence_penalty=_PRESENCE_PENALTY,
-            frequency_penalty=_FREQUENCY_PENALTY,
+        logger.info(
+            f"Player {self.current_player_id} requesting LLM with prompt length {len(cur_prompt)}"
         )
 
-        # 更新token统计
-        token = len(completion.choices[0].message.content)
-        self.tokens[self.current_player_id - 1]["output"] += token
+        client_instance, client_id, client_model_name = None, None, None
 
-        return completion.choices[0].message.content
+        try:
+            # 获取客户端，不设置超时
+            client_instance, client_id, client_model_name = (
+                self.client_manager.get_client()
+            )
+
+            if client_instance is None:
+                logger.error(
+                    f"Player {self.current_player_id} failed to get an OpenAI client"
+                )
+                return "LLM调用错误：没有可用的OpenAI客户端"
+
+            logger.info(f"Player {self.current_player_id} using client {client_id}")
+
+            import time
+
+            start_time = time.time()
+
+            # 直接调用API，不使用ThreadPoolExecutor和超时参数
+            completion = client_instance.chat.completions.create(
+                model=client_model_name,
+                messages=history + [{"role": "user", "content": cur_prompt}],
+                stream=False,
+                temperature=_TEMPERATURE,
+                max_tokens=_MAX_OUTPUT_TOKENS,
+                top_p=_TOP_P,
+                presence_penalty=_PRESENCE_PENALTY,
+                frequency_penalty=_FREQUENCY_PENALTY,
+                # 移除超时参数
+            )
+
+            response_content = completion.choices[0].message.content
+
+            elapsed = time.time() - start_time
+            token = len(response_content)
+            self.tokens[self.current_player_id - 1]["output"] += token
+
+            logger.info(
+                f"Player {self.current_player_id} received response in {elapsed:.2f}s"
+            )
+
+            return response_content or "LLM调用未返回有效结果"
+
+        except Exception as e:
+            logger.error(
+                f"Player {self.current_player_id} error: {str(e)}", exc_info=True
+            )
+            return f"LLM调用错误: {str(e)[:100]}..."
+        finally:
+            # 释放客户端
+            if client_id is not None:
+                try:
+                    self.client_manager.release_client(client_id)
+                    logger.info(f"Released client {client_id}")
+                except Exception as e:
+                    logger.error(f"Error releasing client {client_id}: {str(e)}")
 
     def _get_private_lib_content(self) -> dict:
         """
