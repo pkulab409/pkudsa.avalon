@@ -56,16 +56,16 @@ def show_ranking():
                 ),
             }
         )
-    
+
     # 获取分榜配置
-    groups = current_app.config.get('RANKING_GROUPS', [])
-    
+    groups = current_app.config.get("RANKING_GROUPS", [])
+
     return render_template(
         "ranking.html",
         ranking_items=ranking_items,
         sort_by=sort_by,
         current_ranking_id=ranking_id,
-        available_groups=groups  # 传递分榜配置到模板
+        available_groups=groups,  # 传递分榜配置到模板
     )
 
 

@@ -19,7 +19,7 @@
         <!-- 导航栏 -->
         <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
             <div class="container">
-                <a class="navbar-brand" href="{{ url_for("main.home") }}">阿瓦隆AI对战平台</a>
+                <a class="navbar-brand" href="{{ url_for('main.home') }}">阿瓦隆AI对战平台</a>
                 <button class="navbar-toggler"
                         type="button"
                         data-bs-toggle="collapse"
@@ -29,21 +29,21 @@
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav me-auto">
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for("main.home") }}">首页</a>
+                            <a class="nav-link" href="{{ url_for('main.home') }}">首页</a>
                         </li>
                         {% if current_user.is_authenticated %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for("game.lobby") }}">游戏大厅</a>
+                                <a class="nav-link" href="{{ url_for('game.lobby') }}">游戏大厅</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for("ai.list_ai") }}">我的AI</a>
+                                <a class="nav-link" href="{{ url_for('ai.list_ai') }}">我的AI</a>
                             </li>
                         {% endif %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for("ranking.show_ranking") }}">排行榜</a>
+                            <a class="nav-link" href="{{ url_for('ranking.show_ranking') }}">排行榜</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for("docs.index") }}">文档</a>
+                            <a class="nav-link" href="{{ url_for('docs.index') }}">文档</a>
                         </li>
                     </ul>
                     <ul class="navbar-nav">
@@ -56,22 +56,22 @@
                                    data-bs-toggle="dropdown">{{ current_user.username }}</a>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li>
-                                        <a class="dropdown-item" href="{{ url_for("profile.profile") }}">个人资料</a>
+                                        <a class="dropdown-item" href="{{ url_for('profile.profile') }}">个人资料</a>
                                     </li>
                                     <li>
                                         <hr class="dropdown-divider">
                                     </li>
                                     <li>
-                                        <a class="dropdown-item" href="{{ url_for("auth.logout") }}">退出登录</a>
+                                        <a class="dropdown-item" href="{{ url_for('auth.logout') }}">退出登录</a>
                                     </li>
                                 </ul>
                             </li>
                         {% else %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for("auth.login") }}">登录</a>
+                                <a class="nav-link" href="{{ url_for('auth.login') }}">登录</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for("auth.register") }}">注册</a>
+                                <a class="nav-link" href="{{ url_for('auth.register') }}">注册</a>
                             </li>
                         {% endif %}
                     </ul>

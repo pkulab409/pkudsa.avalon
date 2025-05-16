@@ -353,7 +353,9 @@ def join_ranking():
             )
 
         # 检查用户是否已有天梯统计
-        existing_stats = get_game_stats_by_user_id(current_user.id, ranking_id=current_user.partition)
+        existing_stats = get_game_stats_by_user_id(
+            current_user.id, ranking_id=current_user.partition
+        )
         if existing_stats:
             return jsonify({"success": False, "message": "您已经加入了天梯赛"})
 

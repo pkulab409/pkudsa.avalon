@@ -17,6 +17,7 @@ auth = Blueprint("auth", __name__)
 
 PARTITION_NUMBER = 6
 
+
 # 创建登录表单类
 class LoginForm(FlaskForm):
     email = StringField("邮箱", validators=[DataRequired(), Email()])
@@ -31,7 +32,7 @@ class RegisterForm(FlaskForm):
     partition = SelectField(
         "赛区",
         coerce=int,  # 转换为整数类型
-        choices=[(i+1, f"分区{i+1}") for i in range(PARTITION_NUMBER)],
+        choices=[(i + 1, f"分区{i+1}") for i in range(PARTITION_NUMBER)],
         validators=[DataRequired()],
     )
     email = StringField("邮箱", validators=[DataRequired(), Email()])
@@ -95,7 +96,11 @@ def register():
     # 处理表单提交
     if form.validate_on_submit():
         # 创建新用户
-        user = User(username=form.username.data, email=form.email.data, partition=form.partition.data)
+        user = User(
+            username=form.username.data,
+            email=form.email.data,
+            partition=form.partition.data,
+        )
         user.set_password(form.password.data)
 
         # 保存到数据库

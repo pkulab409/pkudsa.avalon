@@ -39,16 +39,16 @@
         <!-- 标签页导航 -->
         <ul class="nav nav-tabs mb-3">
             {% for group in available_groups %}
-            <li class="nav-item">
-                <a class="nav-link {% if current_ranking_id == group.id %}active{% endif %}" 
-                   href="{{ url_for('ranking.show_ranking', ranking_id=group.id) }}">
-                   {% if group.type == 'primary' %}
-                   <i class="bi bi-people-fill text-primary me-1"></i>{{ group.name }}
-                   {% else %}
-                   <i class="bi bi-flask text-success me-1"></i>{{ group.name }}
-                   {% endif %}
-                </a>
-            </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if current_ranking_id == group.id %}active{% endif %}"
+                       href="{{ url_for('ranking.show_ranking', ranking_id=group.id) }}">
+                        {% if group.type == 'primary' %}
+                            <i class="bi bi-people-fill text-primary me-1"></i>{{ group.name }}
+                        {% else %}
+                            <i class="bi bi-flask text-success me-1"></i>{{ group.name }}
+                        {% endif %}
+                    </a>
+                </li>
             {% endfor %}
             {# 在这里可以动态添加更多排行榜的标签页 #}
             {# 例如，如果有一个排行榜列表传递到模板中:
