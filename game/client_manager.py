@@ -13,6 +13,31 @@ logging.basicConfig(
 logger = logging.getLogger("ClientManager")
 
 
+"""
+.env文件格式示例：
+
+# 默认配置
+# 该配置会被优先加载
+# 如果没有后缀的配置，则会加载后缀为1的配置
+OPENAI_API_KEY=
+OPENAI_BASE_URL=
+OPENAI_MODEL_NAME=
+
+OPENAI_API_KEY_1=
+OPENAI_BASE_URL_1=
+OPENAI_MODEL_NAME_1=
+
+# 之后后缀递增
+OPENAI_API_KEY_2=
+OPENAI_BASE_URL_2=
+OPENAI_MODEL_NAME_2=
+
+.......
+
+可以无限增加列表
+"""
+
+
 class ClientManager:
     """
     用于管理游戏中的openai client实例
