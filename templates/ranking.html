@@ -268,17 +268,23 @@
         <!-- 榜单选择导航 -->
         <ul class="nav nav-tabs mb-3 ranking-tabs" id="rankingTabs">
             {% for rid in all_ranking_ids %}
-            <li class="nav-item">
-                <a class="nav-link {% if rid == current_ranking_id %}active{% endif %}" 
-                   href="{{ url_for('ranking.show_ranking', ranking_id=rid) }}">
-                    <i class="bi bi-trophy me-1"></i>
-                    {% if rid >=1 and rid <=6 %}初赛赛区{{ rid }}
-                    {% elif rid ==0 %}测试赛
-                    {% elif rid ==11 %}半决赛
-                    {% elif rid ==21 %}决赛
-                    {% else %}榜单 {{ rid }}{% endif %}
-                </a>
-            </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if rid == current_ranking_id %}active{% endif %}"
+                       href="{{ url_for('ranking.show_ranking', ranking_id=rid) }}">
+                        <i class="bi bi-trophy me-1"></i>
+                        {% if rid >=1 and rid <=6 %}
+                            初赛赛区{{ rid }}
+                        {% elif rid ==0 %}
+                            测试赛
+                        {% elif rid ==11 %}
+                            半决赛
+                        {% elif rid ==21 %}
+                            决赛
+                        {% else %}
+                            榜单 {{ rid }}
+                        {% endif %}
+                    </a>
+                </li>
             {% endfor %}
         </ul>
         <div class="card ranking-card">

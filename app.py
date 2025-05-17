@@ -104,13 +104,17 @@ def initialize_default_data(app):
                             user.modified_at = datetime.utcnow()
                             db.session.commit()
                             action = "更新"
-                            
+
                     # 确保用户有对应 partition 的 GameStats 记录
-                    existing_stats = GameStats.query.filter_by(user_id=user.id, ranking_id=partition).first()
+                    existing_stats = GameStats.query.filter_by(
+                        user_id=user.id, ranking_id=partition
+                    ).first()
                     if not existing_stats:
                         stats = GameStats(user_id=user.id, ranking_id=partition)
                         db.session.add(stats)
-                        app.logger.info(f"📊 为用户 {email} 创建 ranking_id={partition} 的游戏统计记录")
+                        app.logger.info(
+                            f"📊 为用户 {email} 创建 ranking_id={partition} 的游戏统计记录"
+                        )
                         db.session.flush()
 
                     # ================= AI代码处理 =================

@@ -280,7 +280,9 @@
                         <div class="col-12">
                             <!-- 测试赛控制 -->
                             <div class="mb-4">
-                                <h5 class="text-primary mb-2"><i class="bi bi-flask"></i> 测试赛</h5>
+                                <h5 class="text-primary mb-2">
+                                    <i class="bi bi-flask"></i> 测试赛
+                                </h5>
                                 <div class="d-flex gap-2 flex-wrap">
                                     <form onsubmit="handleStartTestMatch(event)">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -302,10 +304,11 @@
                                     </form>
                                 </div>
                             </div>
-
                             <!-- 初赛控制 -->
                             <div class="mb-4">
-                                <h5 class="text-success mb-2"><i class="bi bi-flag"></i> 初赛</h5>
+                                <h5 class="text-success mb-2">
+                                    <i class="bi bi-flag"></i> 初赛
+                                </h5>
                                 <div class="d-flex gap-2 flex-wrap">
                                     <form onsubmit="handleStartPrimaryMatch(event)">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -327,10 +330,11 @@
                                     </form>
                                 </div>
                             </div>
-
                             <!-- 半决赛控制 -->
                             <div class="mb-4">
-                                <h5 class="text-warning mb-2"><i class="bi bi-trophy"></i> 半决赛</h5>
+                                <h5 class="text-warning mb-2">
+                                    <i class="bi bi-trophy"></i> 半决赛
+                                </h5>
                                 <div class="d-flex gap-2 flex-wrap">
                                     <form onsubmit="handleStartSemiMatch(event)">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -352,10 +356,11 @@
                                     </form>
                                 </div>
                             </div>
-
                             <!-- 决赛控制 -->
                             <div class="mb-4">
-                                <h5 class="text-danger mb-2"><i class="bi bi-award"></i> 决赛</h5>
+                                <h5 class="text-danger mb-2">
+                                    <i class="bi bi-award"></i> 决赛
+                                </h5>
                                 <div class="d-flex gap-2 flex-wrap">
                                     <form onsubmit="handleStartFinalMatch(event)">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

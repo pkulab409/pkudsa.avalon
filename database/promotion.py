@@ -45,7 +45,9 @@ def get_top_players_from_ranking(source_ranking_id, percentage=0.5):
         return top_players
 
     except Exception as e:
-        logger.error(f"获取榜单 {source_ranking_id} 的顶尖玩家失败: {str(e)}", exc_info=True)
+        logger.error(
+            f"获取榜单 {source_ranking_id} 的顶尖玩家失败: {str(e)}", exc_info=True
+        )
         return []
 
 
@@ -113,7 +115,9 @@ def promote_players_to_ranking(players_stats, target_ranking_id):
     return success_count, len(players_stats), errors
 
 
-def promote_from_multiple_rankings(source_ranking_ids, target_ranking_id, percentage=0.5):
+def promote_from_multiple_rankings(
+    source_ranking_ids, target_ranking_id, percentage=0.5
+):
     """
     将多个源榜单的前percentage玩家晋级到目标榜单
 
@@ -133,35 +137,37 @@ def promote_from_multiple_rankings(source_ranking_ids, target_ranking_id, percen
     for ranking_id in source_ranking_ids:
         # 获取当前榜单的顶尖玩家
         top_players = get_top_players_from_ranking(ranking_id, percentage)
-        
+
         if not top_players:
             ranking_results[ranking_id] = {
-                "success": 0, 
-                "total": 0, 
-                "errors": [f"榜单 {ranking_id} 没有有效玩家"]
+                "success": 0,
+                "total": 0,
+                "errors": [f"榜单 {ranking_id} 没有有效玩家"],
             }
             all_errors.append(f"榜单 {ranking_id} 没有有效玩家")
             continue
-        
+
         # 晋级玩家到目标榜单
-        success, total, errors = promote_players_to_ranking(top_players, target_ranking_id)
-        
+        success, total, errors = promote_players_to_ranking(
+            top_players, target_ranking_id
+        )
+
         # 记录结果
         total_success += success
         total_players += total
         all_errors.extend(errors)
-        
+
         ranking_results[ranking_id] = {
             "success": success,
             "total": total,
-            "errors": errors
+            "errors": errors,
         }
-    
+
     return {
         "summary": {
             "success": total_success,
             "total": total_players,
-            "errors": all_errors
+            "errors": all_errors,
         },
-        "details": ranking_results
+        "details": ranking_results,
     }

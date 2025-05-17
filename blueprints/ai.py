@@ -86,7 +86,10 @@ def list_ai():
     ai_codes = db_get_user_ai_codes(user_id)
 
     # 检查用户是否已加入当前分区的天梯
-    has_ranking_stats = get_game_stats_by_user_id(user_id, ranking_id=current_user.partition) is not None
+    has_ranking_stats = (
+        get_game_stats_by_user_id(user_id, ranking_id=current_user.partition)
+        is not None
+    )
 
     return render_template(
         "ai/list.html", ai_codes=ai_codes, has_ranking_stats=has_ranking_stats
@@ -273,7 +276,9 @@ def join_ranking():
             )
 
         # 检查用户是否已有当前分区的天梯统计
-        existing_stats = get_game_stats_by_user_id(current_user.id, ranking_id=current_user.partition)
+        existing_stats = get_game_stats_by_user_id(
+            current_user.id, ranking_id=current_user.partition
+        )
         if existing_stats:
             return jsonify({"success": False, "message": "您已经加入了天梯赛"})
 
