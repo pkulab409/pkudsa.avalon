@@ -292,6 +292,48 @@ class AutoMatchManager:
                 del self.instances[ranking_id]
             logger.info("所有自动对战实例已终止并清除。")
 
+    def terminate_ranking_instance(self, ranking_id: int) -> bool:
+        """
+        彻底停止并移除对指定 ranking_id 的自动对战实例的管理。
+        会先尝试正常停止线程，然后从管理器中删除该实例。
+
+        Args:
+            ranking_id (int): 要终止的榜单ID。
+
+        Returns:
+            bool: 如果实例存在并被终止和移除，则返回True；否则返回False。
+        """
+        instance_to_terminate: Optional[AutoMatchInstance] = None
+        was_on = False
+
+        with self.lock:
+            if ranking_id not in self.instances:
+                logger.warning(f"尝试终止不存在的榜单实例: Ranking ID {ranking_id}")
+                return False
+            
+            instance_to_terminate = self.instances[ranking_id]
+            was_on = instance_to_terminate.is_on
+
+        # 先尝试正常停止，这会将 is_on 设置为 False 并 join 线程
+        if was_on:
+            logger.info(f"正在正常停止榜单 {ranking_id} 的自动对战以准备终止...")
+            instance_to_terminate.stop() # stop() 方法会处理 is_on 和线程join
+
+        # 再次获取锁以安全地从字典中删除
+        with self.lock:
+            if ranking_id in self.instances: # 再次检查，以防在无锁期间发生变化
+                # 确保线程真的结束了 (stop应该已经处理了，但可以再检查)
+                if instance_to_terminate.loop_thread and instance_to_terminate.loop_thread.is_alive():
+                    logger.warning(f"[Rank-{ranking_id}] 线程在终止操作期间未能按预期停止。可能需要等待守护线程随主程序退出。")
+                
+                del self.instances[ranking_id]
+                logger.info(f"已终止并移除对 Ranking ID {ranking_id} 的自动对战实例管理。")
+                return True
+            else:
+                # 如果实例在stop()之后因为某些并发原因被移除了 (理论上不应该，因为stop后仍然是同一个对象)
+                logger.warning(f"Ranking ID {ranking_id} 在终止过程中从管理器中消失。")
+                return False
+
 # 如何在 Flask 应用中使用 AutoMatchManager:
 # app.py 或 extensions.py
 # automatch_manager = AutoMatchManager(app)

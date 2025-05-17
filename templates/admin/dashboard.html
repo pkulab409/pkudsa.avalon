@@ -278,27 +278,101 @@
                     <!-- 右侧：其他操作 -->
                     <div class="col-12 col-md-6 d-flex flex-column gap-3">
                         <div class="col-12">
-                            <div class="d-flex gap-2 flex-wrap w-100 justify-content-between">
-                                <div class="d-flex gap-2 flex-grow-1">
-                                    <!-- 启动自动对战 -->
-                                    <form onsubmit="handleStartAutoMatch(event)">
+                            <!-- 测试赛控制 -->
+                            <div class="mb-4">
+                                <h5 class="text-primary mb-2"><i class="bi bi-flask"></i> 测试赛</h5>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <form onsubmit="handleStartTestMatch(event)">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button class="btn btn-secondary" type="submit">
-                                            <i class="bi bi-play-circle"></i>启动自动对战
+                                            <i class="bi bi-play-circle"></i>启动
                                         </button>
                                     </form>
-                                    <!-- 停止自动对战 -->
-                                    <form onsubmit="handleStopAutoMatch(event)">
+                                    <form onsubmit="handleStopTestMatch(event)">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button class="btn btn-secondary" type="submit">
-                                            <i class="bi bi-stop-circle"></i>停止自动对战
+                                            <i class="bi bi-stop-circle"></i>停止
                                         </button>
                                     </form>
-                                    <!-- 终止并重置自动对战 -->
-                                    <form onsubmit="handleTerminateAutoMatch(event)">
+                                    <form onsubmit="handleTerminateTestMatch(event)">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button class="btn btn-secondary" type="submit">
-                                            <i class="bi bi-x-circle"></i>终止自动对战
+                                            <i class="bi bi-x-circle"></i>终止
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- 初赛控制 -->
+                            <div class="mb-4">
+                                <h5 class="text-success mb-2"><i class="bi bi-flag"></i> 初赛</h5>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <form onsubmit="handleStartPrimaryMatch(event)">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button class="btn btn-success" type="submit">
+                                            <i class="bi bi-play-circle"></i>启动
+                                        </button>
+                                    </form>
+                                    <form onsubmit="handleStopPrimaryMatch(event)">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button class="btn btn-success" type="submit">
+                                            <i class="bi bi-stop-circle"></i>停止
+                                        </button>
+                                    </form>
+                                    <form onsubmit="handleTerminatePrimaryMatch(event)">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button class="btn btn-success" type="submit">
+                                            <i class="bi bi-x-circle"></i>终止
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- 半决赛控制 -->
+                            <div class="mb-4">
+                                <h5 class="text-warning mb-2"><i class="bi bi-trophy"></i> 半决赛</h5>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <form onsubmit="handleStartSemiMatch(event)">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button class="btn btn-warning" type="submit">
+                                            <i class="bi bi-play-circle"></i>启动
+                                        </button>
+                                    </form>
+                                    <form onsubmit="handleStopSemiMatch(event)">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button class="btn btn-warning" type="submit">
+                                            <i class="bi bi-stop-circle"></i>停止
+                                        </button>
+                                    </form>
+                                    <form onsubmit="handleTerminateSemiMatch(event)">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button class="btn btn-warning" type="submit">
+                                            <i class="bi bi-x-circle"></i>终止
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- 决赛控制 -->
+                            <div class="mb-4">
+                                <h5 class="text-danger mb-2"><i class="bi bi-award"></i> 决赛</h5>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <form onsubmit="handleStartFinalMatch(event)">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button class="btn btn-danger" type="submit">
+                                            <i class="bi bi-play-circle"></i>启动
+                                        </button>
+                                    </form>
+                                    <form onsubmit="handleStopFinalMatch(event)">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button class="btn btn-danger" type="submit">
+                                            <i class="bi bi-stop-circle"></i>停止
+                                        </button>
+                                    </form>
+                                    <form onsubmit="handleTerminateFinalMatch(event)">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button class="btn btn-danger" type="submit">
+                                            <i class="bi bi-x-circle"></i>终止
                                         </button>
                                     </form>
                                 </div>
@@ -456,46 +530,185 @@
     }
   }
 
-  async function handleStartAutoMatch(e) {
+  // 测试赛控制
+  async function handleStartTestMatch(e) {
     e.preventDefault();
     const form = e.target;
     try {
-      const res = await fetch('/admin/start_auto_match', {
+      const res = await fetch('/admin/start_auto_test_match', {
         method: 'POST',
         headers: { 'X-CSRFToken': form.csrf_token.value }
       });
       const data = await handleResponse(res);
-      showBootstrapAlert(data.message || '自动对战已启动', 'success');
+      showBootstrapAlert(data.message || '测试赛已启动', 'success');
     } catch (error) {
       showBootstrapAlert(`错误: ${error.message}`, 'danger');
     }
   }
 
-  async function handleStopAutoMatch(e) {
+  async function handleStopTestMatch(e) {
     e.preventDefault();
     const form = e.target;
     try {
-      const res = await fetch('/admin/stop_auto_match', {
+      const res = await fetch('/admin/stop_auto_test_match', {
         method: 'POST',
         headers: { 'X-CSRFToken': form.csrf_token.value }
       });
       const data = await handleResponse(res);
-      showBootstrapAlert(data.message || '自动对战已停止', 'success');
+      showBootstrapAlert(data.message || '测试赛已停止', 'success');
     } catch (error) {
       showBootstrapAlert(`错误: ${error.message}`, 'danger');
     }
   }
 
-  async function handleTerminateAutoMatch(e) {
+  async function handleTerminateTestMatch(e) {
     e.preventDefault();
     const form = e.target;
     try {
-      const res = await fetch('/admin/terminate_auto_match', {
+      const res = await fetch('/admin/terminate_auto_test_match', {
         method: 'POST',
         headers: { 'X-CSRFToken': form.csrf_token.value }
       });
       const data = await handleResponse(res);
-      showBootstrapAlert(data.message || '自动对战已终止并重置', 'success');
+      showBootstrapAlert(data.message || '测试赛已终止', 'success');
+    } catch (error) {
+      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    }
+  }
+
+  // 初赛控制
+  async function handleStartPrimaryMatch(e) {
+    e.preventDefault();
+    const form = e.target;
+    try {
+      const res = await fetch('/admin/start_auto_primary_match', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': form.csrf_token.value }
+      });
+      const data = await handleResponse(res);
+      showBootstrapAlert(data.message || '初赛已启动', 'success');
+    } catch (error) {
+      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    }
+  }
+
+  async function handleStopPrimaryMatch(e) {
+    e.preventDefault();
+    const form = e.target;
+    try {
+      const res = await fetch('/admin/stop_auto_primary_match', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': form.csrf_token.value }
+      });
+      const data = await handleResponse(res);
+      showBootstrapAlert(data.message || '初赛已停止', 'success');
+    } catch (error) {
+      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    }
+  }
+
+  async function handleTerminatePrimaryMatch(e) {
+    e.preventDefault();
+    const form = e.target;
+    try {
+      const res = await fetch('/admin/terminate_auto_primary_match', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': form.csrf_token.value }
+      });
+      const data = await handleResponse(res);
+      showBootstrapAlert(data.message || '初赛已终止', 'success');
+    } catch (error) {
+      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    }
+  }
+
+  // 半决赛控制
+  async function handleStartSemiMatch(e) {
+    e.preventDefault();
+    const form = e.target;
+    try {
+      const res = await fetch('/admin/start_auto_semi_match', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': form.csrf_token.value }
+      });
+      const data = await handleResponse(res);
+      showBootstrapAlert(data.message || '半决赛已启动', 'success');
+    } catch (error) {
+      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    }
+  }
+
+  async function handleStopSemiMatch(e) {
+    e.preventDefault();
+    const form = e.target;
+    try {
+      const res = await fetch('/admin/stop_auto_semi_match', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': form.csrf_token.value }
+      });
+      const data = await handleResponse(res);
+      showBootstrapAlert(data.message || '半决赛已停止', 'success');
+    } catch (error) {
+      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    }
+  }
+
+  async function handleTerminateSemiMatch(e) {
+    e.preventDefault();
+    const form = e.target;
+    try {
+      const res = await fetch('/admin/terminate_auto_semi_match', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': form.csrf_token.value }
+      });
+      const data = await handleResponse(res);
+      showBootstrapAlert(data.message || '半决赛已终止', 'success');
+    } catch (error) {
+      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    }
+  }
+
+  // 决赛控制  
+  async function handleStartFinalMatch(e) {
+    e.preventDefault();
+    const form = e.target;
+    try {
+      const res = await fetch('/admin/start_auto_final_match', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': form.csrf_token.value }
+      });
+      const data = await handleResponse(res);
+      showBootstrapAlert(data.message || '决赛已启动', 'success');
+    } catch (error) {
+      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    }
+  }
+
+  async function handleStopFinalMatch(e) {
+    e.preventDefault();
+    const form = e.target;
+    try {
+      const res = await fetch('/admin/stop_auto_final_match', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': form.csrf_token.value }
+      });
+      const data = await handleResponse(res);
+      showBootstrapAlert(data.message || '决赛已停止', 'success');
+    } catch (error) {
+      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    }
+  }
+
+  async function handleTerminateFinalMatch(e) {
+    e.preventDefault();
+    const form = e.target;
+    try {
+      const res = await fetch('/admin/terminate_auto_final_match', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': form.csrf_token.value }
+      });
+      const data = await handleResponse(res);
+      showBootstrapAlert(data.message || '决赛已终止', 'success');
     } catch (error) {
       showBootstrapAlert(`错误: ${error.message}`, 'danger');
     }

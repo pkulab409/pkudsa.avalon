@@ -18,7 +18,13 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-PARTITION_NUMBER = 6
+PRIMARY_PARTITION = 6
+SEMI_PARTITION = 1
+FINAL_PARTITION = 1
+PRIMARY_RANKING_START_ID = 1
+SEMI_RANKING_START_ID = 11
+FINAL_RANKING_START_ID = 21
+
 
 @admin_bp.errorhandler(400)
 @admin_bp.errorhandler(403)
@@ -250,135 +256,173 @@ def delete_game(game_id):
         abort(500, description=f"删除对局失败: {str(e)}")
 
 
-# @admin_bp.route("/admin/start_auto_match", methods=["POST"])
-# @admin_required
-# def start_auto_match():
-#     data = request.get_json() # 获取请求的JSON数据
-#     if not data:
-#         return jsonify({"status": "error", "message": "请求体为空或非JSON格式"}), 400
-#     ranking_id = data.get("ranking_id")
-#     if ranking_id is None: # 检查 ranking_id 是否存在
-#         return jsonify({"status": "error", "message": "缺少 'ranking_id' 参数"}), 400
-#     # 可选：验证 ranking_id 的类型
-#     if not isinstance(ranking_id, int):
-#         try:
-#             ranking_id = int(ranking_id) # 尝试转换为整数
-#         except (ValueError, TypeError):
-#             return jsonify({"status": "error", "message": "'ranking_id' 必须是整数"}), 400
+# Helper function for start/stop actions
+def _handle_match_operation(get_automatch_func, ranking_id_iterator, operation_method_name, success_verb, failure_detail_verb):
+    automatch = get_automatch_func()
+    for ranking_id in ranking_id_iterator:
+        method_to_call = getattr(automatch, operation_method_name)
+        if method_to_call(ranking_id):
+            return (
+                jsonify(
+                    {
+                        "status": "success",
+                        "message": f"后台自动对战 (Ranking ID: {ranking_id}) {success_verb}",
+                    }
+                ),
+                200,
+            )
+        else:
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": f"后台自动对战 (Ranking ID: {ranking_id}) {failure_detail_verb}",
+                    }
+                ),
+                500,
+            )
+    # Fallback if the iterator was empty (e.g., due to misconfiguration or empty range)
+    return jsonify({"status": "error", "message": "没有有效的 Ranking ID 进行操作。"}), 400
 
-#     automatch = get_automatch()
-#     if automatch.start_automatch_for_ranking(ranking_id):
-#         return (
-#             jsonify(
-#                 {
-#                     "status": "success",
-#                     "message": f"后台自动对战 (Ranking ID: {ranking_id}) 已启动",
-#                 }
-#             ),
-#             200,
-#         )
-#     else:
-#         return jsonify({"status": "error", "message": f"后台自动对战 (Ranking ID: {ranking_id}) 已在运行。"}), 500
+# Helper function for terminate action (slightly different success message and no failure branch from method call)
+def _handle_terminate_operation(get_automatch_func, ranking_id_iterator):
+    automatch = get_automatch_func()
+    for ranking_id in ranking_id_iterator: # Still processes only the first due to return
+        automatch.terminate_ranking_instance(ranking_id)
+        return (
+            jsonify(
+                {
+                    "status": "success",
+                    "message": "后台自动对战已终止并重置", # Original message is generic
+                }
+            ),
+            200,
+        )
+    # Fallback if the iterator was empty
+    return jsonify({"status": "error", "message": "没有有效的 Ranking ID 进行操作。"}), 400
 
+@admin_bp.route("/admin/start_auto_test_match", methods=["POST"])
+@admin_required
+def start_auto_test_match():
+    primary_ids = range(1)
+    return _handle_match_operation(
+        get_automatch,
+        primary_ids,
+        "start_automatch_for_ranking",
+        "已启动",
+        "已在运行。",
+    )
 
-# @admin_bp.route("/admin/stop_auto_match", methods=["POST"])
-# @admin_required
-# def stop_auto_match():
-#     data = request.get_json() # 获取请求的JSON数据
-#     if not data:
-#         return jsonify({"status": "error", "message": "请求体为空或非JSON格式"}), 400
-#     ranking_id = data.get("ranking_id")
-#     if ranking_id is None: # 检查 ranking_id 是否存在
-#         return jsonify({"status": "error", "message": "缺少 'ranking_id' 参数"}), 400
-#     # 可选：验证 ranking_id 的类型
-#     if not isinstance(ranking_id, int):
-#         try:
-#             ranking_id = int(ranking_id) # 尝试转换为整数
-#         except (ValueError, TypeError):
-#             return jsonify({"status": "error", "message": "'ranking_id' 必须是整数"}), 400
+@admin_bp.route("/admin/stop_auto_test_match", methods=["POST"])
+@admin_required
+def stop_auto_test_match():
+    primary_ids = range(1)
+    return _handle_match_operation(
+        get_automatch,
+        primary_ids,
+        "stop_automatch_for_ranking",
+        "已停止",
+        "未在运行.",
+    )
 
-#     automatch = get_automatch()
-#     if automatch.stop_automatch_for_ranking(ranking_id):
-#         return (
-#             jsonify(
-#                 {
-#                     "status": "success",
-#                     "message": f"后台自动对战 (Ranking ID: {ranking_id}) 已停止",
-#                 }
-#             ),
-#             200,
-#         )
-#     else:
-#         return jsonify({"status": "error", "message": f"后台自动对战(Ranking ID: {ranking_id})未在运行."}), 500
-
-
-# @admin_bp.route("/admin/terminate_auto_match", methods=["POST"])
-# @admin_required
-# def terminate_auto_match():
-#     automatch = get_automatch()
-#     automatch.terminate()
-#     return (
-#         jsonify(
-#             {
-#                 "status": "success",
-#                 "message": "后台自动对战已终止并重置",
-#             }
-#         ),
-#         200,
-#     )
+@admin_bp.route("/admin/terminate_auto_test_match", methods=["POST"])
+@admin_required
+def terminate_auto_test_match():
+    primary_ids = range(1)
+    return _handle_terminate_operation(get_automatch, primary_ids)
 
 
-@admin_bp.route("/admin/start_auto_match", methods=["POST"])
+@admin_bp.route("/admin/start_auto_primary_match", methods=["POST"])
 @admin_required
 def start_auto_primary_match():
-    automatch = get_automatch()
-    for ranking_id in range(1, PARTITION_NUMBER+1):
-        if automatch.start_automatch_for_ranking(ranking_id):
-            return (
-                jsonify(
-                    {
-                        "status": "success",
-                        "message": f"后台自动对战 (Ranking ID: {ranking_id}) 已启动",
-                    }
-                ),
-                200,
-            )
-        else:
-            return jsonify({"status": "error", "message": f"后台自动对战 (Ranking ID: {ranking_id}) 已在运行。"}), 500
-
-@admin_bp.route("/admin/stop_auto_match", methods=["POST"])
-@admin_required
-def stop_auto_match():
-    automatch = get_automatch()
-    for ranking_id in range(1, PARTITION_NUMBER+1):
-        if automatch.stop_automatch_for_ranking(ranking_id):
-            return (
-                jsonify(
-                    {
-                        "status": "success",
-                        "message": f"后台自动对战 (Ranking ID: {ranking_id}) 已停止",
-                    }
-                ),
-                200,
-            )
-        else:
-            return jsonify({"status": "error", "message": f"后台自动对战(Ranking ID: {ranking_id})未在运行."}), 500
-
-
-@admin_bp.route("/admin/terminate_auto_match", methods=["POST"])
-@admin_required
-def terminate_auto_match():
-    automatch = get_automatch()
-    automatch.terminate()
-    return (
-        jsonify(
-            {
-                "status": "success",
-                "message": "后台自动对战已终止并重置",
-            }
-        ),
-        200,
+    primary_ids = range(PRIMARY_RANKING_START_ID, PRIMARY_RANKING_START_ID + PRIMARY_PARTITION)
+    return _handle_match_operation(
+        get_automatch,
+        primary_ids,
+        "start_automatch_for_ranking",
+        "已启动",
+        "已在运行。",
     )
+
+@admin_bp.route("/admin/stop_auto_primary_match", methods=["POST"])
+@admin_required
+def stop_auto_primary_match():
+    primary_ids = range(PRIMARY_RANKING_START_ID, PRIMARY_RANKING_START_ID + PRIMARY_PARTITION)
+    return _handle_match_operation(
+        get_automatch,
+        primary_ids,
+        "stop_automatch_for_ranking",
+        "已停止",
+        "未在运行.",
+    )
+
+@admin_bp.route("/admin/terminate_auto_primary_match", methods=["POST"])
+@admin_required
+def terminate_auto_primary_match():
+    primary_ids = range(PRIMARY_RANKING_START_ID, PRIMARY_RANKING_START_ID + PRIMARY_PARTITION)
+    return _handle_terminate_operation(get_automatch, primary_ids)
+
+@admin_bp.route("/admin/start_auto_semi_match", methods=["POST"])
+@admin_required
+def start_auto_semi_match():
+    # Corrected range logic for SEMI_PARTITION
+    # Assumes SEMI_PARTITION is the count of partitions starting from SEMI_RANKING_START_ID
+    semi_ids = range(SEMI_RANKING_START_ID, SEMI_RANKING_START_ID + SEMI_PARTITION)
+    return _handle_match_operation(
+        get_automatch,
+        semi_ids,
+        "start_automatch_for_ranking",
+        "已启动",
+        "已在运行。",
+    )
+
+@admin_bp.route("/admin/stop_auto_semi_match", methods=["POST"])
+@admin_required
+def stop_auto_semi_match():
+    semi_ids = range(SEMI_RANKING_START_ID, SEMI_RANKING_START_ID + SEMI_PARTITION)
+    return _handle_match_operation(
+        get_automatch,
+        semi_ids,
+        "stop_automatch_for_ranking",
+        "已停止",
+        "未在运行.",
+    )
+
+@admin_bp.route("/admin/terminate_auto_semi_match", methods=["POST"])
+@admin_required
+def terminate_auto_semi_match():
+    semi_ids = range(SEMI_RANKING_START_ID, SEMI_RANKING_START_ID + SEMI_PARTITION)
+    return _handle_terminate_operation(get_automatch, semi_ids)
+
+@admin_bp.route("/admin/start_auto_final_match", methods=["POST"])
+@admin_required
+def start_auto_final_match():
+    final_ids = range(FINAL_RANKING_START_ID, FINAL_RANKING_START_ID + FINAL_PARTITION)
+    return _handle_match_operation(
+        get_automatch,
+        final_ids,
+        "start_automatch_for_ranking",
+        "已启动",
+        "已在运行。",
+    )
+
+@admin_bp.route("/admin/stop_auto_final_match", methods=["POST"])
+@admin_required
+def stop_auto_final_match():
+    final_ids = range(FINAL_RANKING_START_ID, FINAL_RANKING_START_ID + FINAL_PARTITION)
+    return _handle_match_operation(
+        get_automatch,
+        final_ids,
+        "stop_automatch_for_ranking",
+        "已停止",
+        "未在运行.",
+    )
+
+@admin_bp.route("/admin/terminate_auto_final_match", methods=["POST"])
+@admin_required
+def terminate_auto_final_match():
+    final_ids = range(FINAL_RANKING_START_ID, FINAL_RANKING_START_ID + FINAL_PARTITION)
+    return _handle_terminate_operation(get_automatch, final_ids)
 
 
 @admin_bp.route("/admin/toggle_admin/<string:user_id>", methods=["POST"])

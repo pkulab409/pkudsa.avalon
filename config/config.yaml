@@ -43,6 +43,12 @@ ranking_groups:
   - id: 6
     name: 初赛分组6
     type: primary
+  - id: 11
+    name: 半决赛分组
+    type: semi
+  - id: 21
+    name: 决赛分组
+    type: final
 
 ai:
   allowed_extensions: # 允许的文件扩展名
