@@ -274,25 +274,24 @@ def get_active_ai_codes_by_ranking_ids(ranking_ids: list[int] = None) -> list[AI
         active_ai_query = AICode.query.filter_by(is_active=True)
 
         if ranking_ids and len(ranking_ids) > 0:
-            # 如果指定了 ranking_ids，我们需要找到那些用户在这些榜单上有统计数据
-            # 1. 获取在指定 ranking_ids 中有 GameStats 的 user_id 列表
-            users_in_rankings_subquery = (
-                db.session.query(GameStats.user_id)
-                .filter(GameStats.ranking_id.in_(ranking_ids))
-                .distinct()
-                .subquery()
-            )
-            # 2. 筛选激活的 AI 代码，使其 user_id 在上述子查询结果中
-            active_ai_query = active_ai_query.join(
-                users_in_rankings_subquery,
-                AICode.user_id == users_in_rankings_subquery.c.user_id,
-            )
+            # # 如果指定了 ranking_ids，我们需要找到那些用户在这些榜单上有统计数据
+            # # 1. 获取在指定 ranking_ids 中有 GameStats 的 user_id 列表
+            # users_in_rankings_subquery = (
+            #     db.session.query(GameStats.user_id)
+            #     .filter(GameStats.ranking_id.in_(ranking_ids))
+            #     .distinct()
+            #     .subquery()
+            # )
+            # # 2. 筛选激活的 AI 代码，使其 user_id 在上述子查询结果中
+            # active_ai_query = active_ai_query.join(
+            #     users_in_rankings_subquery,
+            #     AICode.user_id == users_in_rankings_subquery.c.user_id,
+            # )
             
             # 或者，另一种方式是先获取用户，再获取他们的AI (可能更直观，但查询结构不同):
-            # users_with_stats_in_rankings = User.query.join(User.game_stats_entries)\
-            # .filter(GameStats.ranking_id.in_(ranking_ids)).all()
-            # user_ids_in_rankings = [user.id for user in users_with_stats_in_rankings]
-            # active_ai_query = AICode.query.filter(AICode.user_id.in_(user_ids_in_rankings), AICode.is_active==True)
+            users_with_stats_in_rankings = User.query.join(User.game_stats_entries).filter(GameStats.ranking_id.in_(ranking_ids)).all()
+            user_ids_in_rankings = [user.id for user in users_with_stats_in_rankings]
+            active_ai_query = AICode.query.filter(AICode.user_id.in_(user_ids_in_rankings), AICode.is_active==True)
 
         ai_codes_result = active_ai_query.all()
         logger.info(

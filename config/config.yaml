@@ -61,7 +61,9 @@ INITIAL_USERS:
       description: 管理员控制台
       file_path: null
       make_active: false
-  # Smart AI 用户系列
+
+  # Partition 0 Users (Existing)
+  # Smart AI 用户系列 (Partition 0)
   - username: smart_user1
     partition: 0
     email: smart1@example.com
@@ -123,7 +125,7 @@ INITIAL_USERS:
       file_path: game/smart_player.py
       make_active: true
       
-  # Basic AI 用户系列
+  # Basic AI 用户系列 (Partition 0)
   - username: basic_user1
     partition: 0
     email: basic1@example.com
@@ -177,6 +179,630 @@ INITIAL_USERS:
   - username: basic_user6
     partition: 0
     email: basic6@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+
+  # Partition 1 Users (New) - 10 users
+  # Smart AI
+  - username: smart_user7
+    partition: 1
+    email: smart7@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user8
+    partition: 1
+    email: smart8@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user9
+    partition: 1
+    email: smart9@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user10
+    partition: 1
+    email: smart10@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user11
+    partition: 1
+    email: smart11@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  # Basic AI
+  - username: basic_user7
+    partition: 1
+    email: basic7@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user8
+    partition: 1
+    email: basic8@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user9
+    partition: 1
+    email: basic9@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user10
+    partition: 1
+    email: basic10@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user11
+    partition: 1
+    email: basic11@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+
+  # Partition 2 Users (New) - 10 users
+  # Smart AI
+  - username: smart_user12
+    partition: 2
+    email: smart12@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user13
+    partition: 2
+    email: smart13@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user14
+    partition: 2
+    email: smart14@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user15
+    partition: 2
+    email: smart15@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user16
+    partition: 2
+    email: smart16@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  # Basic AI
+  - username: basic_user12
+    partition: 2
+    email: basic12@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user13
+    partition: 2
+    email: basic13@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user14
+    partition: 2
+    email: basic14@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user15
+    partition: 2
+    email: basic15@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user16
+    partition: 2
+    email: basic16@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+
+  # Partition 3 Users (New) - 10 users
+  # Smart AI
+  - username: smart_user17
+    partition: 3
+    email: smart17@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user18
+    partition: 3
+    email: smart18@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user19
+    partition: 3
+    email: smart19@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user20
+    partition: 3
+    email: smart20@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user21
+    partition: 3
+    email: smart21@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  # Basic AI
+  - username: basic_user17
+    partition: 3
+    email: basic17@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user18
+    partition: 3
+    email: basic18@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user19
+    partition: 3
+    email: basic19@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user20
+    partition: 3
+    email: basic20@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user21
+    partition: 3
+    email: basic21@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+
+  # Partition 4 Users (New) - 10 users
+  # Smart AI
+  - username: smart_user22
+    partition: 4
+    email: smart22@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user23
+    partition: 4
+    email: smart23@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user24
+    partition: 4
+    email: smart24@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user25
+    partition: 4
+    email: smart25@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user26
+    partition: 4
+    email: smart26@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  # Basic AI
+  - username: basic_user22
+    partition: 4
+    email: basic22@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user23
+    partition: 4
+    email: basic23@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user24
+    partition: 4
+    email: basic24@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user25
+    partition: 4
+    email: basic25@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user26
+    partition: 4
+    email: basic26@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+
+  # Partition 5 Users (New) - 10 users
+  # Smart AI
+  - username: smart_user27
+    partition: 5
+    email: smart27@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user28
+    partition: 5
+    email: smart28@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user29
+    partition: 5
+    email: smart29@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user30
+    partition: 5
+    email: smart30@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user31
+    partition: 5
+    email: smart31@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  # Basic AI
+  - username: basic_user27
+    partition: 5
+    email: basic27@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user28
+    partition: 5
+    email: basic28@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user29
+    partition: 5
+    email: basic29@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user30
+    partition: 5
+    email: basic30@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user31
+    partition: 5
+    email: basic31@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+
+  # Partition 6 Users (New) - 10 users
+  # Smart AI
+  - username: smart_user32
+    partition: 6
+    email: smart32@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user33
+    partition: 6
+    email: smart33@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user34
+    partition: 6
+    email: smart34@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user35
+    partition: 6
+    email: smart35@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  - username: smart_user36
+    partition: 6
+    email: smart36@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Smart AI
+      description: DeepSeek增强型AI玩家
+      file_path: game/smart_player.py
+      make_active: true
+  # Basic AI
+  - username: basic_user32
+    partition: 6
+    email: basic32@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user33
+    partition: 6
+    email: basic33@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user34
+    partition: 6
+    email: basic34@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user35
+    partition: 6
+    email: basic35@example.com
+    password: password123
+    is_admin: False
+    ai_code:
+      name: Baseline AI
+      description: 基础AI玩家
+      file_path: game/basic_player.py
+      make_active: true
+  - username: basic_user36
+    partition: 6
+    email: basic36@example.com
     password: password123
     is_admin: False
     ai_code:

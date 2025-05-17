@@ -18,6 +18,7 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
+PARTITION_NUMBER = 6
 
 @admin_bp.errorhandler(400)
 @admin_bp.errorhandler(403)
@@ -249,40 +250,119 @@ def delete_game(game_id):
         abort(500, description=f"删除对局失败: {str(e)}")
 
 
+# @admin_bp.route("/admin/start_auto_match", methods=["POST"])
+# @admin_required
+# def start_auto_match():
+#     data = request.get_json() # 获取请求的JSON数据
+#     if not data:
+#         return jsonify({"status": "error", "message": "请求体为空或非JSON格式"}), 400
+#     ranking_id = data.get("ranking_id")
+#     if ranking_id is None: # 检查 ranking_id 是否存在
+#         return jsonify({"status": "error", "message": "缺少 'ranking_id' 参数"}), 400
+#     # 可选：验证 ranking_id 的类型
+#     if not isinstance(ranking_id, int):
+#         try:
+#             ranking_id = int(ranking_id) # 尝试转换为整数
+#         except (ValueError, TypeError):
+#             return jsonify({"status": "error", "message": "'ranking_id' 必须是整数"}), 400
+
+#     automatch = get_automatch()
+#     if automatch.start_automatch_for_ranking(ranking_id):
+#         return (
+#             jsonify(
+#                 {
+#                     "status": "success",
+#                     "message": f"后台自动对战 (Ranking ID: {ranking_id}) 已启动",
+#                 }
+#             ),
+#             200,
+#         )
+#     else:
+#         return jsonify({"status": "error", "message": f"后台自动对战 (Ranking ID: {ranking_id}) 已在运行。"}), 500
+
+
+# @admin_bp.route("/admin/stop_auto_match", methods=["POST"])
+# @admin_required
+# def stop_auto_match():
+#     data = request.get_json() # 获取请求的JSON数据
+#     if not data:
+#         return jsonify({"status": "error", "message": "请求体为空或非JSON格式"}), 400
+#     ranking_id = data.get("ranking_id")
+#     if ranking_id is None: # 检查 ranking_id 是否存在
+#         return jsonify({"status": "error", "message": "缺少 'ranking_id' 参数"}), 400
+#     # 可选：验证 ranking_id 的类型
+#     if not isinstance(ranking_id, int):
+#         try:
+#             ranking_id = int(ranking_id) # 尝试转换为整数
+#         except (ValueError, TypeError):
+#             return jsonify({"status": "error", "message": "'ranking_id' 必须是整数"}), 400
+
+#     automatch = get_automatch()
+#     if automatch.stop_automatch_for_ranking(ranking_id):
+#         return (
+#             jsonify(
+#                 {
+#                     "status": "success",
+#                     "message": f"后台自动对战 (Ranking ID: {ranking_id}) 已停止",
+#                 }
+#             ),
+#             200,
+#         )
+#     else:
+#         return jsonify({"status": "error", "message": f"后台自动对战(Ranking ID: {ranking_id})未在运行."}), 500
+
+
+# @admin_bp.route("/admin/terminate_auto_match", methods=["POST"])
+# @admin_required
+# def terminate_auto_match():
+#     automatch = get_automatch()
+#     automatch.terminate()
+#     return (
+#         jsonify(
+#             {
+#                 "status": "success",
+#                 "message": "后台自动对战已终止并重置",
+#             }
+#         ),
+#         200,
+#     )
+
+
 @admin_bp.route("/admin/start_auto_match", methods=["POST"])
 @admin_required
-def start_auto_match():
+def start_auto_primary_match():
     automatch = get_automatch()
-    if automatch.start():
-        return (
-            jsonify(
-                {
-                    "status": "success",
-                    "message": "后台自动对战已启动",
-                }
-            ),
-            200,
-        )
-    else:
-        return jsonify({"status": "error", "message": f"后台自动对战已在运行."}), 500
-
+    for ranking_id in range(1, PARTITION_NUMBER+1):
+        if automatch.start_automatch_for_ranking(ranking_id):
+            return (
+                jsonify(
+                    {
+                        "status": "success",
+                        "message": f"后台自动对战 (Ranking ID: {ranking_id}) 已启动",
+                    }
+                ),
+                200,
+            )
+        else:
+            return jsonify({"status": "error", "message": f"后台自动对战 (Ranking ID: {ranking_id}) 已在运行。"}), 500
 
 @admin_bp.route("/admin/stop_auto_match", methods=["POST"])
 @admin_required
 def stop_auto_match():
     automatch = get_automatch()
-    if automatch.stop():
-        return (
-            jsonify(
-                {
-                    "status": "success",
-                    "message": "后台自动对战已停止",
-                }
-            ),
-            200,
-        )
-    else:
-        return jsonify({"status": "error", "message": f"后台自动对战未在运行."}), 500
+    for ranking_id in range(1, PARTITION_NUMBER+1):
+        if automatch.stop_automatch_for_ranking(ranking_id):
+            return (
+                jsonify(
+                    {
+                        "status": "success",
+                        "message": f"后台自动对战 (Ranking ID: {ranking_id}) 已停止",
+                    }
+                ),
+                200,
+            )
+        else:
+            return jsonify({"status": "error", "message": f"后台自动对战(Ranking ID: {ranking_id})未在运行."}), 500
 
 
 @admin_bp.route("/admin/terminate_auto_match", methods=["POST"])
