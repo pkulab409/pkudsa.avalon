@@ -186,7 +186,6 @@ class Player:
             你是{self.index}号玩家，角色是{self.role}。
             请分析这段话的可信度和可能的阵营。
             回答要简洁，口语化。绝对不要暴露自己的身份。
-            最多50字
             """
             analysis = askLLM(prompt)
             write_into_private(f"对{speaker}号发言的分析: {analysis}")
@@ -284,6 +283,70 @@ class Player:
 
         # 如果没有有效移动，原地不动
         return tuple()
+
+    '''def walk(self) -> tuple[str, ...]:
+        """移动策略"""
+        if not self.location:
+            return tuple()
+    
+        # 根据游戏阶段选择目标
+        if self.round == 0:  # 初始阶段前往中心
+            target = self.key_locations["meeting"]
+        else:  # 根据任务需要移动
+            mission_locs = self.key_locations["mission"]
+            target = mission_locs[self.round % len(mission_locs)]
+    
+        # 计算路径
+        path = self.calculate_path(self.location, target)
+        return path[:3]  # 最多返回3步
+    
+    def calculate_path(self, start, end) -> tuple[str, ...]:
+        """计算从起点到终点的路径"""
+        dx = end[0] - start[0]
+        dy = end[1] - start[1]
+    
+        moves = []
+        # 水平移动
+        if dx > 0:
+            moves.extend(["Right"] * dx)
+        elif dx < 0:
+            moves.extend(["Left"] * -dx)
+    
+        # 垂直移动
+        if dy > 0:
+            moves.extend(["Up"] * dy)
+        elif dy < 0:
+            moves.extend(["Down"] * -dy)
+    
+        # 避开其他玩家的位置并检查边界
+        other_positions = set(pos for pid, pos in self.player_positions.items() if pid != self.index)
+        filtered_moves = []
+        current_pos = list(start)
+        for move in moves:
+            if move == "Right":
+                current_pos[0] += 1
+            elif move == "Left":
+                current_pos[0] -= 1
+            elif move == "Up":
+                current_pos[1] += 1
+            elif move == "Down":
+                current_pos[1] -= 1
+    
+            # 检查是否超出边界或与其他玩家位置冲突
+            if (
+                0 <= current_pos[0] < len(self.map[0])  # 检查水平边界
+                and 0 <= current_pos[1] < len(self.map)  # 检查垂直边界
+                and tuple(current_pos) not in other_positions  # 检查是否与其他玩家位置冲突
+            ):
+                filtered_moves.append(move)
+            else:
+                # 记录无效移动的原因
+                write_into_private(
+                    f"Invalid move: {move} to {tuple(current_pos)}. "
+                    f"Reason: {'Out of bounds' if not (0 <= current_pos[0] < len(self.map[0]) and 0 <= current_pos[1] < len(self.map)) else 'Occupied by another player'}"
+                )
+    
+        return tuple(filtered_moves[:3])  # 最多返回3步'''
 
     def say(self) -> str:
         """发言策略"""

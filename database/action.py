@@ -13,13 +13,18 @@
 - 【对战功能】 创建对战、更新对战、对战用户管理、对战历史、*ELO*等
 - 备用：BattlePlayer 独立 CRUD 操作
 """
+import os
+
+import yaml
+from flask import current_app
+
 # 准备好后面一千多行的冲击吧！
 MAX_TOKEN_ALLOWED = 3000
 
 from .base import db
 import logging
 from sqlalchemy import select, update, or_, func
-import datetime
+from datetime import datetime
 import json
 import math
 import uuid
@@ -29,6 +34,7 @@ from .models import (
     GameStats,
     AICode,
     BattlePlayer,
+    db,
 )  # 移除Room, RoomParticipant
 
 # 配置 Logger
@@ -189,7 +195,7 @@ def update_user(user, **kwargs):
                     user.set_password(value)
                 elif key != "id":  # 不允许修改ID
                     setattr(user, key, value)
-        user.updated_at = datetime.datetime.now()  # 更新时间戳
+        user.updated_at = datetime.now()  # 开始时间戳  # 更新时间戳
         return safe_commit()
     except Exception as e:
         logger.error(f"更新用户 {user.id} 失败: {e}", exc_info=True)
@@ -641,7 +647,7 @@ def create_battle(
         battle = Battle(
             status=status,
             ranking_id=ranking_id,
-            created_at=datetime.datetime.now(),
+            created_at=datetime.now(),  # 开始时间戳,
             # started_at 在对战真正开始时设置
             # results 在对战结束时设置
             # game_log_uuid 在对战结束时设置
@@ -664,7 +670,7 @@ def create_battle(
                 selected_ai_code_id=data["ai_code_id"],  # <--- 修改这里
                 position=i + 1,  # 简单设置位置
                 initial_elo=initial_elo,
-                join_time=datetime.datetime.now(),
+                join_time=datetime.now(),  # 开始时间戳,
             )
             battle_players.append(bp)
             db.session.add(bp)  # 添加BattlePlayer 记录
@@ -726,12 +732,12 @@ def update_battle(battle, **kwargs):
         if "status" in kwargs:
             new_status = kwargs["status"]
             if new_status == "playing" and battle.started_at is None:
-                battle.started_at = datetime.datetime.now()
+                battle.started_at = datetime.now()  # 开始时间戳
             elif (
                 new_status in ["completed", "error", "cancelled"]
                 and battle.ended_at is None
             ):
-                battle.ended_at = datetime.datetime.now()
+                battle.ended_at = datetime.now()  # 开始时间戳
 
         return safe_commit()
     except Exception as e:
@@ -823,6 +829,85 @@ def process_battle_results_and_update_stats(battle_id, results_data):
             logger.error(f"[Battle {battle_id}] 对战记录不存在")
             return False
 
+        # --- 新增检查 ---
+        if battle.is_elo_exempt:
+            logger.info(
+                f"[Battle {battle_id}] 此对战 (类型: {battle.battle_type}) 被标记为ELO豁免，将跳过ELO和统计更新。"
+            )
+            # 只需要更新battle的状态和结果，不进行统计和ELO计算
+            battle.status = "completed"  # 或者根据results_data判断是否error
+            if "error" in results_data:  # 确保result_data被正确解析
+                try:
+                    parsed_results = (
+                        json.loads(results_data)
+                        if isinstance(results_data, str)
+                        else results_data
+                    )
+                    if "error" in parsed_results:
+                        battle.status = "error"
+                except:
+                    pass  # 保持completed
+
+            battle.ended_at = (
+                datetime.now()
+            )  # 开始时间戳  # 使用 datetime.datetime.utcnow() 如果你的时间都是UTC
+            battle.results = (
+                json.dumps(results_data)
+                if not isinstance(results_data, str)
+                else results_data
+            )
+            battle.game_log_uuid = (
+                results_data.get("game_log_uuid")
+                if isinstance(results_data, dict)
+                else None
+            )
+
+            # 对于BattlePlayer，我们可能仍想记录他们的outcome (win/loss/draw)但没有elo_change
+            battle_players = get_battle_players_for_battle(battle_id)
+            roles_data = (
+                results_data.get("roles", {}) if isinstance(results_data, dict) else {}
+            )
+            # ... (可以复用之前的 player_roles 和 team_map, user_outcomes 的逻辑来确定 outcome) ...
+            # 例如:
+            # player_roles = {} ...
+            # team_map = {} ...
+            # user_outcomes = {} ... (基于 winner_team)
+            winner_team = (
+                results_data.get("winner") if isinstance(results_data, dict) else None
+            )
+            if winner_team:
+                team_outcomes = {
+                    RED_TEAM: "win" if winner_team == RED_TEAM else "loss",
+                    BLUE_TEAM: "win" if winner_team == BLUE_TEAM else "loss",
+                }
+                # 假设可以获取到角色和队伍映射
+                # user_outcomes = { bp.user_id: team_outcomes[get_team_for_user(bp.user_id, roles_data)] for bp in battle_players }
+
+                for bp in battle_players:
+                    # outcome = user_outcomes.get(bp.user_id, "draw") # 默认为平局如果无法确定
+                    # bp.outcome = outcome
+                    if bp.initial_elo is None:
+                        user_stats = get_game_stats_by_user_id(
+                            bp.user_id, battle.ranking_id
+                        )
+                        bp.initial_elo = (
+                            user_stats.elo_score if user_stats else 1200
+                        )  # Fallback to default
+
+                    bp.elo_change = 0  # 明确ELO变化为0 for exempt battles
+                    db.session.add(bp)
+
+            if safe_commit():
+                logger.info(
+                    f"[Battle {battle_id}] ELO豁免的对战结果已记录，无统计更新。"
+                )
+                return True
+            else:
+                logger.error(
+                    f"[Battle {battle_id}] ELO豁免的对战结果记录失败（数据库提交错误）。"
+                )
+                return False
+        # --- 结束新增检查 ---
         battle_ranking_id = battle.ranking_id  # 获取对战的排行榜ID
 
         if battle.status == "completed":
@@ -936,7 +1021,7 @@ def process_battle_results_and_update_stats(battle_id, results_data):
         # 阶段2：基础数据更新
         # ----------------------------------
         battle.status = "completed" if err_user_id is None else "error"
-        battle.ended_at = datetime.datetime.now()
+        battle.ended_at = datetime.now()  # 开始时间戳
         battle.results = json.dumps(results_data)
         battle.game_log_uuid = results_data.get("game_log_uuid")
 
@@ -1383,7 +1468,7 @@ def mark_battle_as_cancelled(battle_id, cancellation_reason=None):
 
         # 更新对战状态
         battle.status = "cancelled"
-        battle.ended_at = datetime.datetime.now()
+        battle.ended_at = datetime.now()  # 开始时间戳
 
         # 如果提供了取消原因，则更新结果字段
         if cancellation_reason:
@@ -1500,6 +1585,339 @@ def handle_cancelled_battle_stats(battle_id):
         logger.error(f"处理已取消对战统计失败: {e}", exc_info=True)
         db.session.rollback()
         return False
+
+
+from sqlalchemy import desc, or_, and_  # Import and_ if needed, or_ is key here
+
+
+def get_battles_paginated_filtered(filters=None, page=1, per_page=10, error_out=False):
+    """
+    Fetches battles with optional filters and pagination. Supports multi-player filtering.
+
+    :param filters: A dictionary with possible keys: 'status', 'date_from', 'date_to', 'players'.
+    :param page: Current page number.
+    :param per_page: Items per page.
+    :param error_out: If True, raises an error for invalid page numbers.
+    :return: A Flask-SQLAlchemy Pagination object.
+    """
+    query = Battle.query
+
+    # 默认不显示 'ready' 状态的对局，除非过滤器明确要求
+    # (这种方式可能更复杂，取决于你如何组合查询)
+    # 一个简单的方法是，如果状态过滤器不是 'ready'，则排除 'ready'
+    status_filter_value = filters.get("status") if filters else None
+
+    if status_filter_value and status_filter_value.lower() == "ready":
+        query = query.filter(Battle.status == "ready")
+    elif status_filter_value and status_filter_value.lower() != "all":
+        query = query.filter(Battle.status == status_filter_value)
+        # 如果不是 'all' 也不是 'ready'，我们可能仍想排除 ready，但这取决于需求
+        # query = query.filter(Battle.status != 'ready') # 如果总是想排除ready，除非明确选择
+    elif not status_filter_value or status_filter_value.lower() == "all":
+        # 当选择 "all" 或没有状态过滤器时，默认排除 "ready"
+        query = query.filter(Battle.status != "ready")
+
+    if filters:
+        # Apply status filter
+        if "status" in filters and filters["status"] and filters["status"] != "all":
+            query = query.filter(Battle.status == filters["status"])
+
+        # Apply date filters
+        if "date_from" in filters and filters["date_from"]:
+            query = query.filter(Battle.created_at >= filters["date_from"])
+        if "date_to" in filters and filters["date_to"]:
+            query = query.filter(Battle.created_at <= filters["date_to"])
+
+        # Apply multiple player filters
+        if "players" in filters and filters["players"]:
+            player_list = filters["players"]
+            player_ids = []
+
+            # Find all user IDs for the player names/IDs in the list
+            for player_identifier in player_list:
+                # Construct conditions for user identification
+                user_conditions = [User.username == player_identifier]
+                if player_identifier.isdigit():
+                    try:
+                        user_conditions.append(User.id == int(player_identifier))
+                    except ValueError:
+                        pass
+
+                user = User.query.filter(or_(*user_conditions)).first()
+                if user:
+                    player_ids.append(user.id)
+
+            if player_ids:
+                # Create a subquery to find battles where any of these players participated
+                subquery = (
+                    db.session.query(BattlePlayer.battle_id)
+                    .filter(BattlePlayer.user_id.in_(player_ids))
+                    .group_by(BattlePlayer.battle_id)
+                )
+
+                # If we want to find battles where ALL specified players participated, we need to count
+                if len(player_ids) > 1:
+                    subquery = subquery.having(
+                        func.count(BattlePlayer.user_id.distinct()) == len(player_ids)
+                    )
+
+                subquery = subquery.subquery()
+
+                # Join with the main query
+                query = query.join(subquery, Battle.id == subquery.c.battle_id)
+            else:
+                # No valid players found, return no results
+                query = query.filter(False)
+
+    # Default ordering
+    query = query.order_by(desc(Battle.created_at))
+
+    return query.paginate(page=page, per_page=per_page, error_out=error_out)
+
+
+def create_battle_instance(created_by, ranking_id=0):
+    """
+    创建新的对战实例
+
+    参数:
+        created_by (str): 创建者的用户ID
+        ranking_id (int): 排行榜ID，默认为0
+
+    返回:
+        Battle: 新创建的对战实例
+    """
+    try:
+        # 创建一个新的对战实例
+        new_battle = Battle(
+            status="waiting",  # 初始状态：等待中
+            ranking_id=ranking_id,
+            created_at=datetime.now(),
+            # 其他字段会使用默认值或在后续更新
+        )
+
+        # 保存到数据库
+        db.session.add(new_battle)
+        db.session.commit()
+
+        current_app.logger.info(
+            f"创建了新对战 ID: {new_battle.id}, 创建者: {created_by}"
+        )
+
+        return new_battle
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"创建对战实例失败: {str(e)}")
+        # 可以选择重新抛出异常或返回None
+        return None
+
+
+def add_player_to_battle(battle_id, position, user_id, ai_code_id=None):
+    """
+    将玩家添加到对战中
+
+    参数:
+        battle_id (str): 对战ID
+        position (int): 玩家位置 (1-7)
+        user_id (str): 用户ID
+        ai_code_id (str, optional): AI代码ID，如果要使用特定AI
+
+    返回:
+        BattlePlayer: 新创建的对战玩家实例
+    """
+    try:
+        # 验证对战存在
+        battle = db.session.query(Battle).filter(Battle.id == battle_id).first()
+        if not battle:
+            current_app.logger.error(f"添加玩家失败: 对战ID {battle_id} 不存在")
+            return None
+
+        # 验证位置未被占用
+        existing_player = (
+            db.session.query(BattlePlayer)
+            .filter(
+                BattlePlayer.battle_id == battle_id, BattlePlayer.position == position
+            )
+            .first()
+        )
+
+        if existing_player:
+            current_app.logger.error(
+                f"添加玩家失败: 对战 {battle_id} 的位置 {position} 已被占用"
+            )
+            return None
+
+        # 检查AI代码是否存在
+        if ai_code_id:
+            ai_code = db.session.query(AICode).filter(AICode.id == ai_code_id).first()
+            if not ai_code:
+                current_app.logger.error(f"添加玩家失败: AI代码 {ai_code_id} 不存在")
+                return None
+
+        # 创建新的对战玩家记录
+        new_player = BattlePlayer(
+            battle_id=battle_id,
+            user_id=user_id,
+            position=position,
+            selected_ai_code_id=ai_code_id,
+            join_time=datetime.now(),
+        )
+
+        # 保存到数据库
+        db.session.add(new_player)
+        db.session.commit()
+
+        # 更新对战的玩家计数
+        update_battle_player_count(battle_id)
+
+        current_app.logger.info(
+            f"添加玩家成功: 用户 {user_id} 加入对战 {battle_id} 的位置 {position}"
+        )
+
+        return new_player
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"添加玩家到对战失败: {str(e)}")
+        # 可以选择重新抛出异常或返回None
+        return None
+
+
+def update_battle_player_count(battle_id):
+    """
+    更新对战的玩家计数
+
+    参数:
+        battle_id (str): 对战ID
+    """
+    try:
+        # 计算当前玩家数量
+        player_count = (
+            db.session.query(BattlePlayer)
+            .filter(BattlePlayer.battle_id == battle_id)
+            .count()
+        )
+
+        # 获取对战实例
+        battle = db.session.query(Battle).filter(Battle.id == battle_id).first()
+        if battle:
+            # 如果已满员，可以更新对战状态
+            if player_count >= 7:  # 阿瓦隆需要7名玩家
+                battle.status = "ready"
+
+            db.session.commit()
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"更新对战玩家计数失败: {str(e)}")
+
+
+def load_initial_users_from_config():
+    """
+    从 config.yaml 加载 INITIAL_USERS 配置。
+    """
+    try:
+        # 假设 config.yaml 与 action.py 在同一目录或可以通过 current_app.config 访问其路径
+        # 或者提供一个绝对/相对路径到 config.yaml
+        # 为简单起见，我们这里假设 config.yaml 在项目根目录
+        config_path = os.path.join(
+            current_app.root_path, "config", "config.yaml"
+        )  # 调整路径
+        if not os.path.exists(config_path):
+            # 尝试备用路径，例如在当前应用的根目录下
+            config_path = os.path.join(current_app.root_path, "config.yaml")
+
+        with open(config_path, "r", encoding="utf-8") as f:
+            config_data = yaml.safe_load(f)
+        return config_data.get("INITIAL_USERS", [])
+    except Exception as e:
+        current_app.logger.error(f"加载 config.yaml 失败: {e}", exc_info=True)
+        return []
+
+
+def get_available_ai_instances(username_prefix=None, specific_usernames=None):
+    """
+    获取可用的AI实例，基于config.yaml中的用户名。
+
+    参数:
+        username_prefix (str, optional): 用户名前缀 (例如 "smart_user", "basic_user").
+        specific_usernames (list, optional): 特定的用户名列表。
+
+    返回:
+        list: 符合条件的已激活的 AICode 实例列表。
+    """
+    try:
+        initial_users_config = load_initial_users_from_config()
+        if not initial_users_config:
+            return []
+
+        target_usernames = set()
+
+        if specific_usernames:
+            for uname in specific_usernames:
+                target_usernames.add(uname)
+        elif username_prefix:
+            for user_config in initial_users_config:
+                if user_config.get("username", "").startswith(username_prefix):
+                    target_usernames.add(user_config["username"])
+        else:
+            # 如果两者都未提供，默认获取所有在config中定义的用户的AI
+            for user_config in initial_users_config:
+                target_usernames.add(user_config["username"])
+
+        if not target_usernames:
+            current_app.logger.warning(
+                f"根据条件 {username_prefix=} {specific_usernames=} 未找到目标用户"
+            )
+            return []
+
+        # 从数据库中查询这些用户的已激活AI
+        # 首先获取这些用户的User对象，以便通过user_id查询AICode
+        users = User.query.filter(User.username.in_(list(target_usernames))).all()
+        user_ids = [user.id for user in users]
+
+        if not user_ids:
+            current_app.logger.warning(f"未在数据库中找到用户: {target_usernames}")
+            return []
+
+        # 查询这些用户所有已激活的AI
+        available_ai_codes = AICode.query.filter(
+            AICode.user_id.in_(user_ids), AICode.is_active == True
+        ).all()
+
+        # 进一步根据 config.yaml 中的 file_path 进行匹配 (可选，但更精确)
+        # 因为一个用户可能有多个AI，但config中只指定了一个初始AI
+        # 如果需要严格匹配config中的AI，可以这样做：
+        ai_instances = []
+        user_config_map = {
+            uc["username"]: uc.get("ai_code", {}).get("file_path")
+            for uc in initial_users_config
+        }
+
+        for ai_code in available_ai_codes:
+            user = get_user_by_id(ai_code.user_id)  # 获取AI代码对应的用户
+            if user and user.username in user_config_map:
+                # config_ai_filepath = user_config_map[user.username]
+                # 数据库中存储的 code_path 通常是相对路径，需要与 config 中的 file_path 比较
+                # 这里的比较逻辑可能需要根据实际存储情况调整
+                # 例如，如果 config 中的 file_path 是 'game/smart_player.py'
+                # 而数据库中的 code_path 是 'user_id_xxx/smart_player.py' (上传后的路径)
+                # 这种情况下，直接比较 file_path 可能不准确。
+                # 更稳妥的方式是，只要是这个用户的激活AI，就认为是可用的。
+                # 如果要严格按config.yaml的file_path，那么在创建用户和AI时就要确保路径一致性。
+                # 为了简化，我们先假设用户的激活AI就是我们想要的。
+                ai_instances.append(ai_code)
+
+        if not ai_instances:
+            current_app.logger.warning(
+                f"用户 {target_usernames} 没有找到已激活的AI代码"
+            )
+
+        return ai_instances
+
+    except Exception as e:
+        current_app.logger.error(f"获取AI实例时出错: {str(e)}", exc_info=True)
+        return []
 
 
 # -----------------------------------------------------------------------------------------

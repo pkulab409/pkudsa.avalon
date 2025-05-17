@@ -182,7 +182,13 @@ class Battle(db.Model):
     # 游戏结果数据 (JSON格式，根据游戏类型不同)
     # 存储更详细的对战全局结果，而非单个玩家的结果
     results = db.Column(db.Text, nullable=True)  # JSON存储全局结果数据
-
+    # 新增字段
+    is_elo_exempt = db.Column(
+        db.Boolean, default=False, nullable=False
+    )  # True表示这场比赛不计入ELO和统计
+    battle_type = db.Column(
+        db.String(50), nullable=True
+    )  # 例如 "standard", "ai_series_test"
     # 关系:
     # players: 参与这场对战的所有 BattlePlayer 记录 (一对多 Battle -> BattlePlayer)
     # cascade="all, delete-orphan": 当删除一个 Battle 时，相关的 BattlePlayer 记录也会被删除
@@ -257,7 +263,8 @@ class BattlePlayer(db.Model):
     outcome = db.Column(db.String(20), nullable=True)
 
     # 玩家在此对战开始前的 Elo 分数快照
-    initial_elo = db.Column(db.Integer, nullable=True)
+    initial_elo = db.Column(db.Integer, nullable=False, default=1200)  # 设置默认值
+    elo_change = db.Column(db.Integer, nullable=False, default=0)  # 设置默认值
 
     # 玩家在此对战结束后 Elo 分数的变化值
     elo_change = db.Column(db.Integer, nullable=True)

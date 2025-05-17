@@ -1305,10 +1305,10 @@ class AvalonReferee:
                 fail_votes += 1
 
         # 判断任务结果
-        # 第3,4为保护轮，需要至少2票失败；其他轮次只需1票失败
-        is_protect_round = self.current_round in [3, 4]
+        # 第4轮(索引3)为保护轮，需要至少2票失败；其他轮次只需1票失败
+        is_fourth_round = self.current_round == 4
         required_fails = (
-            2 if is_protect_round and PLAYER_COUNT >= 7 else 1
+            2 if is_fourth_round and PLAYER_COUNT >= 7 else 1
         )  # Standard Avalon rule for 7+ players on round 4
         mission_success = fail_votes < required_fails
 

@@ -1,0 +1,482 @@
+{% extends "base.html" %}
+{% block title %}
+    性能报告 - 游戏平台
+{% endblock title %}
+{% block styles %}
+    <style>
+    .chart-container {
+        height: 400px;
+        margin-bottom: 30px;
+    }
+    .stat-card {
+        transition: all 0.3s ease;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .client-filter {
+        margin-bottom: 20px;
+    }
+    </style>
+{% endblock styles %}
+{% block content %}
+    <div class="container mt-4">
+        <div class="card mb-4 shadow-sm">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-1">
+                            <i class="bi bi-graph-up me-2"></i>AI性能报告
+                        </h2>
+                        <p class="text-muted mb-0">客户端处理时间分析与统计</p>
+                    </div>
+                    <button class="btn btn-outline-primary" id="refreshBtn">
+                        <i class="bi bi-arrow-clockwise me-1"></i>刷新数据
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- 统计卡片 -->
+        <div class="row mb-4" id="statCards">
+            <div class="col-md-3 mb-3">
+                <div class="card stat-card h-100 shadow-sm border-primary">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">总记录数</h5>
+                        <h2 class="mb-0" id="totalRecords">-</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card stat-card h-100 shadow-sm border-success">
+                    <div class="card-body">
+                        <h5 class="card-title text-success">平均处理时间</h5>
+                        <h2 class="mb-0" id="avgTime">-</h2>
+                        <small class="text-muted">秒</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card stat-card h-100 shadow-sm border-danger">
+                    <div class="card-body">
+                        <h5 class="card-title text-danger">最长处理时间</h5>
+                        <h2 class="mb-0" id="maxTime">-</h2>
+                        <small class="text-muted">秒</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card stat-card h-100 shadow-sm border-info">
+                    <div class="card-body">
+                        <h5 class="card-title text-info">客户端数量</h5>
+                        <h2 class="mb-0" id="clientCount">-</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 客户端过滤器 -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-body client-filter">
+                <h5 class="mb-3">筛选客户端</h5>
+                <div id="clientButtons" class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-primary btn-sm" data-client="all">所有客户端</button>
+                </div>
+            </div>
+        </div>
+        <!-- 图表 -->
+        <div class="row">
+            <div class="col-lg-12 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">处理时间分布</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" id="timeDistribution"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">客户端平均处理时间</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" id="clientAvgTime"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">处理时间趋势</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" id="timeTrend"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+{% block scripts %}
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
+    <script>
+    // 初始化变量
+    let allData = [];
+    let selectedClient = 'all';
+    let charts = {};
+    
+    // 初始化图表
+    function initCharts() {
+        charts.timeDistribution = echarts.init(document.getElementById('timeDistribution'));
+        charts.clientAvgTime = echarts.init(document.getElementById('clientAvgTime'));
+        charts.timeTrend = echarts.init(document.getElementById('timeTrend'));
+        
+        // 监听窗口大小变化，重新调整图表大小
+        window.addEventListener('resize', function() {
+            for (let key in charts) {
+                charts[key].resize();
+            }
+        });
+    }
+    
+    // 获取数据
+    async function fetchData() {
+        try {
+            const response = await fetch('/performance/api/usage_times');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const result = await response.json();
+            
+            if (result.success && result.data) {
+                // 过滤掉不完整的数据
+                allData = result.data.filter(item => 
+                    item.client_id && item.usage_time && typeof item.usage_time === 'number'
+                );
+                
+                // 更新UI
+                updateClientFilter();
+                updateStatistics();
+                updateCharts();
+            } else {
+                console.error('Data error:', result.error || '未知错误');
+                showError('无法加载数据: ' + (result.error || '未知错误'));
+            }
+        } catch (error) {
+            console.error('Fetch error:', error);
+            showError('获取数据失败: ' + error.message);
+        }
+    }
+    
+    // 更新客户端过滤按钮
+    function updateClientFilter() {
+        const clientsSet = new Set();
+        allData.forEach(item => {
+            if (item.client_id) {
+                clientsSet.add(item.client_id);
+            }
+        });
+        
+        const clients = Array.from(clientsSet).sort();
+        const container = document.getElementById('clientButtons');
+        
+        // 清除现有按钮（保留"所有客户端"按钮）
+        while (container.children.length > 1) {
+            container.removeChild(container.lastChild);
+        }
+        
+        // 添加每个客户端的按钮
+        clients.forEach(client => {
+            const button = document.createElement('button');
+            button.className = `btn ${selectedClient === client ? 'btn-secondary' : 'btn-outline-secondary'} btn-sm`;
+            button.textContent = client;
+            button.dataset.client = client;
+            container.appendChild(button);
+        });
+        
+        // 更新"所有客户端"按钮状态
+        container.children[0].className = `btn ${selectedClient === 'all' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`;
+        
+        // 添加点击事件
+        container.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                selectedClient = this.dataset.client;
+                
+                // 更新按钮样式
+                container.querySelectorAll('button').forEach(b => {
+                    if (b.dataset.client === 'all') {
+                        b.className = `btn ${selectedClient === 'all' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`;
+                    } else {
+                        b.className = `btn ${selectedClient === b.dataset.client ? 'btn-secondary' : 'btn-outline-secondary'} btn-sm`;
+                    }
+                });
+                
+                // 更新统计和图表
+                updateStatistics();
+                updateCharts();
+            });
+        });
+    }
+    
+    // 更新统计数据
+    function updateStatistics() {
+        // 过滤数据
+        const filteredData = selectedClient === 'all' 
+            ? allData 
+            : allData.filter(item => item.client_id === selectedClient);
+        
+        // 计算统计数据
+        const totalRecords = filteredData.length;
+        const usageTimes = filteredData.map(item => item.usage_time);
+        const avgTime = usageTimes.length > 0 
+            ? (usageTimes.reduce((sum, time) => sum + time, 0) / usageTimes.length).toFixed(3) 
+            : 0;
+        const maxTime = usageTimes.length > 0 
+            ? Math.max(...usageTimes).toFixed(3) 
+            : 0;
+        
+        // 计算客户端数量
+        const clientsSet = new Set();
+        filteredData.forEach(item => clientsSet.add(item.client_id));
+        const clientCount = clientsSet.size;
+        
+        // 更新UI
+        document.getElementById('totalRecords').textContent = totalRecords;
+        document.getElementById('avgTime').textContent = avgTime;
+        document.getElementById('maxTime').textContent = maxTime;
+        document.getElementById('clientCount').textContent = clientCount;
+    }
+    
+    // 更新所有图表
+    function updateCharts() {
+        // 过滤数据
+        const filteredData = selectedClient === 'all' 
+            ? allData 
+            : allData.filter(item => item.client_id === selectedClient);
+        
+        updateTimeDistributionChart(filteredData);
+        updateClientAvgTimeChart(allData, selectedClient);
+        updateTimeTrendChart(filteredData);
+    }
+    
+    // 更新时间分布图表
+    function updateTimeDistributionChart(data) {
+        // 将处理时间分组到区间
+        const times = data.map(item => item.usage_time);
+        const max = Math.max(...times);
+        const min = Math.min(...times);
+        const range = max - min;
+        const bucketCount = Math.min(20, Math.ceil(data.length / 5)); // 最多20个桶
+        const bucketSize = range / bucketCount;
+        
+        const buckets = Array(bucketCount).fill(0);
+        times.forEach(time => {
+            const bucketIndex = Math.min(
+                bucketCount - 1,
+                Math.floor((time - min) / bucketSize)
+            );
+            buckets[bucketIndex]++;
+        });
+        
+        // 生成区间标签
+        const labels = Array(bucketCount).fill(0).map((_, i) => {
+            const start = (min + i * bucketSize).toFixed(2);
+            const end = (min + (i + 1) * bucketSize).toFixed(2);
+            return `${start}-${end}s`;
+        });
+        
+        // 设置图表选项
+        const option = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            xAxis: [{
+                type: 'category',
+                data: labels,
+                axisLabel: {
+                    rotate: 45,
+                    interval: Math.ceil(bucketCount / 10)
+                }
+            }],
+            yAxis: [{
+                type: 'value',
+                name: '记录数'
+            }],
+            series: [{
+                name: '处理时间',
+                type: 'bar',
+                data: buckets,
+                itemStyle: {
+                    color: '#5470c6'
+                }
+            }]
+        };
+        
+        charts.timeDistribution.setOption(option);
+    }
+    
+    // 更新客户端平均时间图表
+    function updateClientAvgTimeChart(data, selectedClient) {
+        // 按客户端分组并计算平均处理时间
+        const clientStats = {};
+        data.forEach(item => {
+            if (!clientStats[item.client_id]) {
+                clientStats[item.client_id] = {
+                    sum: 0,
+                    count: 0
+                };
+            }
+            clientStats[item.client_id].sum += item.usage_time;
+            clientStats[item.client_id].count++;
+        });
+        
+        // 计算每个客户端的平均处理时间
+        const clients = [];
+        const avgTimes = [];
+        
+        for (let client in clientStats) {
+            clients.push(client);
+            avgTimes.push((clientStats[client].sum / clientStats[client].count).toFixed(3));
+        }
+        
+        // 设置图表选项
+        const option = {
+            tooltip: {
+                trigger: 'axis',
+                formatter: '{b}: {c}秒'
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                data: clients
+            },
+            yAxis: {
+                type: 'value',
+                name: '平均处理时间(秒)'
+            },
+            series: [{
+                data: avgTimes,
+                type: 'bar',
+                itemStyle: {
+                    color: function(params) {
+                        return params.name === selectedClient ? '#c23531' : '#91cc75';
+                    }
+                }
+            }]
+        };
+        
+        charts.clientAvgTime.setOption(option);
+    }
+    
+    // 更新时间趋势图表
+    function updateTimeTrendChart(data) {
+        // 排序数据（按开始时间）
+        const sortedData = [...data].sort((a, b) => a.start_time - b.start_time);
+        
+        // 提取数据点
+        const timestamps = sortedData.map(item => new Date(item.start_time * 1000).toLocaleTimeString());
+        const times = sortedData.map(item => item.usage_time);
+        
+        // 创建移动平均线
+        const windowSize = Math.min(10, Math.ceil(sortedData.length / 5));
+        const movingAvg = [];
+        
+        for (let i = 0; i < times.length; i++) {
+            if (i < windowSize - 1) {
+                movingAvg.push(null);
+            } else {
+                let sum = 0;
+                for (let j = 0; j < windowSize; j++) {
+                    sum += times[i - j];
+                }
+                movingAvg.push((sum / windowSize).toFixed(3));
+            }
+        }
+        
+        // 设置图表选项
+        const option = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'cross'
+                }
+            },
+            legend: {
+                data: ['处理时间', '移动平均']
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                data: timestamps,
+                axisLabel: {
+                    rotate: 45,
+                    interval: Math.ceil(timestamps.length / 10)
+                }
+            },
+            yAxis: {
+                type: 'value',
+                name: '处理时间(秒)'
+            },
+            series: [
+                {
+                    name: '处理时间',
+                    type: 'scatter',
+                    data: times,
+                    symbolSize: 8,
+                    itemStyle: {
+                        color: '#5470c6'
+                    }
+                },
+                {
+                    name: '移动平均',
+                    type: 'line',
+                    data: movingAvg,
+                    smooth: true,
+                    lineStyle: {
+                        width: 2
+                    },
+                    itemStyle: {
+                        color: '#91cc75'
+                    }
+                }
+            ]
+        };
+        
+        charts.timeTrend.setOption(option);
+    }
+    
+    // 显示错误消息
+    function showError(message) {
+        alert(`错误: ${message}`);
+    }
+    
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        initCharts();
+        fetchData();
+        
+        // 刷新按钮事件
+        document.getElementById('refreshBtn').addEventListener('click', fetchData);
+    });
+    </script>
+{% endblock scripts %}

@@ -77,3 +77,56 @@ def battle_history():
         total_pages=total_pages,
         total_battles=total,
     )
+
+
+# 在 blueprints/profile.py 中添加以下路由
+
+
+@profile_bp.route("/user/<string:user_id>")
+def user_profile(user_id):
+    """显示指定用户的公开资料页面"""
+    # 获取目标用户
+    user = User.query.get_or_404(user_id)
+
+    # 获取游戏统计数据
+    game_stats = get_game_stats_by_user_id(user.id)
+
+    # 权限状态判断
+    is_self = current_user.is_authenticated and current_user.id == user.id
+    is_admin = current_user.is_authenticated and current_user.is_admin
+
+    return render_template(
+        "profile/others_profile.html",
+        user=user,
+        game_stats=game_stats,
+        is_self=is_self,
+        is_admin=is_admin,
+    )
+
+
+@profile_bp.route("/battle-history/<string:user_id>")
+def public_battle_history(user_id):
+    """查看指定用户的公开对战记录"""
+    # 获取目标用户
+    user = User.query.get_or_404(user_id)
+
+    # 分页参数
+    page = request.args.get("page", 1, type=int)
+    per_page = 10
+
+    # 获取对战记录
+    battles, total = db_get_user_battle_history(
+        user_id=user.id, page=page, per_page=per_page
+    )
+
+    # 计算总页数
+    total_pages = (total + per_page - 1) // per_page
+
+    return render_template(
+        "profile/public_battle_history.html",
+        user=user,
+        battles=battles,
+        current_page=page,
+        total_pages=total_pages,
+        total_battles=total,
+    )

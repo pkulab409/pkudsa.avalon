@@ -101,7 +101,7 @@
                 <table class="user-table">
                     <thead>
                         <tr>
-                            <th>用户名</th>
+                            <th>用户名(根据字母排序)</th>
                             <th>用户ID</th>
                             <th>ELO分数</th>
                             <th>管理员</th>
@@ -125,6 +125,51 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                <!-- 在用户表格下方添加分页导航 -->
+                <div class="pagination-container">
+                    <nav aria-label="用户分页">
+                        <ul class="pagination">
+                            {% if users.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       href="{{ url_for('admin.admin_dashboard', page=users.prev_num) }}">上一页</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">上一页</span>
+                                </li>
+                            {% endif %}
+                            {% for page_num in users.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                                {% if page_num %}
+                                    <li class="page-item {% if page_num == users.page %}active{% endif %}">
+                                        <a class="page-link"
+                                           href="{{ url_for('admin.admin_dashboard', page=page_num) }}">
+                                            {{ page_num }}
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            {% if users.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       href="{{ url_for('admin.admin_dashboard', page=users.next_num) }}">下一页</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">下一页</span>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    <div class="pagination-info">
+                        第 {{ current_page }} 页 / 共 {{ total_pages }} 页
+                        （总用户数：{{ users.total }}）
+                    </div>
+                </div>
             </div>
             <!-- 系统工具 -->
             <div class="admin-section">

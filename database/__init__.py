@@ -9,6 +9,8 @@ from .base import db, login_manager
 # 从 models.py 导出所有模型类
 from .models import User, AICode, GameStats, Battle, BattlePlayer
 
+from flask import current_app
+
 
 # 定义数据库初始化函数
 def initialize_database(app):
@@ -59,6 +61,12 @@ from .action import (
     # 其他可能需要的函数...
     mark_battle_as_cancelled,
     handle_cancelled_battle_stats,
+    get_battles_paginated_filtered,
+    get_available_ai_instances,
+    update_battle_player_count,
+    add_player_to_battle,
+    create_battle_instance,
+    load_initial_users_from_config,
 )
 
 
@@ -114,4 +122,8 @@ __all__ = [
     "get_recent_battles",
     "get_battle_player_by_id",
     "update_battle_player",
+    "get_available_ai_instances",
+    "update_battle_player_count",
+    "add_player_to_battle",
+    "create_battle_instance",
 ]

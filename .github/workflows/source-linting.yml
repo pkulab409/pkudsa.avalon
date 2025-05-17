@@ -27,4 +27,4 @@ jobs:
         run: black --check .
 
       - name: Run djlint (check only)
-        run: djlint --check --quiet .
+        run: djlint --check --quiet --profile=jinja . 

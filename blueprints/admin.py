@@ -363,14 +363,25 @@ def get_users():
         abort(500, description="获取用户列表失败")
 
 
-# 修改 admin_dashboard 路由的查询逻辑
 @admin_bp.route("/admin/dashboard")
 @login_required
 @admin_required
 def admin_dashboard():
-    # 原代码：users = User.query.options(joinedload(User.game_stats_entries)).limit(10).all()
-    users = User.query.limit(10).all()  # 移除了 joinedload
-    return render_template("admin/dashboard.html", users=users)
+    # 新增分页参数处理
+    page = request.args.get("page", 1, type=int)
+    per_page = 10  # 每页显示15个用户
+
+    # 修改查询方式为分页查询
+    users_pagination = User.query.order_by(User.username.asc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+
+    return render_template(
+        "admin/dashboard.html",
+        users=users_pagination,
+        current_page=page,
+        total_pages=users_pagination.pages,
+    )
 
 
 @admin_bp.route("/admin/search_user", methods=["GET"])

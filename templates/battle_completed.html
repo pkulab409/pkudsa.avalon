@@ -1,3 +1,58 @@
+{% macro translate_error(msg) %}
+    {# 第一步：基础错误信息翻译 #}
+    {% set translated = msg
+            | replace("Critical Error:", "严重错误：")
+            | replace("Error executing", "执行错误")
+            | replace("Returned non-bool public vote", "返回了非布尔类型投票值")
+            | replace("<class 'NoneType'>", "空值类型")
+            | replace("Game suspended", "游戏已暂停")
+            | replace("player_return_url.ErrorBox:", "玩家返回参数错误：")
+            | replace("Error:", "错误：")
+            | replace("File not found:", "文件未找到：")
+            | replace("JSONDecodeError", "JSON解析错误")
+            | replace("Invalid JSON format", "无效的JSON格式")
+            | replace("GameStart event missing", "缺少游戏开始事件")
+            | replace("Battle ID mismatch", "对战ID不匹配")
+            | replace("Player action timeout", "玩家操作超时")
+            | replace("AI response invalid", "AI响应无效")
+            | replace("Database connection failed", "数据库连接失败")
+            | replace("Mission selection error", "任务选择错误")
+            | replace("Vote validation failed", "投票验证失败")
+            | replace("Role assignment conflict", "角色分配冲突")
+            | replace("Invalid move coordinates", "移动坐标无效")
+            | replace("Speech content too long", "发言内容过长")
+            | replace("Round data corrupted", "回合数据损坏")
+            | replace("Replay unavailable", "回放不可用")
+            | replace("checksum mismatch", "校验和不匹配")
+            | replace("Failed to load", "加载失败")
+            | replace("method", "方法")
+            | replace("argument", "参数")
+            | replace("expected", "应为")
+            | replace("got", "实际收到")
+            | replace("TypeError", "类型错误")
+            | replace("ValueError", "数值错误")
+            | replace("KeyError", "键值错误")
+            | replace("AttributeError", "属性错误")
+            | replace("IndexError", "索引错误")
+            | replace("Permission denied", "权限不足")
+            | replace("Connection error", "连接错误")
+        | replace("SyntaxError", "语法错误") %}
+    {# 第二步：使用split+join处理特殊保留格式 #}
+    {% set temp = translated.split() %}
+    {% for part in temp %}
+        {% if part.startswith('mission_') %}
+            {{ part }} {# 保留任务方法名 #}
+        {% elif part.startswith('vote') and part[4:].isdigit() %}
+            {{ part }} {# 保留投票编号 #}
+        {% elif part.startswith('Player') and part[6:].isdigit() %}
+            玩家{{ part[6:] }} {# 转换玩家编号 #}
+        {% elif part.startswith('PID') and part[3:].isdigit() %}
+            进程{{ part[3:] }} {# 转换进程号 #}
+        {% else %}
+            {{ part }} {# 其他内容直接输出 #}
+        {% endif %}
+    {% endfor %}
+{% endmacro %}
 {% extends "base.html" %}
 {% block title %}
     对战结果 - {{ battle.id[:8] }}...
@@ -95,13 +150,15 @@
                                             {% set role = "未知" %}
                                         {% endif %}
                                         <tr>
+                                            <!-- 修改位置：超链接，链接他人主页 -->
                                             <td>
                                                 {% if player.user %}
-                                                    <a href="{{ url_for('profile.profile', username=player.user.username) }}">{{ player.user.username }}</a>
+                                                    <a href=" {% if current_user.is_authenticated and player.user.id == current_user.id %} {{ url_for('profile.profile', username=player.user.username) }} {% else %} {{ url_for('profile.user_profile', user_id=player.user.id) }} {% endif %} "
+                                                       class="text-decoration-none">{{ player.user.username }}</a>
                                                 {% else %}
-                                                    未知玩家
+                                                    <span class="text-muted">未知玩家</span>
                                                 {% endif %}
-                                                ({{ i + 1 }}号)
+                                                <span class="text-secondary">({{ i + 1 }}号)</span>
                                             </td>
                                             <td>
                                                 {% if role == "Merlin" %}
@@ -165,6 +222,7 @@
                             <i class="bi bi-download me-1"></i> 下载私有库
                         </a>
                     </div>
+                    <!-- 应用中文化 -->
                 {% elif battle.status == 'error' %}
                     <div class="alert alert-danger" role="alert">
                         <h5 class="alert-heading">
@@ -173,16 +231,15 @@
                         <p>对战未能正常完成。</p>
                         {% if game_result and game_result.error %}
                             <p>
-                                <strong>错误信息:</strong> {{ game_result.error }}
+                                <strong>错误信息:</strong> {{ translate_error(game_result.error) }}
                             </p>
                         {% endif %}
-                        <!-- 显示错误详情 -->
                         {% if error_info %}
                             <p>
-                                玩家 {{ error_info.get("error_user_id") }} （{{ error_info.get("error_pid_in_game") }} 号）在执行 &nbsp;<code>{{ error_info.get("error_code_method") }}</code>&nbsp;&nbsp;时发生错误 {{ error_info.get("error_type") }} ：
+                                玩家 {{ error_info.get("error_user_id") }} （{{ error_info.get("error_pid_in_game") }} 号）在执行 &nbsp;<code>{{ translate_error(error_info.get("error_code_method") ) }}</code>&nbsp;&nbsp;时发生 {{ translate_error(error_info.get("error_type") ) }}：
                             </p>
                             <p>
-                                <code>{{ error_info.get("error_msg") }}</code>
+                                <code>{{ translate_error(error_info.get("error_msg") ) }}</code>
                             </p>
                             <p class="small">0 号表示裁判</p>
                         {% endif %}
@@ -299,7 +356,7 @@
             <p class="text-muted">暂无详细对战结果信息。</p>
         {% endif %}
         <hr>
-        <a href="{{ url_for("game.lobby") }}" class="btn btn-outline-secondary">返回大厅</a>
+        <a href="{{ url_for('game.lobby') }}" class="btn btn-outline-secondary">返回大厅</a>
     </div>
 </div>
 </div>
