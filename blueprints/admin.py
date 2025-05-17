@@ -258,48 +258,122 @@ def delete_game(game_id):
 
 # Helper function for start/stop actions
 def _handle_match_operation(get_automatch_func, ranking_id_iterator, operation_method_name, success_verb, failure_detail_verb):
+    """
+    处理多个榜单的自动对战操作
+    
+    参数:
+        get_automatch_func: 获取AutoMatchManager实例的函数
+        ranking_id_iterator: 包含多个榜单ID的迭代器
+        operation_method_name: 要调用的方法名，如'start_automatch_for_ranking'
+        success_verb: 成功信息动词
+        failure_detail_verb: 失败信息动词
+    
+    返回:
+        JSON响应和HTTP状态码
+    """
     automatch = get_automatch_func()
-    for ranking_id in ranking_id_iterator:
-        method_to_call = getattr(automatch, operation_method_name)
-        if method_to_call(ranking_id):
-            return (
-                jsonify(
-                    {
-                        "status": "success",
-                        "message": f"后台自动对战 (Ranking ID: {ranking_id}) {success_verb}",
-                    }
-                ),
-                200,
-            )
-        else:
-            return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "message": f"后台自动对战 (Ranking ID: {ranking_id}) {failure_detail_verb}",
-                    }
-                ),
-                500,
-            )
-    # Fallback if the iterator was empty (e.g., due to misconfiguration or empty range)
-    return jsonify({"status": "error", "message": "没有有效的 Ranking ID 进行操作。"}), 400
+    results = {}
+    success_count = 0
+    failure_count = 0
+    
+    # 将迭代器转换为列表，以便记录处理的总数
+    ranking_ids = list(ranking_id_iterator)
+    if not ranking_ids:
+        return jsonify({"status": "error", "message": "没有有效的 Ranking ID 进行操作。"}), 400
+    
+    # 处理每个榜单ID
+    for ranking_id in ranking_ids:
+        try:
+            method_to_call = getattr(automatch, operation_method_name)
+            if method_to_call(ranking_id):
+                success_count += 1
+                results[ranking_id] = "success"
+                logging.info(f"榜单 {ranking_id} {success_verb}")
+            else:
+                failure_count += 1
+                results[ranking_id] = "failure"
+                logging.warning(f"榜单 {ranking_id} {failure_detail_verb}")
+        except Exception as e:
+            failure_count += 1
+            results[ranking_id] = str(e)
+            logging.error(f"处理榜单 {ranking_id} 时出错: {str(e)}")
+    
+    # 根据处理结果返回适当的响应
+    total = len(ranking_ids)
+    if success_count == total:
+        return (
+            jsonify({
+                "status": "success",
+                "message": f"所有榜单 ({success_count}/{total}) {success_verb}",
+                "details": results
+            }),
+            200,
+        )
+    elif success_count > 0:
+        return (
+            jsonify({
+                "status": "partial_success",
+                "message": f"{success_count}/{total}个榜单{success_verb}，{failure_count}个榜单失败",
+                "details": results
+            }),
+            207,  # Multi-Status
+        )
+    else:
+        return (
+            jsonify({
+                "status": "error",
+                "message": f"所有榜单 (0/{total}) 操作失败",
+                "details": results
+            }),
+            500,
+        )
 
 # Helper function for terminate action (slightly different success message and no failure branch from method call)
 def _handle_terminate_operation(get_automatch_func, ranking_id_iterator):
+    """
+    处理多个榜单的终止操作
+    
+    参数:
+        get_automatch_func: 获取AutoMatchManager实例的函数
+        ranking_id_iterator: 包含多个榜单ID的迭代器
+    
+    返回:
+        JSON响应和HTTP状态码
+    """
     automatch = get_automatch_func()
-    for ranking_id in ranking_id_iterator: # Still processes only the first due to return
-        automatch.terminate_ranking_instance(ranking_id)
-        return (
-            jsonify(
-                {
-                    "status": "success",
-                    "message": "后台自动对战已终止并重置", # Original message is generic
-                }
-            ),
-            200,
-        )
-    # Fallback if the iterator was empty
-    return jsonify({"status": "error", "message": "没有有效的 Ranking ID 进行操作。"}), 400
+    results = {}
+    success_count = 0
+    
+    # 将迭代器转换为列表
+    ranking_ids = list(ranking_id_iterator)
+    if not ranking_ids:
+        return jsonify({"status": "error", "message": "没有有效的 Ranking ID 进行操作。"}), 400
+    
+    # 处理每个榜单ID
+    for ranking_id in ranking_ids:
+        try:
+            # terminate_ranking_instance方法即使失败也不会抛出异常，只会返回False
+            if automatch.terminate_ranking_instance(ranking_id):
+                success_count += 1
+                results[ranking_id] = "terminated"
+                logging.info(f"榜单 {ranking_id} 已终止")
+            else:
+                results[ranking_id] = "not_found_or_not_running"
+                logging.warning(f"榜单 {ranking_id} 未找到或未运行")
+        except Exception as e:
+            results[ranking_id] = str(e)
+            logging.error(f"终止榜单 {ranking_id} 时出错: {str(e)}")
+    
+    # 返回总结果
+    total = len(ranking_ids)
+    return (
+        jsonify({
+            "status": "success" if success_count > 0 else "no_action",
+            "message": f"已终止 {success_count}/{total} 个榜单的自动对战",
+            "details": results
+        }),
+        200,
+    )
 
 @admin_bp.route("/admin/start_auto_test_match", methods=["POST"])
 @admin_required
@@ -365,14 +439,32 @@ def terminate_auto_primary_match():
 @admin_bp.route("/admin/start_auto_semi_match", methods=["POST"])
 @admin_required
 def start_auto_semi_match():
-    # Corrected range logic for SEMI_PARTITION
-    # Assumes SEMI_PARTITION is the count of partitions starting from SEMI_RANKING_START_ID
+    from database.promotion import promote_from_multiple_rankings
+    
+    # 1. 从榜单1-6的前50%晋级到榜单11
+    primary_ids = list(range(PRIMARY_RANKING_START_ID, PRIMARY_RANKING_START_ID + PRIMARY_PARTITION))
+    target_ranking_id = SEMI_RANKING_START_ID  # 榜单11
+    
+    # 执行晋级操作
+    promotion_result = promote_from_multiple_rankings(primary_ids, target_ranking_id, percentage=0.5)
+    
+    # 记录晋级结果
+    total_promoted = promotion_result['summary']['success']
+    logging.info(f"从初选赛榜单晋级到半决赛榜单: 成功晋级 {total_promoted} 名选手")
+    
+    for ranking_id, result in promotion_result['details'].items():
+        logging.info(f"榜单 {ranking_id} 晋级结果: 成功 {result['success']}/{result['total']}")
+        if result['errors']:
+            for error in result['errors']:
+                logging.warning(f"榜单 {ranking_id} 晋级错误: {error}")
+    
+    # 2. 启动半决赛榜单的自动对战
     semi_ids = range(SEMI_RANKING_START_ID, SEMI_RANKING_START_ID + SEMI_PARTITION)
     return _handle_match_operation(
         get_automatch,
         semi_ids,
         "start_automatch_for_ranking",
-        "已启动",
+        "已启动（已完成选手晋级）",
         "已在运行。",
     )
 
@@ -397,12 +489,32 @@ def terminate_auto_semi_match():
 @admin_bp.route("/admin/start_auto_final_match", methods=["POST"])
 @admin_required
 def start_auto_final_match():
+    from database.promotion import promote_from_multiple_rankings
+    
+    # 1. 从半决赛榜单(11)的前50%晋级到决赛榜单(21)
+    semi_ids = list(range(SEMI_RANKING_START_ID, SEMI_RANKING_START_ID + SEMI_PARTITION))
+    target_ranking_id = FINAL_RANKING_START_ID  # 榜单21
+    
+    # 执行晋级操作
+    promotion_result = promote_from_multiple_rankings(semi_ids, target_ranking_id, percentage=0.5)
+    
+    # 记录晋级结果
+    total_promoted = promotion_result['summary']['success']
+    logging.info(f"从半决赛榜单晋级到决赛榜单: 成功晋级 {total_promoted} 名选手")
+    
+    for ranking_id, result in promotion_result['details'].items():
+        logging.info(f"榜单 {ranking_id} 晋级结果: 成功 {result['success']}/{result['total']}")
+        if result['errors']:
+            for error in result['errors']:
+                logging.warning(f"榜单 {ranking_id} 晋级错误: {error}")
+    
+    # 2. 启动决赛榜单的自动对战
     final_ids = range(FINAL_RANKING_START_ID, FINAL_RANKING_START_ID + FINAL_PARTITION)
     return _handle_match_operation(
         get_automatch,
         final_ids,
         "start_automatch_for_ranking",
-        "已启动",
+        "已启动（已完成选手晋级）",
         "已在运行。",
     )
 
@@ -537,3 +649,31 @@ def search_user():
     except Exception as e:
         logging.error(f"搜索用户失败: {str(e)}")
         abort(500, description="搜索用户失败")
+
+
+# 启动指定ranking_id范围的榜单，当前未被使用
+@admin_bp.route("/admin/start_rankings", methods=["POST"])
+@login_required
+@admin_required
+def start_specific_rankings():
+    """启动指定ID范围的榜单"""
+    try:
+        data = request.get_json()
+        if not data or "ranking_ids" not in data:
+            abort(400, description="请求需要包含ranking_ids参数")
+        
+        ranking_ids = data.get("ranking_ids", [])
+        if not ranking_ids or not isinstance(ranking_ids, list):
+            return jsonify({"status": "error", "message": "ranking_ids必须是非空ID列表"}), 400
+        
+        # 调用通用处理函数
+        return _handle_match_operation(
+            get_automatch,
+            ranking_ids,  # 直接使用提供的ID列表
+            "start_automatch_for_ranking",
+            "已启动",
+            "启动失败",
+        )
+    except Exception as e:
+        logging.error(f"启动指定榜单失败: {str(e)}")
+        return jsonify({"status": "error", "message": f"启动失败: {str(e)}"}), 500

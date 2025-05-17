@@ -20,7 +20,7 @@ def initialize_database(app):
     # login_manager.init_app(app)
 
 
-# 从 action.py 导出所有需要外部使用的数据库操作函数
+# 从 action.py 和 promotion.py 导出所有需要外部使用的数据库操作函数
 from .action import (
     # 基础工具 (如果需要在外部使用)
     # safe_commit,
@@ -69,6 +69,13 @@ from .action import (
     add_player_to_battle,
     create_battle_instance,
     load_initial_users_from_config,
+)
+
+# 从 promotion.py 导出晋级相关函数
+from .promotion import (
+    get_top_players_from_ranking,
+    promote_players_to_ranking,
+    promote_from_multiple_rankings,
 )
 
 
@@ -130,4 +137,8 @@ __all__ = [
     "update_battle_player_count",
     "add_player_to_battle",
     "create_battle_instance",
+    # 晋级相关函数
+    "get_top_players_from_ranking",
+    "promote_players_to_ranking",
+    "promote_from_multiple_rankings",
 ]

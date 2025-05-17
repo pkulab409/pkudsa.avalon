@@ -17,6 +17,7 @@ import os
 
 import yaml
 from flask import current_app
+import threading, time
 
 # 准备好后面一千多行的冲击吧！
 MAX_TOKEN_ALLOWED = 3000
@@ -262,6 +263,11 @@ def get_active_ai_codes_by_ranking_ids(ranking_ids: list[int] = None) -> list[AI
     """
     获取指定 ranking_id 列表中的用户的激活 AI 代码。
     如果 ranking_ids 为 None 或为空列表，则获取所有用户的激活 AI 代码。
+    
+    改进版本：
+    1. 为每个不同的ranking_ids组合使用单独的锁和缓存
+    2. 增强了错误处理和重试逻辑
+    3. 添加了更多的日志记录支持
 
     参数:
         ranking_ids (list[int], optional): 一个可选的整数列表，指定要筛选的 ranking_id。
@@ -269,66 +275,111 @@ def get_active_ai_codes_by_ranking_ids(ranking_ids: list[int] = None) -> list[AI
     返回:
         list[AICode]: 一个 AICode 对象的列表。
     """
+    # 标准化ranking_ids参数，确保它始终是一个list
+    if ranking_ids is None:
+        normalized_ranking_ids = []
+    else:
+        normalized_ranking_ids = sorted(list(set(ranking_ids)))  # 去重并排序
+
     try:
-        logger.info(f"Attempting to get active AI codes for ranking_ids: {ranking_ids}")
-
-        if ranking_ids and len(ranking_ids) > 0:
-            logger.debug(f"Filtering by ranking_ids: {ranking_ids}")
-            
-            # 步骤 1: 获取在指定 ranking_ids 中有 GameStats 的 user_id 列表
-            # 使用子查询的方式，通常更高效，因为它可以在数据库层面完成更多工作
-            users_in_rankings_subquery = (
-                db.session.query(GameStats.user_id)
-                .filter(GameStats.ranking_id.in_(ranking_ids))
-                .distinct()
-                .subquery()
-            )
-            
-            # 打印子查询将查找的 user_id (这一步需要执行子查询才能看到结果，所以更适合在数据库客户端测试子查询SQL)
-            # logger.debug(f"Subquery for user_ids: {str(users_in_rankings_subquery)}")
-
-            # 步骤 2: 筛选激活的 AI 代码，使其 user_id 在上述子查询结果中
-            # 并且 AICode 本身是 active 的
-            active_ai_query = AICode.query.join(
-                users_in_rankings_subquery,
-                AICode.user_id == users_in_rankings_subquery.c.user_id,
-            ).filter(AICode.is_active == True)
-            
-            # # --- 备选逻辑（你当前使用的） ---
-            # users_with_stats_in_rankings = User.query.join(User.game_stats_entries).filter(GameStats.ranking_id.in_(ranking_ids)).distinct().all() # 添加 distinct() 避免用户重复
-            # user_ids_in_rankings = [user.id for user in users_with_stats_in_rankings]
-            # logger.info(f"User IDs found with stats in specified rankings: {user_ids_in_rankings}")
-
-            # if not user_ids_in_rankings:
-            #     logger.info("No users found with game stats in the specified ranking IDs. Returning empty list.")
-            #     return []
-            
-            # active_ai_query = AICode.query.filter(
-            #     AICode.user_id.in_(user_ids_in_rankings), 
-            #     AICode.is_active == True
-            # )
-            # # --- 备选逻辑结束 ---
-
-        else:
-            logger.debug("No ranking_ids provided, fetching all active AI codes.")
-            # 如果 ranking_ids 为 None 或为空列表，则获取所有用户的激活 AI 代码
-            active_ai_query = AICode.query.filter_by(is_active=True)
+        # 1. 为不同的ranking_ids组合使用不同的缓存和锁
+        # 创建或获取全局字典来存储每个ranking_id组合的锁和缓存
+        locks_dict = getattr(get_active_ai_codes_by_ranking_ids, '_locks_dict', {})
+        if not locks_dict:
+            locks_dict = {}
+            setattr(get_active_ai_codes_by_ranking_ids, '_locks_dict', locks_dict)
         
-        # 打印将要执行的查询的SQL (可选，用于调试)
-        # from sqlalchemy.dialects import postgresql # 或其他你的数据库方言
-        # logger.debug(f"Final query SQL: {str(active_ai_query.statement.compile(dialect=postgresql.dialect()))}")
-
-        ai_codes_result = active_ai_query.all()
-        logger.info(
-            f"Found {len(ai_codes_result)} active AI codes (for ranking_ids: {ranking_ids if ranking_ids else 'all'})"
+        caches_dict = getattr(get_active_ai_codes_by_ranking_ids, '_caches_dict', {})
+        if not caches_dict:
+            caches_dict = {}
+            setattr(get_active_ai_codes_by_ranking_ids, '_caches_dict', caches_dict)
+        
+        # 创建唯一的键来标识这个ranking_ids组合
+        cache_key = tuple(normalized_ranking_ids)
+        
+        # 获取或创建这个键的锁
+        if cache_key not in locks_dict:
+            locks_dict[cache_key] = threading.RLock()
+        query_lock = locks_dict[cache_key]
+        
+        # 获取或创建这个键的缓存
+        if cache_key not in caches_dict:
+            caches_dict[cache_key] = {}
+        cache = caches_dict[cache_key]
+        
+        # 2. 尝试从缓存获取结果
+        current_time = time.time()
+        with query_lock:
+            if cache_key in cache:
+                cache_time, result = cache.get(cache_key)
+                if current_time - cache_time < 60:  # 缓存有效期1分钟
+                    logger.debug(f"Using cached result for ranking_ids: {normalized_ranking_ids}")
+                    return result
+        
+        # 3. 缓存未命中，需要查询数据库
+        logger.info(f"Cache miss for ranking_ids: {normalized_ranking_ids}, querying database")
+        
+        # 添加重试逻辑
+        max_retries = 3
+        retry_delay = 1
+        last_error = None
+        
+        for attempt in range(max_retries):
+            try:
+                # 使用带超时的锁来获取查询结果
+                with query_lock:
+                    # 查询数据库获取结果
+                    if normalized_ranking_ids:
+                        logger.debug(f"Filtering by ranking_ids: {normalized_ranking_ids}")
+                        
+                        # 使用子查询获取指定榜单中有GameStats的用户ID
+                        users_in_rankings_subquery = (
+                            db.session.query(GameStats.user_id)
+                            .filter(GameStats.ranking_id.in_(normalized_ranking_ids))
+                            .distinct()
+                            .subquery()
+                        )
+                        
+                        # 获取这些用户的激活AI代码
+                        active_ai_query = AICode.query.join(
+                            users_in_rankings_subquery,
+                            AICode.user_id == users_in_rankings_subquery.c.user_id,
+                        ).filter(AICode.is_active == True)
+                        
+                    else:
+                        logger.debug("No ranking_ids provided, fetching all active AI codes.")
+                        active_ai_query = AICode.query.filter_by(is_active=True)
+                    
+                    # 执行查询
+                    ai_codes_result = active_ai_query.all()
+                    
+                    # 更新缓存
+                    cache[cache_key] = (current_time, ai_codes_result)
+                    
+                    logger.info(
+                        f"Found {len(ai_codes_result)} active AI codes (for ranking_ids: {normalized_ranking_ids if normalized_ranking_ids else 'all'})"
+                    )
+                    return ai_codes_result
+                    
+            except Exception as e:
+                last_error = e
+                logger.warning(
+                    f"Attempt {attempt+1}/{max_retries} failed for ranking_ids {normalized_ranking_ids}: {e}"
+                )
+                if attempt < max_retries - 1:  # 如果不是最后一次尝试，则等待后重试
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # 指数退避
+        
+        # 所有重试都失败了
+        logger.error(
+            f"All {max_retries} attempts failed for ranking_ids {normalized_ranking_ids}: {last_error}",
+            exc_info=True
         )
-        # # 如果需要详细看结果，可以取消下面注释
-        # for code in ai_codes_result:
-        #     logger.debug(f"  - AICode ID: {code.id}, User ID: {code.user_id}, Name: {code.name}, IsActive: {code.is_active}")
-        return ai_codes_result
+        return []
+            
     except Exception as e:
         logger.error(
-            f"Error getting active AI codes for ranking_ids {ranking_ids}: {e}", exc_info=True
+            f"Error getting active AI codes for ranking_ids {normalized_ranking_ids}: {e}", exc_info=True
         )
         return []
 

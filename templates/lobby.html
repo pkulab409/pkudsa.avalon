@@ -182,9 +182,18 @@
             </a>
         </div>
         {% if automatch_is_on %}
-            <div class="info-box">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i> 后台自动对战正在进行中！
-            </div>
+        <div class="alert alert-info">
+        <h5>后台自动对战正在进行中</h5>
+        <ul>
+            {% for ranking in automatch_status.active_rankings %}
+            <li>
+            榜单 #{{ ranking.ranking_id }}: 
+            已进行 {{ ranking.battle_count }} 场对战 / 
+            当前参与者 {{ ranking.participants }} 人次
+            </li>
+            {% endfor %}
+        </ul>
+        </div>
         {% endif %}
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-light">

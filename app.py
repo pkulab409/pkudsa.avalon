@@ -10,7 +10,7 @@ import logging
 import os
 import shutil
 from utils.battle_manager_utils import init_battle_manager_utils
-from utils.automatch_utils import init_automatch_utils
+from utils.automatch_utils import init_automatch_utils, get_automatch
 
 from database.base import db, login_manager
 from database import initialize_database
@@ -245,8 +245,10 @@ def create_app(config_object=Config):
     # 初始化对战管理器
     init_battle_manager_utils(app)
 
-    # 初始化自动对战管理器
+    # 初始化AutoMatch工具，并确保重启时清理旧状态
     init_automatch_utils(app)
+    automatch = get_automatch()
+    automatch.terminate_all_and_clear()  # 确保应用启动时没有遗留的运行实例
 
     app.logger.info("Flask应用初始化完成")
     return app
