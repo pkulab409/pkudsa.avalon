@@ -196,6 +196,7 @@ def create_app(config_object=Config):
     from blueprints.visualizer import visualizer_bp
     from blueprints.docs import docs_bp
     from blueprints.admin import admin_bp
+    from blueprints.performance import performance_bp
 
     # 将蓝图注册到应用
     app.register_blueprint(main_bp)
@@ -209,6 +210,7 @@ def create_app(config_object=Config):
     app.register_blueprint(visualizer_bp, url_prefix="/visualizer")
     app.register_blueprint(docs_bp, url_prefix="/docs")
     app.register_blueprint(admin_bp)
+    app.register_blueprint(performance_bp, url_prefix="/performance")
 
     # 创建数据库表
     with app.app_context():
