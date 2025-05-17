@@ -174,10 +174,11 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-platform/data/
+data/
 nohup.out
 data/
-platform/uploads/
+uploads/
 platform.db
 uploads/
-platform/config/config.yaml
+config/config.yaml
+game/client_usage_times.json
