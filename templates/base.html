@@ -270,14 +270,14 @@
                             <a class="nav-link" href="{{ url_for('main.home') }}">
                                 <i class="bi bi-house-door me-1"></i>首页
                             </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link"
-                               href="{{ url_for('performance.performance_report_page') }}">
-                                <i class="bi bi-graph-up me-1"></i>性能分析
-                            </a>
-                        </li>
+                        </li>          
                         {% if current_user.is_authenticated %}
+                            <li class="nav-item">
+                                <a class="nav-link"
+                                   href="{{ url_for('performance.performance_report_page') }}">
+                                    <i class="bi bi-graph-up me-1"></i>性能分析
+                                </a>
+                            </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ url_for('game.lobby') }}">
                                     <i class="bi bi-controller me-1"></i>游戏大厅
