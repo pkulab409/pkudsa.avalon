@@ -1,11 +1,16 @@
 import heapq
 import threading
+import time
+import json
+import os
+import uuid
 from dataclasses import dataclass, field
 from typing import Dict, List, Any, Optional, Tuple
 import logging
+import atexit
+from collections import defaultdict
 from openai import OpenAI
 from dotenv import load_dotenv
-import os
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -65,6 +70,7 @@ class ClientManager:
         client: Any = field(default=None, compare=False)  # OpenAI客户端实例
         client_name: str = field(default="", compare=False)  # 客户端名称
         client_model_name: str = field(default="", compare=False)  # 客户端模型名称
+        # 不再需要在客户端项中存储时间
 
     def __new__(cls, *args, **kwargs):
         """实现单例模式"""
@@ -86,6 +92,20 @@ class ClientManager:
             logger.info("Initializing client manager")
             self._clients_heap = []  # 优先队列，存储可用的client
             self._clients_map = {}  # 所有client的字典，键为client_id
+
+            # 添加使用时间跟踪
+            self._usage_sessions = {}  # 使用会话字典，键为会话ID
+            self._client_sessions = defaultdict(list)  # 每个客户端对应的活跃会话列表
+            self._usage_time_log = []  # 使用时间记录
+            self._time_log_file = os.path.join(
+                os.path.dirname(__file__), "client_usage_times.json"
+            )
+            self._log_write_interval = 10  # 每10次释放操作写入一次文件
+            self._log_write_counter = 0
+
+            # 注册退出处理函数
+            atexit.register(self._write_logs_on_exit)
+
             self._initialized = True
 
             # 初始化client实例
@@ -243,12 +263,10 @@ class ClientManager:
     def get_client(self):
         """
         获取一个client实例
-        返回一个元组: (client_instance, client_id, client_model_name)，
-        client_id需要在释放时使用
+        返回一个元组: (client_instance, client_id, client_model_name)
         """
         with self._lock:
             if not self._clients_heap:
-                # 如果没有可用的client，则返回None
                 logger.error("No available OpenAI clients in pool")
                 return None, None, None
 
@@ -259,33 +277,92 @@ class ClientManager:
             client_item.active_count += 1
             client_item.total_count += 1
 
-            # 立刻将client_item放回优先队列，堆会根据更新后的active_count重新排序
+            # 创建会话ID并记录开始时间
+            session_id = str(uuid.uuid4())
+            start_time = time.time()
+
+            # 记录会话信息
+            self._usage_sessions[session_id] = {
+                "client_id": client_item.client_id,
+                "start_time": start_time,
+                "model": client_item.client_model_name,
+            }
+
+            # 添加到客户端活跃会话列表
+            self._client_sessions[client_item.client_id].append(session_id)
+
+            # 将client_item放回优先队列
             heapq.heappush(self._clients_heap, client_item)
 
             logger.info(
                 f"Retrieved client {client_item.client_id} (model: {client_item.client_model_name}). "
-                f"Active count: {client_item.active_count}, Total usage: {client_item.total_count}"
+                f"Active count: {client_item.active_count}, Total: {client_item.total_count}, "
+                f"Session: {session_id}"
             )
-            logger.debug(f"Available clients remaining: {len(self._clients_heap)}")
-            logger.debug(
-                f"Heap size after get_client: {len(self._clients_heap)}"
-            )  # 用于调试
-            # 注意: client_item仍保存在_clients_map中
+
+            # 将会话ID附加到client_id后返回，用于释放时识别
             return (
                 client_item.client,
-                client_item.client_id,
+                f"{client_item.client_id}:{session_id}",
                 client_item.client_model_name,
             )
 
-    def release_client(self, client_id):
+    def release_client(self, client_id_with_session):
         """释放一个client实例"""
         with self._lock:
+            # 解析client_id和session_id
+            try:
+                client_id, session_id = client_id_with_session.split(":", 1)
+            except ValueError:
+                # 兼容旧代码，可能没有session_id
+                client_id = client_id_with_session
+                session_id = None
+                logger.warning(
+                    f"Release called without session ID for client {client_id}"
+                )
+
             if client_id not in self._clients_map:
                 logger.warning(f"Attempting to release unknown client: {client_id}")
                 return
 
             # 获取client项
             client_item = self._clients_map[client_id]
+
+            # 处理使用时间记录
+            if session_id and session_id in self._usage_sessions:
+                # 计算使用时间
+                session_data = self._usage_sessions.pop(session_id)
+                end_time = time.time()
+                usage_time = end_time - session_data["start_time"]
+
+                # 从活跃会话列表中移除
+                if session_id in self._client_sessions[client_id]:
+                    self._client_sessions[client_id].remove(session_id)
+
+                # 记录使用时间
+                log_entry = {
+                    "client_id": client_id,
+                    "session_id": session_id,
+                    "model": session_data["model"],
+                    "start_time": session_data["start_time"],
+                    "end_time": end_time,
+                    "usage_time": usage_time,
+                }
+                self._usage_time_log.append(log_entry)
+
+                # 定期写入文件
+                self._log_write_counter += 1
+                if self._log_write_counter >= self._log_write_interval:
+                    self._write_logs_to_file()
+                    self._log_write_counter = 0
+
+                logger.info(
+                    f"Client {client_id} session {session_id} usage time: {usage_time:.4f} seconds"
+                )
+            else:
+                logger.warning(
+                    f"No session data found for client {client_id}, session {session_id}"
+                )
 
             # 记录释放前的状态
             previous_active_count = client_item.active_count
@@ -294,18 +371,69 @@ class ClientManager:
             if client_item.active_count > 0:
                 client_item.active_count -= 1
                 logger.info(
-                    f"Released client {client_id} (model: {client_item.client_model_name}). "
+                    f"Released client {client_id}. "
                     f"Active count reduced: {previous_active_count} -> {client_item.active_count}"
                 )
             else:
-                logger.warning(
-                    f"Client {client_id} already has zero active count. "
-                    f"Possible double-release or incorrect tracking"
+                logger.warning(f"Client {client_id} already has zero active count")
+
+    def _write_logs_to_file(self):
+        """将使用时间记录写入文件"""
+        try:
+            if not self._usage_time_log:
+                return
+
+            # 读取现有日志
+            existing_logs = []
+            if os.path.exists(self._time_log_file):
+                try:
+                    with open(self._time_log_file, "r") as f:
+                        existing_logs = json.load(f)
+                except (json.JSONDecodeError, FileNotFoundError):
+                    logger.warning(
+                        f"Could not read existing log file, creating new one"
+                    )
+                    existing_logs = []
+
+            # 添加新日志
+            existing_logs.extend(self._usage_time_log)
+
+            # 写入文件
+            with open(self._time_log_file, "w") as f:
+                json.dump(existing_logs, f, indent=2)
+
+            logger.debug(f"Wrote {len(self._usage_time_log)} log entries to file")
+
+            # 清空内存中的日志
+            self._usage_time_log = []
+
+        except Exception as e:
+            logger.error(f"Error writing usage time logs to file: {e}", exc_info=True)
+
+    def _write_logs_on_exit(self):
+        """在程序退出时写入剩余的日志"""
+        with self._lock:
+            # 处理所有未完成的会话
+            current_time = time.time()
+            for session_id, session_data in list(self._usage_sessions.items()):
+                # 为未完成的会话创建记录，标记为未完成
+                usage_time = current_time - session_data["start_time"]
+                self._usage_time_log.append(
+                    {
+                        "client_id": session_data["client_id"],
+                        "session_id": session_id,
+                        "model": session_data["model"],
+                        "start_time": session_data["start_time"],
+                        "end_time": current_time,
+                        "usage_time": usage_time,
+                        "completed": False,  # 标记为未完成的会话
+                    }
                 )
 
-            logger.debug(
-                f"Client {client_id} returned to available pool. Available count: {len(self._clients_heap)}"
-            )
+            # 写入所有日志
+            if self._usage_time_log:
+                self._write_logs_to_file()
+                logger.info(f"Wrote {len(self._usage_time_log)} remaining logs on exit")
 
     def get_client_stats(self):
         """获取所有client的统计信息"""

@@ -3,14 +3,113 @@
     对局重放 - {{ game_id }}
 {% endblock title %}
 {% block styles %}
+    <!-- 中世纪风格CSS -->
+    <link rel="stylesheet" href="../../static/css/medieval.css">
     {{ super() }}
     <style>
+    .navbar { /* 拯救背景 */ 
+        background: none !important; /* 取消预先设定的背景 */
+        background-image: url('../../static/images/wood-texture.jpg') !important;
+        background-size: cover !important;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+        position: relative;
+    }
+
+    /* 开场动画样式 */
+    .intro-animation {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #222222;
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 1;
+        transition: opacity 0.5s ease-out;
+    }
+
+    .intro-animation.fade-out {
+        opacity: 0;
+    }
+
+    .intro-content {
+        text-align: center;
+        color: #fff;
+    }
+
+    .intro-title {
+        font-size: 3rem;
+        color: #ffffff;
+        margin-bottom: 1rem;
+        opacity: 0;
+        transform: translateY(20px);
+        animation: fadeInUp 1s ease forwards;
+    }
+
+    .intro-subtitle {
+        font-size: 1.5rem;
+        opacity: 0;
+        transform: translateY(20px);
+        animation: fadeInUp 1s ease 0.5s forwards;
+    }
+
+    .loading-bar {
+        width: 200px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        margin: 2rem auto;
+        border-radius: 2px;
+        overflow: hidden;
+        opacity: 0;
+        animation: fadeIn 0.5s ease 1s forwards;
+    }
+
+    .loading-progress {
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, #4a90e2, #67b26f);
+        animation: loading 2s ease 1s forwards;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes loading {
+        from {
+            width: 0%;
+        }
+        to {
+            width: 100%;
+        }
+    }
+
     /* 聊天容器样式 */
     .chat-container {
       height: calc(100vh - 250px); /* Adjust height as needed */
       overflow-y: auto;
       padding: 1rem;
-      background-color: #f8f9fa;
+##       background-color: #f8f9fa;
       border-radius: 8px;
       border: 1px solid #dee2e6;
     }
@@ -30,14 +129,14 @@
       top: 50%;
       width: 100%;
       height: 1px;
-      background-color: #dee2e6;
+##       background-color: #dee2e6;
       z-index: 0;
     }
 
     .round-divider span {
       display: inline-block;
       padding: 5px 15px;
-      background-color: #fff; /* Background to overlay the line */
+##       background-color: #fff; /* Background to overlay the line */
       position: relative;
       z-index: 1;
       font-weight: bold;
@@ -60,14 +159,14 @@
 
     /* 蓝方消息 */
     .message-blue {
-      background-color: #cfe2ff;
+      background-color:rgb(190, 208, 235);
       border: 1px solid #9ec5fe;
       color: #052c65; /* Darker blue text */
     }
 
     /* 红方消息 */
     .message-red {
-      background-color: #f8d7da;
+      background-color:rgb(236, 207, 210);
       border: 1px solid #f5c2c7;
       color: #58151c; /* Darker red text */
     }
@@ -152,7 +251,7 @@
       grid-template-columns: repeat({{ map_size }}, 1fr);
       grid-template-rows: repeat({{ map_size }}, 1fr);
       gap: 1px; /* Smaller gap */
-      background-color: #e9ecef; /* Lighter background */
+##       background-color: #e9ecef; /* Lighter background */
       padding: 5px;
       border-radius: 4px;
       max-width: 100%;
@@ -162,8 +261,8 @@
 
     .map-cell {
       aspect-ratio: 1;
-      background-color: #fff;
-      /* border: 1px solid #ddd; */ /* Remove cell border for cleaner look */
+##       background-color: #fff;
+      border: 1px solid #ddd;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -186,8 +285,8 @@
       cursor: help; /* Indicate tooltip */
     }
 
-    .player-blue { background-color: #0d6efd; } /* Bootstrap blue */
-    .player-red { background-color: #dc3545; } /* Bootstrap red */
+    .player-blue { background-color: #4A6B8A; } /* Bootstrap blue */
+    .player-red { background-color: #8B0000; } /* Bootstrap red */
     .player-unknown { background-color: #6c757d; } /* Bootstrap secondary */
 
     /* 其他样式保持不变 */
@@ -217,9 +316,24 @@
       vertical-align: middle;
     }
 
+    h4, h5 {
+      color: #ffffff;
+      font-weight: bold;
+    }
+
     </style>
 {% endblock styles %}
 {% block content %}
+    <!-- 开场动画 -->
+    <div class="intro-animation" id="introAnimation">
+        <div class="intro-content">
+            <h1 class="intro-title">阿瓦隆</h1>
+            <p class="intro-subtitle">对局重放</p>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+        </div>
+    </div>
     <div class="container-fluid mt-3">
         {# Reduced top margin #}
         <div class="row">
@@ -276,7 +390,7 @@
                     </div>
                     <!-- 角色列表 -->
                     <div class="card shadow-sm mb-3">
-                        <div class="card-header bg-dark text-white py-2">
+                        <div class="card-header bg-primary text-white py-2">
                             <h5 class="mb-0 fs-6">角色列表 ({{ game_info.player_count }}人)</h5>
                         </div>
                         <div class="card-body p-0">
@@ -347,7 +461,7 @@
             <div class="col-lg-6 col-md-8">
                 {# Adjusted grid #}
                 <div class="card shadow-sm">
-                    <div class="card-header bg-secondary text-white py-2 d-flex justify-content-between align-items-center">
+                    <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
                         <h4 class="mb-0 fs-6">对局流程</h4>
                         <span class="badge bg-light text-dark" id="currentRoundBadge">初始状态</span>
                     </div>
@@ -386,7 +500,7 @@
                 <div class="sidebar">
                     <!-- 地图卡片 -->
                     <div class="card shadow-sm mb-3">
-                        <div class="card-header bg-success text-white py-2 d-flex justify-content-between align-items-center">
+                        <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
                             <h5 class="mb-0 fs-6">游戏地图</h5>
                             <span class="badge bg-light text-dark" id="mapCurrentRoundDisplay">初始状态</span>
                         </div>
