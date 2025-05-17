@@ -1,6 +1,6 @@
 import logging
 from flask import Flask  # 导入 Flask
-from game.automatch import AutoMatch
+from game.automatch import AutoMatchManager
 
 # 配置日志
 logger = logging.getLogger("AutoMatchUtils")
@@ -18,12 +18,12 @@ def init_automatch_utils(app: Flask):
     logger.info("AutoMatchUtils initialized with Flask app.")
 
 
-def get_automatch() -> AutoMatch:
+def get_automatch() -> AutoMatchManager:
     """获取自动对战管理器单例实例"""
     global _automatch
 
     if _automatch is None:
-        _automatch = AutoMatch(_app_ref)
-        logger.info("AutoMatch instance created.")
+        _automatch = AutoMatchManager(_app_ref)
+        logger.info("AutoMatchManager instance created.")
 
     return _automatch

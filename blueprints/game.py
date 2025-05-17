@@ -32,6 +32,9 @@ from database import (
     get_user_ai_codes as db_get_user_ai_codes,
     get_battles_paginated_filtered,
     get_available_ai_instances,
+    create_battle_instance,
+    add_player_to_battle,
+    get_recent_battles as db_get_recent_battles,
 )
 from database.models import Battle, BattlePlayer, User, AICode
 from utils.battle_manager_utils import get_battle_manager
@@ -90,10 +93,28 @@ def lobby():
     # Fetch all users for the datalist suggestion
     all_users = User.query.order_by(User.username).all()
 
+    # 获取更详细的automatch状态
+    automatch = get_automatch()
+    automatch_is_on = automatch.is_on()
+    automatch_status = {"is_on": automatch_is_on, "active_rankings": []}
+    # 如果正在运行，获取具体哪些榜单在运行
+    if automatch_is_on:
+        all_statuses = automatch.get_all_statuses()
+        for ranking_id, status in all_statuses.items():
+            if status["is_on"]:
+                automatch_status["active_rankings"].append(
+                    {
+                        "ranking_id": ranking_id,
+                        "battle_count": status["battle_count"],
+                        "participants": status["current_participants_count"],
+                    }
+                )
+
     return render_template(
         "lobby.html",
         battles_pagination=battles_pagination,
-        automatch_is_on=get_automatch().is_on,
+        automatch_is_on=automatch_is_on,  # Use the pre-computed value, not calling is_on again
+        automatch_status=automatch_status,
         all_users=all_users,
         current_filters={  # Pass current filters back to the template
             "status": status_filter,

@@ -160,7 +160,16 @@
                                     </div>
                                 {% endif %}
                             </div>
-                            <div class="mb-4">
+                            <div class="mb-3">
+                                <label for="partition" class="form-label">选择赛区</label>
+                                {{ form.partition(class="form-select") }}
+                                {% if form.partition.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.partition.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
                                 <label for="password" class="form-label">密码</label>
                                 {{ form.password(class="form-control", placeholder="请设置您的密码") }}
                                 {% if form.password.errors %}
@@ -178,8 +187,8 @@
                                     </div>
                                 {% endif %}
                             </div>
-                            <div class="d-grid gap-2 mt-4">
-                                <button type="submit" class="btn btn-primary btn-lg">注册</button>
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">注册</button>
                             </div>
                         </form>
                     </div>

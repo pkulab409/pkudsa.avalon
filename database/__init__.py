@@ -20,7 +20,7 @@ def initialize_database(app):
     # login_manager.init_app(app)
 
 
-# 从 action.py 导出所有需要外部使用的数据库操作函数
+# 从 action.py 和 promotion.py 导出所有需要外部使用的数据库操作函数
 from .action import (
     # 基础工具 (如果需要在外部使用)
     # safe_commit,
@@ -42,6 +42,7 @@ from .action import (
     delete_ai_code,
     set_active_ai_code,
     get_ai_code_path_full,
+    get_active_ai_codes_by_ranking_ids,
     # 游戏统计 (GameStats) 操作
     get_game_stats_by_user_id,
     create_game_stats,
@@ -49,6 +50,7 @@ from .action import (
     get_leaderboard,
     # 对战 (Battle) 及 对战参与者 (BattlePlayer) 操作
     create_battle,
+    create_battle_instance,
     get_battle_by_id,
     update_battle,
     delete_battle,
@@ -67,6 +69,13 @@ from .action import (
     add_player_to_battle,
     create_battle_instance,
     load_initial_users_from_config,
+)
+
+# 从 promotion.py 导出晋级相关函数
+from .promotion import (
+    get_top_players_from_ranking,
+    promote_players_to_ranking,
+    promote_from_multiple_rankings,
 )
 
 
@@ -106,6 +115,7 @@ __all__ = [
     "delete_ai_code",
     "set_active_ai_code",
     "get_ai_code_path_full",
+    "get_active_ai_codes_by_ranking_ids",
     # 统计操作
     "get_game_stats_by_user_id",
     "create_game_stats",
@@ -114,6 +124,7 @@ __all__ = [
     # 对战操作
     "create_battle",
     "get_battle_by_id",
+    "create_battle_instance",
     "update_battle",
     "delete_battle",
     "get_battle_players_for_battle",
@@ -126,4 +137,8 @@ __all__ = [
     "update_battle_player_count",
     "add_player_to_battle",
     "create_battle_instance",
+    # 晋级相关函数
+    "get_top_players_from_ranking",
+    "promote_players_to_ranking",
+    "promote_from_multiple_rankings",
 ]
