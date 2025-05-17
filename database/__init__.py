@@ -42,6 +42,7 @@ from .action import (
     delete_ai_code,
     set_active_ai_code,
     get_ai_code_path_full,
+    get_active_ai_codes_by_ranking_ids,
     # 游戏统计 (GameStats) 操作
     get_game_stats_by_user_id,
     create_game_stats,
@@ -107,6 +108,7 @@ __all__ = [
     "delete_ai_code",
     "set_active_ai_code",
     "get_ai_code_path_full",
+    "get_active_ai_codes_by_ranking_ids",
     # 统计操作
     "get_game_stats_by_user_id",
     "create_game_stats",

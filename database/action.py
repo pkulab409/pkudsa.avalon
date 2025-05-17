@@ -258,6 +258,54 @@ def get_user_index_in_battle(battle_id, user_id):
     return None
 
 
+def get_active_ai_codes_by_ranking_ids(ranking_ids: list[int] = None) -> list[AICode]:
+    """
+    获取指定 ranking_id 列表中的用户的激活 AI 代码。
+    如果 ranking_ids 为 None 或为空列表，则获取所有用户的激活 AI 代码。
+
+    参数:
+        ranking_ids (list[int], optional): 一个可选的整数列表，指定要筛选的 ranking_id。
+
+    返回:
+        list[AICode]: 一个 AICode 对象的列表。
+    """
+    try:
+        # 查询所有激活的 AI 代码
+        active_ai_query = AICode.query.filter_by(is_active=True)
+
+        if ranking_ids and len(ranking_ids) > 0:
+            # 如果指定了 ranking_ids，我们需要找到那些用户在这些榜单上有统计数据
+            # 1. 获取在指定 ranking_ids 中有 GameStats 的 user_id 列表
+            users_in_rankings_subquery = (
+                db.session.query(GameStats.user_id)
+                .filter(GameStats.ranking_id.in_(ranking_ids))
+                .distinct()
+                .subquery()
+            )
+            # 2. 筛选激活的 AI 代码，使其 user_id 在上述子查询结果中
+            active_ai_query = active_ai_query.join(
+                users_in_rankings_subquery,
+                AICode.user_id == users_in_rankings_subquery.c.user_id,
+            )
+            
+            # 或者，另一种方式是先获取用户，再获取他们的AI (可能更直观，但查询结构不同):
+            # users_with_stats_in_rankings = User.query.join(User.game_stats_entries)\
+            # .filter(GameStats.ranking_id.in_(ranking_ids)).all()
+            # user_ids_in_rankings = [user.id for user in users_with_stats_in_rankings]
+            # active_ai_query = AICode.query.filter(AICode.user_id.in_(user_ids_in_rankings), AICode.is_active==True)
+
+        ai_codes_result = active_ai_query.all()
+        logger.info(
+            f"查询到 {len(ai_codes_result)} 个激活的AI代码 (针对榜单: {ranking_ids if ranking_ids else '所有'})"
+        )
+        return ai_codes_result
+    except Exception as e:
+        logger.error(
+            f"根据榜单 {ranking_ids} 获取激活AI代码失败: {e}", exc_info=True
+        )
+        return []
+
+
 def get_user_ai_codes(user_id):
     """获取用户的所有AI代码记录。"""
     try:
@@ -558,7 +606,7 @@ def update_game_stats(stats, **kwargs):
         return False
 
 
-def get_leaderboard(ranking_id=0, limit=100, min_games_played=1):
+def get_leaderboard(ranking_id=0, limit=100, min_games_played=0):
     """
     获取指定排行榜的游戏排行榜。
 

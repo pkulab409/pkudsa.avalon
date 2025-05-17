@@ -265,21 +265,16 @@
                 <i class="fas fa-trophy me-3"></i>玩家排行榜
             </h2>
         </div>
-        <!-- 标签页导航 -->
-        <ul class="nav nav-tabs ranking-tabs">
+        <!-- 榜单选择导航 -->
+        <ul class="nav nav-tabs mb-3 ranking-tabs" id="rankingTabs">
+            {% for rid in all_ranking_ids %}
             <li class="nav-item">
-                <a class="nav-link {% if current_ranking_id == 0 %}active{% endif %}"
-                   href="{{ url_for('ranking.show_ranking', ranking_id=0) }}">
-                    <i class="fas fa-star me-1"></i>主排行榜
+                <a class="nav-link {% if rid == current_ranking_id %}active{% endif %}" 
+                   href="{{ url_for('ranking.show_ranking', ranking_id=rid) }}">
+                    <i class="bi bi-trophy me-1"></i>榜单 {{ rid }}
                 </a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link {% if current_ranking_id == 1 %}active{% endif %}"
-                   href="{{ url_for('ranking.show_ranking', ranking_id=1) }}">
-                    <i class="fas fa-crown me-1"></i>天梯赛S1 (示例)
-                </a>
-            </li>
-            {# 在这里可以动态添加更多排行榜的标签页 #}
+            {% endfor %}
         </ul>
         <div class="card ranking-card">
             <div class="card-body p-0">

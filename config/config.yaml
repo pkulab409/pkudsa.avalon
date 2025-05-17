@@ -21,6 +21,29 @@ AI_CODE_UPLOAD_FOLDER: uploads/
 
 
 # AI代码配置
+ranking_groups:
+  - id: 0
+    name: 测试赛
+    type: test
+  - id: 1
+    name: 初赛分组1
+    type: primary
+  - id: 2  
+    name: 初赛分组2  
+    type: primary
+  - id: 3
+    name: 初赛分组3
+    type: primary
+  - id: 4
+    name: 初赛分组4  
+    type: primary
+  - id: 5
+    name: 初赛分组5
+    type: primary
+  - id: 6
+    name: 初赛分组6
+    type: primary
+
 ai:
   allowed_extensions: # 允许的文件扩展名
     - .py
@@ -29,24 +52,28 @@ ai:
 INITIAL_USERS:
   # admin 用户
   - username: admin
+    partition: 0
     email: admin@avalon.com
     password: Tuavalon
     is_admin: True
     ai_code:
       name: Admin Console
       description: 管理员控制台
-      file_path: game/smart_player.py
+      file_path: null
       make_active: false
   # Smart AI 用户系列
   - username: smart_user1
+    partition: 0
     email: smart1@example.com
     password: password123
+    is_admin: False
     ai_code:
       name: Smart AI
       description: DeepSeek增强型AI玩家
       file_path: game/smart_player.py
       make_active: true
   - username: smart_user2
+    partition: 0
     email: smart2@example.com
     password: password123
     is_admin: False
@@ -56,6 +83,7 @@ INITIAL_USERS:
       file_path: game/smart_player.py
       make_active: true
   - username: smart_user3
+    partition: 0
     email: smart3@example.com
     password: password123
     is_admin: False
@@ -65,6 +93,7 @@ INITIAL_USERS:
       file_path: game/smart_player.py
       make_active: true
   - username: smart_user4
+    partition: 0
     email: smart4@example.com
     password: password123
     is_admin: False
@@ -74,6 +103,7 @@ INITIAL_USERS:
       file_path: game/smart_player.py
       make_active: true
   - username: smart_user5
+    partition: 0
     email: smart5@example.com
     password: password123
     is_admin: False
@@ -83,16 +113,8 @@ INITIAL_USERS:
       file_path: game/smart_player.py
       make_active: true
   - username: smart_user6
+    partition: 0
     email: smart6@example.com
-    password: password123
-    is_admin: False
-    ai_code:
-      name: Smart AI
-      description: DeepSeek增强型AI玩家
-      file_path: game/smart_player.py
-      make_active: true
-  - username: smart_user7
-    email: smart7@example.com
     password: password123
     is_admin: False
     ai_code:
@@ -103,6 +125,7 @@ INITIAL_USERS:
       
   # Basic AI 用户系列
   - username: basic_user1
+    partition: 0
     email: basic1@example.com
     password: password123
     is_admin: False
@@ -112,6 +135,7 @@ INITIAL_USERS:
       file_path: game/basic_player.py
       make_active: true
   - username: basic_user2
+    partition: 0
     email: basic2@example.com
     password: password123
     is_admin: False
@@ -121,6 +145,7 @@ INITIAL_USERS:
       file_path: game/basic_player.py
       make_active: true
   - username: basic_user3
+    partition: 0
     email: basic3@example.com
     password: password123
     is_admin: False
@@ -130,6 +155,7 @@ INITIAL_USERS:
       file_path: game/basic_player.py
       make_active: true
   - username: basic_user4
+    partition: 0
     email: basic4@example.com
     password: password123
     is_admin: False
@@ -139,6 +165,7 @@ INITIAL_USERS:
       file_path: game/basic_player.py
       make_active: true
   - username: basic_user5
+    partition: 0
     email: basic5@example.com
     password: password123
     is_admin: False
@@ -148,6 +175,7 @@ INITIAL_USERS:
       file_path: game/basic_player.py
       make_active: true
   - username: basic_user6
+    partition: 0
     email: basic6@example.com
     password: password123
     is_admin: False
@@ -155,60 +183,4 @@ INITIAL_USERS:
       name: Baseline AI
       description: 基础AI玩家
       file_path: game/basic_player.py
-      make_active: true
-
-  # Idiot AI 用户系列
-  - username: idiot_user1
-    email: idiot1@example.com
-    password: password123
-    is_admin: False
-    ai_code:
-      name: Baseline AI
-      description: 基础AI玩家
-      file_path: game/idiot_player.py
-      make_active: true
-  - username: idiot_user2
-    email: idiot2@example.com
-    password: password123
-    is_admin: False
-    ai_code:
-      name: Baseline AI
-      description: 基础AI玩家
-      file_path: game/idiot_player.py
-      make_active: true
-  - username: idiot_user3
-    email: idiot3@example.com
-    password: password123
-    is_admin: False
-    ai_code:
-      name: Baseline AI
-      description: 基础AI玩家
-      file_path: game/idiot_player.py
-      make_active: true
-  - username: idiot_user4
-    email: idiot4@example.com
-    password: password123
-    is_admin: False
-    ai_code:
-      name: Baseline AI
-      description: 基础AI玩家
-      file_path: game/idiot_player.py
-      make_active: true
-  - username: idiot_user5
-    email: idiot5@example.com
-    password: password123
-    is_admin: False
-    ai_code:
-      name: Baseline AI
-      description: 基础AI玩家
-      file_path: game/idiot_player.py
-      make_active: true
-  - username: idiot_user6
-    email: idiot6@example.com
-    password: password123
-    is_admin: False
-    ai_code:
-      name: Baseline AI
-      description: 基础AI玩家
-      file_path: game/idiot_player.py
       make_active: true

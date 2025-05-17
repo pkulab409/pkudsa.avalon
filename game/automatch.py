@@ -10,6 +10,7 @@ from flask import Flask
 # 导入数据库操作和类
 from database import (
     create_battle as db_create_battle,
+    get_active_ai_codes_by_ranking_ids
 )
 from database.models import User, AICode
 from utils.battle_manager_utils import get_battle_manager
@@ -30,7 +31,7 @@ class AutoMatch:
         self.loop_thread = None
         self.app = app
 
-    def start(self):
+    def start(self, ranking_ids=[0]):
         """启动自动对战，直到调用stop方法停止。"""
         # 如已启动，返回启动失败
         if self.is_on:
@@ -41,10 +42,8 @@ class AutoMatch:
         logger.info("启动自动对战...")
 
         # 获取当前所有激活AI代码
-        all_active_codes: list[AICode] = []
-        for user in User.query.all():
-            if user.get_active_ai() is not None:
-                all_active_codes.append(user.get_active_ai())
+        all_active_codes: list[AICode] = get_active_ai_codes_by_ranking_ids(ranking_ids)
+        
         battle_manager = get_battle_manager()
         logger.info(f"加载到激活的AI代码: {all_active_codes}")
 
@@ -107,3 +106,4 @@ class AutoMatch:
                 sleep(1)
             self.loop_thread = None
         return
+    

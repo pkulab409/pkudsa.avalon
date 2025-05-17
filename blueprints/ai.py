@@ -40,6 +40,7 @@ from database import (
     add_player_to_battle,
     create_battle_instance,
     update_battle,
+    get_game_stats_by_user_id
 )
 from database.models import AICode, BattlePlayer  # 仍然需要模型用于类型提示或特定查询
 from datetime import datetime
@@ -47,6 +48,10 @@ import importlib.util
 import sys
 import inspect
 import pickle
+import json
+import time
+
+PARTITION_NUMBER = 6
 from utils.battle_manager_utils import get_battle_manager
 
 # 创建蓝图
@@ -76,9 +81,15 @@ def allowed_file(filename):
 @login_required
 def list_ai():
     """显示用户的AI代码列表"""
-    # 使用数据库操作函数
-    ai_codes = db_get_user_ai_codes(current_user.id)
-    return render_template("ai/list.html", ai_codes=ai_codes)
+    user_id = current_user.id
+    ai_codes = db_get_user_ai_codes(user_id)
+
+    # 检查用户是否已加入天梯
+    has_ranking_stats = get_game_stats_by_user_id(user_id, ranking_id=1) is not None
+
+    return render_template(
+        "ai/list.html", ai_codes=ai_codes, has_ranking_stats=has_ranking_stats
+    )
 
 
 @ai_bp.route("/upload_ai", methods=["GET", "POST"])
