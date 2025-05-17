@@ -528,86 +528,126 @@ def process_game_events(game_data):
                 current_round["leader"] = str(event_data)  # Ensure string ID
             elif event_type == "TeamPropose":
                 # Ensure members are strings
-                members = [str(m) for m in event_data] if isinstance(event_data, list) else []
+                members = (
+                    [str(m) for m in event_data] if isinstance(event_data, list) else []
+                )
                 current_round["team_members"] = members
-                current_round["events"].append({
-                    "type": "team_propose",
-                    "data": {
-                        "leader": current_round["leader"],
-                        "team_members": members
+                current_round["events"].append(
+                    {
+                        "type": "team_propose",
+                        "data": {
+                            "leader": current_round["leader"],
+                            "team_members": members,
+                        },
                     }
-                })
+                )
             elif event_type == "PublicSpeech":
                 if isinstance(event_data, (list, tuple)) and len(event_data) == 2:
                     # 标记为公开发言
-                    current_round["events"].append({
-                        "type": "speech",
-                        "data": (str(event_data[0]), event_data[1], "public", ["ALL"])
-                    })
+                    current_round["events"].append(
+                        {
+                            "type": "speech",
+                            "data": (
+                                str(event_data[0]),
+                                event_data[1],
+                                "public",
+                                ["ALL"],
+                            ),
+                        }
+                    )
             elif event_type == "PrivateSpeech":
                 if isinstance(event_data, (list, tuple)) and len(event_data) == 3:
                     # 标记为有限范围发言
-                    current_round["events"].append({
-                        "type": "speech",
-                        "data": (str(event_data[0]), event_data[1], "private", event_data[2])
-                    })
+                    current_round["events"].append(
+                        {
+                            "type": "speech",
+                            "data": (
+                                str(event_data[0]),
+                                event_data[1],
+                                "private",
+                                event_data[2],
+                            ),
+                        }
+                    )
             elif event_type == "PublicVote":
                 if isinstance(event_data, (list, tuple)) and len(event_data) == 2:
                     # 检查是否需要创建新的投票尝试
-                    if not current_round["events"] or current_round["events"][-1]["type"] != "vote_attempt":
-                        current_round["events"].append({
-                            "type": "vote_attempt",
-                            "data": {
-                                "votes": {},
-                                "approved": None,
-                                "approve_count": 0,
-                                "reject_count": 0
+                    if (
+                        not current_round["events"]
+                        or current_round["events"][-1]["type"] != "vote_attempt"
+                    ):
+                        current_round["events"].append(
+                            {
+                                "type": "vote_attempt",
+                                "data": {
+                                    "votes": {},
+                                    "approved": None,
+                                    "approve_count": 0,
+                                    "reject_count": 0,
+                                },
                             }
-                        })
+                        )
                     # 更新最新的投票尝试
-                    current_round["events"][-1]["data"]["votes"][str(event_data[0])] = event_data[1] == "Approve"
+                    current_round["events"][-1]["data"]["votes"][str(event_data[0])] = (
+                        event_data[1] == "Approve"
+                    )
             elif event_type == "PublicVoteResult":
                 if isinstance(event_data, list) and len(event_data) == 2:
                     # 确保存在投票尝试
-                    if not current_round["events"] or current_round["events"][-1]["type"] != "vote_attempt":
-                        current_round["events"].append({
-                            "type": "vote_attempt",
-                            "data": {
-                                "votes": {},
-                                "approved": None,
-                                "approve_count": 0,
-                                "reject_count": 0
+                    if (
+                        not current_round["events"]
+                        or current_round["events"][-1]["type"] != "vote_attempt"
+                    ):
+                        current_round["events"].append(
+                            {
+                                "type": "vote_attempt",
+                                "data": {
+                                    "votes": {},
+                                    "approved": None,
+                                    "approve_count": 0,
+                                    "reject_count": 0,
+                                },
                             }
-                        })
+                        )
                     # 更新投票结果
                     current_round["events"][-1]["data"]["approve_count"] = event_data[0]
                     current_round["events"][-1]["data"]["reject_count"] = event_data[1]
             elif event_type == "MissionApproved":
                 # 确保存在投票尝试
-                if not current_round["events"] or current_round["events"][-1]["type"] != "vote_attempt":
-                    current_round["events"].append({
-                        "type": "vote_attempt",
-                        "data": {
-                            "votes": {},
-                            "approved": None,
-                            "approve_count": 0,
-                            "reject_count": 0
+                if (
+                    not current_round["events"]
+                    or current_round["events"][-1]["type"] != "vote_attempt"
+                ):
+                    current_round["events"].append(
+                        {
+                            "type": "vote_attempt",
+                            "data": {
+                                "votes": {},
+                                "approved": None,
+                                "approve_count": 0,
+                                "reject_count": 0,
+                            },
                         }
-                    })
+                    )
                 # 更新投票结果
                 current_round["events"][-1]["data"]["approved"] = True
             elif event_type == "MissionRejected":
                 # 确保存在投票尝试
-                if not current_round["events"] or current_round["events"][-1]["type"] != "vote_attempt":
-                    current_round["events"].append({
-                        "type": "vote_attempt",
-                        "data": {
-                            "votes": {},
-                            "approved": None,
-                            "approve_count": 0,
-                            "reject_count": 0
+                if (
+                    not current_round["events"]
+                    or current_round["events"][-1]["type"] != "vote_attempt"
+                ):
+                    current_round["events"].append(
+                        {
+                            "type": "vote_attempt",
+                            "data": {
+                                "votes": {},
+                                "approved": None,
+                                "approve_count": 0,
+                                "reject_count": 0,
+                            },
                         }
-                    })
+                    )
                 # 更新投票结果
                 current_round["events"][-1]["data"]["approved"] = False
             elif event_type == "MissionVote":
@@ -628,14 +668,16 @@ def process_game_events(game_data):
             # 处理玩家移动
             elif event_type == "Move":
                 if isinstance(event_data, (int, list)) and len(event_data) == 2:
-                    current_round["events"].append({
-                        "type": "move",
-                        "data": {
-                            "player_id": int(event_data[0]),
-                            "valid_moves": deepcopy(event_data[1][0]),
-                            "new_pos": deepcopy(event_data[1][1]),
+                    current_round["events"].append(
+                        {
+                            "type": "move",
+                            "data": {
+                                "player_id": int(event_data[0]),
+                                "valid_moves": deepcopy(event_data[1][0]),
+                                "new_pos": deepcopy(event_data[1][1]),
+                            },
                         }
-                    })
+                    )
 
     # Convert dict to list and sort by round number
     game_events_list = sorted(events_by_round.values(), key=lambda x: x["round"])
