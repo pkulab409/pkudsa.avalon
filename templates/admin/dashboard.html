@@ -109,20 +109,15 @@
                 </h2>
                 <!-- 添加搜索框 -->
                 <div class="input-group mb-3">
-                    <input type="text" 
-                           id="searchInput" 
-                           class="form-control" 
-                           placeholder="搜索用户名">
-                    <button class="btn btn-primary" 
-                            type="button" 
-                            onclick="searchUser()">
+                    <input type="text" id="searchInput" class="form-control" placeholder="搜索用户名">
+                    <button class="btn btn-primary" type="button" onclick="searchUser()">
                         <i class="bi bi-search"></i> 搜索
                     </button>
                 </div>
                 <table class="user-table">
                     <thead>
                         <tr>
-                            <th>用户名</th>
+                            <th>用户名(根据字母排序)</th>
                             <th>用户ID</th>
                             <th>ELO分数</th>
                             <th>管理员</th>
@@ -134,7 +129,7 @@
                             <tr>
                                 <td>{{ user.username }}</td>
                                 <td>{{ user.id }}</td>
-                                <td>{{ user.get_elo_score() }}</td>
+                                <td>{{ user.get_game_stats().elo_score if user.get_game_stats() else 'N/A' }}</td>
                                 <td>{{ '✅' if user.is_admin else '❌' }}</td>
                                 <td class="text-nowrap">
                                     <button class="btn btn-danger btn-sm"
@@ -146,6 +141,51 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                <!-- 在用户表格下方添加分页导航 -->
+                <div class="pagination-container">
+                    <nav aria-label="用户分页">
+                        <ul class="pagination">
+                            {% if users.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       href="{{ url_for('admin.admin_dashboard', page=users.prev_num) }}">上一页</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">上一页</span>
+                                </li>
+                            {% endif %}
+                            {% for page_num in users.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                                {% if page_num %}
+                                    <li class="page-item {% if page_num == users.page %}active{% endif %}">
+                                        <a class="page-link"
+                                           href="{{ url_for('admin.admin_dashboard', page=page_num) }}">
+                                            {{ page_num }}
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            {% if users.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       href="{{ url_for('admin.admin_dashboard', page=users.next_num) }}">下一页</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">下一页</span>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    <div class="pagination-info">
+                        第 {{ current_page }} 页 / 共 {{ total_pages }} 页
+                        （总用户数：{{ users.total }}）
+                    </div>
+                </div>
             </div>
             <!-- 系统工具 -->
             <div class="admin-section">
@@ -153,122 +193,122 @@
                     <i class="bi bi-tools"></i>系统工具
                 </h2>
                 <div class="row">
-                  <!-- 左侧：权限相关操作 -->
-                  <div class="col-12 col-md-6 d-flex flex-column gap-3">
-                    <!-- 权限管理 -->
-                    <div class="col-12">
-                        <form class="row g-2 w-100" onsubmit="handleToggleAdmin(event)">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <div class="col-12">
-                                <input class="form-control"
-                                       type="text"
-                                       name="user_id"
-                                       placeholder="输入用户ID"
-                                       required>
-                            </div>
-                            <div class="col-12">
-                                <button class="btn btn-secondary w-100" type="submit">
-                                    <i class="bi bi-arrow-repeat"></i>切换权限
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                    <!-- Elo设置 -->
-                    <div class="col-12">
-                        <form class="row g-2 w-100" onsubmit="handleSetElo(event)">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <div class="col-12 col-lg-8">
-                                <input class="form-control"
-                                       type="text"
-                                       name="user_id"
-                                       placeholder="用户ID"
-                                       required>
-                            </div>
-                            <div class="col-12 col-lg-4">
-                                <input class="form-control"
-                                       type="number"
-                                       name="elo"
-                                       placeholder="新Elo值"
-                                       required>
-                            </div>
-                            <div class="col-12">
-                                <button class="btn btn-secondary w-100" type="submit">
-                                    <i class="bi bi-graph-up"></i>设置Elo
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                    <!-- 终止对局 -->
-                    <div class="col-12">
-                        <form class="row g-2 w-100" onsubmit="handleTerminateGame(event)">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <div class="col-12">
-                                <input class="form-control"
-                                       type="text"
-                                       name="game_id"
-                                       placeholder="输入对局ID"
-                                       required>
-                            </div>
-                            <div class="col-12">
-                                <button class="btn btn-secondary w-100" type="submit">
-                                    <i class="bi bi-slash-circle"></i>终止对局
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                    <!-- 删除对局 -->
-                    <div class="col-12">
-                        <form class="row g-2 w-100" onsubmit="handleDeleteGame(event)">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <div class="col-12">
-                                <input class="form-control"
-                                       type="text"
-                                       name="game_id"
-                                       placeholder="输入对局ID"
-                                       required>
-                            </div>
-                            <div class="col-12">
-                                <button class="btn btn-secondary w-100" type="submit">
-                                    <i class="bi bi-trash"></i>删除记录
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                  </div>
-                  <!-- 右侧：其他操作 -->
-                  <div class="col-12 col-md-6 d-flex flex-column gap-3">
-                    <div class="col-12">
-                        <div class="d-flex gap-2 flex-wrap w-100 justify-content-between">
-                            <div class="d-flex gap-2 flex-grow-1">
-                            <!-- 启动自动对战 -->
-                            <form onsubmit="handleStartAutoMatch(event)">
+                    <!-- 左侧：权限相关操作 -->
+                    <div class="col-12 col-md-6 d-flex flex-column gap-3">
+                        <!-- 权限管理 -->
+                        <div class="col-12">
+                            <form class="row g-2 w-100" onsubmit="handleToggleAdmin(event)">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button class="btn btn-secondary" type="submit">
-                                    <i class="bi bi-play-circle"></i>启动自动对战
-                                </button>
+                                <div class="col-12">
+                                    <input class="form-control"
+                                           type="text"
+                                           name="user_id"
+                                           placeholder="输入用户ID"
+                                           required>
+                                </div>
+                                <div class="col-12">
+                                    <button class="btn btn-secondary w-100" type="submit">
+                                        <i class="bi bi-arrow-repeat"></i>切换权限
+                                    </button>
+                                </div>
                             </form>
-                            <!-- 停止自动对战 -->
-                            <form onsubmit="handleStopAutoMatch(event)">
+                        </div>
+                        <!-- Elo设置 -->
+                        <div class="col-12">
+                            <form class="row g-2 w-100" onsubmit="handleSetElo(event)">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button class="btn btn-secondary" type="submit">
-                                    <i class="bi bi-stop-circle"></i>停止自动对战
-                                </button>
+                                <div class="col-12 col-lg-8">
+                                    <input class="form-control"
+                                           type="text"
+                                           name="user_id"
+                                           placeholder="用户ID"
+                                           required>
+                                </div>
+                                <div class="col-12 col-lg-4">
+                                    <input class="form-control"
+                                           type="number"
+                                           name="elo"
+                                           placeholder="新Elo值"
+                                           required>
+                                </div>
+                                <div class="col-12">
+                                    <button class="btn btn-secondary w-100" type="submit">
+                                        <i class="bi bi-graph-up"></i>设置Elo
+                                    </button>
+                                </div>
                             </form>
-                            <!-- 终止并重置自动对战 -->
-                            <form onsubmit="handleTerminateAutoMatch(event)">
+                        </div>
+                        <!-- 终止对局 -->
+                        <div class="col-12">
+                            <form class="row g-2 w-100" onsubmit="handleTerminateGame(event)">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button class="btn btn-secondary" type="submit">
-                                    <i class="bi bi-x-circle"></i>终止自动对战
-                                </button>
+                                <div class="col-12">
+                                    <input class="form-control"
+                                           type="text"
+                                           name="game_id"
+                                           placeholder="输入对局ID"
+                                           required>
+                                </div>
+                                <div class="col-12">
+                                    <button class="btn btn-secondary w-100" type="submit">
+                                        <i class="bi bi-slash-circle"></i>终止对局
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        <!-- 删除对局 -->
+                        <div class="col-12">
+                            <form class="row g-2 w-100" onsubmit="handleDeleteGame(event)">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="col-12">
+                                    <input class="form-control"
+                                           type="text"
+                                           name="game_id"
+                                           placeholder="输入对局ID"
+                                           required>
+                                </div>
+                                <div class="col-12">
+                                    <button class="btn btn-secondary w-100" type="submit">
+                                        <i class="bi bi-trash"></i>删除记录
+                                    </button>
+                                </div>
                             </form>
                         </div>
                     </div>
-                  </div>
+                    <!-- 右侧：其他操作 -->
+                    <div class="col-12 col-md-6 d-flex flex-column gap-3">
+                        <div class="col-12">
+                            <div class="d-flex gap-2 flex-wrap w-100 justify-content-between">
+                                <div class="d-flex gap-2 flex-grow-1">
+                                    <!-- 启动自动对战 -->
+                                    <form onsubmit="handleStartAutoMatch(event)">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button class="btn btn-secondary" type="submit">
+                                            <i class="bi bi-play-circle"></i>启动自动对战
+                                        </button>
+                                    </form>
+                                    <!-- 停止自动对战 -->
+                                    <form onsubmit="handleStopAutoMatch(event)">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button class="btn btn-secondary" type="submit">
+                                            <i class="bi bi-stop-circle"></i>停止自动对战
+                                        </button>
+                                    </form>
+                                    <!-- 终止并重置自动对战 -->
+                                    <form onsubmit="handleTerminateAutoMatch(event)">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button class="btn btn-secondary" type="submit">
+                                            <i class="bi bi-x-circle"></i>终止自动对战
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-    <script>
+        <script>
   // 搜索功能（更新样式适配）
   async function searchUser() {
     const searchInput = document.getElementById('searchInput').value;
@@ -294,8 +334,7 @@
             <td>${user.elo !== 0 ? user.elo : 'N/A'}</td>
             <td>${user.is_admin ? '✅' : '❌'}</td>
             <td class="text-nowrap">
-              <button class="btn btn-danger btn-sm" 
-                      onclick="handleUserDeletion('${user.id}', '${user.username}')">
+              <button class="btn btn-danger btn-sm" onclick="handleUserDeletion('${user.id}', '${user.username}')">
                 <i class="bi bi-trash"></i>删除
               </button>
             </td>
@@ -461,5 +500,5 @@
       showBootstrapAlert(`错误: ${error.message}`, 'danger');
     }
   }
-    </script>
-{% endblock %}
+        </script>
+    {% endblock %}

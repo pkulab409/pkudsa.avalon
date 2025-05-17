@@ -5,7 +5,7 @@ from game.automatch import AutoMatch
 # 配置日志
 logger = logging.getLogger("AutoMatchUtils")
 
-# _automatch = None #不再需要缓存实例
+_automatch = None
 _app_ref: Flask = None
 
 
@@ -18,4 +18,12 @@ def init_automatch_utils(app: Flask):
     logger.info("AutoMatchUtils initialized with Flask app.")
 
 
+def get_automatch() -> AutoMatch:
+    """获取自动对战管理器单例实例"""
+    global _automatch
 
+    if _automatch is None:
+        _automatch = AutoMatch(_app_ref)
+        logger.info("AutoMatch instance created.")
+
+    return _automatch

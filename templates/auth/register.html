@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}
+    注册 - 游戏平台
+{% endblock title %}
+{% block content %}
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap"
+          rel="stylesheet">
+    <style>
+    body {
+        font-family: 'Poppins', sans-serif;
+        background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        min-height: 100vh;
+    }
+    .container {
+        padding-top: 5vh;
+        padding-bottom: 5vh;
+    }
+    .card {
+        border: none;
+        border-radius: 2rem;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+        backdrop-filter: blur(5px);
+    }
+    .card-header {
+        border-top-left-radius: 2rem;
+        border-top-right-radius: 2rem;
+        background: #4e54c8;
+        background: linear-gradient(to right, #4e54c8, #8f94fb);
+        padding: 1.5rem 1rem;
+    }
+    .card-header h3 {
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-shadow: 0px 2px 3px rgba(0,0,0,0.1);
+    }
+    .card-body {
+        padding: 2.5rem 2rem;
+        background-color: #ffffff;
+    }
+    .form-label {
+        font-weight: 600;
+        color: #444;
+        margin-bottom: 0.5rem;
+    }
+    .form-control {
+        border-radius: 0.75rem;
+        padding: 0.75rem 1.25rem;
+        border: 1px solid #e1e5ea;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background-color: #f8f9fa;
+    }
+    .form-control:focus {
+        border-color: #4e54c8;
+        box-shadow: 0 0 0 0.25rem rgba(78, 84, 200, 0.25);
+        background-color: #fff;
+    }
+    .form-control::placeholder {
+        color: #adb5bd;
+        font-size: 0.9rem;
+    }
+    .btn-primary {
+        background: linear-gradient(to right, #4e54c8, #8f94fb);
+        border: none;
+        border-radius: 0.75rem;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        box-shadow: 0 4px 15px rgba(78, 84, 200, 0.4);
+        transition: all 0.3s ease;
+    }
+    .btn-primary:hover {
+        background: linear-gradient(to right, #3a40a5, #7579e7);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(78, 84, 200, 0.5);
+    }
+    .btn-primary:active {
+        transform: translateY(0);
+    }
+    .text-danger {
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+    }
+    .card-footer {
+        background-color: #f8f9fa;
+        border-top: none;
+        padding: 1.5rem;
+    }
+    .card-footer a {
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    .card-footer a:hover {
+        color: #3a40a5 !important;
+    }
+    /* Step progress indicator */
+    .progress-indicator {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 2rem;
+    }
+    .step {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: #e1e5ea;
+        margin: 0 4px;
+        position: relative;
+    }
+    .step.active {
+        background-color: #4e54c8;
+        transform: scale(1.2);
+    }
+    /* Animation for form elements */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .form-control, .btn {
+        animation: fadeIn 0.5s ease forwards;
+    }
+    .form-control:nth-child(1) { animation-delay: 0.1s; }
+    .form-control:nth-child(2) { animation-delay: 0.2s; }
+    .form-control:nth-child(3) { animation-delay: 0.3s; }
+    .form-control:nth-child(4) { animation-delay: 0.4s; }
+    .btn { animation-delay: 0.5s; }
+    </style>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-7 col-lg-5">
+                <div class="card">
+                    <div class="card-header text-white text-center">
+                        <h3 class="mb-0">🎮 用户注册</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="progress-indicator">
+                            <div class="step active"></div>
+                            <div class="step"></div>
+                            <div class="step"></div>
+                            <div class="step"></div>
+                        </div>
+                        <form method="post" action="{{ url_for('auth.register') }}">
+                            {{ form.hidden_tag() }}
+                            <div class="mb-4">
+                                <label for="username" class="form-label">用户名</label>
+                                {{ form.username(class="form-control", placeholder="请设置您的用户名") }}
+                                {% if form.username.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.username.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-4">
+                                <label for="email" class="form-label">邮箱地址</label>
+                                {{ form.email(class="form-control", placeholder="请输入您的邮箱") }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.email.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-4">
+                                <label for="password" class="form-label">密码</label>
+                                {{ form.password(class="form-control", placeholder="请设置您的密码") }}
+                                {% if form.password.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.password.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-4">
+                                <label for="password2" class="form-label">确认密码</label>
+                                {{ form.password2(class="form-control", placeholder="请再次输入密码") }}
+                                {% if form.password2.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.password2.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="d-grid gap-2 mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg">注册</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="card-footer text-center">
+                        已有账号？<a href="{{ url_for('auth.login') }}" class="text-primary fw-semibold">立即登录</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

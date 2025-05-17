@@ -21,11 +21,12 @@ def initialize_database(app):
 # 从 action.py 导出所有需要外部使用的数据库操作函数
 from .action import (
     # 基础工具 (如果需要在外部使用)
-    # safe_commit,
-    # safe_add,
-    # safe_delete,
+    safe_commit,
+    safe_add,
+    safe_delete,
     # 用户 (User) 操作
     get_user_by_id,
+    get_user_index_in_battle,
     get_user_by_username,
     get_user_by_email,
     create_user,
@@ -33,6 +34,7 @@ from .action import (
     delete_user,
     # AI 代码 (AICode) 操作
     get_ai_code_by_id,
+    get_user_index_in_battle,
     get_user_ai_codes,
     get_user_active_ai_code,
     create_ai_code,
@@ -60,6 +62,11 @@ from .action import (
     mark_battle_as_cancelled,
     handle_cancelled_battle_stats,
     get_battles_paginated_filtered,
+    create_battle_instance,
+    add_player_to_battle,
+    update_battle_player_count,
+    load_initial_users_from_config,
+    get_available_ai_instances
 )
 
 
@@ -99,6 +106,7 @@ __all__ = [
     "delete_ai_code",
     "set_active_ai_code",
     "get_ai_code_path_full",
+    "get_available_ai_instances",
     # 统计操作
     "get_game_stats_by_user_id",
     "create_game_stats",

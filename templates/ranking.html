@@ -1,0 +1,434 @@
+{% extends "base.html" %}
+{% block title %}
+    排行榜 - 游戏平台
+{% endblock title %}
+{% block content %}
+    <style>
+    /* Main styles */
+    .ranking-container {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .page-header {
+        background: linear-gradient(135deg, #3a1c71, #d76d77, #ffaf7b);
+        background-size: 400% 400%;
+        animation: gradient 15s ease infinite;
+        color: white;
+        border-radius: 10px;
+        padding: 20px 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    @keyframes gradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    .page-header h2 {
+        font-weight: 700;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        margin: 0;
+    }
+
+    .page-header::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 200%;
+        background: rgba(255, 255, 255, 0.1);
+        transform: rotate(30deg);
+    }
+
+    /* Custom nav tabs */
+    .ranking-tabs {
+        border-bottom: none;
+        margin-bottom: 20px;
+    }
+
+    .ranking-tabs .nav-item {
+        margin-right: 5px;
+    }
+
+    .ranking-tabs .nav-link {
+        border: none;
+        border-radius: 50px;
+        padding: 10px 20px;
+        color: #495057;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        background-color: #f8f9fa;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    .ranking-tabs .nav-link.active {
+        background: linear-gradient(90deg, #3a1c71, #d76d77);
+        color: white;
+        box-shadow: 0 4px 10px rgba(215, 109, 119, 0.3);
+    }
+
+    .ranking-tabs .nav-link:hover:not(.active) {
+        background-color: #e9ecef;
+        transform: translateY(-2px);
+    }
+
+    /* Card styling */
+    .ranking-card {
+        border-radius: 10px;
+        border: none;
+        box-shadow: 0 5px 25px rgba(0,0,0,0.05);
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .ranking-card:hover {
+        box-shadow: 0 8px 35px rgba(0,0,0,0.1);
+        transform: translateY(-5px);
+    }
+
+    /* Table styling */
+    .ranking-table {
+        margin-bottom: 0;
+    }
+
+    .ranking-table thead {
+        background: linear-gradient(90deg, #f8f9fa, #e9ecef);
+    }
+
+    .ranking-table th {
+        font-weight: 600;
+        color: #495057;
+        border-top: none;
+        padding: 15px;
+    }
+
+    .ranking-table td {
+        vertical-align: middle;
+        padding: 12px 15px;
+    }
+
+    /* Top 3 row styling */
+    tr.rank-1 {
+        background: linear-gradient(90deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.03));
+        box-shadow: inset 0 0 0 1px rgba(255, 215, 0, 0.2);
+    }
+
+    tr.rank-2 {
+        background: linear-gradient(90deg, rgba(192, 192, 192, 0.1), rgba(192, 192, 192, 0.03));
+        box-shadow: inset 0 0 0 1px rgba(192, 192, 192, 0.2);
+    }
+
+    tr.rank-3 {
+        background: linear-gradient(90deg, rgba(205, 127, 50, 0.1), rgba(205, 127, 50, 0.03));
+        box-shadow: inset 0 0 0 1px rgba(205, 127, 50, 0.2);
+    }
+
+    tr.rank-1:hover, tr.rank-2:hover, tr.rank-3:hover {
+        background: linear-gradient(90deg, rgba(0, 123, 255, 0.05), rgba(0, 123, 255, 0.02));
+    }
+
+    /* Medal styling */
+    .medal {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        margin-right: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .medal-gold {
+        background: linear-gradient(135deg, #FFD700, #FFC800);
+        color: #856404;
+    }
+
+    .medal-silver {
+        background: linear-gradient(135deg, #E0E0E0, #C0C0C0);
+        color: #495057;
+    }
+
+    .medal-bronze {
+        background: linear-gradient(135deg, #CD7F32, #A05A2C);
+        color: white;
+    }
+
+    .medal i {
+        font-size: 16px;
+    }
+
+    /* Win rate progress indicator */
+    .win-rate-container {
+        position: relative;
+        width: 100%;
+        background-color: #e9ecef;
+        border-radius: 50px;
+        height: 10px;
+        overflow: hidden;
+        margin-top: 5px;
+    }
+
+    .win-rate-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        background: linear-gradient(90deg, #11998e, #38ef7d);
+        border-radius: 50px;
+        transition: width 1s ease-in-out;
+    }
+
+    /* Username styling */
+    .username {
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+
+    .username:hover {
+        color: #007bff;
+    }
+
+    .current-user {
+        position: relative;
+        font-weight: 600;
+        color: #007bff;
+    }
+
+    .current-user::after {
+        content: '(你)';
+        margin-left: 5px;
+        font-size: 0.8em;
+        color: #6c757d;
+        font-weight: normal;
+    }
+
+    /* Score and stats styling */
+    .elo-score {
+        font-weight: 700;
+        color: #495057;
+        background: linear-gradient(90deg, #f8f9fa, #e9ecef);
+        padding: 5px 12px;
+        border-radius: 50px;
+        display: inline-block;
+    }
+
+    .top3 .elo-score {
+        background: linear-gradient(90deg, #fff3cd, #ffeeba);
+        color: #856404;
+    }
+
+    .stat-value {
+        font-weight: 500;
+    }
+
+    /* Icons and animations */
+    .rank-crown {
+        margin-left: 5px;
+        color: #FFD700;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+
+    .empty-state {
+        padding: 50px 0;
+        text-align: center;
+        color: #6c757d;
+    }
+
+    .empty-state i {
+        font-size: 48px;
+        margin-bottom: 10px;
+        color: #dee2e6;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 992px) {
+        .ranking-table {
+            min-width: 800px;
+        }
+    }
+    </style>
+    <div class="container mt-4 ranking-container">
+        <div class="page-header d-flex justify-content-between align-items-center">
+            <h2>
+                <i class="fas fa-trophy me-3"></i>玩家排行榜
+            </h2>
+        </div>
+        <!-- 标签页导航 -->
+        <ul class="nav nav-tabs ranking-tabs">
+            <li class="nav-item">
+                <a class="nav-link {% if current_ranking_id == 0 %}active{% endif %}"
+                   href="{{ url_for('ranking.show_ranking', ranking_id=0) }}">
+                    <i class="fas fa-star me-1"></i>主排行榜
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if current_ranking_id == 1 %}active{% endif %}"
+                   href="{{ url_for('ranking.show_ranking', ranking_id=1) }}">
+                    <i class="fas fa-crown me-1"></i>天梯赛S1 (示例)
+                </a>
+            </li>
+            {# 在这里可以动态添加更多排行榜的标签页 #}
+        </ul>
+        <div class="card ranking-card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table ranking-table">
+                        <thead>
+                            <tr>
+                                <th scope="col" width="10%">排名</th>
+                                <th scope="col" width="20%">用户名</th>
+                                <th scope="col" width="15%">分数 (Elo)</th>
+                                <th scope="col" width="10%">胜场</th>
+                                <th scope="col" width="10%">负场</th>
+                                <th scope="col" width="10%">平局</th>
+                                <th scope="col" width="10%">总场次</th>
+                                <th scope="col" width="15%">胜率</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if pagination.items %}
+                                {% for item in pagination.items %}
+                                    <tr class="{% if item.rank == 1 %}rank-1{% elif item.rank == 2 %}rank-2{% elif item.rank == 3 %}rank-3{% endif %} {% if item.rank <= 3 %}top3{% endif %}">
+                                        <td>
+                                            {% if item.rank == 1 %}
+                                                <div class="medal medal-gold">
+                                                    <i class="fas fa-trophy"></i>
+                                                </div>
+                                            {% elif item.rank == 2 %}
+                                                <div class="medal medal-silver">
+                                                    <i class="fas fa-trophy"></i>
+                                                </div>
+                                            {% elif item.rank == 3 %}
+                                                <div class="medal medal-bronze">
+                                                    <i class="fas fa-trophy"></i>
+                                                </div>
+                                            {% else %}
+                                                <span class="stat-value">#{{ item.rank }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if current_user.is_authenticated and item.username == current_user.username %}
+                                                <a href="{{ url_for('profile.profile', username=item.username) }}"
+                                                   class="text-decoration-none">
+                                                    <span class="username current-user">{{ item.username }}</span>
+                                                    {% if item.rank <= 3 %}<i class="fas fa-crown rank-crown"></i>{% endif %}
+                                                </a>
+                                            {% else %}
+                                                <a href="{{ url_for('profile.user_profile', user_id=item.user_id) }}"
+                                                   class="text-decoration-none">
+                                                    <span class="username">{{ item.username }}</span>
+                                                    {% if item.rank <= 3 %}<i class="fas fa-crown rank-crown"></i>{% endif %}
+                                                </a>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="elo-score">{{ item.score }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="stat-value text-success">{{ item.wins }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="stat-value text-danger">{{ item.losses }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="stat-value text-secondary">{{ item.draws }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="stat-value">{{ item.total }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <span class="stat-value me-2">{{ item.win_rate }}%</span>
+                                                {% if item.rank <= 3 %}<i class="fas fa-star text-warning"></i>{% endif %}
+                                            </div>
+                                            <div class="win-rate-container">
+                                                <div class="win-rate-bar" style="width: {{ item.win_rate }}%;"></div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="8" class="empty-state">
+                                        <i class="fas fa-chart-bar d-block"></i>
+                                        <p>暂无排名数据</p>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                    <!-- 分页导航 -->
+                    <nav aria-label="Page navigation" class="my-4">
+                        <ul class="pagination justify-content-center">
+                            {% if pagination.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       href="{{ url_for('ranking.show_ranking', ranking_id=current_ranking_id, page=pagination.prev_num) }}">上一页</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">上一页</span>
+                                </li>
+                            {% endif %}
+                            {% for page_num in pagination.iter_pages() %}
+                                {% if page_num %}
+                                    <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                                        <a class="page-link"
+                                           href="{{ url_for('ranking.show_ranking', ranking_id=current_ranking_id, page=page_num) }}">{{ page_num }}</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            {% if pagination.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       href="{{ url_for('ranking.show_ranking', ranking_id=current_ranking_id, page=pagination.next_num) }}">下一页</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">下一页</span>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+    // Add smooth animation for win rate bars when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get all win rate bars
+        const winRateBars = document.querySelectorAll('.win-rate-bar');
+
+        // Initially set all widths to 0
+        winRateBars.forEach(bar => {
+            bar.style.width = '0%';
+        });
+
+        // Timeout to allow the browser to render the initial state
+        setTimeout(() => {
+            // Animate each bar to its final width
+            winRateBars.forEach(bar => {
+                const finalWidth = bar.getAttribute('style').replace('width: 0%', '').trim();
+                bar.style.width = finalWidth;
+            });
+        }, 100);
+    });
+    </script>
+{% endblock content %}

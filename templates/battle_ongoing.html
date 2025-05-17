@@ -1,0 +1,597 @@
+{% extends "base.html" %}
+{% block title %}
+    对战进行中 - {{ battle.id[:8] }}...
+{% endblock title %}
+{% block content %}
+    <div class="container mt-4">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">对战id ({{ battle.id }})</h4>
+                <span class="badge bg-light text-dark">
+                    状态:
+                    {% if battle.status == 'playing' %}
+                        进行中
+                    {% elif battle.status == 'waiting' %}
+                        等待中
+                    {% else %}
+                        {{ battle.status }}
+                    {% endif %}
+                </span>
+            </div>
+            <div class="card-body">
+                <p>
+                    <strong>创建时间:</strong> {{ battle.created_at.strftime("%Y-%m-%d %H:%M:%S") if battle.created_at else 'N/A' }}
+                </p>
+                <p>
+                    <strong>开始时间:</strong> {{ battle.started_at.strftime("%Y-%m-%d %H:%M:%S") if battle.started_at else '尚未开始' }}
+                </p>
+                <h5>参与玩家</h5>
+                <ul class="list-group">
+                    {% for player in battle_players %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                玩家 {{ player.player_index }}:
+                                <a href="{{ url_for('profile.profile', username=player.user.username) }}">{{ player.user.username }}</a>
+                                {% if player.user_id == current_user.id %}<span class="badge bg-secondary ms-1">你</span>{% endif %}
+                            </div>
+                            <span class="text-muted">使用AI: {{ player.ai_code.name if player.ai_code else '未知AI' }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">对战状态</h5>
+            </div>
+            <div class="card-body">
+                <div id="battleStatus" class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">正在加载状态...</span>
+                    </div>
+                    <p class="mt-2">正在加载对战状态...</p>
+                </div>
+                <div id="snapshotsContainer"
+                     class="mt-3"
+                     style="max-height: 400px;
+                            overflow-y: auto">
+                    <!-- 快照信息将显示在这里 -->
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const battleId = '{{ battle.id }}';
+      const statusDiv = document.getElementById('battleStatus');
+      const snapshotsContainer = document.getElementById('snapshotsContainer');
+      let intervalId = null;
+      
+      async function fetchBattleStatus() {
+        try {
+          const response = await fetch(`{{ url_for('game.get_game_status', battle_id='BATTLE_ID') }}`.replace('BATTLE_ID', battleId));
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          
+          if (data.success) {
+            // 更新状态显示
+            let statusText = '';
+            let statusBadge = '';
+            switch (data.status) {
+              case 'playing':
+                statusText = '进行中';
+                statusBadge = 'bg-info';
+                break;
+              case 'waiting':
+                statusText = '等待服务器启动...';
+                statusBadge = 'bg-warning text-dark';
+                break;
+              case 'completed':
+                statusText = '已完成';
+                statusBadge = 'bg-success';
+                // 如果已完成，停止轮询并可能重定向或显示结果链接
+                clearInterval(intervalId);
+                statusDiv.innerHTML = `<p class="alert alert-success">对战已完成！</p>
+                                       <a href="{{ url_for('game.view_battle', battle_id=battle.id) }}" class="btn btn-primary me-2">查看结果</a>
+                                       <a href="{{ url_for('visualizer.game_replay', game_id=battle.id) }}" class="btn btn-info">查看回放</a>`;
+                snapshotsContainer.innerHTML = ''; // 清空快照区域
+                return; // 停止执行后续代码
+              case 'error':
+                statusText = '发生错误';
+                statusBadge = 'bg-danger';
+                clearInterval(intervalId); // 停止轮询
+                statusDiv.innerHTML = `<p class="alert alert-danger">对战因错误而终止。</p>`;
+                return;
+              case 'cancelled':
+                statusText = '已取消';
+                statusBadge = 'bg-secondary';
+                clearInterval(intervalId); // 停止轮询
+                statusDiv.innerHTML = `<p class="alert alert-secondary">对战已被取消。</p>`;
+                return;
+              default:
+                statusText = data.status || '未知状态';
+                statusBadge = 'bg-light text-dark';
+            }
+            statusDiv.innerHTML = `<span class="badge ${statusBadge} fs-5">${statusText}</span>`;
+            
+            // 显示快照 (如果存在)
+            if (data.snapshots && data.snapshots.length > 0) {
+              // 获取最新的快照信息
+              const latestSnapshot = data.snapshots[data.snapshots.length - 1];
+              
+              // 创建美化的快照卡片
+              let snapshotHtml = `
+                <div class="mb-4">
+                  <h6 class="d-flex align-items-center">
+                    <i class="bi bi-camera me-2"></i>最新游戏状态
+                    <small class="ms-2 text-muted">(共 ${data.snapshots.length} 个快照)</small>
+                    <small class="ms-auto text-muted">${latestSnapshot.timestamp || ''}</small>
+                  </h6>
+                  
+                  <div class="card shadow-sm border-primary mb-3">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                      <span><i class="bi bi-info-circle me-2"></i>快照概览</span>
+                      <span class="badge bg-light text-dark">${latestSnapshot.event_type}</span>
+                    </div>
+                    <div class="card-body">
+                      <div class="row">`;
+              
+              // 根据事件类型处理不同的内容
+              const eventType = latestSnapshot.event_type;
+              const eventData = latestSnapshot.event_data;
+              
+              // 根据事件类型显示不同的卡片
+              switch(eventType) {
+                case "GameStart":
+                  snapshotHtml += `
+                    <div class="col-12 mb-3">
+                      <div class="card h-100 border-info">
+                        <div class="card-header bg-info text-white py-2">
+                          <i class="bi bi-play-circle me-2"></i>游戏开始
+                        </div>
+                        <div class="card-body">
+                          <h5 class="card-title">对战 ${eventData} 已开始</h5>
+                        </div>
+                      </div>
+                    </div>`;
+                  break;
+                  
+                case "GameEnd":
+                  snapshotHtml += `
+                    <div class="col-12 mb-3">
+                      <div class="card h-100 border-danger">
+                        <div class="card-header bg-danger text-white py-2">
+                          <i class="bi bi-stop-circle me-2"></i>游戏结束
+                        </div>
+                        <div class="card-body">
+                          <h5 class="card-title">对战 ${eventData} 已结束</h5>
+                        </div>
+                      </div>
+                    </div>`;
+                  break;
+                  
+                case "RoleAssign":
+                  snapshotHtml += `
+                    <div class="col-12 mb-3">
+                      <div class="card h-100 border-success">
+                        <div class="card-header bg-success text-white py-2">
+                          <i class="bi bi-person-badge me-2"></i>角色分配
+                        </div>
+                        <div class="card-body">
+                          <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                              <thead>
+                                <tr>
+                                  <th>玩家</th>
+                                  <th>角色</th>
+                                </tr>
+                              </thead>
+                              <tbody>`;
+                              
+                  // 如果eventData是对象且有键
+                  if (typeof eventData === 'object' && eventData !== null) {
+                    for (const [player, role] of Object.entries(eventData)) {
+                      snapshotHtml += `
+                        <tr>
+                          <td>玩家 ${player}</td>
+                          <td><span class="badge ${role.includes('Red') ? 'bg-danger' : 'bg-primary'}">${role}</span></td>
+                        </tr>`;
+                    }
+                  }
+                  
+                  snapshotHtml += `
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </div>`;
+                  break;
+                  
+                case "NightStart":
+                case "NightEnd":
+                  const isStart = eventType === "NightStart";
+                  snapshotHtml += `
+                    <div class="col-12 mb-3">
+                      <div class="card h-100 border-dark">
+                        <div class="card-header bg-dark text-white py-2">
+                          <i class="bi bi-moon${isStart ? '' : '-fill'} me-2"></i>${isStart ? '夜晚开始' : '夜晚结束'}
+                        </div>
+                        <div class="card-body">
+                          <p class="card-text">${eventData}</p>
+                        </div>
+                      </div>
+                    </div>`;
+                  break;
+                  
+                case "RoundStart":
+                  snapshotHtml += `
+                    <div class="col-12 mb-3">
+                      <div class="card h-100 border-info">
+                        <div class="card-header bg-info text-white py-2">
+                          <i class="bi bi-arrow-right-circle me-2"></i>回合开始
+                        </div>
+                        <div class="card-body">
+                          <h5 class="card-title">第 ${eventData} 回合开始</h5>
+                        </div>
+                      </div>
+                    </div>`;
+                  break;
+                  
+                case "TeamPropose":
+                  snapshotHtml += `
+                    <div class="col-12 mb-3">
+                      <div class="card h-100 border-warning">
+                        <div class="card-header bg-warning text-dark py-2">
+                          <i class="bi bi-people me-2"></i>队伍提议
+                        </div>
+                        <div class="card-body">
+                          <h5 class="card-title">提议队员：</h5>
+                          <div class="d-flex flex-wrap gap-2">`;
+                  
+                  // 显示队员
+                  if (Array.isArray(eventData)) {
+                    eventData.forEach(member => {
+                      snapshotHtml += `<span class="badge bg-primary">玩家 ${member}</span>`;
+                    });
+                  }
+                  
+                  snapshotHtml += `
+                          </div>
+                        </div>
+                      </div>
+                    </div>`;
+                  break;
+                  
+                case "PublicSpeech":
+                  if (Array.isArray(eventData) && eventData.length >= 2) {
+                    const [speakerId, speech] = eventData;
+                    snapshotHtml += `
+                      <div class="col-12 mb-3">
+                        <div class="card h-100">
+                          <div class="card-header bg-info text-white py-2">
+                            <i class="bi bi-chat-left-text me-2"></i>公开发言
+                          </div>
+                          <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">玩家 ${speakerId} 说：</h6>
+                            <p class="card-text">${speech}</p>
+                          </div>
+                        </div>
+                      </div>`;
+                  }
+                  break;
+
+                // 添加处理 PrivateSpeech 事件的逻辑
+                case "PrivateSpeech":
+                  if (Array.isArray(eventData) && eventData.length >= 3) {
+                    const [speakerId, speech, receivers] = eventData;
+                    snapshotHtml += `
+                      <div class="col-12 mb-3">
+                        <div class="card h-100 border-purple">
+                          <div class="card-header bg-purple text-white py-2" style="background-color: #6f42c1;">
+                            <i class="bi bi-chat-dots me-2"></i>私聊消息
+                          </div>
+                          <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">玩家 ${speakerId} 私聊说：</h6>
+                            <p class="card-text">${speech}</p>
+                            <div class="mt-2">
+                              <span class="fw-bold text-muted">接收者:</span>
+                              <div class="d-flex flex-wrap gap-1 mt-1">
+                                ${receivers.map(r => `<span class="badge bg-secondary">玩家 ${r}</span>`).join(' ')}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>`;
+                  }
+                  break;
+
+                // 添加处理 PublicVote 事件的逻辑
+                case "PublicVote":
+                  if (Array.isArray(eventData) && eventData.length >= 2) {
+                    const [voterId, voteResult] = eventData;
+                    let voteTitle, voteIcon, voteContent;
+                    
+                    if (voterId === 0) {
+                      voteTitle = "队伍投票开始";
+                      voteIcon = "hourglass-start";
+                      voteContent = `<p class="card-text">队员投票开始，请等待投票结果...</p>`;
+                    } else if (voterId === 8) {
+                      voteTitle = "队伍投票结束";
+                      voteIcon = "hourglass-end";
+                      voteContent = `<p class="card-text">所有玩家已完成投票，正在统计结果...</p>`;
+                    } else {
+                      voteTitle = "玩家投票";
+                      voteIcon = voteResult === 'Approve' ? "hand-thumbs-up" : "hand-thumbs-down";
+                      const voteClass = voteResult === 'Approve' ? "text-success" : "text-danger";
+                      const voteText = voteResult === 'Approve' ? "赞成" : "反对";
+                      voteContent = `
+                        <h6 class="card-subtitle mb-2 text-muted">玩家 ${voterId} 投票：</h6>
+                        <p class="card-text ${voteClass}">
+                          <i class="bi bi-${voteIcon} me-1"></i>
+                          <span class="fw-bold">${voteText}</span>
+                        </p>`;
+                    }
+                    
+                    snapshotHtml += `
+                      <div class="col-12 mb-3">
+                        <div class="card h-100">
+                          <div class="card-header bg-${voteResult === 'Approve' ? 'success' : (voteResult === 'Reject' ? 'danger' : 'warning')} text-white py-2">
+                            <i class="bi bi-${voteIcon} me-2"></i>${voteTitle}
+                          </div>
+                          <div class="card-body">
+                            ${voteContent}
+                          </div>
+                        </div>
+                      </div>`;
+                  }
+                  break;
+                  
+                case "PublicVoteResult":
+                  if (Array.isArray(eventData) && eventData.length >= 2) {
+                    const [approve, reject] = eventData;
+                    snapshotHtml += `
+                      <div class="col-12 mb-3">
+                        <div class="card h-100">
+                          <div class="card-header ${approve > reject ? 'bg-success' : 'bg-danger'} text-white py-2">
+                            <i class="bi bi-check-circle me-2"></i>投票结果
+                          </div>
+                          <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                              <div>
+                                <i class="bi bi-hand-thumbs-up text-success me-1"></i> 赞成: 
+                                <span class="badge bg-success">${approve}</span>
+                              </div>
+                              <div>
+                                <i class="bi bi-hand-thumbs-down text-danger me-1"></i> 反对: 
+                                <span class="badge bg-danger">${reject}</span>
+                              </div>
+                            </div>
+                            <div class="progress mt-2">
+                              <div class="progress-bar bg-success" role="progressbar" style="width: ${approve/(approve+reject)*100}%" aria-valuenow="${approve}" aria-valuemin="0" aria-valuemax="${approve+reject}">
+                                ${approve}
+                              </div>
+                              <div class="progress-bar bg-danger" role="progressbar" style="width: ${reject/(approve+reject)*100}%" aria-valuenow="${reject}" aria-valuemin="0" aria-valuemax="${approve+reject}">
+                                ${reject}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>`;
+                  }
+                  break;
+                  
+                case "MissionResult":
+                  if (Array.isArray(eventData) && eventData.length >= 2) {
+                    const [round, result] = eventData;
+                    const isSuccess = result === "Success";
+                    snapshotHtml += `
+                      <div class="col-12 mb-3">
+                        <div class="card h-100 border-${isSuccess ? 'success' : 'danger'}">
+                          <div class="card-header bg-${isSuccess ? 'success' : 'danger'} text-white py-2">
+                            <i class="bi bi-${isSuccess ? 'check2-circle' : 'x-circle'} me-2"></i>任务结果
+                          </div>
+                          <div class="card-body">
+                            <h5 class="card-title">第 ${round} 轮任务 ${isSuccess ? '成功' : '失败'}</h5>
+                          </div>
+                        </div>
+                      </div>`;
+                  }
+                  break;
+                  
+                case "GameResult":
+                  if (Array.isArray(eventData) && eventData.length >= 2) {
+                    const [team, reason] = eventData;
+                    const isBlue = team.includes("Blue");
+                    snapshotHtml += `
+                      <div class="col-12 mb-3">
+                        <div class="card h-100 border-${isBlue ? 'primary' : 'danger'}">
+                          <div class="card-header bg-${isBlue ? 'primary' : 'danger'} text-white py-2">
+                            <i class="bi bi-trophy me-2"></i>游戏结果
+                          </div>
+                          <div class="card-body">
+                            <h3 class="card-title text-center mb-3 ${isBlue ? 'text-primary' : 'text-danger'}">
+                              ${isBlue ? '蓝队胜利!' : '红队胜利!'}
+                            </h3>
+                            <p class="card-text text-center">${reason}</p>
+                            <div class="text-center mt-3">
+                              <a href="{{ url_for('visualizer.game_replay', game_id=battle.id) }}" class="btn btn-info">
+                                <i class="bi bi-play-btn-fill me-1"></i> 查看详细回放
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      </div>`;
+                  }
+                  break;
+                  
+                case "Positions":
+                case "DefaultPositions":
+                  snapshotHtml += `
+                    <div class="col-12 mb-3">
+                      <div class="card h-100">
+                        <div class="card-header bg-secondary text-white py-2">
+                          <i class="bi bi-geo-alt me-2"></i>${eventType === "Positions" ? '当前位置' : '初始位置'}
+                        </div>
+                        <div class="position-display">
+                            <div class="row">
+                              <div class="col-md-8">
+                                <div class="table-responsive">
+                                  <table class="table table-sm table-hover">
+                                    <thead>
+                                      <tr>
+                                        <th>玩家</th>
+                                        <th>位置</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>`;
+                  
+                  // 如果eventData是对象且有键
+                  if (typeof eventData === 'object' && eventData !== null) {
+                    for (const [player, position] of Object.entries(eventData)) {
+                      const playerNum = parseInt(player);
+                      // 获取与玩家对应的BattlePlayer对象
+                      const battlePlayer = battlePlayers.find(bp => bp.player_index === playerNum);
+                      const playerName = battlePlayer ? battlePlayer.user.username : `玩家${player}`;
+                      
+                      snapshotHtml += `
+                        <tr>
+                          <td>
+                            <span class="badge ${playerNum % 2 === 0 ? 'bg-primary' : 'bg-danger'} me-1">${player}号</span>
+                            ${playerName}
+                          </td>
+                          <td>(${Array.isArray(position) ? position.join(', ') : position})</td>
+                        </tr>`;
+                    }
+                  }
+                  
+                  snapshotHtml += `
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                              <div class="col-md-4 d-none d-md-block">
+                                <!-- 可以在这里添加一个简单的地图可视化 -->
+                                <div class="text-center text-muted">
+                                  <i class="bi bi-map" style="font-size: 3rem;"></i>
+                                  <p class="small">地图数据可用于回放中查看</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>`;
+                  break;
+                
+                case "Information":
+                  snapshotHtml += `
+                    <div class="col-12 mb-3">
+                      <div class="card h-100">
+                        <div class="card-header bg-info text-white py-2">
+                          <i class="bi bi-info-circle me-2"></i>游戏信息
+                        </div>
+                        <div class="card-body">`;
+                  
+                  if (typeof eventData === 'object' && eventData !== null) {
+                    snapshotHtml += `<ul class="list-group list-group-flush">`;
+                    for (const [key, value] of Object.entries(eventData)) {
+                      const displayValue = typeof value === 'object' ? JSON.stringify(value) : value;
+                      snapshotHtml += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                          <span>${key}</span>
+                          <span class="badge bg-primary rounded-pill">${displayValue}</span>
+                        </li>`;
+                    }
+                    snapshotHtml += `</ul>`;
+                  } else {
+                    snapshotHtml += `<p class="card-text">${eventData}</p>`;
+                  }
+                  
+                  snapshotHtml += `
+                        </div>
+                      </div>
+                    </div>`;
+                  break;
+                  
+                default:
+                  // 对于其他未特别处理的事件类型，显示通用卡片
+                  snapshotHtml += `
+                    <div class="col-12 mb-3">
+                      <div class="card h-100">
+                        <div class="card-header bg-secondary text-white py-2">
+                          <i class="bi bi-bell me-2"></i>${eventType || '事件'}
+                        </div>
+                        <div class="card-body">
+                          <pre class="mb-0">${JSON.stringify(eventData, null, 2)}</pre>
+                        </div>
+                      </div>
+                    </div>`;
+              }
+              
+              // 添加显示完整JSON的折叠区域
+              snapshotHtml += `
+                      </div>
+                    </div>
+                    <div class="card-footer bg-light p-2">
+                      <a class="btn btn-sm btn-outline-secondary w-100" data-bs-toggle="collapse" href="#fullJson" role="button">
+                        <i class="bi bi-code-slash me-1"></i>查看完整JSON
+                      </a>
+                    </div>
+                  </div>
+                  
+                  <div class="collapse mt-2" id="fullJson">
+                    <div class="card card-body">
+                      <pre class="mb-0"><code>${JSON.stringify(latestSnapshot, null, 2)}</code></pre>
+                    </div>
+                  </div>
+                </div>`;
+              
+              snapshotsContainer.innerHTML = snapshotHtml;
+              
+              // 初始化Bootstrap的折叠组件
+              const collapseElementList = [].slice.call(document.querySelectorAll('.collapse'));
+              collapseElementList.map(function (collapseEl) {
+                return new bootstrap.Collapse(collapseEl, {
+                  toggle: false
+                });
+              });
+              
+            } else if (data.status === 'playing') {
+              snapshotsContainer.innerHTML = `
+                <div class="alert alert-info">
+                  <i class="bi bi-hourglass-split me-2"></i>游戏正在进行中，等待快照数据...
+                </div>`;
+            }
+            
+          } else {
+            statusDiv.innerHTML = `<p class="text-danger">获取状态失败: ${data.message || '未知错误'}</p>`;
+            clearInterval(intervalId); // 获取失败时停止轮询
+          }
+        } catch (error) {
+          console.error('获取对战状态时出错:', error);
+          statusDiv.innerHTML = `<p class="text-danger">获取对战状态时发生网络错误。</p>`;
+          // clearInterval(intervalId); // 网络错误时也可以考虑停止
+        }
+      }
+      
+      // 初始加载一次
+      fetchBattleStatus();
+      
+      // 每隔3秒轮询一次状态 (根据需要调整频率)
+      intervalId = setInterval(fetchBattleStatus, 3000);
+      
+      // 页面卸载时清除定时器
+      window.addEventListener('beforeunload', () => {
+        if (intervalId) {
+          clearInterval(intervalId);
+        }
+      });
+    });
+    </script>
+{% endblock scripts %}

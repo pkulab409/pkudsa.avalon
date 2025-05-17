@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% block title %}
+    ELO机制说明 - 阿瓦隆AI对战平台
+{% endblock title %}
+{% block content %}
+    <div class="container">
+        <!-- 主卡片容器 -->
+        <div class="card shadow-sm mb-4">
+            <!-- 标题栏 -->
+            <div class="card-header bg-primary text-white p-4">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-graph-up-arrow me-3" style="font-size: 1.8rem;"></i>
+                    <div>
+                        <h1 class="mb-1">天梯ELO机制说明</h1>
+                        <p class="mb-0 opacity-75">开发者文档与用户指南的整合说明</p>
+                    </div>
+                </div>
+            </div>
+            <!-- 内容主体 -->
+            <div class="card-body p-4">
+                <!-- 摘要区块 -->
+                <div class="alert alert-info d-flex align-items-center">
+                    <i class="bi bi-info-circle-fill me-3" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <strong>核心设计目标：</strong>通过动态调整机制平衡竞技公平性，同时鼓励资源优化策略
+                    </div>
+                </div>
+                <!-- 章节1 -->
+                <section class="mb-5">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="badge bg-primary me-3"
+                             style="width: 32px;
+                                    height: 32px;
+                                    line-height: 32px">一</div>
+                        <h2 class="mb-0">基础规则</h2>
+                    </div>
+                    <div class="row g-4">
+                        <!-- 游戏胜负 -->
+                        <div class="col-md-6">
+                            <div class="card h-100 border-primary">
+                                <div class="card-body">
+                                    <h5 class="d-flex align-items-center">
+                                        <i class="bi bi-trophy-fill text-warning me-2"></i>
+                                        胜负判定
+                                    </h5>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2">🏰 蓝方需完成3次任务</li>
+                                        <li class="mb-2">🔥 红方需破坏3次任务或刺杀梅林</li>
+                                        <li class="text-danger">❗ 无平局机制（犯规情况除外）</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- ELO基础 -->
+                        <div class="col-md-6">
+                            <div class="card h-100 border-primary">
+                                <div class="card-body">
+                                    <h5 class="d-flex align-items-center">
+                                        <i class="bi bi-bar-chart-line-fill text-success me-2"></i>
+                                        ELO核心规则
+                                    </h5>
+                                    <ul>
+                                        <li>初始分数：1200分</li>
+                                        <li>K值系数：100</li>
+                                        <li>计算公式：Δ = K × (结果 - 预期)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <!-- 章节2 -->
+                <section class="mb-5">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="badge bg-primary me-3"
+                             style="width: 32px;
+                                    height: 32px;
+                                    line-height: 32px">二</div>
+                        <h2 class="mb-0">进阶计算模型</h2>
+                    </div>
+                    <!-- 公式卡片 -->
+                    <div class="card border-secondary mb-4">
+                        <div class="card-header bg-light">
+                            <i class="bi bi-calculator me-2"></i>核心公式组
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-light mb-3">
+                                <h5 class="text-primary">Token标准化计算</h5>
+                                <code class="d-block bg-dark text-light p-3 rounded">
+                                    tokens_standard = (input + 3×output) / 4
+                                </code>
+                            </div>
+                            <div class="alert alert-light">
+                                <h5 class="text-primary">动态期望调整</h5>
+                                <code class="d-block bg-dark text-light p-3 rounded">
+                                    E<sub>adjusted</sub> = min(1, E<sub>base</sub> × (0.9 + max(proportion-1,0)/3))
+                                </code>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 流程图 -->
+                    <div class="card border-primary mb-4">
+                        <div class="card-header bg-light">
+                            <i class="bi bi-diagram-3 me-2"></i>计算流程
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-around text-center">
+                                <div>
+                                    <div class="badge bg-primary rounded-circle mb-2"
+                                         style="width:40px;
+                                                height:40px;
+                                                line-height:40px">1</div>
+                                    <div>Token标准化</div>
+                                </div>
+                                <i class="bi bi-arrow-right"
+                                   style="font-size: 1.5rem;
+                                          line-height: 40px"></i>
+                                <div>
+                                    <div class="badge bg-primary rounded-circle mb-2"
+                                         style="width:40px;
+                                                height:40px;
+                                                line-height:40px">2</div>
+                                    <div>基准值计算</div>
+                                </div>
+                                <i class="bi bi-arrow-right"
+                                   style="font-size: 1.5rem;
+                                          line-height: 40px"></i>
+                                <div>
+                                    <div class="badge bg-primary rounded-circle mb-2"
+                                         style="width:40px;
+                                                height:40px;
+                                                line-height:40px">3</div>
+                                    <div>动态调整</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <!-- 章节3 -->
+                <section class="mb-5">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="badge bg-primary me-3"
+                             style="width: 32px;
+                                    height: 32px;
+                                    line-height: 32px">三</div>
+                        <h2 class="mb-0">违规处理机制</h2>
+                    </div>
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-octagon-fill me-2"></i>
+                        <strong>严重违规将触发即时惩罚机制</strong>，包括ELO扣分和比赛终止
+                    </div>
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <div class="card h-100 border-danger">
+                                <div class="card-body">
+                                    <h5 class="text-danger">
+                                        <i class="bi bi-x-circle-fill me-2"></i>
+                                        惩罚规则
+                                    </h5>
+                                    <ul class="list-unstyled">
+                                        <li>基础扣分：30分</li>
+                                        <li>错误倍数：1.2-1.5倍</li>
+                                        <li>额外惩罚：+10~20分</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="card h-100 border-warning">
+                                <div class="card-body">
+                                    <h5 class="text-warning">
+                                        <i class="bi bi-shield-exclamation me-2"></i>
+                                        典型案例
+                                    </h5>
+                                    <div class="row g-3">
+                                        <div class="col-6">
+                                            <div class="alert alert-light mb-0">
+                                                <i class="bi bi-bug-fill text-danger me-2"></i>
+                                                代码异常终止
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="alert alert-light mb-0">
+                                                <i class="bi bi-clock-history text-warning me-2"></i>
+                                                超时未响应
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <!-- 讨论区 -->
+                <div class="card border-success">
+                    <div class="card-header bg-success text-white">
+                        <i class="bi bi-chat-dots-fill me-2"></i>
+                        参与讨论
+                    </div>
+                    <div class="card-body">
+                        <blockquote class="blockquote mb-0">
+                            <p class="fs-5">
+                                📢 欢迎在GitHub提出您的见解
+                                <a href="https://github.com/pkulab409/pkudsa.avalon/issues/10"
+                                   class="btn btn-success btn-sm ms-3">
+                                    <i class="bi bi-github me-2"></i>前往Issue
+                                </a>
+                            </p>
+                        </blockquote>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <style>
+        .card-header h1 { font-size: 1.8rem; }
+        code { font-family: 'Fira Code', monospace; }
+        .alert li { line-height: 2rem; }
+        .card-border { border-left: 4px solid var(--bs-primary); }
+    </style>
+{% endblock content %}

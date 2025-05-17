@@ -5,6 +5,8 @@
 
 
 import logging, json, os
+
+import yaml
 from flask import (
     Blueprint,
     render_template,
@@ -17,7 +19,7 @@ from flask import (
     send_file,
 )
 from flask_login import login_required, current_user
-
+import random
 
 # 导入新的数据库操作和模型
 from database import (
@@ -30,8 +32,10 @@ from database import (
     get_battle_players_for_battle as db_get_battle_players_for_battle,
     get_user_ai_codes as db_get_user_ai_codes,
     get_battles_paginated_filtered,
+    get_available_ai_instances,
 )
 from database.models import Battle, BattlePlayer, User, AICode
+from database.action import create_battle_instance, add_player_to_battle
 from utils.battle_manager_utils import get_battle_manager
 from game.automatch import AutoMatch
 from game.automatch import AutoMatch
@@ -52,7 +56,11 @@ def lobby():
     status_filter = request.args.get("status", None, type=str)
     date_from_str = request.args.get("date_from", None, type=str)
     date_to_str = request.args.get("date_to", None, type=str)
-    player_filter = request.args.get("player", None, type=str)  # New filter parameter
+
+    # Get multiple players (can be passed as a list from form)
+    player_filters = request.args.getlist(
+        "players"
+    )  # Use getlist to get all values with the same name
 
     filters = {}
     if status_filter and status_filter != "all":  # 'all' means no status filter
@@ -71,18 +79,18 @@ def lobby():
         filters.pop("date_from", None)
         filters.pop("date_to", None)
 
-    if player_filter:
-        filters["player"] = (
-            player_filter.strip()
-        )  # Add player filter, remove leading/trailing spaces
+    if player_filters:
+        # Pass the list of player filters to the database function
+        filters["players"] = (
+            player_filters  # Now passing a list of players instead of a single player
+        )
 
     # Fetch battles using the enhanced database function
     battles_pagination = get_battles_paginated_filtered(
         filters=filters, page=page, per_page=per_page
     )
 
-    # Fetch all users for the datalist suggestion (optional but helpful)
-    # Consider performance if you have a very large number of users.
+    # Fetch all users for the datalist suggestion
     all_users = User.query.order_by(User.username).all()
 
     return render_template(
@@ -94,25 +102,269 @@ def lobby():
             "status": status_filter,
             "date_from": date_from_str,
             "date_to": date_to_str,
-            "player": player_filter,  # Pass player filter back
+            "players": player_filters,  # Now passing the list of players back to the template
         },
     )
 
 
-@game_bp.route("/create_battle_page")
+# 辅助函数：从config.yaml获取AI玩家的用户名
+def get_ai_player_usernames_from_config():
+    try:
+        # 根据您的项目结构调整config.yaml的路径
+        config_path = os.path.join(current_app.root_path, "config", "config.yaml")
+        if not os.path.exists(config_path):
+            config_path = os.path.join(current_app.root_path, "config.yaml")
+
+        with open(config_path, "r", encoding="utf-8") as f:
+            config_data = yaml.safe_load(f)
+        initial_users_config = config_data.get("INITIAL_USERS", [])
+        # 筛选出在config.yaml中定义为AI的用户的用户名
+        ai_usernames = [
+            user_conf.get("username")
+            for user_conf in initial_users_config
+            if user_conf.get("username") and "ai_code" in user_conf  # 确保是AI用户
+        ]
+        return list(set(ai_usernames))  # 返回去重后的用户名列表
+    except Exception as e:
+        current_app.logger.error(f"从config.yaml加载AI用户名失败: {e}", exc_info=True)
+        return []
+
+
+@game_bp.route("/create_battle_page", methods=["GET"])
 @login_required
 def create_battle_page():
-    """显示创建对战页面"""
-    # 获取当前用户的所有AI代码供选择
-    user_ai_codes = db_get_user_ai_codes(current_user.id)
-    # 获取所有用户（或一部分用户）作为潜在的AI对手
-    # 注意：实际应用中可能需要更复杂的对手选择机制，例如好友、排行榜用户等
-    potential_opponents = User.query.filter(User.id != current_user.id).all()
-    return render_template(
-        "create_battle.html",  # 需要创建 create_battle.html
-        user_ai_codes=user_ai_codes,
-        potential_opponents=potential_opponents,
-    )
+    test_mode = request.args.get("test_mode", "false").lower() == "true"
+
+    if test_mode:
+        # ... (您的测试模式逻辑)
+        # 此处通常会重定向或直接开始测试，不涉及手动选择对手
+        ai_id = request.args.get("ai_id")
+        opponent_type = request.args.get("opponent_type", "smart")
+        player_position = int(request.args.get("player_position", "1"))
+        return setup_test_battle(ai_id, opponent_type, player_position)
+
+    potential_opponents = []
+    try:
+        ai_player_usernames = get_ai_player_usernames_from_config()
+        if ai_player_usernames:
+            # 查询数据库，获取这些用户名的User对象，同时排除当前登录用户
+            potential_opponents = (
+                User.query.filter(
+                    User.username.in_(ai_player_usernames), User.id != current_user.id
+                )
+                .order_by(User.username)
+                .all()
+            )
+        else:
+            current_app.logger.warning("未能从config.yaml加载AI玩家用户名。")
+            # 可以考虑一个备选方案，比如加载所有非当前用户，但这可能过于宽泛
+            # potential_opponents = User.query.filter(User.id != current_user.id).order_by(User.username).all()
+
+    except Exception as e:
+        current_app.logger.error(f"获取潜在对手列表失败: {str(e)}", exc_info=True)
+        flash("加载对手列表时出错。", "danger")
+
+    try:
+        # 将获取到的对手列表传递给模板
+        return render_template(
+            "create_battle.html", potential_opponents=potential_opponents
+        )
+    except Exception as e:
+        current_app.logger.warning(f"模板 'create_battle.html' 渲染出错: {str(e)}")
+        # ... (您现有的模板加载错误处理逻辑) ...
+        return "加载创建对战页面时发生错误。", 500
+
+
+# 修改game.py中的setup_test_battle函数
+
+
+def setup_test_battle(ai_id, opponent_type, player_position):
+    """设置测试对战，确保AI按位置顺序分配且不重复
+
+    参数:
+        ai_id: 用户选择的AI代码ID
+        opponent_type: AI对手类型 ("smart", "basic", "idiot", "mixed")
+        player_position: 玩家选择的位置（1-7）
+
+    返回:
+        重定向响应
+    """
+    # 检查AI代码是否存在
+    user_ai = get_ai_code_by_id(ai_id)
+    if not user_ai or user_ai.user_id != current_user.id:
+        flash("AI代码不存在或您没有权限访问", "danger")
+        return redirect(url_for("ai.list_ai"))
+
+    try:
+        # 创建新对战实例，使用从__init__导入的函数
+        battle = create_battle_instance(created_by=current_user.id)
+        if not battle:
+            flash("创建测试对战失败", "danger")
+            return redirect(url_for("ai.list_ai"))
+
+        # 记录测试配置
+        current_app.logger.info(
+            f"创建测试对战: AI={ai_id}, 类型={opponent_type}, 位置={player_position}"
+        )
+
+        # 添加用户的AI到指定位置
+        player = add_player_to_battle(
+            battle_id=battle.id,
+            user_id=current_user.id,
+            position=player_position,
+            ai_code_id=ai_id,
+        )
+
+        if not player:
+            flash("将AI添加到对战失败", "danger")
+            return redirect(url_for("ai.list_ai"))
+
+        # 根据所选模式填充其他AI玩家
+        if opponent_type == "mixed":
+            # 混合模式: 随机选择不同类型的AI
+            setup_mixed_ai_opponents(battle.id, player_position)
+        else:
+            # 统一模式: 使用同一类型的AI
+            setup_uniform_ai_opponents(battle.id, player_position, opponent_type)
+
+        flash("测试对战创建成功！", "success")
+
+        # 重定向到查看对战页面
+        return redirect(url_for("game.view_battle", battle_id=battle.id))
+
+    except Exception as e:
+        current_app.logger.error(f"创建测试对战时出错: {str(e)}", exc_info=True)
+        flash(f"创建测试对战时出错: {str(e)}", "danger")
+        return redirect(url_for("ai.list_ai"))
+
+
+# 修改game.py中的setup_mixed_ai_opponents函数
+
+
+def setup_mixed_ai_opponents(game_id, player_position):
+    """设置混合AI对手，确保不重复且按位置顺序分配
+
+    参数:
+        game_id: 游戏ID
+        player_position: 玩家选择的位置（1-7）
+    """
+    # 计算需要填充的位置
+    all_positions = list(range(1, 8))
+    all_positions.remove(player_position)  # 移除玩家已选位置
+
+    # 可用的AI类型
+    ai_types = ["smart", "basic", "idiot"]
+
+    # 已使用的AI实例ID列表，确保不重复使用
+    used_ai_ids = []
+
+    # 记录位置和对应AI的日志
+    position_ai_map = {}
+
+    # 为每个位置分配一个随机类型的AI，确保不重复
+    for position in all_positions:
+        # 随机选择AI类型
+        ai_type = random.choice(ai_types)
+
+        # 获取此类型的所有可用AI实例 (过滤掉已使用的)
+        available_ai = get_available_ai_instances(ai_type)
+        unused_ai = [ai for ai in available_ai if ai.id not in used_ai_ids]
+
+        # 如果此类型没有未使用的AI实例，尝试其他类型
+        if not unused_ai:
+            # 尝试其他AI类型
+            for alt_type in ai_types:
+                if alt_type == ai_type:
+                    continue
+
+                available_ai = get_available_ai_instances(alt_type)
+                unused_ai = [ai for ai in available_ai if ai.id not in used_ai_ids]
+
+                if unused_ai:
+                    ai_type = alt_type  # 更新为找到可用AI的类型
+                    break
+
+        # 如果仍然没有可用的AI实例，使用系统默认AI
+        if not unused_ai:
+            current_app.logger.warning(
+                f"没有足够的未使用AI实例，位置{position}将使用系统默认AI"
+            )
+            ai_code_id = None
+            position_ai_map[position] = f"系统默认AI (类型: {ai_type})"
+        else:
+            # 随机选择一个未使用的AI实例
+            selected_ai = random.choice(unused_ai)
+            ai_code_id = selected_ai.id
+            used_ai_ids.append(ai_code_id)
+            position_ai_map[position] = (
+                f"AI: {selected_ai.name} (ID: {ai_code_id}, 类型: {ai_type})"
+            )
+
+        # 添加AI到游戏
+        add_player_to_battle(
+            battle_id=game_id,
+            user_id=None,  # 系统AI没有对应的用户
+            position=position,
+            ai_code_id=ai_code_id,
+        )
+
+    # 记录AI分配情况
+    current_app.logger.info(f"混合模式AI分配: {position_ai_map}")
+
+
+# 修改game.py中的setup_uniform_ai_opponents函数
+
+
+def setup_uniform_ai_opponents(game_id, player_position, opponent_type):
+    """设置统一类型的AI对手，确保不重复且按位置顺序分配
+
+    参数:
+        game_id: 游戏ID
+        player_position: 玩家选择的位置（1-7）
+        opponent_type: AI类型 ("smart", "basic", "idiot")
+    """
+    # 计算需要填充的位置
+    all_positions = list(range(1, 8))
+    all_positions.remove(player_position)  # 移除玩家已选位置
+
+    # 获取此类型的所有可用AI实例
+    available_ai = get_available_ai_instances(opponent_type)
+
+    # 已使用的AI实例ID列表，确保不重复使用
+    used_ai_ids = []
+
+    # 记录位置和对应AI的日志
+    position_ai_map = {}
+
+    # 为每个位置分配AI，确保不重复
+    for position in all_positions:
+        # 过滤掉已使用的AI实例
+        unused_ai = [ai for ai in available_ai if ai.id not in used_ai_ids]
+
+        # 如果没有足够的未使用AI实例，使用系统默认AI
+        if not unused_ai:
+            current_app.logger.warning(
+                f"没有足够的{opponent_type}类型未使用AI实例，位置{position}将使用系统默认AI"
+            )
+            ai_code_id = None
+            position_ai_map[position] = f"系统默认AI (类型: {opponent_type})"
+        else:
+            # 随机选择一个未使用的AI实例
+            selected_ai = random.choice(unused_ai)
+            ai_code_id = selected_ai.id
+            used_ai_ids.append(ai_code_id)
+            position_ai_map[position] = f"AI: {selected_ai.name} (ID: {ai_code_id})"
+
+        # 添加AI到游戏
+        add_player_to_battle(
+            battle_id=game_id,
+            user_id=None,  # 系统AI没有对应的用户
+            position=position,
+            ai_code_id=ai_code_id,
+        )
+
+    # 记录AI分配情况
+    current_app.logger.info(f"{opponent_type}模式AI分配: {position_ai_map}")
 
 
 @game_bp.route("/api/battle/<int:battle_id>/status")
@@ -438,6 +690,45 @@ def view_battle(battle_id):
         )  # 需要创建 battle_completed.html
     else:
         flash(f"未知的对战状态: {battle.status}", "warning")
+        return redirect(url_for("game.lobby"))
+
+
+# 添加到game.py中，用于处理测试对战的创建
+
+
+@game_bp.route("/create_battle_test", methods=["POST"])
+@login_required
+def create_battle_test():
+    """处理测试对战的创建请求"""
+    try:
+        # 获取表单数据
+        ai_id = request.form.get("ai_id")
+        opponent_type = request.form.get("opponent_type", "smart")
+        player_position = request.form.get("player_position", "1")
+
+        # 验证数据
+        if not ai_id:
+            flash("缺少AI代码ID", "danger")
+            return redirect(url_for("game.lobby"))
+
+        if opponent_type not in ["smart", "basic", "idiot", "mixed"]:
+            flash("无效的对手类型", "danger")
+            return redirect(url_for("game.lobby"))
+
+        try:
+            pos = int(player_position)
+            if pos < 1 or pos > 7:
+                raise ValueError("位置必须在1-7之间")
+        except ValueError:
+            flash("无效的玩家位置", "danger")
+            return redirect(url_for("game.lobby"))
+
+        # 创建测试对战
+        return setup_test_battle(ai_id, opponent_type, pos)
+
+    except Exception as e:
+        current_app.logger.error(f"创建测试对战请求处理失败: {str(e)}", exc_info=True)
+        flash(f"创建测试对战失败: {str(e)}", "danger")
         return redirect(url_for("game.lobby"))
 
 

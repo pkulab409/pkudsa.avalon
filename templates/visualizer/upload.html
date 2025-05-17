@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}
+    上传游戏对局JSON - 游戏平台
+{% endblock title %}
+{% block content %}
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">上传游戏对局JSON文件</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="mb-4">
+                                <label for="game_json" class="form-label">游戏对局JSON文件</label>
+                                <input type="file"
+                                       class="form-control"
+                                       id="game_json"
+                                       name="game_json"
+                                       accept=".json"
+                                       required>
+                                <div class="form-text">上传符合阿瓦隆游戏对局格式的JSON文件。文件必须包含完整的游戏信息才能正确显示。</div>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">上传并查看</button>
+                                <a href="{{ url_for('visualizer.game_index', game_id='example') }}"
+                                   class="btn btn-outline-secondary">取消</a>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="card-footer">
+                        <div class="alert alert-info mb-0">
+                            <h5 class="alert-heading">文件格式要求</h5>
+                            <p>上传的JSON文件必须符合阿瓦隆游戏对局格式，包含以下主要事件类型：</p>
+                            <ul>
+                                <li>
+                                    <code>game_start</code>：游戏开始信息，包含游戏ID、玩家数量和地图大小
+                                </li>
+                                <li>
+                                    <code>night_phase_complete</code>：夜晚阶段结束
+                                </li>
+                                <li>
+                                    <code>mission_start</code>：任务回合开始
+                                </li>
+                                <li>
+                                    <code>team_proposed</code>：队长提名团队
+                                </li>
+                                <li>
+                                    <code>global_speech</code>：全局发言
+                                </li>
+                                <li>其他游戏进程相关事件</li>
+                            </ul>
+                            <p>
+                                如需查看详细的文件格式规范，请参考<a href="#" class="alert-link">开发文档</a>。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
