@@ -270,37 +270,65 @@ def get_active_ai_codes_by_ranking_ids(ranking_ids: list[int] = None) -> list[AI
         list[AICode]: 一个 AICode 对象的列表。
     """
     try:
-        # 查询所有激活的 AI 代码
-        active_ai_query = AICode.query.filter_by(is_active=True)
+        logger.info(f"Attempting to get active AI codes for ranking_ids: {ranking_ids}")
 
         if ranking_ids and len(ranking_ids) > 0:
-            # # 如果指定了 ranking_ids，我们需要找到那些用户在这些榜单上有统计数据
-            # # 1. 获取在指定 ranking_ids 中有 GameStats 的 user_id 列表
-            # users_in_rankings_subquery = (
-            #     db.session.query(GameStats.user_id)
-            #     .filter(GameStats.ranking_id.in_(ranking_ids))
-            #     .distinct()
-            #     .subquery()
-            # )
-            # # 2. 筛选激活的 AI 代码，使其 user_id 在上述子查询结果中
-            # active_ai_query = active_ai_query.join(
-            #     users_in_rankings_subquery,
-            #     AICode.user_id == users_in_rankings_subquery.c.user_id,
-            # )
+            logger.debug(f"Filtering by ranking_ids: {ranking_ids}")
             
-            # 或者，另一种方式是先获取用户，再获取他们的AI (可能更直观，但查询结构不同):
-            users_with_stats_in_rankings = User.query.join(User.game_stats_entries).filter(GameStats.ranking_id.in_(ranking_ids)).all()
-            user_ids_in_rankings = [user.id for user in users_with_stats_in_rankings]
-            active_ai_query = AICode.query.filter(AICode.user_id.in_(user_ids_in_rankings), AICode.is_active==True)
+            # 步骤 1: 获取在指定 ranking_ids 中有 GameStats 的 user_id 列表
+            # 使用子查询的方式，通常更高效，因为它可以在数据库层面完成更多工作
+            users_in_rankings_subquery = (
+                db.session.query(GameStats.user_id)
+                .filter(GameStats.ranking_id.in_(ranking_ids))
+                .distinct()
+                .subquery()
+            )
+            
+            # 打印子查询将查找的 user_id (这一步需要执行子查询才能看到结果，所以更适合在数据库客户端测试子查询SQL)
+            # logger.debug(f"Subquery for user_ids: {str(users_in_rankings_subquery)}")
+
+            # 步骤 2: 筛选激活的 AI 代码，使其 user_id 在上述子查询结果中
+            # 并且 AICode 本身是 active 的
+            active_ai_query = AICode.query.join(
+                users_in_rankings_subquery,
+                AICode.user_id == users_in_rankings_subquery.c.user_id,
+            ).filter(AICode.is_active == True)
+            
+            # # --- 备选逻辑（你当前使用的） ---
+            # users_with_stats_in_rankings = User.query.join(User.game_stats_entries).filter(GameStats.ranking_id.in_(ranking_ids)).distinct().all() # 添加 distinct() 避免用户重复
+            # user_ids_in_rankings = [user.id for user in users_with_stats_in_rankings]
+            # logger.info(f"User IDs found with stats in specified rankings: {user_ids_in_rankings}")
+
+            # if not user_ids_in_rankings:
+            #     logger.info("No users found with game stats in the specified ranking IDs. Returning empty list.")
+            #     return []
+            
+            # active_ai_query = AICode.query.filter(
+            #     AICode.user_id.in_(user_ids_in_rankings), 
+            #     AICode.is_active == True
+            # )
+            # # --- 备选逻辑结束 ---
+
+        else:
+            logger.debug("No ranking_ids provided, fetching all active AI codes.")
+            # 如果 ranking_ids 为 None 或为空列表，则获取所有用户的激活 AI 代码
+            active_ai_query = AICode.query.filter_by(is_active=True)
+        
+        # 打印将要执行的查询的SQL (可选，用于调试)
+        # from sqlalchemy.dialects import postgresql # 或其他你的数据库方言
+        # logger.debug(f"Final query SQL: {str(active_ai_query.statement.compile(dialect=postgresql.dialect()))}")
 
         ai_codes_result = active_ai_query.all()
         logger.info(
-            f"查询到 {len(ai_codes_result)} 个激活的AI代码 (针对榜单: {ranking_ids if ranking_ids else '所有'})"
+            f"Found {len(ai_codes_result)} active AI codes (for ranking_ids: {ranking_ids if ranking_ids else 'all'})"
         )
+        # # 如果需要详细看结果，可以取消下面注释
+        # for code in ai_codes_result:
+        #     logger.debug(f"  - AICode ID: {code.id}, User ID: {code.user_id}, Name: {code.name}, IsActive: {code.is_active}")
         return ai_codes_result
     except Exception as e:
         logger.error(
-            f"根据榜单 {ranking_ids} 获取激活AI代码失败: {e}", exc_info=True
+            f"Error getting active AI codes for ranking_ids {ranking_ids}: {e}", exc_info=True
         )
         return []
 
