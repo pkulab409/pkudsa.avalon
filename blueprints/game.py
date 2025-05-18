@@ -801,9 +801,23 @@ def create_battle_action():
                 return jsonify({"success": False, "message": "参与者信息不完整"})
             # 可以在这里添加更多验证，例如检查AI代码是否属于对应用户
 
+        # 获取排行榜ID（默认为0，表示测试对战）
+        ranking_id = data.get("ranking_id", 0)
+
+        # 非管理员用户只能创建排行榜0（测试对战）的对战
+        if not current_user.is_admin and ranking_id != 0:
+            current_app.logger.warning(
+                f"非管理员用户 {current_user.id} 尝试创建非测试对战（排行榜ID: {ranking_id}），已被拒绝"
+            )
+            return jsonify(
+                {"success": False, "message": "普通用户只能创建测试对战（排行榜0）"}
+            )
+
         # 调用数据库操作创建 Battle 和 BattlePlayer 记录
         # 使用 db_ 前缀以明确区分
-        battle = db_create_battle(participant_data, status="waiting")
+        battle = db_create_battle(
+            participant_data, ranking_id=ranking_id, status="waiting"
+        )
 
         if battle:
             current_app.logger.info(

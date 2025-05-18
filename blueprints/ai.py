@@ -136,6 +136,20 @@ def upload_ai():
             )
 
             if new_ai_code:
+                # 确保用户有榜单0的GameStats记录（用于测试赛）
+                default_stats = get_game_stats_by_user_id(current_user.id, ranking_id=0)
+                if not default_stats:
+                    # 如果用户还没有榜单0的统计，创建一个
+                    default_stats = create_game_stats(current_user.id, ranking_id=0)
+                    if default_stats:
+                        current_app.logger.info(
+                            f"为用户 {current_user.id} 创建榜单0（测试赛）的统计记录"
+                        )
+                    else:
+                        current_app.logger.warning(
+                            f"为用户 {current_user.id} 创建榜单0的统计记录失败"
+                        )
+
                 flash("AI代码上传成功！", "success")
                 # 如果需要设为激活
                 if make_active:
