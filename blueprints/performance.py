@@ -23,18 +23,16 @@ def get_usage_data():
     try:
         with open(JSON_DATA_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
-        
+
         # 计算总记录数
         total_records = len(data)
-        
+
         # 只返回最近的1000条数据
         recent_data = data[-1000:] if len(data) > 1000 else data
-        
-        return jsonify({
-            "success": True, 
-            "data": recent_data, 
-            "total_records": total_records
-        })
+
+        return jsonify(
+            {"success": True, "data": recent_data, "total_records": total_records}
+        )
     except FileNotFoundError:
         return jsonify({"success": False, "error": "数据文件不存在"}), 404
     except json.JSONDecodeError:
