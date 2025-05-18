@@ -1,9 +1,11 @@
 # 游戏对战平台主程序入口
 from app import create_app
 from flask import render_template  # 添加这一行导入render_template函数
+import logging
 
 # 创建应用实例
 app = create_app()
+app.logger.setLevel(logging.DEBUG)
 
 
 # 全局错误处理

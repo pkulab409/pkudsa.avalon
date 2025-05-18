@@ -40,6 +40,8 @@ from database import (
     add_player_to_battle,
     create_battle_instance,
     update_battle,
+    get_game_stats_by_user_id,
+    create_game_stats,
 )
 from database.models import AICode, BattlePlayer  # 仍然需要模型用于类型提示或特定查询
 from datetime import datetime
@@ -47,6 +49,10 @@ import importlib.util
 import sys
 import inspect
 import pickle
+import json
+import time
+
+PARTITION_NUMBER = 6
 from utils.battle_manager_utils import get_battle_manager
 
 # 创建蓝图
@@ -76,9 +82,18 @@ def allowed_file(filename):
 @login_required
 def list_ai():
     """显示用户的AI代码列表"""
-    # 使用数据库操作函数
-    ai_codes = db_get_user_ai_codes(current_user.id)
-    return render_template("ai/list.html", ai_codes=ai_codes)
+    user_id = current_user.id
+    ai_codes = db_get_user_ai_codes(user_id)
+
+    # 检查用户是否已加入当前分区的天梯
+    has_ranking_stats = (
+        get_game_stats_by_user_id(user_id, ranking_id=current_user.partition)
+        is not None
+    )
+
+    return render_template(
+        "ai/list.html", ai_codes=ai_codes, has_ranking_stats=has_ranking_stats
+    )
 
 
 @ai_bp.route("/upload_ai", methods=["GET", "POST"])
@@ -121,6 +136,20 @@ def upload_ai():
             )
 
             if new_ai_code:
+                # 确保用户有榜单0的GameStats记录（用于测试赛）
+                default_stats = get_game_stats_by_user_id(current_user.id, ranking_id=0)
+                if not default_stats:
+                    # 如果用户还没有榜单0的统计，创建一个
+                    default_stats = create_game_stats(current_user.id, ranking_id=0)
+                    if default_stats:
+                        current_app.logger.info(
+                            f"为用户 {current_user.id} 创建榜单0（测试赛）的统计记录"
+                        )
+                    else:
+                        current_app.logger.warning(
+                            f"为用户 {current_user.id} 创建榜单0的统计记录失败"
+                        )
+
                 flash("AI代码上传成功！", "success")
                 # 如果需要设为激活
                 if make_active:
@@ -242,6 +271,44 @@ def edit_ai(ai_id):
         return redirect(url_for("ai.list_ai"))
 
     return render_template("ai/edit.html", ai_code=ai_code)
+
+
+@ai_bp.route("/join_ranking", methods=["POST"])
+@login_required
+def join_ranking():
+    """
+    加入天梯赛初赛(分区赛)
+    后续晋级将自动注册到新榜单
+    创建ranking_id=1~6的GameStats记录
+    """
+    try:
+        # 检查用户是否已有活跃AI
+        active_ai = db_get_user_active_ai_code(current_user.id)
+        if not active_ai:
+            return jsonify(
+                {"success": False, "message": "您没有设置活跃AI，请先设置一个活跃AI"}
+            )
+
+        # 检查用户是否已有当前分区的天梯统计
+        existing_stats = get_game_stats_by_user_id(
+            current_user.id, ranking_id=current_user.partition
+        )
+        if existing_stats:
+            return jsonify({"success": False, "message": "您已经加入了天梯赛"})
+
+        # 创建当前分区的天梯统计
+        stats = create_game_stats(current_user.id, ranking_id=current_user.partition)
+        if not stats:
+            return jsonify(
+                {"success": False, "message": "创建天梯统计失败，请稍后重试"}
+            )
+
+        return jsonify(
+            {"success": True, "message": "成功加入天梯赛！您的初始ELO分数为1200"}
+        )
+    except Exception as e:
+        current_app.logger.error(f"加入天梯失败: {str(e)}")
+        return jsonify({"success": False, "message": "服务器错误，请稍后重试"})
 
 
 @ai_bp.route("/get_active_ai", methods=["GET"])

@@ -1,14 +1,16 @@
+from tkinter import NO
 from flask import Flask, request, current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, current_user
 from flask_wtf.csrf import CSRFProtect
+from blueprints import ranking
 from config.config import Config
 from datetime import timedelta, datetime
 import logging
 import os
 import shutil
 from utils.battle_manager_utils import init_battle_manager_utils
-from utils.automatch_utils import init_automatch_utils
+from utils.automatch_utils import init_automatch_utils, get_automatch
 
 from database.base import db, login_manager
 from database import initialize_database
@@ -19,6 +21,7 @@ from database import (
     set_active_ai_code,
     User,
     AICode,
+    GameStats,
 )
 
 # 初始化csrf保护
@@ -42,12 +45,13 @@ def initialize_default_data(app):
             admin_count = 0
             total_users = 0
             admin_emails = []
-
+            user = None
             # ================= 用户初始化循环 =================
             for idx, user_config in enumerate(app.config.get("INITIAL_USERS", []), 1):
                 try:
                     email = user_config["email"]
                     is_admin = user_config.get("is_admin", False)
+                    partition = user_config.get("partition", None)
                     app.logger.info(
                         f"🔧 正在处理用户 {idx}/{len(app.config['INITIAL_USERS'])}: {email}"
                     )
@@ -62,6 +66,7 @@ def initialize_default_data(app):
                             username=user_config["username"],
                             email=email,
                             is_admin=is_admin,
+                            partition=partition,
                             created_at=datetime.utcnow(),
                         )
                         user.set_password(user_config["password"])
@@ -99,6 +104,18 @@ def initialize_default_data(app):
                             user.modified_at = datetime.utcnow()
                             db.session.commit()
                             action = "更新"
+
+                    # 确保用户有对应 partition 的 GameStats 记录
+                    existing_stats = GameStats.query.filter_by(
+                        user_id=user.id, ranking_id=partition
+                    ).first()
+                    if not existing_stats:
+                        stats = GameStats(user_id=user.id, ranking_id=partition)
+                        db.session.add(stats)
+                        app.logger.info(
+                            f"📊 为用户 {email} 创建 ranking_id={partition} 的游戏统计记录"
+                        )
+                        db.session.flush()
 
                     # ================= AI代码处理 =================
                     ai_config = user_config.get("ai_code")
@@ -144,8 +161,8 @@ def initialize_default_data(app):
                             is_active=ai_config.get("make_active", False),
                             created_at=datetime.utcnow(),
                         )
-                        db.session.add(ai)
 
+                        db.session.add(ai)
                     db.session.commit()
 
                 except KeyError as e:
@@ -325,8 +342,10 @@ def create_app(config_object=Config):
     # 先初始化对战管理器
     init_battle_manager_utils(app)
 
-    # 初始化自动对战管理器
+    # 初始化AutoMatch工具，并确保重启时清理旧状态
     init_automatch_utils(app)
+    automatch = get_automatch()
+    automatch.terminate_all_and_clear()  # 确保应用启动时没有遗留的运行实例
 
     # 再清理意外中断的对局
     cleanup_stale_battles(app)

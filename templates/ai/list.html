@@ -13,9 +13,26 @@
                         </h2>
                         <p class="text-muted mb-0">管理您的游戏AI策略，上传新代码或修改现有代码。</p>
                     </div>
-                    <a href="{{ url_for('ai.upload_ai') }}" class="btn btn-primary">
-                        <i class="bi bi-cloud-upload me-2"></i> 上传新AI
-                    </a>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('ai.upload_ai') }}" class="btn btn-primary">
+                            <i class="bi bi-cloud-upload me-2"></i> 上传新AI
+                        </a>
+                        {% if not has_ranking_stats %}
+                            <form id="joinRankingForm" method="post" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit"
+                                        class="btn btn-success"
+                                        id="joinRankingBtn"
+                                        data-loading-text="<span class='spinner-border spinner-border-sm'></span> 提交中...">
+                                    <i class="bi bi-trophy me-2"></i> 加入天梯赛
+                                </button>
+                            </form>
+                        {% else %}
+                            <button class="btn btn-outline-success" disabled>
+                                <i class="bi bi-check-circle me-2"></i> 已加入当前分区天梯赛
+                            </button>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -353,6 +370,59 @@
                 seriesToastEl.classList.add('text-bg-danger');
             }
             seriesToast.show(); // Show updated message
+        }
+
+        // 天梯赛加入表单AJAX处理
+        document.getElementById('joinRankingForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('joinRankingBtn');
+            const originalText = btn.innerHTML;
+            
+            // 禁用按钮并显示加载状态
+            btn.disabled = true;
+            btn.innerHTML = btn.dataset.loadingText;
+
+            try {
+                const response = await fetch("{{ url_for('ai.join_ranking') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': "{{ csrf_token() }}"
+                    },
+                    body: JSON.stringify({})
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 成功时只替换表单元素，保留其他按钮
+                    const form = document.getElementById('joinRankingForm');
+                    form.outerHTML = `
+                        <button class="btn btn-outline-success" disabled>
+                            <i class="bi bi-check-circle me-2"></i> 已加入当前分区天梯赛
+                        </button>
+                    `;
+                    // 显示成功toast
+                    showToast('success', data.message || '成功加入天梯赛！');
+                } else {
+                    // 显示错误提示
+                    showToast('danger', data.message || '加入天梯赛失败');
+                }
+            } catch (error) {
+                showToast('danger', '网络错误，请检查连接');
+            } finally {
+                // 恢复按钮状态
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        });
+
+        function showToast(type, message) {
+            const toastEl = document.getElementById('seriesTestToast');
+            const toastBody = toastEl.querySelector('.toast-body');
+            toastEl.className = `toast align-items-center text-bg-${type}`;
+            toastBody.textContent = message;
+            bootstrap.Toast.getOrCreateInstance(toastEl).show();
         }
     </script>
 {% endblock scripts %}

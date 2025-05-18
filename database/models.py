@@ -25,6 +25,7 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
     is_admin = db.Column(db.Boolean, default=False)
+    partition = db.Column(db.Integer, nullable=False, server_default="0")
 
     # 时间戳
     created_at = db.Column(db.DateTime, default=datetime.now)
@@ -160,6 +161,13 @@ class GameStats(db.Model):
             "losses": self.losses,
             "draws": self.draws,
         }
+
+    @property
+    def win_rate(self):
+        """计算胜率"""
+        if self.games_played == 0:
+            return 0
+        return (self.wins / self.games_played) * 100
 
 
 # 游戏对战记录 (现在承担了游戏的整体记录和状态)

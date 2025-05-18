@@ -182,8 +182,27 @@
             </a>
         </div>
         {% if automatch_is_on %}
-            <div class="info-box">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i> 后台自动对战正在进行中！
+            <div class="alert alert-info">
+                <h5>后台自动对战正在进行中</h5>
+                <ul>
+                    {% for ranking in automatch_status.active_rankings %}
+                        <li>
+                            {% if ranking.ranking_id == 0 %}
+                                测试赛 (#{{ ranking.ranking_id }}):
+                            {% elif 1 <= ranking.ranking_id <= 10 %}
+                                初赛 (#{{ ranking.ranking_id }}):
+                            {% elif 11 <= ranking.ranking_id <= 20 %}
+                                半决赛 (#{{ ranking.ranking_id }}):
+                            {% elif 21 <= ranking.ranking_id <= 30 %}
+                                决赛 (#{{ ranking.ranking_id }}):
+                            {% else %}
+                                未知赛事 (#{{ ranking.ranking_id }}):
+                            {% endif %}
+                            已进行 {{ ranking.battle_count }} 场对战 /
+                            当前参与者 {{ ranking.participants }} 人次
+                        </li>
+                    {% endfor %}
+                </ul>
             </div>
         {% endif %}
         <div class="card shadow-sm mb-4">
@@ -328,7 +347,17 @@
                                                       data-bs-toggle="tooltip"
                                                       title="此对战不计入ELO/统计">豁免赛</span>
                                             {% else %}
-                                                <span class="badge bg-info">标准赛</span>
+                                                {% if battle.ranking_id == 0 %}
+                                                    <span class="badge bg-info">测试赛</span>
+                                                {% elif 1 <= battle.ranking_id <= 10 %}
+                                                    <span class="badge bg-info">初赛</span>
+                                                {% elif 11 <= battle.ranking_id <= 20 %}
+                                                    <span class="badge bg-info">半决赛</span>
+                                                {% elif 21 <= battle.ranking_id <= 30 %}
+                                                    <span class="badge bg-info">决赛</span>
+                                                {% else %}
+                                                    <span class="badge bg-info">标准赛</span>
+                                                {% endif %}
                                             {% endif %}
                                         </td>
                                         <td>{{ battle.created_at.strftime("%Y-%m-%d %H:%M") if battle.created_at else '-' }}</td>
