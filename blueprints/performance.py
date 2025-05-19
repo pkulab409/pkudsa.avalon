@@ -13,14 +13,11 @@ JSON_DATA_FILE = os.path.join(
 )
 
 # 全局缓存变量
-cache = {
-    "data": None,
-    "last_update": 0,
-    "lock": threading.Lock()
-}
+cache = {"data": None, "last_update": 0, "lock": threading.Lock()}
 
 # 缓存更新间隔（秒）
 CACHE_UPDATE_INTERVAL = 10
+
 
 # 定时更新函数
 def update_cache():
@@ -31,12 +28,14 @@ def update_cache():
                 cache["last_update"] = time.time()
         except (FileNotFoundError, json.JSONDecodeError) as e:
             print(f"缓存更新失败: {str(e)}")
-    
+
     # 安排下一次更新
     threading.Timer(CACHE_UPDATE_INTERVAL, update_cache).start()
 
+
 # 在应用启动时开始缓存更新循环
 update_cache()
+
 
 @performance_bp.route("/")
 def performance_report_page():
@@ -51,7 +50,7 @@ def get_usage_data():
         with cache["lock"]:
             if not cache["data"]:
                 return jsonify({"success": False, "error": "数据尚未加载"}), 503
-                
+
             data = cache["data"]
             last_update = cache["last_update"]
 
@@ -61,12 +60,14 @@ def get_usage_data():
         # 只返回最近的1000条数据
         recent_data = data[-1000:] if len(data) > 1000 else data
 
-        return jsonify({
-            "success": True, 
-            "data": recent_data, 
-            "total_records": total_records,
-            "last_update": last_update,
-            "next_update": last_update + CACHE_UPDATE_INTERVAL
-        })
+        return jsonify(
+            {
+                "success": True,
+                "data": recent_data,
+                "total_records": total_records,
+                "last_update": last_update,
+                "next_update": last_update + CACHE_UPDATE_INTERVAL,
+            }
+        )
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
