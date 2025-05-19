@@ -18,10 +18,47 @@
     .client-filter {
         margin-bottom: 20px;
     }
+    
+    /* 倒计时样式 */
+    .countdown-container {
+        position: relative;
+        width: 50px;
+        height: 50px;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .countdown-svg {
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+    .countdown-bg {
+        fill: none;
+        stroke: #f0f0f0;
+        stroke-width: 4;
+    }
+    .countdown-progress {
+        fill: none;
+        stroke: #0d6efd;
+        stroke-width: 4;
+        stroke-linecap: round;
+        transform: rotate(-90deg);
+        transform-origin: center;
+        transition: stroke-dashoffset 0.1s linear;
+        stroke-dasharray: 125.6;
+        stroke-dashoffset: 0;
+    }
+    .countdown-text {
+        font-size: 16px;
+        font-weight: bold;
+        color: #0d6efd;
+    }
     </style>
 {% endblock styles %}
 {% block content %}
     <div class="container mt-4">
+        <!-- 在标题卡片中添加倒计时 -->
         <div class="card mb-4 shadow-sm">
             <div class="card-body p-4">
                 <div class="d-flex justify-content-between align-items-center">
@@ -31,11 +68,25 @@
                         </h2>
                         <p class="text-muted mb-0">客户端处理时间分析与统计</p>
                     </div>
-                    <button class="btn btn-outline-primary" id="refreshBtn">
-                        <i class="bi bi-arrow-clockwise me-1"></i>刷新数据
-                    </button>
+                    <div class="d-flex align-items-center">
+                        <div class="text-center">
+                            <div class="countdown-container">
+                                <svg class="countdown-svg" width="50" height="50">
+                                    <circle class="countdown-bg" cx="25" cy="25" r="20"></circle>
+                                    <circle class="countdown-progress" cx="25" cy="25" r="20"></circle>
+                                </svg>
+                                <span id="countdownValue" class="countdown-text">10</span>
+                            </div>
+                            <small class="text-muted">自动刷新</small>
+                        </div>
+                    </div>
                 </div>
             </div>
+        </div>
+        <!-- 在统计卡片前添加数据提示 -->
+        <div class="alert alert-info mb-4">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>数据说明：</strong>总记录数显示历史全部数据，其余统计和图表基于最近的1000条记录
         </div>
         <!-- 统计卡片 -->
         <div class="row mb-4" id="statCards">
@@ -44,6 +95,7 @@
                     <div class="card-body">
                         <h5 class="card-title text-primary">总记录数</h5>
                         <h2 class="mb-0" id="totalRecords">-</h2>
+                        <small class="text-muted">历史全部数据</small>
                     </div>
                 </div>
             </div>
@@ -52,7 +104,7 @@
                     <div class="card-body">
                         <h5 class="card-title text-success">平均处理时间</h5>
                         <h2 class="mb-0" id="avgTime">-</h2>
-                        <small class="text-muted">秒</small>
+                        <small class="text-muted">秒（最近1000条）</small>
                     </div>
                 </div>
             </div>
@@ -61,7 +113,7 @@
                     <div class="card-body">
                         <h5 class="card-title text-danger">最长处理时间</h5>
                         <h2 class="mb-0" id="maxTime">-</h2>
-                        <small class="text-muted">秒</small>
+                        <small class="text-muted">秒（最近1000条）</small>
                     </div>
                 </div>
             </div>
@@ -70,6 +122,7 @@
                     <div class="card-body">
                         <h5 class="card-title text-info">客户端数量</h5>
                         <h2 class="mb-0" id="clientCount">-</h2>
+                        <small class="text-muted">最近1000条</small>
                     </div>
                 </div>
             </div>
@@ -125,6 +178,10 @@
     let allData = [];
     let selectedClient = 'all';
     let charts = {};
+    let totalRecords = 0;
+    let countdownInterval;
+    let countdownValue = 10;
+    let nextServerUpdate = 0;
     
     // 初始化图表
     function initCharts() {
@@ -150,6 +207,9 @@
             const result = await response.json();
             
             if (result.success && result.data) {
+                // 保存总记录数
+                totalRecords = result.total_records || 0;
+                
                 // 过滤掉不完整的数据
                 allData = result.data.filter(item => 
                     item.client_id && item.usage_time && typeof item.usage_time === 'number'
@@ -159,6 +219,11 @@
                 updateClientFilter();
                 updateStatistics();
                 updateCharts();
+                
+                // 同步服务器时间
+                if (result.next_update) {
+                    syncWithServer(result.next_update);
+                }
             } else {
                 console.error('Data error:', result.error || '未知错误');
                 showError('无法加载数据: ' + (result.error || '未知错误'));
@@ -167,6 +232,44 @@
             console.error('Fetch error:', error);
             showError('获取数据失败: ' + error.message);
         }
+    }
+    
+    // 与服务器同步更新时间
+    function syncWithServer(nextUpdateTimestamp) {
+        // 清除现有倒计时
+        clearInterval(countdownInterval);
+        
+        nextServerUpdate = nextUpdateTimestamp;
+        const now = Math.floor(Date.now() / 1000);
+        let timeRemaining = Math.max(1, nextUpdateTimestamp - now);
+        
+        // 设置初始倒计时值 - 向上取整确保显示整数
+        countdownValue = Math.ceil(timeRemaining);
+        updateCountdownUI();
+        
+        // 开始新的倒计时
+        countdownInterval = setInterval(() => {
+            countdownValue--;
+            updateCountdownUI();
+            
+            if (countdownValue <= 0) {
+                fetchData(); // 倒计时结束，刷新数据
+            }
+        }, 1000);
+    }
+    
+    // 更新倒计时UI
+    function updateCountdownUI() {
+        const countdownText = document.getElementById('countdownValue');
+        const countdownCircle = document.querySelector('.countdown-progress');
+        const circumference = 2 * Math.PI * 20; // 圆周长
+        
+        // 显示整数部分
+        countdownText.textContent = Math.floor(countdownValue);
+        
+        // 更新进度条 - 基于10秒周期
+        const offset = circumference * (1 - countdownValue / 10);
+        countdownCircle.style.strokeDashoffset = offset;
     }
     
     // 更新客户端过滤按钮
@@ -227,7 +330,7 @@
             : allData.filter(item => item.client_id === selectedClient);
         
         // 计算统计数据
-        const totalRecords = filteredData.length;
+        const displayRecords = filteredData.length;
         const usageTimes = filteredData.map(item => item.usage_time);
         const avgTime = usageTimes.length > 0 
             ? (usageTimes.reduce((sum, time) => sum + time, 0) / usageTimes.length).toFixed(3) 
@@ -241,8 +344,10 @@
         filteredData.forEach(item => clientsSet.add(item.client_id));
         const clientCount = clientsSet.size;
         
-        // 更新UI
-        document.getElementById('totalRecords').textContent = totalRecords;
+        // 更新UI - 总记录数显示全部记录数
+        document.getElementById('totalRecords').textContent = selectedClient === 'all' 
+            ? totalRecords 
+            : displayRecords;
         document.getElementById('avgTime').textContent = avgTime;
         document.getElementById('maxTime').textContent = maxTime;
         document.getElementById('clientCount').textContent = clientCount;
@@ -474,9 +579,6 @@
     document.addEventListener('DOMContentLoaded', function() {
         initCharts();
         fetchData();
-        
-        // 刷新按钮事件
-        document.getElementById('refreshBtn').addEventListener('click', fetchData);
     });
     </script>
 {% endblock scripts %}

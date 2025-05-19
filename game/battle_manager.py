@@ -22,7 +22,7 @@ class BattleManager:
     """阿瓦隆游戏对战管理器 - 单例模式"""
 
     _instance = None
-    _lock = threading.Lock()
+    _lock = threading.RLock()
 
     # 修改 __new__ 以接受 battle_service (虽然通常在 __init__ 中处理依赖)
     def __new__(cls, battle_service: BattleService = None):

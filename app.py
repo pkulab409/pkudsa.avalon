@@ -1,4 +1,3 @@
-from tkinter import NO
 from flask import Flask, request, current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, current_user
@@ -180,6 +179,97 @@ def initialize_default_data(app):
             raise
 
 
+def cleanup_stale_battles(app):
+    """在服务器启动时删除所有标记为playing、waiting或cancelled状态的对局"""
+    with app.app_context():
+        try:
+            from database.models import Battle, GameStats, BattlePlayer, db
+            from database.action import delete_battle
+
+            # 修改查询条件，也包括已取消的对局
+            stale_battles = Battle.query.filter(
+                Battle.status.in_(["playing", "waiting", "cancelled"])
+            ).all()
+
+            if not stale_battles:
+                app.logger.info("✅ 没有发现需要清理的对局")
+                return
+
+            app.logger.warning(
+                f"⚠️ 发现 {len(stale_battles)} 个需要清理的对局(playing、waiting或cancelled)，开始删除..."
+            )
+
+            for battle in stale_battles:
+                try:
+                    # 先处理日志文件删除（避免删除对局后无法访问ID）
+                    data_dir = app.config.get("DATA_DIR", "./data")
+                    log_files = [
+                        os.path.join(data_dir, f"game_{battle.id}_public.json"),
+                        os.path.join(data_dir, f"game_{battle.id}_archive.json"),
+                    ]
+
+                    # 处理所有玩家的私有日志
+                    for player_id in range(1, 8):  # 假设最多7个玩家
+                        log_files.append(
+                            os.path.join(
+                                data_dir,
+                                f"game_{battle.id}_player_{player_id}_private.json",
+                            )
+                        )
+
+                    # 删除存在的日志文件
+                    for log_file in log_files:
+                        if os.path.exists(log_file):
+                            os.remove(log_file)
+                            app.logger.info(f"🗑️ 已删除日志文件: {log_file}")
+
+                    # 处理ELO变化 (恢复所有可能的ELO变化)
+                    battle_players = battle.players.all()
+                    for bp in battle_players:
+                        if bp.elo_change is not None:
+                            stats = GameStats.query.filter_by(
+                                user_id=bp.user_id, ranking_id=battle.ranking_id
+                            ).first()
+                            if stats:
+                                stats.elo_score -= bp.elo_change
+                                db.session.add(stats)
+
+                    # 使用cascade删除选项，直接删除对局及其相关记录
+                    app.logger.info(
+                        f"🗑️ 开始删除对局 {battle.id} (状态: {battle.status})"
+                    )
+
+                    # 使用数据库操作直接删除
+                    if delete_battle(battle):
+                        app.logger.info(f"✅ 对局 {battle.id} 已成功删除")
+                    else:
+                        # 如果delete_battle失败，尝试手动删除
+                        app.logger.warning(
+                            f"⚠️ 使用delete_battle删除失败，尝试手动删除..."
+                        )
+
+                        # 先删除所有相关的BattlePlayer记录
+                        BattlePlayer.query.filter_by(battle_id=battle.id).delete()
+
+                        # 再删除Battle记录
+                        db.session.delete(battle)
+                        db.session.commit()
+                        app.logger.info(f"✅ 对局 {battle.id} 已手动删除")
+
+                except Exception as e:
+                    app.logger.error(
+                        f"❌ 删除对局 {battle.id} 时出错: {str(e)}", exc_info=True
+                    )
+                    db.session.rollback()  # 确保回滚任何失败的事务
+
+            app.logger.info(f"✅ 已完成删除 {len(stale_battles)} 个对局")
+
+        except Exception as e:
+            app.logger.critical(
+                f"💥 清理对局过程中发生严重错误: {str(e)}", exc_info=True
+            )
+
+
 def create_app(config_object=Config):
     app = Flask(__name__)
     app.config.from_object(config_object)
@@ -248,13 +338,16 @@ def create_app(config_object=Config):
     else:
         app.logger.warning("⚠️ 未检测到 INITIAL_USERS 配置，跳过初始化用户流程。")
 
-    # 初始化对战管理器
+    # 先初始化对战管理器
     init_battle_manager_utils(app)
 
     # 初始化AutoMatch工具，并确保重启时清理旧状态
     init_automatch_utils(app)
     automatch = get_automatch()
     automatch.terminate_all_and_clear()  # 确保应用启动时没有遗留的运行实例
+
+    # 再清理意外中断的对局
+    cleanup_stale_battles(app)
 
     app.logger.info("Flask应用初始化完成")
     return app
