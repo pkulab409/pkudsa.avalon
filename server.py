@@ -13,12 +13,12 @@ def get_env_file():
     提供 .env 文件的下载
     """
     try:
-        print(f"Attempting to send .env from: {os.path.join(CWD, "game")}")
+        print(f"Attempting to send .env from: {os.path.join(CWD, 'game')}")
         return send_from_directory(
             os.path.join(CWD, "game"), ".env", as_attachment=True
         )
     except FileNotFoundError:
-        print(f".env file not found in {os.path.join(CWD, "game")}")
+        print(f".env file not found in {os.path.join(CWD, 'game')}")
         abort(404, description=".env file not found on server.")
     except Exception as e:
         print(f"Error sending .env file: {e}")
@@ -31,12 +31,12 @@ def get_yaml_file():
     提供 config.yaml 文件的下载
     """
     try:
-        print(f"Attempting to send config.yaml from: {os.path.join(CWD, "config")}")
+        print(f"Attempting to send config.yaml from: {os.path.join(CWD, 'config')}")
         return send_from_directory(
             os.path.join(CWD, "config"), "config.yaml", as_attachment=True
         )
     except FileNotFoundError:
-        print(f"config.yaml file not found in {os.path.join(CWD, "config")}")
+        print(f"config.yaml file not found in {os.path.join(CWD, 'config')}")
         abort(404, description="config.yaml file not found on server.")
     except Exception as e:
         print(f"Error sending config.yaml file: {e}")
