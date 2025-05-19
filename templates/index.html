@@ -1,53 +1,236 @@
 {% extends "base.html" %}
 {% block title %}
-    首页 - 阿瓦隆AI对战平台
+  首页 - 阿瓦隆AI对战平台
 {% endblock title %}
 {% block content %}
-    <div class="container mt-5">
-        <div class="p-5 mb-4 bg-light rounded-3 shadow-sm">
-            <div class="container-fluid py-5">
-                <h1 class="display-5 fw-bold">欢迎来到阿瓦隆AI对战平台</h1>
-                <p class="col-md-8 fs-4">在这里，你可以上传、测试和对战你的阿瓦隆AI，与他人一较高下。</p>
-                {% if current_user.is_authenticated %}
-                    <a href="{{ url_for('game.lobby') }}"
-                       class="btn btn-primary btn-lg me-2"
-                       type="button">进入游戏大厅</a>
-                    <a href="{{ url_for('ai.list_ai') }}"
-                       class="btn btn-outline-secondary btn-lg"
-                       type="button">管理我的AI</a>
-                {% else %}
-                    <a href="{{ url_for('auth.login') }}"
-                       class="btn btn-primary btn-lg me-2"
-                       type="button">登录</a>
-                    <a href="{{ url_for('auth.register') }}"
-                       class="btn btn-success btn-lg"
-                       type="button">注册</a>
-                {% endif %}
-            </div>
+  <div class="container mt-5">
+    <div class="p-5 mb-4 bg-light rounded-3 shadow-sm">
+      <div class="container-fluid py-5">
+        <div class="row">
+          <div class="col-md-7">
+            <h1 class="display-5 fw-bold">欢迎来到阿瓦隆AI对战平台</h1>
+            <p class="col-md-12 fs-4">在这里，你可以上传、测试和对战你的阿瓦隆AI，与他人一较高下。</p>
+            {% if current_user.is_authenticated %}
+              <a href="{{ url_for('game.lobby') }}"
+                 class="btn btn-primary btn-lg me-2"
+                 type="button">进入游戏大厅</a>
+              <a href="{{ url_for('ai.list_ai') }}"
+                 class="btn btn-outline-secondary btn-lg"
+                 type="button">管理我的AI</a>
+            {% else %}
+              <a href="{{ url_for('auth.login') }}"
+                 class="btn btn-primary btn-lg me-2"
+                 type="button">登录</a>
+              <a href="{{ url_for('auth.register') }}"
+                 class="btn btn-success btn-lg"
+                 type="button">注册</a>
+            {% endif %}
+          </div>
+          <div class="col-md-5 d-flex align-items-center justify-content-center">
+            <canvas id="rutherfordModel" width="350" height="350"></canvas>
+          </div>
         </div>
-        <div class="row align-items-md-stretch">
-            <div class="col-md-6 mb-4">
-                <div class="h-100 p-5 text-white bg-dark rounded-3 shadow">
-                    <h2>排行榜</h2>
-                    <p>查看顶尖玩家和他们的AI表现，了解当前战力格局。</p>
-                    <a href="{{ url_for('ranking.show_ranking') }}"
-                       class="btn btn-outline-light"
-                       type="button">查看排行榜</a>
-                </div>
-            </div>
-            <div class="col-md-6 mb-4">
-                <div class="h-100 p-5 bg-light border rounded-3 shadow">
-                    <h2>对局可视化</h2>
-                    <p>上传或查看已完成的对局，通过可视化界面复盘精彩瞬间。</p>
-                    <a href="{{ url_for('visualizer.upload_game_json') }}"
-                       class="btn btn-outline-secondary me-2"
-                       type="button">上传对局JSON</a>
-                    <a href="{{ url_for('visualizer.game_replay', game_id='example') }}"
-                       class="btn btn-outline-secondary"
-                       type="button">查看示例回放</a>
-                </div>
-            </div>
-        </div>
-        <!-- 可以添加更多介绍性内容或平台新闻 -->
+      </div>
     </div>
+    <div class="row align-items-md-stretch">
+      <div class="col-md-6 mb-4">
+        <div class="h-100 p-5 text-white bg-secondary rounded-3 shadow">
+          <h2>排行榜</h2>
+          <p>查看顶尖玩家和他们的AI表现，了解当前战力格局。</p>
+          <a href="{{ url_for('ranking.show_ranking') }}"
+             class="btn btn-outline-light"
+             type="button">查看排行榜</a>
+        </div>
+      </div>
+      <div class="col-md-6 mb-4">
+        <div class="h-100 p-5 bg-light border rounded-3 shadow">
+          <h2>对局可视化</h2>
+          <p>上传或查看已完成的对局，通过可视化界面复盘精彩瞬间。</p>
+          <a href="{{ url_for('visualizer.upload_game_json') }}"
+             class="btn btn-outline-secondary me-2"
+             type="button">上传对局JSON</a>
+          <a href="{{ url_for('visualizer.game_replay', game_id='example') }}"
+             class="btn btn-outline-secondary"
+             type="button">查看示例回放</a>
+        </div>
+      </div>
+    </div>
+    <!-- 可以添加更多介绍性内容或平台新闻 -->
+  </div>
+  <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('rutherfordModel');
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            // 原子核 - 更柔和的颜色
+            const nucleus = {
+                x: centerX,
+                y: centerY,
+                baseRadius: 18,
+                color: '#a06080' // 更柔和的紫红色
+            };
+            
+            // 电子轨道 - 保持转速但更改颜色
+            const orbits = [
+                { baseRadius: 55, speed: 0.25, electrons: 1, offset: 0, baseTiltAngle: 0.05 },
+                { baseRadius: 95, speed: 0.18, electrons: 2, offset: Math.PI / 2, baseTiltAngle: Math.PI / 7 },
+                { baseRadius: 135, speed: 0.12, electrons: 3, offset: Math.PI / 4, baseTiltAngle: Math.PI / 5 }
+            ];
+            
+            // 绘制立体感电子 - 更柔和的色调
+            function drawElectron(x, y, z, baseSize, electronAngle, globalAngle) {
+                const perspectiveEffect = (z + 1) / 2; 
+
+                // 更柔和的脉动效果
+                const pulse = Math.sin(electronAngle * 2.0 + globalAngle * 1.0) * 0.2;
+
+                const basePerspectiveScale = 0.7 + perspectiveEffect * 0.3;
+                const basePerspectiveBrightness = 40 + perspectiveEffect * 55;
+                const basePerspectiveAlpha = 0.7 + perspectiveEffect * 0.3;
+
+                const finalScale = basePerspectiveScale * (1 + pulse);
+                const finalBrightness = basePerspectiveBrightness + pulse * 20;
+                const finalAlpha = basePerspectiveAlpha * Math.max(0.6, 1 + pulse * 0.5);
+
+                const currentSize = baseSize * finalScale;
+                
+                // 更柔和的电子光晕
+                ctx.beginPath();
+                ctx.arc(x, y, currentSize * 1.4, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(80, 120, 180, ${finalAlpha * 0.25})`; // 更柔和的光晕颜色
+                ctx.fill();
+                ctx.closePath();
+                
+                // 电子主体更柔和
+                ctx.beginPath();
+                ctx.arc(x, y, currentSize, 0, Math.PI * 2);
+                ctx.fillStyle = `hsl(210, 60%, ${Math.min(100, Math.max(30, finalBrightness))}%)`; // 降低饱和度
+                ctx.fill();
+                ctx.closePath();
+                
+                // 柔和的高光
+                const highlightSize = currentSize * 0.4;
+                const highlightX = x - highlightSize * 0.6;
+                const highlightY = y - highlightSize * 0.6;
+                
+                ctx.beginPath();
+                ctx.arc(highlightX, highlightY, highlightSize, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(240, 250, 255, ${Math.min(1, finalAlpha * 0.6)})`; // 降低高光强度
+                ctx.fill();
+                ctx.closePath();
+            }
+            
+            // 绘制3D轨道 - 更柔和的颜色
+            function drawOrbit3D(orbitCenterX, orbitCenterY, currentOrbitRadius, currentTiltAngle) {
+                ctx.beginPath();
+                ctx.ellipse(
+                    orbitCenterX, 
+                    orbitCenterY, 
+                    currentOrbitRadius, 
+                    currentOrbitRadius * Math.cos(currentTiltAngle), 
+                    0, 
+                    0, 
+                    Math.PI * 2
+                );
+                ctx.strokeStyle = 'rgba(160, 160, 200, 0.2)'; // 更柔和的轨道颜色
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                ctx.closePath();
+            }
+            
+            // 绘制立体感原子核 - 更柔和的辉光
+            function drawNucleus(currentRadius, globalAngle) {
+                const glowFactor = 1 + Math.sin(globalAngle * 0.4) * 0.12; // 减小脉动
+
+                // 更柔和的辉光
+                const gradient = ctx.createRadialGradient(
+                    centerX, centerY, currentRadius * 0.3 * glowFactor,
+                    centerX, centerY, currentRadius * 2.6 * glowFactor 
+                );
+                gradient.addColorStop(0, `rgba(160, 100, 130, ${0.7 * glowFactor})`); // 更柔和的颜色
+                gradient.addColorStop(1, 'rgba(160, 100, 130, 0)');
+                
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, currentRadius * 2.6 * glowFactor, 0, Math.PI * 2);
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                ctx.closePath();
+                
+                // 更柔和的原子核
+                const nucleusGradient = ctx.createRadialGradient(
+                    centerX - currentRadius * 0.25, 
+                    centerY - currentRadius * 0.25, 
+                    currentRadius * 0.1,
+                    centerX, 
+                    centerY, 
+                    currentRadius
+                );
+                nucleusGradient.addColorStop(0, '#d8b0c0'); // 更柔和的亮部
+                nucleusGradient.addColorStop(0.6, '#b07090'); // 更柔和的中间色
+                nucleusGradient.addColorStop(1, '#805070'); // 更柔和的暗部
+                
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, currentRadius, 0, Math.PI * 2);
+                ctx.fillStyle = nucleusGradient;
+                ctx.fill();
+                ctx.closePath();
+                
+                // 柔和的高光
+                ctx.beginPath();
+                ctx.arc(
+                    centerX - currentRadius * 0.35,
+                    centerY - currentRadius * 0.35,
+                    currentRadius * 0.45,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fillStyle = `rgba(240, 230, 235, ${0.7 * glowFactor})`; // 降低高光强度
+                ctx.fill();
+                ctx.closePath();
+            }
+            
+            let angle = 0;
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      
+                // 原子核脉动半径 - 更温和的脉动
+                const currentNucleusRadius = nucleus.baseRadius * (1 + Math.sin(angle * 0.3) * 0.1);
+
+                // 计算并存储动态轨道参数
+                const dynamicOrbitParams = orbits.map(orbit => {
+                    // 更温和的"呼吸"效果
+                    const dynamicRadius = orbit.baseRadius * (1 + Math.sin(angle * 0.2 + orbit.offset) * 0.08);
+                    // 更温和的"摇摆"效果
+                    const dynamicTilt = orbit.baseTiltAngle + Math.cos(angle * 0.12 + orbit.offset) * 0.25;
+                    return { ...orbit, currentRadius: dynamicRadius, currentTiltAngle: dynamicTilt };
+                });
+
+                dynamicOrbitParams.forEach(params => {
+                    drawOrbit3D(centerX, centerY, params.currentRadius, params.currentTiltAngle);
+                });
+
+                dynamicOrbitParams.forEach(params => {
+                    for (let i = 0; i < params.electrons; i++) {
+                        const electronAngle = angle * params.speed + (i * 2 * Math.PI / params.electrons) + params.offset;
+                        
+                        const x = centerX + Math.cos(electronAngle) * params.currentRadius;
+                        const y = centerY + Math.sin(electronAngle) * params.currentRadius * Math.cos(params.currentTiltAngle);
+                        const z = Math.sin(electronAngle) * Math.sin(params.currentTiltAngle);
+                        
+                        drawElectron(x, y, z, 6.0, electronAngle, angle);
+                    }
+                });
+                
+                drawNucleus(currentNucleusRadius, angle);
+                
+                angle += 0.015; // 稍微减慢动画速度
+                requestAnimationFrame(animate);
+            }
+            
+            animate();
+        });
+  </script>
 {% endblock content %}
