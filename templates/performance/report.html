@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}
-    性能报告 - 游戏平台
+  性能报告 - 游戏平台
 {% endblock title %}
 {% block styles %}
-    <style>
+  <style>
     .chart-container {
         height: 400px;
         margin-bottom: 30px;
@@ -54,129 +54,126 @@
         font-weight: bold;
         color: #0d6efd;
     }
-    </style>
+  </style>
 {% endblock styles %}
 {% block content %}
-    <div class="container mt-4">
-        <!-- 在标题卡片中添加倒计时 -->
-        <div class="card mb-4 shadow-sm">
-            <div class="card-body p-4">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2 class="mb-1">
-                            <i class="bi bi-graph-up me-2"></i>AI性能报告
-                        </h2>
-                        <p class="text-muted mb-0">客户端处理时间分析与统计</p>
-                    </div>
-                    <div class="d-flex align-items-center">
-                        <div class="me-3 text-center">
-                            <div class="countdown-container">
-                                <svg class="countdown-svg" width="50" height="50">
-                                    <circle class="countdown-bg" cx="25" cy="25" r="20"></circle>
-                                    <circle class="countdown-progress" cx="25" cy="25" r="20"></circle>
-                                </svg>
-                                <span id="countdownValue" class="countdown-text">10</span>
-                            </div>
-                            <small class="text-muted">自动刷新</small>
-                        </div>
-                        <button class="btn btn-outline-primary" id="refreshBtn">
-                            <i class="bi bi-arrow-clockwise me-1"></i>刷新数据
-                        </button>
-                    </div>
-                </div>
+  <div class="container mt-4">
+    <!-- 在标题卡片中添加倒计时 -->
+    <div class="card mb-4 shadow-sm">
+      <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h2 class="mb-1">
+              <i class="bi bi-graph-up me-2"></i>AI性能报告
+            </h2>
+            <p class="text-muted mb-0">客户端处理时间分析与统计</p>
+          </div>
+          <div class="d-flex align-items-center">
+            <div class="text-center">
+              <div class="countdown-container">
+                <svg class="countdown-svg" width="50" height="50">
+                  <circle class="countdown-bg" cx="25" cy="25" r="20"></circle>
+                  <circle class="countdown-progress" cx="25" cy="25" r="20"></circle>
+                </svg>
+                <span id="countdownValue" class="countdown-text">10</span>
+              </div>
+              <small class="text-muted">自动刷新</small>
             </div>
+          </div>
         </div>
-        <!-- 在统计卡片前添加数据提示 -->
-        <div class="alert alert-info mb-4">
-            <i class="bi bi-info-circle me-2"></i>
-            <strong>数据说明：</strong>总记录数显示历史全部数据，其余统计和图表基于最近的1000条记录
-        </div>
-        <!-- 统计卡片 -->
-        <div class="row mb-4" id="statCards">
-            <div class="col-md-3 mb-3">
-                <div class="card stat-card h-100 shadow-sm border-primary">
-                    <div class="card-body">
-                        <h5 class="card-title text-primary">总记录数</h5>
-                        <h2 class="mb-0" id="totalRecords">-</h2>
-                        <small class="text-muted">历史全部数据</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 mb-3">
-                <div class="card stat-card h-100 shadow-sm border-success">
-                    <div class="card-body">
-                        <h5 class="card-title text-success">平均处理时间</h5>
-                        <h2 class="mb-0" id="avgTime">-</h2>
-                        <small class="text-muted">秒（最近1000条）</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 mb-3">
-                <div class="card stat-card h-100 shadow-sm border-danger">
-                    <div class="card-body">
-                        <h5 class="card-title text-danger">最长处理时间</h5>
-                        <h2 class="mb-0" id="maxTime">-</h2>
-                        <small class="text-muted">秒（最近1000条）</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 mb-3">
-                <div class="card stat-card h-100 shadow-sm border-info">
-                    <div class="card-body">
-                        <h5 class="card-title text-info">客户端数量</h5>
-                        <h2 class="mb-0" id="clientCount">-</h2>
-                        <small class="text-muted">最近1000条</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- 客户端过滤器 -->
-        <div class="card mb-4 shadow-sm">
-            <div class="card-body client-filter">
-                <h5 class="mb-3">筛选客户端</h5>
-                <div id="clientButtons" class="d-flex flex-wrap gap-2">
-                    <button class="btn btn-primary btn-sm" data-client="all">所有客户端</button>
-                </div>
-            </div>
-        </div>
-        <!-- 图表 -->
-        <div class="row">
-            <div class="col-lg-12 mb-4">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0">处理时间分布</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container" id="timeDistribution"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6 mb-4">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-success text-white">
-                        <h5 class="mb-0">客户端平均处理时间</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container" id="clientAvgTime"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6 mb-4">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-info text-white">
-                        <h5 class="mb-0">处理时间趋势</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container" id="timeTrend"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
+    <!-- 在统计卡片前添加数据提示 -->
+    <div class="alert alert-info mb-4">
+      <i class="bi bi-info-circle me-2"></i>
+      <strong>数据说明：</strong>总记录数显示历史全部数据，其余统计和图表基于最近的1000条记录
+    </div>
+    <!-- 统计卡片 -->
+    <div class="row mb-4" id="statCards">
+      <div class="col-md-3 mb-3">
+        <div class="card stat-card h-100 shadow-sm border-primary">
+          <div class="card-body">
+            <h5 class="card-title text-primary">总记录数</h5>
+            <h2 class="mb-0" id="totalRecords">-</h2>
+            <small class="text-muted">历史全部数据</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 mb-3">
+        <div class="card stat-card h-100 shadow-sm border-success">
+          <div class="card-body">
+            <h5 class="card-title text-success">平均处理时间</h5>
+            <h2 class="mb-0" id="avgTime">-</h2>
+            <small class="text-muted">秒（最近1000条）</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 mb-3">
+        <div class="card stat-card h-100 shadow-sm border-danger">
+          <div class="card-body">
+            <h5 class="card-title text-danger">最长处理时间</h5>
+            <h2 class="mb-0" id="maxTime">-</h2>
+            <small class="text-muted">秒（最近1000条）</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 mb-3">
+        <div class="card stat-card h-100 shadow-sm border-info">
+          <div class="card-body">
+            <h5 class="card-title text-info">客户端数量</h5>
+            <h2 class="mb-0" id="clientCount">-</h2>
+            <small class="text-muted">最近1000条</small>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- 客户端过滤器 -->
+    <div class="card mb-4 shadow-sm">
+      <div class="card-body client-filter">
+        <h5 class="mb-3">筛选客户端</h5>
+        <div id="clientButtons" class="d-flex flex-wrap gap-2">
+          <button class="btn btn-primary btn-sm" data-client="all">所有客户端</button>
+        </div>
+      </div>
+    </div>
+    <!-- 图表 -->
+    <div class="row">
+      <div class="col-lg-12 mb-4">
+        <div class="card shadow-sm">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">处理时间分布</h5>
+          </div>
+          <div class="card-body">
+            <div class="chart-container" id="timeDistribution"></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6 mb-4">
+        <div class="card shadow-sm">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0">客户端平均处理时间</h5>
+          </div>
+          <div class="card-body">
+            <div class="chart-container" id="clientAvgTime"></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6 mb-4">
+        <div class="card shadow-sm">
+          <div class="card-header bg-info text-white">
+            <h5 class="mb-0">处理时间趋势</h5>
+          </div>
+          <div class="card-body">
+            <div class="chart-container" id="timeTrend"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 {% endblock content %}
 {% block scripts %}
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
-    <script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
+  <script>
     // 初始化变量
     let allData = [];
     let selectedClient = 'all';
@@ -184,6 +181,7 @@
     let totalRecords = 0;
     let countdownInterval;
     let countdownValue = 10;
+    let nextServerUpdate = 0;
     
     // 初始化图表
     function initCharts() {
@@ -222,8 +220,10 @@
                 updateStatistics();
                 updateCharts();
                 
-                // 重置倒计时
-                resetCountdown();
+                // 同步服务器时间
+                if (result.next_update) {
+                    syncWithServer(result.next_update);
+                }
             } else {
                 console.error('Data error:', result.error || '未知错误');
                 showError('无法加载数据: ' + (result.error || '未知错误'));
@@ -234,39 +234,42 @@
         }
     }
     
-    // 更新倒计时
-    function updateCountdown() {
+    // 与服务器同步更新时间
+    function syncWithServer(nextUpdateTimestamp) {
+        // 清除现有倒计时
+        clearInterval(countdownInterval);
+        
+        nextServerUpdate = nextUpdateTimestamp;
+        const now = Math.floor(Date.now() / 1000);
+        let timeRemaining = Math.max(1, nextUpdateTimestamp - now);
+        
+        // 设置初始倒计时值 - 向上取整确保显示整数
+        countdownValue = Math.ceil(timeRemaining);
+        updateCountdownUI();
+        
+        // 开始新的倒计时
+        countdownInterval = setInterval(() => {
+            countdownValue--;
+            updateCountdownUI();
+            
+            if (countdownValue <= 0) {
+                fetchData(); // 倒计时结束，刷新数据
+            }
+        }, 1000);
+    }
+    
+    // 更新倒计时UI
+    function updateCountdownUI() {
         const countdownText = document.getElementById('countdownValue');
         const countdownCircle = document.querySelector('.countdown-progress');
         const circumference = 2 * Math.PI * 20; // 圆周长
         
-        countdownValue--;
-        countdownText.textContent = countdownValue;
+        // 显示整数部分
+        countdownText.textContent = Math.floor(countdownValue);
         
-        // 更新进度条
+        // 更新进度条 - 基于10秒周期
         const offset = circumference * (1 - countdownValue / 10);
         countdownCircle.style.strokeDashoffset = offset;
-        
-        if (countdownValue <= 0) {
-            fetchData(); // 倒计时结束，刷新数据
-        }
-    }
-    
-    // 重置倒计时
-    function resetCountdown() {
-        // 清除现有倒计时
-        clearInterval(countdownInterval);
-        
-        // 重置倒计时值
-        countdownValue = 10;
-        document.getElementById('countdownValue').textContent = countdownValue;
-        
-        // 重置进度条
-        const countdownCircle = document.querySelector('.countdown-progress');
-        countdownCircle.style.strokeDashoffset = 0;
-        
-        // 开始新的倒计时
-        countdownInterval = setInterval(updateCountdown, 1000);
     }
     
     // 更新客户端过滤按钮
@@ -572,35 +575,10 @@
         alert(`错误: ${message}`);
     }
     
-    // 倒计时功能
-    function startCountdown() {
-        countdownInterval = setInterval(() => {
-            countdownValue--;
-            if (countdownValue <= 0) {
-                fetchData();
-                countdownValue = 10;
-            }
-            updateCountdownUI();
-        }, 1000);
-    }
-    
-    // 更新倒计时UI
-    function updateCountdownUI() {
-        const countdownText = document.getElementById('countdownValue');
-        const countdownProgress = document.querySelector('.countdown-progress');
-        countdownText.textContent = countdownValue;
-        countdownProgress.style.strokeDashoffset = 126 - (countdownValue / 10) * 126;
-    }
-    
     // 页面加载完成后初始化
     document.addEventListener('DOMContentLoaded', function() {
         initCharts();
         fetchData();
-        
-        // 手动刷新按钮事件
-        document.getElementById('refreshBtn').addEventListener('click', function() {
-            fetchData();
-        });
     });
-    </script>
+  </script>
 {% endblock scripts %}
