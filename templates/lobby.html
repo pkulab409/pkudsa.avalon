@@ -176,7 +176,7 @@
             <h2>
                 <i class="bi bi-controller me-2"></i>游戏大厅
             </h2>
-            <a href="{{ url_for("game.create_battle_page") }}"
+            <a href="{{ url_for('game.create_battle_page') }}"
                class="btn btn-primary create-battle-btn">
                 <i class="bi bi-plus-circle me-1"></i> 创建对战
             </a>
@@ -213,7 +213,7 @@
             </div>
             <div class="card-body">
                 <form method="GET"
-                      action="{{ url_for("game.lobby") }}"
+                      action="{{ url_for('game.lobby') }}"
                       class="filter-form"
                       id="battleFilterForm">
                     <div class="row g-2">
