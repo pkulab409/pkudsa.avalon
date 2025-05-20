@@ -1,5 +1,5 @@
 import os
-from flask import Flask, send_from_directory, abort, request,jsonify
+from flask import Flask, send_from_directory, abort, request, jsonify
 from dotenv import load_dotenv
 
 app = Flask(__name__)
@@ -28,6 +28,7 @@ def verify_password():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
+
 def check_auth():
     """
     检查请求中的 Authorization 头部是否有效。
@@ -35,6 +36,7 @@ def check_auth():
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer ") or auth_header[7:] != VALID_PASSWORD:
         abort(403, description="Unauthorized access. Invalid password.")
+
 
 @app.route("/api/config/env", methods=["GET"])
 def get_env_file():

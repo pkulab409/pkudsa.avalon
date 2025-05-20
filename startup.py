@@ -18,6 +18,7 @@ CONFIG_FILES_TO_DOWNLOAD = [
     },
 ]
 
+
 def verify_password_on_server(password: str) -> bool:
     """
     向服务器发送密码验证请求。
@@ -38,6 +39,7 @@ def verify_password_on_server(password: str) -> bool:
         print(f"密码验证请求失败: {e}")
         return False
 
+
 def verify_password() -> tuple:
     """
     获取用户输入的密码并与服务器验证。
@@ -47,13 +49,14 @@ def verify_password() -> tuple:
     """
     print("需要密码以继续下载配置文件。")
     password = getpass.getpass("请输入密码：")
-    
+
     if verify_password_on_server(password):
         print("密码验证成功。")
         return True, password
     else:
         print("密码错误或无法连接到服务器，拒绝访问配置文件。")
         return False, None
+
 
 def download_config_file(endpoint: str, local_filepath: str, password: str) -> bool:
     """
@@ -93,7 +96,7 @@ def download_config_file(endpoint: str, local_filepath: str, password: str) -> b
 def fetch_all_configs(password: str):
     """
     下载所有指定的配置文件。
-    
+
     Args:
         password (str): 用于服务端验证的密码。
     """
@@ -107,7 +110,9 @@ def fetch_all_configs(password: str):
         local_path = os.path.join(
             CWD, config_info["local_config_dir"], config_info["local_filename"]
         )
-        if not download_config_file(config_info["server_endpoint"], local_path, password):
+        if not download_config_file(
+            config_info["server_endpoint"], local_path, password
+        ):
             all_successful = False
             print(f"警告: 未能同步 {config_info['local_filename']}")
 
