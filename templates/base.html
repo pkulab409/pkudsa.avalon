@@ -7,6 +7,10 @@
         <title>
             {% block title %}阿瓦隆AI对战平台{% endblock %}
         </title>
+        <!-- 动态 Favicon 根据配色 -->
+        <link rel="icon" href="{{ url_for('static', filename='images/lightmode_favicon.ico') }}" media="(prefers-color-scheme: light)">
+        <link rel="icon" href="{{ url_for('static', filename='images/darkmode_favicon.ico') }}" media="(prefers-color-scheme: dark)">
+
         <!-- Google Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
