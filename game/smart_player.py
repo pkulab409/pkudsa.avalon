@@ -202,8 +202,6 @@ class Player:
         except:
             team = self._fallback_team_selection(team_size)
 
-        
-
         # 如果队伍过小，顺序补充
         while len(team) < team_size:
             for i in range(1, 8):
@@ -274,14 +272,17 @@ class Player:
         try:
             if not self.map or not self.location:
                 return tuple()
-    
+
             x, y = self.location
-            others_pos = [self.player_positions[i] for i in range(1, 8) if i != self.index]
-    
+            others_pos = [
+                self.player_positions[i] for i in range(1, 8) if i != self.index
+            ]
+
             # 计算到最近任务点的路径
             if self.key_locations:
                 target = min(
-                    self.key_locations, key=lambda pos: abs(pos[0] - x) + abs(pos[1] - y)
+                    self.key_locations,
+                    key=lambda pos: abs(pos[0] - x) + abs(pos[1] - y),
                 )
                 path = self._find_path_to_target(x, y, target)
                 if path:
@@ -299,7 +300,7 @@ class Player:
                             cy += 1
                     if (cx, cy) not in others_pos:
                         return tuple(steps)
-    
+
             # 如果没有找到路径或没有任务点，尝试接近其他玩家
             if not self.is_evil:
                 trusted_players = [
@@ -349,10 +350,15 @@ class Player:
                                     cy += 1
                             if (cx, cy) not in others_pos:
                                 return tuple(steps)
-    
+
             # 原始有效移动
             valid_moves = []
-            directions = [("Up", -1, 0), ("Down", 1, 0), ("Left", 0, -1), ("Right", 0, 1)]
+            directions = [
+                ("Up", -1, 0),
+                ("Down", 1, 0),
+                ("Left", 0, -1),
+                ("Right", 0, 1),
+            ]
             for direction, dx, dy in directions:
                 nx, ny = x + dx, y + dy
                 if (
@@ -361,7 +367,7 @@ class Player:
                     and ((nx, ny) not in others_pos)
                 ):
                     valid_moves.append(direction)
-    
+
             if valid_moves:
                 # 只走一步，终点不重合
                 nx, ny = x, y
@@ -376,7 +382,7 @@ class Player:
                     ny += 1
                 if (nx, ny) not in others_pos:
                     return (move,)
-    
+
             return tuple()
         except Exception as e:
             write_into_private(f"walk异常: {e}")
