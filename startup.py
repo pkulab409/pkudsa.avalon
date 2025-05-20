@@ -18,38 +18,63 @@ CONFIG_FILES_TO_DOWNLOAD = [
     },
 ]
 
-DOWNLOAD_PASSWORD = "Tuavalon"
 
+def verify_password_on_server(password: str) -> bool:
+    """
+    向服务器发送密码验证请求。
 
-def verify_password() -> bool:
+    Args:
+        password (str): 用户输入的密码。
+
+    Returns:
+        bool: 验证是否成功。
     """
-    验证用户输入的密码。
-    """
-    print("需要密码以继续下载配置文件。")
-    user_input = getpass.getpass("请输入密码：")
-    if user_input == DOWNLOAD_PASSWORD:
-        print("密码验证成功。")
-        return True
-    else:
-        print("密码错误，拒绝访问配置文件。")
+    url = f"{SERVER_BASE_URL}/verify"
+    try:
+        response = requests.post(url, json={"password": password}, timeout=5)
+        response.raise_for_status()
+        result = response.json()
+        return result.get("success", False)
+    except Exception as e:
+        print(f"密码验证请求失败: {e}")
         return False
 
 
-def download_config_file(endpoint: str, local_filepath: str) -> bool:
+def verify_password() -> tuple:
+    """
+    获取用户输入的密码并与服务器验证。
+
+    Returns:
+        tuple: (是否验证成功, 用户输入的密码)
+    """
+    print("需要密码以继续下载配置文件。")
+    password = getpass.getpass("请输入密码：")
+
+    if verify_password_on_server(password):
+        print("密码验证成功。")
+        return True, password
+    else:
+        print("密码错误或无法连接到服务器，拒绝访问配置文件。")
+        return False, None
+
+
+def download_config_file(endpoint: str, local_filepath: str, password: str) -> bool:
     """
     从服务端下载指定的配置文件并保存到本地。
 
     Args:
         endpoint (str): 服务端提供配置文件的端点名称 (例如 'env' 或 'yaml')。
         local_filepath (str): 本地保存文件的完整路径。
+        password (str): 用于服务端验证的密码。
 
     Returns:
         bool: 如果下载和保存成功则返回 True, 否则返回 False。
     """
     url = f"{SERVER_BASE_URL}/{endpoint}"
+    headers = {"Authorization": f"Bearer {password}"}
     try:
         print(f"正在从 {url} 下载配置文件...")
-        response = requests.get(url, timeout=10)  # 设置10秒超时
+        response = requests.get(url, headers=headers, timeout=10)  # 设置10秒超时
         response.raise_for_status()  # 如果请求失败 (状态码 4xx 或 5xx), 则抛出 HTTPError
 
         # 确保本地目录存在
@@ -68,9 +93,12 @@ def download_config_file(endpoint: str, local_filepath: str) -> bool:
     return False
 
 
-def fetch_all_configs():
+def fetch_all_configs(password: str):
     """
     下载所有指定的配置文件。
+
+    Args:
+        password (str): 用于服务端验证的密码。
     """
     print("开始同步配置文件...")
     all_successful = True
@@ -82,7 +110,9 @@ def fetch_all_configs():
         local_path = os.path.join(
             CWD, config_info["local_config_dir"], config_info["local_filename"]
         )
-        if not download_config_file(config_info["server_endpoint"], local_path):
+        if not download_config_file(
+            config_info["server_endpoint"], local_path, password
+        ):
             all_successful = False
             print(f"警告: 未能同步 {config_info['local_filename']}")
 
@@ -95,8 +125,9 @@ def fetch_all_configs():
 
 if __name__ == "__main__":
     # 这是应用程序启动时应该执行的逻辑
-    if verify_password():
-        if fetch_all_configs():
+    success, password = verify_password()
+    if success:
+        if fetch_all_configs(password):
             print("配置文件已准备就绪，应用程序可以继续启动。")
         else:
             print(
