@@ -118,7 +118,7 @@
                         <h3 class="mb-0">🔐 用户登录</h3>
                     </div>
                     <div class="card-body">
-                        <form method="post" action="{{ url_for('auth.login') }}">
+                        <form method="post" action="{{ url_for("auth.login") }}">
                             {{ form.hidden_tag() }}
                             <div class="mb-4">
                                 <label for="email" class="form-label">邮箱地址</label>
@@ -148,7 +148,7 @@
                         </form>
                     </div>
                     <div class="card-footer text-center">
-                        还没有账号？<a href="{{ url_for('auth.register') }}"
+                        还没有账号？<a href="{{ url_for("auth.register") }}"
    class="text-primary fw-semibold">立即注册</a>
                     </div>
                 </div>

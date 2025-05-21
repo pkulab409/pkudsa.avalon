@@ -360,7 +360,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                        <!-- 奖牌的部分：1、2、3名配置漂亮的奖牌 -->
+                            <!-- 奖牌的部分：1、2、3名配置漂亮的奖牌 -->
                             {% if pagination.items %}
                                 {% for item in pagination.items %}
                                     <tr class="{% if item.rank == 1 %}rank-1{% elif item.rank == 2 %}rank-2{% elif item.rank == 3 %}rank-3{% endif %} {% if item.rank <= 3 %}top3{% endif %}">
@@ -419,7 +419,8 @@
                                             </div>
                                             <div class="win-rate-container">
                                                 <!-- 新增红色背景层 -->
-                                                <div class="win-rate-red-bar" style="width: calc(100% - {{ item.win_rate }}%);"></div>
+                                                <div class="win-rate-red-bar"
+                                                     style="width: calc(100% - {{ item.win_rate }}%)"></div>
                                                 <!-- 修改绿色进度条 -->
                                                 <div class="win-rate-green-bar" style="width: {{ item.win_rate }}%;"></div>
                                             </div>
