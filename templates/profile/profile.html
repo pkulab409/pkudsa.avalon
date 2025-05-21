@@ -1,107 +1,201 @@
-{% extends "base.html" %}
-{% block head %}
-    {{ super() }}
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+{% extends "base.html" %} 
+{% block head %}     
+    {{ super() }}     
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"> 
 {% endblock %}
-{% block content %}
-    <style>
-  .profile-container {
-    max-width: 1000px;
-    margin: 2rem auto;
-    padding: 2rem;
-    background: #f8f9fa;
-    border-radius: 15px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
 
-  .user-card {
-    background: white;
-    padding: 2.5rem;
-    border-radius: 12px;
-    margin-bottom: 2rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    position: relative;
-  }
+{% block content %}     
+    <style>   
+        /* 整体容器样式 */
+        .profile-container {     
+            max-width: 1200px;     
+            margin: 3rem auto;     
+            padding: 2rem;     
+            background: #f9f9f9;     
+            border-radius: 16px;     
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);   
+        }    
 
-  .user-header {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-  }
+        /* 用户信息卡片样式 */
+        .user-card {     
+            background: white;     
+            padding: 2.5rem;     
+            border-radius: 12px;     
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);     
+            display: flex;     
+            flex-direction: column;     
+            align-items: center;     
+            gap: 2rem;     
+            margin-bottom: 2rem;   
+        }    
 
-  /* 自动生成头像的颜色，包括用户名的第一个首字母 */
-  .user-avatar {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2.5rem;
-    color: white;
-    font-weight: 500;
-    text-transform: uppercase;
-    background: {{ current_user.username | color_hash }}; /* 关键修改 */
-  }
+        /* 头像和用户名横向对齐 */
+        .user-header {     
+            display: flex;     
+            align-items: center;     
+            gap: 2rem;     
+            justify-content: center;     
+            margin-bottom: 1.5rem;   
+        }    
 
-  .admin-entry {
-    margin-top: 2rem;
-    text-align: center;
-  }
+        /* 头像样式 */
+        .user-avatar {     
+            width: 100px;     
+            height: 100px;     
+            border-radius: 50%;     
+            display: flex;     
+            align-items: center;     
+            justify-content: center;     
+            font-size: 3rem;     
+            color: white;     
+            font-weight: 600;     
+            text-transform: uppercase;     
+            background: {{ current_user.username | color_hash }}; 
+        }    
 
-  .admin-button {
-    padding: 1rem 2rem;
-    border: none;
-    border-radius: 8px;
-    background: #786fa6;
-    color: white;
-    font-weight: 500;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.8rem;
-  }
+        /* 用户名和邮件样式 */
+        .user-header h1 {     
+            font-size: 2rem;     
+            font-weight: 600;     
+            color: #333;   
+        }    
 
-  .admin-button:hover {
-    opacity: 0.9;
-    transform: translateY(-2px);
-  }
+        .user-header p {     
+            font-size: 1rem;     
+            color: #777;   
+        }    
+
+        /* 统计卡片容器样式 */
+        .stats-grid {     
+            display: grid;     
+            grid-template-columns: repeat(3, 1fr);     
+            gap: 2rem;     
+            width: 100%;     
+            justify-items: center;   
+        }    
+
+        /* 每个统计卡片样式 */
+        .stat-card {     
+            background: #fff;     
+            padding: 1.5rem;     
+            border-radius: 10px;     
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);     
+            text-align: center;     
+            display: flex;     
+            flex-direction: column;     
+            align-items: center;     
+            gap: 1rem;     
+            width: 100%;     
+            max-width: 250px;     
+        }    
+
+        /* 统计卡片图标样式 */
+        .stat-icon {     
+            font-size: 2.5rem;     
+            color: #6c757d;   
+        }    
+
+        /* 统计卡片文字样式 */
+        .stat-label {     
+            font-size: 1rem;     
+            color: #888;     
+            font-weight: 500;   
+        }    
+
+        .stat-value {     
+            font-size: 1.5rem;     
+            font-weight: 700;     
+            color: #333;   
+        }    
+
+        /* 管理员按钮样式 */
+        .admin-entry {     
+            display: flex;     
+            gap: 1rem;     
+            justify-content: center;     
+            margin-top: 2rem;   
+        }    
+
+        .admin-button {     
+            padding: 1rem 2rem;     
+            border: none;     
+            border-radius: 8px;     
+            background: #6f42c1;     
+            color: white;     
+            font-weight: 500;     
+            transition: all 0.2s;     
+            display: inline-flex;     
+            align-items: center;     
+            gap: 0.8rem;     
+            text-decoration: none; /* 去掉下划线 */
+            text-transform: uppercase;     
+        }    
+
+        .admin-button:hover {     
+            opacity: 0.9;     
+            transform: translateY(-2px);   
+        } 
     </style>
+
     <div class="profile-container">
         <div class="user-card">
             <div class="user-header">
-                <!-- 修改后的头像区块 -->
                 <div class="user-avatar">
-                    {{ current_user.username[0] }}  <!-- 显示首字母 -->
+                    {{ current_user.username[0] }}
                 </div>
                 <div>
                     <h1>{{ current_user.username }}</h1>
                     <p>
                         <i class="fas fa-envelope"></i> {{ current_user.email }}
                     </p>
-                    <p>
-                        <i class="fas fa-chart-line"></i> Elo 分数：{{ current_user.get_elo_score() }}
-                    </p>
                 </div>
             </div>
-            <!-- 新增对战历史入口 -->
-            <div class="mt-4 text-center">
-                <a href="{{ url_for('profile.battle_history') }}"
-                   class="btn btn-primary btn-lg">
-                    <i class="fas fa-history me-2"></i>查看对战历史
+
+            <!-- 统计信息卡片 -->
+            <div class="stats-grid">
+                <!-- Elo分数卡片 -->
+                <div class="stat-card">
+                    <i class="fas fa-trophy stat-icon text-warning"></i>
+                    <div class="stat-label">ELO分数</div>
+                    <div class="stat-value">{{ current_user.get_elo_score() }}</div>
+                </div>
+
+                <!-- 总场次卡片 -->
+                <div class="stat-card">
+                    <i class="fas fa-chart-bar stat-icon text-primary"></i>
+                    <div class="stat-label">总场次</div>
+                    <div class="stat-value">
+                        {% set stats = current_user.get_game_stats() %}
+                        {{ stats.games_played if stats else 0 }}
+                    </div>
+                </div>
+
+                <!-- 胜率卡片 -->
+                <div class="stat-card">
+                    <i class="fas fa-percent stat-icon text-success"></i>
+                    <div class="stat-label">胜率</div>
+                    <div class="stat-value">
+                        {% if stats %}
+                            {{ "%.1f"|format(stats.win_rate) }}%
+                        {% else %}
+                            0.0%
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 按钮部分 -->
+            <div class="admin-entry">
+                <a href="{{ url_for('profile.battle_history') }}" class="admin-button">
+                    <i class="fas fa-history"></i>查看对战历史
                 </a>
+                {% if current_user.is_admin %}
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="admin-button">
+                    <i class="fas fa-user-shield"></i>进入管理员面板
+                </a>
+                {% endif %}
             </div>
-            {% if current_user.is_admin %}
-                <div class="admin-entry">
-                    <a href="{{ url_for('admin.admin_dashboard') }}"
-                       class="admin-button"
-                       style="text-decoration: none">
-                        <i class="fas fa-tools"></i>进入管理员面板
-                    </a>
-                </div>
-            {% endif %}
         </div>
     </div>
 {% endblock %}
+
