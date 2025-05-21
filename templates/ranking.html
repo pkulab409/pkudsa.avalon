@@ -163,27 +163,45 @@
         font-size: 16px;
     }
 
-    /* Win rate progress indicator */
+    /* 下面这一部分是胜率进度条的部分 */
     .win-rate-container {
         position: relative;
         width: 100%;
-        background-color: #e9ecef;
-        border-radius: 50px;
-        height: 10px;
+        height: 12px; /* 适当增加高度 */
+        background: #fff; /* 添加白色背景 */
+        border-radius: 6px; /* 圆角大小与高度匹配 */
         overflow: hidden;
-        margin-top: 5px;
     }
 
-    .win-rate-bar {
+    /* 绿色部分（胜率） */
+    .win-rate-green-bar {
         position: absolute;
-        top: 0;
         left: 0;
         height: 100%;
-        background: linear-gradient(90deg, #11998e, #38ef7d);
-        border-radius: 50px;
-        transition: width 1s ease-in-out;
+        background: #4CAF50;
+        transition: width 0.5s ease;
+        z-index: 2;
+        box-shadow: inset 2px 0 3px rgba(0,0,0,0.1); /* 添加内阴影增强立体感 */
     }
 
+    /* 红色部分（败率） */
+    .win-rate-red-bar {
+        position: absolute;
+        left: 0; /* 改为left定位 */
+        width: 100% !important; /* 始终占满容器 */
+        height: 100%;
+        background: #ff4444;
+        transition: clip-path 0.5s ease; /* 使用裁剪路径实现动画 */
+        clip-path: inset(0 0 0 calc(100% - var(--loss-percent))); /* 通过CSS变量计算败率 */
+    }
+
+    /* 动态圆角处理 */
+    .win-rate-green-bar {
+        border-radius: 6px 0 0 6px;
+    }
+    .win-rate-green-bar[style*="100%"] {
+        border-radius: 6px;
+    }
     /* Username styling */
     .username {
         font-weight: 500;
@@ -258,6 +276,44 @@
             min-width: 800px;
         }
     }
+    /* 修改奖牌数字样式 */
+    .medal-number {
+        display: block;
+        font-weight: 800;
+        font-size: 1.2em;
+        color: #000 !important; /* 强制黑色 */
+        text-shadow: 
+            0 1px 0 rgba(255,255,255,0.5), /* 白色外发光增强对比 */
+            0 1px 2px rgba(0,0,0,0.15); /* 保留原有阴影 */
+        position: relative;
+        z-index: 2; /* 确保数字在光泽层上方 */
+    }
+
+    /* 调整各奖牌颜色 */
+    .medal-gold .medal-number { color: #ffd700; }
+    .medal-silver .medal-number { color: #c0c0c0; }
+    .medal-bronze .medal-number { color: #cd7f32; }
+
+    /* 添加金属光泽效果 */
+    .medal {
+        position: relative;
+        overflow: hidden;
+    }
+    .medal:after {
+        content: '';
+        position: absolute;
+        top: -25%;
+        left: -25%;
+        width: 150%;
+        height: 150%;
+        background: linear-gradient(
+            45deg,
+            rgba(255,255,255,0) 0%,
+            rgba(255,255,255,0.3) 50%,
+            rgba(255,255,255,0) 100%
+        );
+        transform: rotate(30deg);
+    }
     </style>
     <div class="container mt-4 ranking-container">
         <div class="page-header d-flex justify-content-between align-items-center">
@@ -304,26 +360,28 @@
                             </tr>
                         </thead>
                         <tbody>
+                            <!-- 奖牌的部分：1、2、3名配置漂亮的奖牌 -->
                             {% if pagination.items %}
                                 {% for item in pagination.items %}
                                     <tr class="{% if item.rank == 1 %}rank-1{% elif item.rank == 2 %}rank-2{% elif item.rank == 3 %}rank-3{% endif %} {% if item.rank <= 3 %}top3{% endif %}">
                                         <td>
                                             {% if item.rank == 1 %}
                                                 <div class="medal medal-gold">
-                                                    <i class="fas fa-trophy"></i>
+                                                    <span class="medal-number">1</span>
                                                 </div>
                                             {% elif item.rank == 2 %}
                                                 <div class="medal medal-silver">
-                                                    <i class="fas fa-trophy"></i>
+                                                    <span class="medal-number">2</span>
                                                 </div>
                                             {% elif item.rank == 3 %}
                                                 <div class="medal medal-bronze">
-                                                    <i class="fas fa-trophy"></i>
+                                                    <span class="medal-number">3</span>
                                                 </div>
                                             {% else %}
                                                 <span class="stat-value">#{{ item.rank }}</span>
                                             {% endif %}
                                         </td>
+                                        <!-- 连接主页 -->
                                         <td>
                                             {% if current_user.is_authenticated and item.username == current_user.username %}
                                                 <a href="{{ url_for('profile.profile', username=item.username) }}"
@@ -360,7 +418,11 @@
                                                 {% if item.rank <= 3 %}<i class="fas fa-star text-warning"></i>{% endif %}
                                             </div>
                                             <div class="win-rate-container">
-                                                <div class="win-rate-bar" style="width: {{ item.win_rate }}%;"></div>
+                                                <!-- 新增红色背景层 -->
+                                                <div class="win-rate-red-bar"
+                                                     style="width: calc(100% - {{ item.win_rate }}%)"></div>
+                                                <!-- 修改绿色进度条 -->
+                                                <div class="win-rate-green-bar" style="width: {{ item.win_rate }}%;"></div>
                                             </div>
                                         </td>
                                     </tr>
