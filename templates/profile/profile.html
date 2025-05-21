@@ -179,11 +179,11 @@
             </div>
             <!-- 按钮部分 -->
             <div class="admin-entry">
-                <a href="{{ url_for("profile.battle_history") }}" class="admin-button">
+                <a href="{{ url_for('profile.battle_history') }}" class="admin-button">
                     <i class="fas fa-history"></i>查看对战历史
                 </a>
                 {% if current_user.is_admin %}
-                    <a href="{{ url_for("admin.admin_dashboard") }}" class="admin-button">
+                    <a href="{{ url_for('admin.admin_dashboard') }}" class="admin-button">
                         <i class="fas fa-user-shield"></i>进入管理员面板
                     </a>
                 {% endif %}
