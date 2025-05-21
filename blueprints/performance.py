@@ -52,7 +52,6 @@ def get_usage_data():
                 return jsonify({"success": False, "error": "数据尚未加载"}), 503
 
             data = cache["data"]
-            last_update = cache["last_update"]
 
         # 计算总记录数
         total_records = len(data)
@@ -65,8 +64,6 @@ def get_usage_data():
                 "success": True,
                 "data": recent_data,
                 "total_records": total_records,
-                "last_update": last_update,
-                "next_update": last_update + CACHE_UPDATE_INTERVAL,
             }
         )
     except Exception as e:
