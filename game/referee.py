@@ -815,6 +815,9 @@ class AvalonReferee:
             logger.debug(f"Requesting speech from Player {player_id}")
             speech = self.safe_execute(player_id, "say")
 
+            if speech is None:#防止报错
+                speech = ""
+
             if not isinstance(speech, str):  # 用户给的 speech 异常
                 logger.error(
                     f"Player {player_id} returned non-string speech: {type(speech)}.",
@@ -908,6 +911,9 @@ class AvalonReferee:
 
             # 获取移动方向
             directions = self.safe_execute(player_id, "walk")
+
+            if directions is None:#防止报错
+                directions = ()
 
             if not isinstance(directions, tuple):
                 logger.error(
@@ -1208,7 +1214,8 @@ class AvalonReferee:
                     )
 
             vote = self.safe_execute(player_id, "mission_vote1")
-
+            if vote is None:
+                vote = False
             # 确保投票结果是布尔值
             if not isinstance(vote, bool):
                 logger.error(
@@ -1269,7 +1276,8 @@ class AvalonReferee:
 
         for player_id in mission_members:
             vote = self.safe_execute(player_id, "mission_vote2")
-
+            if vote is None:#防止None报错
+                vote = True
             # 确保投票结果是布尔值
             if not isinstance(vote, bool):
                 logger.error(

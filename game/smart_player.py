@@ -512,7 +512,7 @@ class Player:
             f"第{current_round}轮公投: {'同意' if vote_result else '反对'}"
         )
 
-        return vote_result
+        return bool(vote_result)
 
     def _fallback_vote1_strategy(self, team) -> bool:
         """备选的公投策略"""
@@ -592,7 +592,7 @@ class Player:
             write_into_private(f"第{current_round}轮任务: 我选择不破坏")
 
         # 返回投票结果（True为成功，False为破坏）
-        return not sabotage
+        return bool(not sabotage)
 
     def _fallback_vote2_strategy(self) -> bool:
         """备选的任务投票策略"""
