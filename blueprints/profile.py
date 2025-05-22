@@ -26,7 +26,6 @@ def profile(username=None):
         if not current_user.is_authenticated:
             return redirect(url_for("auth.login"))
         user = current_user
-        user_id = current_user.id
     else:
         # 使用数据库函数查找用户
         user = get_user_by_username(username)
@@ -35,18 +34,23 @@ def profile(username=None):
             from flask import abort
 
             abort(404)
-        user_id = user.id
 
-    # # 使用数据库函数查询用户的游戏统计数据
-    # game_stats = get_game_stats_by_user_id(user.id)
+    # 使用数据库函数查询用户的游戏统计数据
+    game_stats = get_game_stats_by_user_id(user.id)
 
-    # # 判断当前用户是否在查看自己的资料
-    # is_self = current_user.is_authenticated and current_user.id == user.id
+    # 判断当前用户是否在查看自己的资料
+    is_self = current_user.is_authenticated and current_user.id == user.id
 
-    # # 检查当前用户是否为管理员
-    # is_admin = current_user.is_authenticated and current_user.is_admin
+    # 检查当前用户是否为管理员
+    is_admin = current_user.is_authenticated and current_user.is_admin
 
-    return redirect(f"/profile/user/{user_id}")
+    return render_template(
+        "profile/profile.html",
+        user=user,
+        game_stats=game_stats,
+        is_self=is_self,
+        is_admin=is_admin,
+    )
 
 
 @profile_bp.route("/battle-history")
