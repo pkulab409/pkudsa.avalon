@@ -610,45 +610,66 @@ def update_game_stats(stats, **kwargs):
         return False
 
 
-def get_leaderboard(ranking_id=0, limit=100, min_games_played=0):
-    """
-    获取指定排行榜的游戏排行榜。
+def get_leaderboard(ranking_id=0, page=1, per_page=15, min_games_played=0):
+    """获取排行榜数据，支持分页"""
+    # 基本查询条件
+    base_query = GameStats.query.filter_by(ranking_id=ranking_id)
 
-    参数:
-        ranking_id (int): 排行榜ID。
-        limit (int): 返回数量限制。
-        min_games_played (int): 玩家至少参与的游戏场次。
+    if min_games_played > 0:
+        base_query = base_query.filter(GameStats.games_played >= min_games_played)
 
-    返回:
-        list: 包含排行榜数据的字典列表。
-    """
-    try:
-        leaderboard_data = (
-            db.session.query(GameStats, User.username)
-            .join(User, GameStats.user_id == User.id)
-            .filter(
-                GameStats.ranking_id == ranking_id,
-                GameStats.games_played >= min_games_played,
-            )
-            .order_by(GameStats.elo_score.desc())
-            .limit(limit)
-            .all()
+    # 计算总记录数
+    total_count = base_query.count()
+
+    # 先执行JOIN，再做排序和分页
+    query = (
+        base_query.join(User)  # 先JOIN再分页
+        .with_entities(
+            GameStats.user_id,
+            User.username,
+            GameStats.elo_score,
+            GameStats.wins,
+            GameStats.losses,
+            GameStats.draws,
+            GameStats.games_played,
+        )
+        .order_by(GameStats.elo_score.desc())  # 排序
+    )
+
+    # 然后应用分页
+    offset = (page - 1) * per_page
+    paginated_query = query.offset(offset).limit(per_page)
+
+    # 获取结果
+    stats_with_users = paginated_query.all()
+
+    # 格式化返回数据
+    result = []
+    for rank, (
+        user_id,
+        username,
+        elo_score,
+        wins,
+        losses,
+        draws,
+        games_played,
+    ) in enumerate(stats_with_users, start=offset + 1):
+        win_rate = round(wins / games_played * 100, 1) if games_played > 0 else 0
+        result.append(
+            {
+                "rank": rank,
+                "user_id": user_id,
+                "username": username,
+                "elo_score": elo_score,
+                "wins": wins,
+                "losses": losses,
+                "draws": draws,
+                "games_played": games_played,
+                "win_rate": win_rate,
+            }
         )
 
-        result = []
-        for stats, username in leaderboard_data:
-            result.append(stats.to_dict())  # 使用 GameStats 的 to_dict 方法
-            result[-1]["username"] = username  # 添加用户名
-            result[-1]["win_rate"] = (
-                round(stats.wins / stats.games_played * 100, 2)
-                if stats.games_played > 0
-                else 0
-            )
-
-        return result
-    except Exception as e:
-        logger.error(f"获取排行榜失败: {e}", exc_info=True)
-        return []
+    return result, total_count
 
 
 # -----------------------------------------------------------------------------------------

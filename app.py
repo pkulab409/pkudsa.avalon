@@ -244,7 +244,7 @@ def initialize_default_data(app):
 
 
 def cleanup_stale_battles(app):
-    """在服务器启动时删除所有标记为playing、waiting或cancelled状态的对局"""
+    """在服务器启动时删除所有标记为playing、waiting或cancelled或error状态的对局"""
     with app.app_context():
         try:
             from database.models import Battle, GameStats, BattlePlayer, db
@@ -252,7 +252,7 @@ def cleanup_stale_battles(app):
 
             # 修改查询条件，也包括已取消的对局
             stale_battles = Battle.query.filter(
-                Battle.status.in_(["playing", "waiting", "cancelled"])
+                Battle.status.in_(["playing", "waiting", "cancelled", "error"])
             ).all()
 
             if not stale_battles:

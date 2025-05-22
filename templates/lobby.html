@@ -356,11 +356,17 @@
                 <h5 class="mb-0">
                     <i class="bi bi-list-ul me-2"></i>对战列表
                     {% if battles_pagination %}(共 {{ battles_pagination.total }} 条){% endif %}
+                    <!-- 添加延迟加载控制按钮 -->
+                    <button id="loadMoreBtn"
+                            class="btn btn-sm btn-outline-secondary float-end d-none">
+                        <i class="bi bi-cloud-download"></i> 加载更多用户
+                    </button>
                 </h5>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover table-sm mb-0 battle-table">
+                    <table class="table table-hover table-sm mb-0 battle-table"
+                           id="battlesTable">
                         <thead class="table-light">
                             <tr>
                                 <th scope="col" width="15%">对战ID</th>
@@ -374,6 +380,14 @@
                             </tr>
                         </thead>
                         <tbody>
+                            <!-- 懒加载提示 -->
+                            {% if battles_pagination and battles_pagination.total > 20 %}
+                                <tr id="lazyLoadRow" class="text-center">
+                                    <td colspan="6" class="py-3">
+                                        <small class="text-muted">优化显示中 - 已加载 {{ battles_pagination.items|length }} 条记录 (共 {{ battles_pagination.total }})</small>
+                                    </td>
+                                </tr>
+                            {% endif %}
                             {% if battles_pagination and battles_pagination.items %}
                                 {% for battle in battles_pagination.items %}
                                     <tr class="battle-card">
@@ -569,6 +583,70 @@ document.addEventListener('DOMContentLoaded', function() {
     // 初始化玩家选择器
     initPlayerSelector();
     
+    // 防抖函数
+    function debounce(func, wait) {
+        let timeout;
+        return function() {
+            const context = this, args = arguments;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), wait);
+        };
+    }
+    
+    // 启用表格行的延迟加载
+    const battlesTable = document.getElementById('battlesTable');
+    if (battlesTable) {
+        // 初始只显示前10行
+        const allRows = battlesTable.querySelectorAll('tbody tr:not(#lazyLoadRow)');
+        for (let i = 10; i < allRows.length; i++) {
+            allRows[i].style.display = 'none';
+        }
+        
+        // 滚动时显示更多行
+        let visibleRows = 10;
+        const showMoreRows = debounce(function() {
+            for (let i = visibleRows; i < Math.min(visibleRows + 5, allRows.length); i++) {
+                if (allRows[i]) allRows[i].style.display = '';
+            }
+            visibleRows += 5;
+            
+            // 如果所有行都显示，移除滚动监听
+            if (visibleRows >= allRows.length) {
+                window.removeEventListener('scroll', handleScroll);
+                const lazyLoadRow = document.getElementById('lazyLoadRow');
+                if (lazyLoadRow) lazyLoadRow.style.display = 'none';
+            }
+        }, 200);
+        
+        // 滚动处理函数
+        function handleScroll() {
+            const scrollPos = window.scrollY + window.innerHeight;
+            const tableBottom = battlesTable.offsetTop + battlesTable.offsetHeight;
+            
+            if (scrollPos > tableBottom - 300) {
+                showMoreRows();
+            }
+        }
+        
+        // 添加滚动监听
+        window.addEventListener('scroll', handleScroll);
+        
+        // 用户列表懒加载
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
+        if (loadMoreBtn && {{ all_users|length }} < 20) {
+            loadMoreBtn.classList.remove('d-none');
+            loadMoreBtn.addEventListener('click', function() {
+                window.location.href = "{{ url_for('game.lobby', load_users='true') }}" + 
+                                       window.location.search.replace(/[?&]load_users=true/, '');
+            });
+        }
+    }
+    
+    // 优化玩家下拉列表加载
+    const playerInput = document.getElementById('player_input');
+    if (playerInput) {
+        playerInput.setAttribute('autocomplete', 'off');
+    }
 });
     </script>
 {% endblock content %}
