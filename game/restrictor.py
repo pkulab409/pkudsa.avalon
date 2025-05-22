@@ -30,6 +30,7 @@ def _restricted_importer(name, globals=None, locals=None, fromlist=(), level=0):
         "re": __import__("re"),
         "collections": __import__("collections"),
         "math": __import__("math"),
+        "json": __import__("json"),
     }
 
     if name in allowed_modules:
