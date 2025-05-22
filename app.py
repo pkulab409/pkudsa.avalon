@@ -41,14 +41,16 @@ def initialize_default_data(app):
 
             # 检查第一个初始用户是否已存在
             first_user_email = initial_users[0].get("email")
+            existing_first_user = False
             if (
                 first_user_email
                 and User.query.filter_by(email=first_user_email).first()
             ):
                 app.logger.info(
-                    f"✅ 检测到初始用户 {first_user_email} 已存在，跳过初始化流程"
+                    f"✅ 检测到初始用户 {first_user_email} 已存在，仅更新AI代码文件"
                 )
-                return
+                existing_first_user = True
+                # 注意：不再直接返回，而是继续执行以更新AI代码
 
             # ================= 初始化准备 =================
             upload_folder = app.config.get(
@@ -60,8 +62,10 @@ def initialize_default_data(app):
 
             admin_count = 0
             total_users = 0
+            total_updated_ai_files = 0
             admin_emails = []
             user = None
+
             # ================= 用户初始化循环 =================
             for idx, user_config in enumerate(initial_users, 1):
                 try:
@@ -77,6 +81,11 @@ def initialize_default_data(app):
                     action = "已存在"
 
                     if not existing_user:
+                        # 如果第一个用户已存在但当前处理的是新用户，则跳过创建
+                        if existing_first_user:
+                            app.logger.info(f"⏭ 跳过创建新用户 {email}，仅处理AI代码")
+                            continue
+
                         # ================= 创建新用户 =================
                         user = User(
                             username=user_config["username"],
@@ -98,40 +107,44 @@ def initialize_default_data(app):
                     else:
                         # ================= 更新现有用户 =================
                         user = existing_user
-                        updated = False
 
-                        # 同步管理员状态
-                        if user.is_admin != is_admin:
-                            user.is_admin = is_admin
-                            updated = True
-                            app.logger.warning(
-                                f"🛠 更新用户权限: {email} -> 管理员={is_admin}"
-                            )
+                        # 如果第一个用户已存在，则跳过用户信息更新
+                        if not existing_first_user:
+                            updated = False
 
-                        # 同步用户名
-                        if user.username != user_config["username"]:
-                            user.username = user_config["username"]
-                            updated = True
-                            app.logger.warning(
-                                f"🛠 更新用户名: {email} -> {user_config['username']}"
-                            )
+                            # 同步管理员状态
+                            if user.is_admin != is_admin:
+                                user.is_admin = is_admin
+                                updated = True
+                                app.logger.warning(
+                                    f"🛠 更新用户权限: {email} -> 管理员={is_admin}"
+                                )
 
-                        if updated:
-                            user.modified_at = datetime.utcnow()
-                            db.session.commit()
-                            action = "更新"
+                            # 同步用户名
+                            if user.username != user_config["username"]:
+                                user.username = user_config["username"]
+                                updated = True
+                                app.logger.warning(
+                                    f"🛠 更新用户名: {email} -> {user_config['username']}"
+                                )
+
+                            if updated:
+                                user.modified_at = datetime.utcnow()
+                                db.session.commit()
+                                action = "更新"
 
                     # 确保用户有对应 partition 的 GameStats 记录
-                    existing_stats = GameStats.query.filter_by(
-                        user_id=user.id, ranking_id=partition
-                    ).first()
-                    if not existing_stats:
-                        stats = GameStats(user_id=user.id, ranking_id=partition)
-                        db.session.add(stats)
-                        app.logger.info(
-                            f"📊 为用户 {email} 创建 ranking_id={partition} 的游戏统计记录"
-                        )
-                        db.session.flush()
+                    if not existing_first_user:
+                        existing_stats = GameStats.query.filter_by(
+                            user_id=user.id, ranking_id=partition
+                        ).first()
+                        if not existing_stats:
+                            stats = GameStats(user_id=user.id, ranking_id=partition)
+                            db.session.add(stats)
+                            app.logger.info(
+                                f"📊 为用户 {email} 创建 ranking_id={partition} 的游戏统计记录"
+                            )
+                            db.session.flush()
 
                     # ================= AI代码处理 =================
                     ai_config = user_config.get("ai_code")
@@ -156,29 +169,61 @@ def initialize_default_data(app):
                         user_dir = os.path.join(upload_folder, str(user.id))
                         os.makedirs(user_dir, exist_ok=True)
 
-                        # 复制文件
-                        filename = os.path.basename(source_path)
-                        dest_path = os.path.join(user_dir, filename)
-                        try:
-                            shutil.copy(source_path, dest_path)
-                            app.logger.info(
-                                f"📄 复制AI代码: {source_path} -> {dest_path}"
+                        # 获取用户现有的AI代码
+                        existing_ai = AICode.query.filter_by(user_id=user.id).first()
+
+                        # 如果用户已存在且有AI代码，则更新文件
+                        if existing_ai:
+                            # 获取现有文件名和路径
+                            dest_path = os.path.join(
+                                upload_folder, existing_ai.code_path
                             )
-                        except Exception as e:
-                            app.logger.error(f"❌ 文件复制失败: {str(e)}")
-                            continue
 
-                        # 创建AI记录
-                        ai = AICode(
-                            user_id=user.id,
-                            name=ai_config["name"],
-                            code_path=os.path.join(str(user.id), filename),
-                            description=ai_config.get("description", ""),
-                            is_active=ai_config.get("make_active", False),
-                            created_at=datetime.utcnow(),
-                        )
+                            # # 备份原文件
+                            # if os.path.exists(dest_path):
+                            #     backup_path = f"{dest_path}.bak"
+                            #     try:
+                            #         shutil.copy(dest_path, backup_path)
+                            #         app.logger.info(
+                            #             f"📑 备份原AI代码: {dest_path} -> {backup_path}"
+                            #         )
+                            #     except Exception as e:
+                            #         app.logger.error(f"❌ 备份AI代码失败: {str(e)}")
 
-                        db.session.add(ai)
+                            # 复制新文件
+                            try:
+                                shutil.copy(source_path, dest_path)
+                                app.logger.info(
+                                    f"🔄 更新AI代码: {source_path} -> {dest_path}"
+                                )
+                                total_updated_ai_files += 1
+                            except Exception as e:
+                                app.logger.error(f"❌ 文件更新失败: {str(e)}")
+                                continue
+                        else:
+                            # 创建新的AI代码记录
+                            filename = os.path.basename(source_path)
+                            dest_path = os.path.join(user_dir, filename)
+                            try:
+                                shutil.copy(source_path, dest_path)
+                                app.logger.info(
+                                    f"📄 复制AI代码: {source_path} -> {dest_path}"
+                                )
+                            except Exception as e:
+                                app.logger.error(f"❌ 文件复制失败: {str(e)}")
+                                continue
+
+                            # 创建AI记录
+                            ai = AICode(
+                                user_id=user.id,
+                                name=ai_config["name"],
+                                code_path=os.path.join(str(user.id), filename),
+                                description=ai_config.get("description", ""),
+                                is_active=ai_config.get("make_active", False),
+                                created_at=datetime.utcnow(),
+                            )
+
+                            db.session.add(ai)
                     db.session.commit()
 
                 except KeyError as e:
@@ -189,7 +234,9 @@ def initialize_default_data(app):
                     app.logger.error(f"❌ 初始化用户 {email} 失败: {str(e)}")
 
             # ================= 最终安全检查 =================
-            app.logger.info(f"✅ 初始化完成！共处理 {total_users} 个新用户")
+            app.logger.info(
+                f"✅ 初始化完成！共处理 {total_users} 个新用户，更新 {total_updated_ai_files} 个AI代码文件"
+            )
 
         except Exception as e:
             app.logger.critical(f"💥 初始化过程严重失败: {str(e)}")
