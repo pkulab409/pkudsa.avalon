@@ -163,20 +163,26 @@ def create_battle_page():
 
     potential_opponents = []
     try:
-        ai_player_usernames = get_ai_player_usernames_from_config()
-        if ai_player_usernames:
-            # 查询数据库，获取这些用户名的User对象，同时排除当前登录用户
-            potential_opponents = (
-                User.query.filter(
-                    User.username.in_(ai_player_usernames), User.id != current_user.id
-                )
-                .order_by(User.username)
-                .all()
-            )
-        else:
-            current_app.logger.warning("未能从config.yaml加载AI玩家用户名。")
-            # 可以考虑一个备选方案，比如加载所有非当前用户，但这可能过于宽泛
-            # potential_opponents = User.query.filter(User.id != current_user.id).order_by(User.username).all()
+        # ai_player_usernames = get_ai_player_usernames_from_config()
+        # if ai_player_usernames:
+        #     # 查询数据库，获取这些用户名的User对象，同时排除当前登录用户
+        #     potential_opponents = (
+        #         User.query.filter(
+        #             User.username.in_(ai_player_usernames), User.id != current_user.id
+        #         )
+        #         .order_by(User.username)
+        #         .all()
+        #     )
+        # else:
+        #     current_app.logger.warning("未能从config.yaml加载AI玩家用户名。")
+        #     # 可以考虑一个备选方案，比如加载所有非当前用户，但这可能过于宽泛
+        #     # potential_opponents = User.query.filter(User.id != current_user.id).order_by(User.username).all()
+
+        # 获取当前用户的所有AI代码供选择
+        user_ai_codes = db_get_user_ai_codes(current_user.id)
+        # 目前，依然是所有用户作为潜在的AI对手
+        # 注意：实际应用中可能需要更复杂的对手选择机制，例如好友、排行榜用户等
+        potential_opponents = User.query.filter(User.id != current_user.id).all()
 
     except Exception as e:
         current_app.logger.error(f"获取潜在对手列表失败: {str(e)}", exc_info=True)
