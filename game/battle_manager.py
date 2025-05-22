@@ -82,7 +82,7 @@ class BattleManager:
             (
                 0,
                 "try starting battle",
-            ), 
+            ),
         )
 
         if battle_id in self.battles:
@@ -92,7 +92,7 @@ class BattleManager:
                 (
                     0,
                     f"对战 {battle_id} 已经在运行中或已存在",
-                ), 
+                ),
             )
             return False
 
@@ -117,7 +117,7 @@ class BattleManager:
                         (
                             0,
                             f"无法获取玩家 {user_id} 的AI代码 {ai_code_id} 路径，对战 {battle_id} 无法启动",
-                        ), 
+                        ),
                     )
                     # 可以在这里调用 service 的 mark_battle_as_error
                     self.battle_service.mark_battle_as_error(
@@ -127,12 +127,12 @@ class BattleManager:
             else:
                 logger.error(f"参与者数据不完整 {p_data}，对战 {battle_id} 无法启动")
                 self.battle_observers[battle_id].make_snapshot(
-                        "BattleManager",
-                        (
-                            0,
-                            f"参与者数据不完整 {p_data}，对战 {battle_id} 无法启动",
-                        ), 
-                    )
+                    "BattleManager",
+                    (
+                        0,
+                        f"参与者数据不完整 {p_data}，对战 {battle_id} 无法启动",
+                    ),
+                )
                 self.battle_service.mark_battle_as_error(
                     battle_id, {"error": "参与者数据不完整"}
                 )
@@ -164,7 +164,7 @@ class BattleManager:
                         (
                             0,
                             f"对战 {battle_id} 启动失败：无法更新数据库状态为 playing",
-                        ), 
+                        ),
                     )
                     return  # 终止线程
 
@@ -178,7 +178,7 @@ class BattleManager:
                     (
                         0,
                         f"对战 {battle_id} 线程开始执行",
-                    ), 
+                    ),
                 )
 
                 # 3. 初始化裁判
