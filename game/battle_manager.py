@@ -20,7 +20,7 @@ from services.battle_service import BattleService
 logger = logging.getLogger("BattleManager")
 
 
-MAX_CONCURRENT_BATTLES = 10  # 默认最大并发对战数
+MAX_CONCURRENT_BATTLES = 32  # 默认最大并发对战数
 
 
 class BattleManager:
