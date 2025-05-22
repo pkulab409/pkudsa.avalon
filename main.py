@@ -7,12 +7,6 @@ import sys
 import resource
 import psutil
 
-# 设置进程优先级（nice值越低优先级越高，-20最高，19最低）
-try:
-    os.nice(-10)  # 设置较高的优先级
-except (AttributeError, PermissionError) as e:
-    print(f"无法设置进程优先级：{e}，需要root权限")
-
 # 创建应用实例
 app = create_app()
 

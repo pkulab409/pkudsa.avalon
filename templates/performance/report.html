@@ -199,6 +199,7 @@
     // 获取数据
     async function fetchData() {
         try {
+
             const response = await fetch('/performance/api/usage_times');
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
