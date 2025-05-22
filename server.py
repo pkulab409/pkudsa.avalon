@@ -81,4 +81,4 @@ def get_yaml_file():
 if __name__ == "__main__":
     # 运行 Flask 应用
     # 在生产环境中，应该使用更健壮的 WSGI 服务器，如 Gunicorn 或 uWSGI
-    app.run(host="0.0.0.0", port=5001, debug=True)
+    app.run(host="0.0.0.0", port=5001, debug=False)
