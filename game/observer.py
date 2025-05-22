@@ -175,6 +175,7 @@ class Observer:
             "BattleManager"
                 -- 对战管理器信息
 
+            "PRIVATE_DEBUG"
         """
 
         snapshot = {
