@@ -422,7 +422,9 @@
                                                 <div class="win-rate-red-bar"
                                                      style="width: calc(100% - {{ item.win_rate }}%)"></div>
                                                 <!-- 修改绿色进度条 -->
-                                                <div class="win-rate-green-bar" style="width: {{ item.win_rate }}%;"></div>
+                                                <div class="win-rate-green-bar"
+                                                     style="width: {{ item.win_rate }}%"
+                                                     data-width="{{ item.win_rate }}%"></div>
                                             </div>
                                         </td>
                                     </tr>
@@ -479,39 +481,39 @@
         </div>
     </div>
     <script>
-    // Add smooth animation for win rate bars when page loads
+    // 修改动画触发方式，使用IntersectionObserver
     document.addEventListener('DOMContentLoaded', function() {
-        // 获取所有胜率条
-        const greenBars = document.querySelectorAll('.win-rate-green-bar');
-        const redBars = document.querySelectorAll('.win-rate-red-bar');
+        // 创建观察器
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const row = entry.target;
+                    // 仅为可见行应用动画
+                    const greenBar = row.querySelector('.win-rate-green-bar');
+                    const redBar = row.querySelector('.win-rate-red-bar');
+                    
+                    if (greenBar && redBar) {
+                        // 激活进度条动画
+                        animateBar(greenBar, redBar);
+                    }
+                }
+            });
+        }, {threshold: 0.1});
         
-        // 初始化设置胜率条宽度为0
-        greenBars.forEach(bar => {
-            // 保存最终宽度
-            const finalWidth = bar.style.width;
-            // 设置初始宽度为0
-            bar.style.width = '0%';
-            
-            // 延迟后恢复到最终宽度
-            setTimeout(() => {
-                bar.style.width = finalWidth;
-            }, 100);
+        // 观察每行
+        document.querySelectorAll('tr').forEach(row => {
+            observer.observe(row);
         });
         
-        // 初始化设置红色条的剪裁路径
-        redBars.forEach(bar => {
-            const greenBarWidth = bar.parentElement.querySelector('.win-rate-green-bar').style.width;
-            const lossPercent = (100 - parseFloat(greenBarWidth)).toFixed(2) + '%';
-            bar.style.setProperty('--loss-percent', lossPercent);
+        // 动画函数
+        function animateBar(greenBar, redBar) {
+            const finalWidth = greenBar.getAttribute('data-width');
+            greenBar.style.width = finalWidth;
             
-            // 初始状态下设置完整显示
-            bar.style.clipPath = 'inset(0 0 0 0)';
-            
-            // 延迟后设置最终剪裁状态
-            setTimeout(() => {
-                bar.style.clipPath = `inset(0 0 0 calc(100% - var(--loss-percent)))`;
-            }, 100);
-        });
+            const lossPercent = (100 - parseFloat(finalWidth)).toFixed(2) + '%';
+            redBar.style.setProperty('--loss-percent', lossPercent);
+            redBar.style.clipPath = `inset(0 0 0 calc(100% - var(--loss-percent)))`;
+        }
     });
     </script>
 {% endblock content %}
