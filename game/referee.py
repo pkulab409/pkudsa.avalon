@@ -1781,11 +1781,10 @@ class AvalonReferee:
             # 检查执行时间
             # This check is just a warning
             if execution_time > MAX_EXECUTION_TIME:  # Lowered threshold for warning
-                logger.error(
-                    f"Player {player_id} ({self.roles.get(player_id)}) method {method_name} took {execution_time:.2f} seconds (timeout)"
-                )
+                time_exceed_msg = f"Player {player_id} ({self.roles.get(player_id)}) method {method_name} took {execution_time:.2f} seconds (timeout)"
+                logger.error(time_exceed_msg)
                 self.suspend_game(
-                    "critical_player_ERROR", player_id, method_name, str(e)
+                    "critical_player_ERROR", player_id, method_name, time_exceed_msg
                 )
             return result
 
