@@ -3,6 +3,7 @@ import os
 import json
 import time
 import threading
+import math  # <-- 添加导入
 
 # 创建蓝图
 performance_bp = Blueprint("performance", __name__)
@@ -35,8 +36,15 @@ def update_cache():
 
             cache["last_update"] = time.time()
         except (FileNotFoundError, json.JSONDecodeError) as e:
-            print(f"缓存更新失败: {str(e)}")
-            # 确保出错时至少有一个空数组
+            print(f"缓存更新失败 (JSON error): {str(e)}")
+            if cache["data"] is None:  # 确保 data 至少是一个空列表
+                cache["data"] = []
+        except OSError as e:  # 捕获其他 OS 错误，例如权限错误
+            print(f"缓存更新失败 (OS error): {str(e)}")
+            if cache["data"] is None:
+                cache["data"] = []
+        except Exception as e:  # 捕获更新缓存时的任何其他意外错误
+            print(f"缓存更新失败 (Unexpected error): {str(e)}")
             if cache["data"] is None:
                 cache["data"] = []
 
@@ -60,13 +68,33 @@ def performance_report_page():
     return render_template("performance/report.html")
 
 
+# 辅助函数，用于清理数据中的 NaN/Infinity 值
+def clean_usage_data(records):
+    cleaned_records = []
+    if not isinstance(records, list):  # 添加检查以确保 records 是列表
+        return []
+
+    for record in records:
+        if not isinstance(record, dict):  # 跳过非字典类型的记录
+            cleaned_records.append(record)  # 或者根据需要处理
+            continue
+
+        cleaned_record = record.copy()
+        usage_time = cleaned_record.get("usage_time")
+        if isinstance(usage_time, float):
+            if math.isnan(usage_time) or math.isinf(usage_time):
+                cleaned_record["usage_time"] = None  # 替换为 None
+        cleaned_records.append(cleaned_record)
+    return cleaned_records
+
+
 @performance_bp.route("/api/usage_times")
 def get_usage_data():
     """获取客户端使用时间数据API"""
     try:
         with cache["lock"]:
-            if not cache["data"]:
-                cache["data"] = []  # 确保至少是一个空数组
+            if not cache["data"]:  # 确保 cache["data"] 至少是一个空列表
+                cache["data"] = []
 
         # 计算总记录数
         total_records = len(cache["data"])
@@ -76,10 +104,13 @@ def get_usage_data():
             cache["data"][-1000:] if len(cache["data"]) > 1000 else cache["data"]
         )
 
+        # 清理数据以确保 JSON 可序列化，特别是对于 NaN/Infinity 等浮点值
+        cleaned_recent_data = clean_usage_data(recent_data)
+
         return jsonify(
             {
                 "success": True,
-                "data": recent_data,
+                "data": cleaned_recent_data,
                 "total_records": total_records,
             }
         )
