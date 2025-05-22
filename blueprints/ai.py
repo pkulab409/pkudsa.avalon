@@ -879,8 +879,8 @@ def start_ai_series_test():
                     ),
                 )
 
-            # 可选：在创建每个对战之间加入短暂延时，避免瞬间大量请求
-            time.sleep(0.5)  # 0.5秒延时
+            # # 可选：在创建每个对战之间加入短暂延时，避免瞬间大量请求
+            # time.sleep(0.5)  # 0.5秒延时
 
         except Exception as e:
             current_app.logger.error(
