@@ -4,6 +4,7 @@
 """
 
 import os
+from tkinter.tix import MAX
 import uuid
 import logging
 import threading
@@ -19,6 +20,9 @@ from services.battle_service import BattleService
 logger = logging.getLogger("BattleManager")
 
 
+MAX_CONCURRENT_BATTLES = 10  # 默认最大并发对战数
+
+
 class BattleManager:
     """阿瓦隆游戏对战管理器 - 单例模式"""
 
@@ -26,7 +30,9 @@ class BattleManager:
     _lock = threading.RLock()
 
     def __new__(
-        cls, battle_service: BattleService = None, max_concurrent_battles: int = 10
+        cls,
+        battle_service: BattleService = None,
+        max_concurrent_battles: int = MAX_CONCURRENT_BATTLES,
     ):
         with cls._lock:
             if cls._instance is None:
@@ -51,7 +57,9 @@ class BattleManager:
             return cls._instance
 
     def __init__(
-        self, battle_service: BattleService = None, max_concurrent_battles: int = 10
+        self,
+        battle_service: BattleService = None,
+        max_concurrent_battles: int = MAX_CONCURRENT_BATTLES,
     ):
         if hasattr(self, "_initialized") and self._initialized:
             return
