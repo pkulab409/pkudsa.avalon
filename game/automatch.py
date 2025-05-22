@@ -16,7 +16,7 @@ from utils.battle_manager_utils import get_battle_manager
 
 logger = logging.getLogger("AutoMatch")
 
-MAX_AUTOMATCH_PARALLEL_GAMES_PER_RANKING = 10  # 每个榜单的并行对战数
+MAX_AUTOMATCH_PARALLEL_GAMES_PER_RANKING = 5  # 每个榜单的并行对战数
 MIN_PARTICIPANTS_FOR_BATTLE = 7  # 至少需要多少AI才能开始一场对战
 
 
