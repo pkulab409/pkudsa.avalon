@@ -181,7 +181,6 @@
     let totalRecords = 0;
     let countdownInterval;
     let countdownValue = 10;
-    let nextServerUpdate = 0;
     
     // 初始化图表
     function initCharts() {
@@ -220,10 +219,8 @@
                 updateStatistics();
                 updateCharts();
                 
-                // 同步服务器时间
-                if (result.next_update) {
-                    syncWithServer(result.next_update);
-                }
+                // 重置倒计时
+                startCountdown();
             } else {
                 console.error('Data error:', result.error || '未知错误');
                 showError('无法加载数据: ' + (result.error || '未知错误'));
@@ -234,17 +231,13 @@
         }
     }
     
-    // 与服务器同步更新时间
-    function syncWithServer(nextUpdateTimestamp) {
+    // 开始倒计时
+    function startCountdown() {
         // 清除现有倒计时
         clearInterval(countdownInterval);
         
-        nextServerUpdate = nextUpdateTimestamp;
-        const now = Math.floor(Date.now() / 1000);
-        let timeRemaining = Math.max(1, nextUpdateTimestamp - now);
-        
-        // 设置初始倒计时值 - 向上取整确保显示整数
-        countdownValue = Math.ceil(timeRemaining);
+        // 重置倒计时值
+        countdownValue = 10;
         updateCountdownUI();
         
         // 开始新的倒计时

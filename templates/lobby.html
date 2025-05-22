@@ -24,13 +24,17 @@
   }
 
   /* Multi-player tags styling */
+  .player-selector {
+    display: flex;
+    flex-direction: column;
+  }
+
   .player-tags-container {
     display: flex;
     flex-wrap: wrap;
     gap: 5px;
-    margin-top: 5px;
-    min-height: 32px;
-    padding: 5px;
+    min-height: 38px;
+    padding: 6px;
     border: 1px solid #ced4da;
     border-radius: 4px;
     background-color: #f8f9fa;
@@ -41,20 +45,39 @@
     align-items: center;
     background: #e9ecef;
     border-radius: 4px;
-    padding: 2px 8px;
+    padding: 3px 8px;
     margin: 2px 0;
     font-size: 0.85rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+  }
+
+  .player-tag:hover {
+    background: #dee2e6;
   }
 
   .player-tag .remove-tag {
-    margin-left: 5px;
+    margin-left: 6px;
     cursor: pointer;
     color: #6c757d;
     font-weight: bold;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
   }
 
   .player-tag .remove-tag:hover {
-    color: #dc3545;
+    color: #fff;
+    background-color: #dc3545;
+  }
+
+  /* 表示已达到最大限制的样式 */
+  .player-tags-container.limit-reached {
+    border-color: #ffc107;
+    background-color: #fff8e1;
   }
 
   /* Status badge custom colors */
@@ -170,6 +193,36 @@
     transform: scale(1.05);
     animation: none;
   }
+
+  /* 修复添加按钮尺寸问题 */
+  #addPlayerBtn {
+    height: 30px;
+    width: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem 0.5rem;
+  }
+
+  /* 修复输入框和按钮的高度匹配问题 */
+  .player-selector .input-group-sm {
+    align-items: stretch;
+  }
+  
+  .player-selector .input-group-sm > .form-control,
+  .player-selector .input-group-sm > .btn {
+    height: 31px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  /* 修复添加按钮尺寸问题 */
+  #addPlayerBtn {
+    width: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
     </style>
     <div class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -254,32 +307,39 @@
                         </div>
                         <div class="col-lg-4 col-md-6 col-sm-12">
                             <label for="player_input" class="form-label">玩家 (最多7位):</label>
-                            <div class="input-group input-group-sm">
-                                <input type="text"
-                                       id="player_input"
-                                       class="form-control"
-                                       list="player-list"
-                                       placeholder="输入用户名或ID后按Enter添加">
-                                <button type="button" id="addPlayerBtn" class="btn btn-outline-secondary">
-                                    <i class="bi bi-plus"></i>
-                                </button>
-                            </div>
-                            {% if all_users %}
-                                <datalist id="player-list">
-                                    {% for user in all_users %}<option value="{{ user.username }}">{{ user.username }}</option>{% endfor %}
-                                </datalist>
-                            {% endif %}
-                            <!-- Player tags container -->
-                            <div class="player-tags-container" id="playerTagsContainer">
-                                {% if current_filters.players %}
-                                    {% for player in current_filters.players %}
-                                        <div class="player-tag">
-                                            {{ player }}
-                                            <span class="remove-tag" data-player="{{ player }}">×</span>
-                                            <input type="hidden" name="players" value="{{ player }}">
-                                        </div>
-                                    {% endfor %}
+                            <div class="player-selector">
+                                <div class="input-group input-group-sm mb-2">
+                                    <input type="text"
+                                           id="player_input"
+                                           class="form-control"
+                                           list="player-list"
+                                           placeholder="输入用户名或ID后按Enter添加"
+                                           aria-label="玩家用户名"
+                                           aria-describedby="addPlayerBtn">
+                                    <button type="button"
+                                            id="addPlayerBtn"
+                                            class="btn btn-outline-secondary"
+                                            title="添加玩家">
+                                        <i class="bi bi-plus"></i>
+                                    </button>
+                                </div>
+                                {% if all_users %}
+                                    <datalist id="player-list">
+                                        {% for user in all_users %}<option value="{{ user.username }}">{{ user.username }}</option>{% endfor %}
+                                    </datalist>
                                 {% endif %}
+                                <!-- Player tags container -->
+                                <div class="player-tags-container" id="playerTagsContainer">
+                                    {% if current_filters.players %}
+                                        {% for player in current_filters.players %}
+                                            <div class="player-tag">
+                                                {{ player }}
+                                                <span class="remove-tag" data-player="{{ player }}" title="移除">×</span>
+                                                <input type="hidden" name="players" value="{{ player }}">
+                                            </div>
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                         <div class="col-lg-auto col-md-12 col-sm-12 btn-submit-row">
@@ -432,71 +492,83 @@
         </div>
     </div>
     <script>
-document.addEventListener('DOMContentLoaded', function() {
+// 玩家选择器功能
+function initPlayerSelector() {
     const playerInput = document.getElementById('player_input');
     const addPlayerBtn = document.getElementById('addPlayerBtn');
     const playerTagsContainer = document.getElementById('playerTagsContainer');
-    const form = document.getElementById('battleFilterForm');
-
-    // Function to add a player tag
+    const MAX_PLAYERS = 7;
+    
     function addPlayerTag(playerName) {
-        if (!playerName) return;
-
-        // Check if we already have this player
+        if (!playerName) return false;
+        
+        playerName = playerName.trim();
+        
+        // 检查玩家是否已添加
         const existingTags = playerTagsContainer.querySelectorAll('.player-tag');
         for (let tag of existingTags) {
             if (tag.textContent.trim().replace('×', '') === playerName) {
-                return; // Player already exists
+                // 提示已存在
+                playerInput.classList.add('is-invalid');
+                setTimeout(() => playerInput.classList.remove('is-invalid'), 1000);
+                return false;
             }
         }
-
-        // Check if we reached the maximum of 7 players
-        if (existingTags.length >= 7) {
-            alert('最多只能选择7位玩家');
-            return;
+        
+        // 检查是否达到最大限制
+        if (existingTags.length >= MAX_PLAYERS) {
+            playerTagsContainer.classList.add('limit-reached');
+            setTimeout(() => playerTagsContainer.classList.remove('limit-reached'), 1000);
+            return false;
         }
-
-        // Create the player tag element
+        
+        // 创建并添加标签
         const tag = document.createElement('div');
         tag.className = 'player-tag';
         tag.innerHTML = `
             ${playerName}
-            <span class="remove-tag" data-player="${playerName}">×</span>
+            <span class="remove-tag" data-player="${playerName}" title="移除">×</span>
             <input type="hidden" name="players" value="${playerName}">
         `;
-
-        // Add remove functionality
-        const removeBtn = tag.querySelector('.remove-tag');
-        removeBtn.addEventListener('click', function() {
+        
+        // 绑定删除事件
+        tag.querySelector('.remove-tag').addEventListener('click', () => {
             tag.remove();
+            playerTagsContainer.classList.remove('limit-reached');
         });
-
-        // Add to container
+        
+        // 添加到容器
         playerTagsContainer.appendChild(tag);
-
-        // Clear input
+        
+        // 清空输入框并聚焦
         playerInput.value = '';
+        playerInput.focus();
+        
+        return true;
     }
-
-    // Add player on button click
-    addPlayerBtn.addEventListener('click', function() {
-        addPlayerTag(playerInput.value.trim());
-    });
-
-    // Add player on Enter key
-    playerInput.addEventListener('keydown', function(event) {
+    
+    // 绑定按钮点击事件
+    addPlayerBtn.addEventListener('click', () => addPlayerTag(playerInput.value));
+    
+    // 绑定Enter键事件
+    playerInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
             event.preventDefault();
-            addPlayerTag(playerInput.value.trim());
+            addPlayerTag(playerInput.value);
         }
     });
+    
+    // 绑定已有标签的删除事件
+    document.querySelectorAll('.player-tag .remove-tag').forEach(btn => {
+        btn.addEventListener('click', () => btn.closest('.player-tag').remove());
+    });
+}
 
-    // Handle removing existing tags
-    playerTagsContainer.addEventListener('click', function(event) {
-        if (event.target.classList.contains('remove-tag')) {
-            event.target.closest('.player-tag').remove();
-        }
-    });
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化玩家选择器
+    initPlayerSelector();
+    
 });
     </script>
 {% endblock content %}

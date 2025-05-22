@@ -815,6 +815,9 @@ class AvalonReferee:
             logger.debug(f"Requesting speech from Player {player_id}")
             speech = self.safe_execute(player_id, "say")
 
+            if speech is None:  # 防止报错
+                speech = ""
+
             if not isinstance(speech, str):  # 用户给的 speech 异常
                 logger.error(
                     f"Player {player_id} returned non-string speech: {type(speech)}.",
@@ -908,6 +911,9 @@ class AvalonReferee:
 
             # 获取移动方向
             directions = self.safe_execute(player_id, "walk")
+
+            if directions is None:  # 防止报错
+                directions = ()
 
             if not isinstance(directions, tuple):
                 logger.error(
@@ -1208,7 +1214,8 @@ class AvalonReferee:
                     )
 
             vote = self.safe_execute(player_id, "mission_vote1")
-
+            if vote is None:
+                vote = False
             # 确保投票结果是布尔值
             if not isinstance(vote, bool):
                 logger.error(
@@ -1269,7 +1276,8 @@ class AvalonReferee:
 
         for player_id in mission_members:
             vote = self.safe_execute(player_id, "mission_vote2")
-
+            if vote is None:  # 防止None报错
+                vote = True
             # 确保投票结果是布尔值
             if not isinstance(vote, bool):
                 logger.error(
@@ -1305,11 +1313,11 @@ class AvalonReferee:
                 fail_votes += 1
 
         # 判断任务结果
-        # 第4轮(索引3)为保护轮，需要至少2票失败；其他轮次只需1票失败
-        is_fourth_round = self.current_round == 4
+        # 第3, 4轮为保护轮，需要至少2票失败；其他轮次只需1票失败
+        is_protected_round = self.current_round in [3, 4]
         required_fails = (
-            2 if is_fourth_round and PLAYER_COUNT >= 7 else 1
-        )  # Standard Avalon rule for 7+ players on round 4
+            2 if is_protected_round and PLAYER_COUNT >= 7 else 1
+        )  # Standard Avalon rule for 7+ players on round 3, 4
         mission_success = fail_votes < required_fails
 
         logger.info(

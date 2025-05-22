@@ -185,7 +185,16 @@ class Player:
         try:
             # 尝试直接从回复中提取数字列表
             numbers = re.findall(r"\d+", response)
-            team = [int(num) for num in numbers if 1 <= int(num) <= 7][:team_size]
+            # 去重并保留顺序
+            seen = set()
+            team = []
+            for num in numbers:
+                n = int(num)
+                if 1 <= n <= 7 and n not in seen:
+                    team.append(n)
+                    seen.add(n)
+                if len(team) >= team_size:
+                    break
 
             # 如果提取失败或数量不对，使用备选策略
             if len(team) != team_size:
@@ -193,11 +202,7 @@ class Player:
         except:
             team = self._fallback_team_selection(team_size)
 
-        # 确保自己在队伍中
-        if self.index not in team and len(team) > 0:
-            team[0] = self.index
-
-        # 确保队伍大小正确
+        # 如果队伍过小，顺序补充
         while len(team) < team_size:
             for i in range(1, 8):
                 if i not in team:
@@ -206,6 +211,10 @@ class Player:
 
         # 如果队伍过大，裁剪
         team = team[:team_size]
+
+        # 确保自己在队伍中
+        if self.index not in team and len(team) > 0:
+            team[0] = self.index
 
         write_into_private(f"我选择的队员: {team}")
         return team
@@ -260,110 +269,124 @@ class Player:
 
     def walk(self) -> tuple[str, ...]:
         """移动策略，最多走3步，终点不能与其他玩家重合"""
-        if not self.map or not self.location:
+        try:
+            if not self.map or not self.location:
+                return tuple()
+
+            x, y = self.location
+            others_pos = [
+                self.player_positions[i] for i in range(1, 8) if i != self.index
+            ]
+
+            # 计算到最近任务点的路径
+            if self.key_locations:
+                target = min(
+                    self.key_locations,
+                    key=lambda pos: abs(pos[0] - x) + abs(pos[1] - y),
+                )
+                path = self._find_path_to_target(x, y, target)
+                if path:
+                    steps = path[:3]
+                    # 计算终点
+                    cx, cy = x, y
+                    for move in steps:
+                        if move == "Up":
+                            cx -= 1
+                        elif move == "Down":
+                            cx += 1
+                        elif move == "Left":
+                            cy -= 1
+                        elif move == "Right":
+                            cy += 1
+                    if (cx, cy) not in others_pos:
+                        return tuple(steps)
+
+            # 如果没有找到路径或没有任务点，尝试接近其他玩家
+            if not self.is_evil:
+                trusted_players = [
+                    p
+                    for p, prob in self.evil_probability.items()
+                    if prob < self.strategy["trust_threshold"] and p != self.index
+                ]
+                if trusted_players:
+                    target_pos = self.player_positions.get(trusted_players[0])
+                    if target_pos:
+                        path = self._find_path_to_target(x, y, target_pos)
+                        if path:
+                            steps = path[:3]
+                            cx, cy = x, y
+                            for move in steps:
+                                if move == "Up":
+                                    cx -= 1
+                                elif move == "Down":
+                                    cx += 1
+                                elif move == "Left":
+                                    cy -= 1
+                                elif move == "Right":
+                                    cy += 1
+                            if (cx, cy) not in others_pos:
+                                return tuple(steps)
+            else:
+                potential_merlins = [
+                    p
+                    for p, prob in self.evil_probability.items()
+                    if prob < 0.3 and p != self.index
+                ]
+                if potential_merlins:
+                    target_pos = self.player_positions.get(potential_merlins[0])
+                    if target_pos:
+                        path = self._find_path_to_target(x, y, target_pos)
+                        if path:
+                            steps = path[:3]
+                            cx, cy = x, y
+                            for move in steps:
+                                if move == "Up":
+                                    cx -= 1
+                                elif move == "Down":
+                                    cx += 1
+                                elif move == "Left":
+                                    cy -= 1
+                                elif move == "Right":
+                                    cy += 1
+                            if (cx, cy) not in others_pos:
+                                return tuple(steps)
+
+            # 原始有效移动
+            valid_moves = []
+            directions = [
+                ("Up", -1, 0),
+                ("Down", 1, 0),
+                ("Left", 0, -1),
+                ("Right", 0, 1),
+            ]
+            for direction, dx, dy in directions:
+                nx, ny = x + dx, y + dy
+                if (
+                    (0 <= nx < self.map_size)
+                    and (0 <= ny < self.map_size)
+                    and ((nx, ny) not in others_pos)
+                ):
+                    valid_moves.append(direction)
+
+            if valid_moves:
+                # 只走一步，终点不重合
+                nx, ny = x, y
+                move = valid_moves[0]
+                if move == "Up":
+                    nx -= 1
+                elif move == "Down":
+                    nx += 1
+                elif move == "Left":
+                    ny -= 1
+                elif move == "Right":
+                    ny += 1
+                if (nx, ny) not in others_pos:
+                    return (move,)
+
             return tuple()
-
-        x, y = self.location
-        others_pos = [self.player_positions[i] for i in range(1, 8) if i != self.index]
-
-        # 计算到最近任务点的路径
-        if self.key_locations:
-            target = min(
-                self.key_locations, key=lambda pos: abs(pos[0] - x) + abs(pos[1] - y)
-            )
-            path = self._find_path_to_target(x, y, target)
-            if path:
-                steps = path[:3]
-                # 计算终点
-                cx, cy = x, y
-                for move in steps:
-                    if move == "Up":
-                        cx -= 1
-                    elif move == "Down":
-                        cx += 1
-                    elif move == "Left":
-                        cy -= 1
-                    elif move == "Right":
-                        cy += 1
-                if (cx, cy) not in others_pos:
-                    return tuple(steps)
-
-        # 如果没有找到路径或没有任务点，尝试接近其他玩家
-        if not self.is_evil:
-            trusted_players = [
-                p
-                for p, prob in self.evil_probability.items()
-                if prob < self.strategy["trust_threshold"] and p != self.index
-            ]
-            if trusted_players:
-                target_pos = self.player_positions[trusted_players[0]]
-                path = self._find_path_to_target(x, y, target_pos)
-                if path:
-                    steps = path[:3]
-                    cx, cy = x, y
-                    for move in steps:
-                        if move == "Up":
-                            cx -= 1
-                        elif move == "Down":
-                            cx += 1
-                        elif move == "Left":
-                            cy -= 1
-                        elif move == "Right":
-                            cy += 1
-                    if (cx, cy) not in others_pos:
-                        return tuple(steps)
-        else:
-            potential_merlins = [
-                p
-                for p, prob in self.evil_probability.items()
-                if prob < 0.3 and p != self.index
-            ]
-            if potential_merlins:
-                target_pos = self.player_positions[potential_merlins[0]]
-                path = self._find_path_to_target(x, y, target_pos)
-                if path:
-                    steps = path[:3]
-                    cx, cy = x, y
-                    for move in steps:
-                        if move == "Up":
-                            cx -= 1
-                        elif move == "Down":
-                            cx += 1
-                        elif move == "Left":
-                            cy -= 1
-                        elif move == "Right":
-                            cy += 1
-                    if (cx, cy) not in others_pos:
-                        return tuple(steps)
-
-        # 原始有效移动
-        valid_moves = []
-        directions = [("Up", -1, 0), ("Down", 1, 0), ("Left", 0, -1), ("Right", 0, 1)]
-        for direction, dx, dy in directions:
-            nx, ny = x + dx, y + dy
-            if (
-                (0 <= nx < self.map_size)
-                and (0 <= ny < self.map_size)
-                and ((nx, ny) not in others_pos)
-            ):
-                valid_moves.append(direction)
-
-        if valid_moves:
-            # 只走一步，终点不重合
-            nx, ny = x, y
-            move = valid_moves[0]
-            if move == "Up":
-                nx -= 1
-            elif move == "Down":
-                nx += 1
-            elif move == "Left":
-                ny -= 1
-            elif move == "Right":
-                ny += 1
-            if (nx, ny) not in others_pos:
-                return (move,)
-
-        return tuple()
+        except Exception as e:
+            write_into_private(f"walk异常: {e}")
+            return tuple()
 
     def _find_path_to_target(self, x, y, target):
         """使用BFS寻找从(x,y)到target的最短路径"""
@@ -489,7 +512,7 @@ class Player:
             f"第{current_round}轮公投: {'同意' if vote_result else '反对'}"
         )
 
-        return vote_result
+        return bool(vote_result)
 
     def _fallback_vote1_strategy(self, team) -> bool:
         """备选的公投策略"""
@@ -569,7 +592,7 @@ class Player:
             write_into_private(f"第{current_round}轮任务: 我选择不破坏")
 
         # 返回投票结果（True为成功，False为破坏）
-        return not sabotage
+        return bool(not sabotage)
 
     def _fallback_vote2_strategy(self) -> bool:
         """备选的任务投票策略"""

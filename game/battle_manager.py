@@ -200,10 +200,9 @@ class BattleManager:
                 self.battle_service.mark_battle_as_error(battle_id, error_result)
 
             finally:
-                # 8. 线程结束清理 (可选)
+                # 8. 线程结束清理
                 if battle_id in self.battles:
-                    # del self.battles[battle_id]
-                    pass
+                    del self.battles[battle_id]
                 self.battle_service.log_info(f"对战 {battle_id} 线程结束")
 
         battle_thread = threading.Thread(

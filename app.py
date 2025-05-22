@@ -33,6 +33,23 @@ def initialize_default_data(app):
         try:
             app.logger.info("🚀 开始初始化预设数据...")
 
+            # 检查初始用户是否已存在
+            initial_users = app.config.get("INITIAL_USERS", [])
+            if not initial_users:
+                app.logger.warning("⚠️ INITIAL_USERS 配置为空，无需初始化")
+                return
+
+            # 检查第一个初始用户是否已存在
+            first_user_email = initial_users[0].get("email")
+            if (
+                first_user_email
+                and User.query.filter_by(email=first_user_email).first()
+            ):
+                app.logger.info(
+                    f"✅ 检测到初始用户 {first_user_email} 已存在，跳过初始化流程"
+                )
+                return
+
             # ================= 初始化准备 =================
             upload_folder = app.config.get(
                 "AI_CODE_UPLOAD_FOLDER",
@@ -46,7 +63,7 @@ def initialize_default_data(app):
             admin_emails = []
             user = None
             # ================= 用户初始化循环 =================
-            for idx, user_config in enumerate(app.config.get("INITIAL_USERS", []), 1):
+            for idx, user_config in enumerate(initial_users, 1):
                 try:
                     email = user_config["email"]
                     is_admin = user_config.get("is_admin", False)
@@ -234,27 +251,19 @@ def cleanup_stale_battles(app):
                                 stats.elo_score -= bp.elo_change
                                 db.session.add(stats)
 
-                    # 使用cascade删除选项，直接删除对局及其相关记录
+                    # 删除对局及其相关记录
                     app.logger.info(
                         f"🗑️ 开始删除对局 {battle.id} (状态: {battle.status})"
                     )
 
-                    # 使用数据库操作直接删除
-                    if delete_battle(battle):
-                        app.logger.info(f"✅ 对局 {battle.id} 已成功删除")
-                    else:
-                        # 如果delete_battle失败，尝试手动删除
-                        app.logger.warning(
-                            f"⚠️ 使用delete_battle删除失败，尝试手动删除..."
-                        )
+                    # 直接使用手动删除方式，避免重复尝试
+                    # 先删除所有相关的BattlePlayer记录
+                    BattlePlayer.query.filter_by(battle_id=battle.id).delete()
 
-                        # 先删除所有相关的BattlePlayer记录
-                        BattlePlayer.query.filter_by(battle_id=battle.id).delete()
-
-                        # 再删除Battle记录
-                        db.session.delete(battle)
-                        db.session.commit()
-                        app.logger.info(f"✅ 对局 {battle.id} 已手动删除")
+                    # 再删除Battle记录
+                    db.session.delete(battle)
+                    db.session.commit()
+                    app.logger.info(f"✅ 对局 {battle.id} 已删除")
 
                 except Exception as e:
                     app.logger.error(
