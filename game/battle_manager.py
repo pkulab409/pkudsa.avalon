@@ -74,8 +74,26 @@ class BattleManager:
         """
         启动一个新的对战线程 (不直接与数据库交互)
         """
+        battle_observer = Observer(battle_id)
+        self.battle_observers[battle_id] = battle_observer
+
+        self.battle_observers[battle_id].make_snapshot(
+            "BattleManager",
+            (
+                0,
+                "try starting battle",
+            ), 
+        )
+
         if battle_id in self.battles:
             logger.warning(f"对战 {battle_id} 已经在运行中或已存在")
+            self.battle_observers[battle_id].make_snapshot(
+                "BattleManager",
+                (
+                    0,
+                    f"对战 {battle_id} 已经在运行中或已存在",
+                ), 
+            )
             return False
 
         # 准备玩家代码路径信息
@@ -94,6 +112,13 @@ class BattleManager:
                     logger.error(
                         f"无法获取玩家 {user_id} 的AI代码 {ai_code_id} 路径，对战 {battle_id} 无法启动"
                     )
+                    self.battle_observers[battle_id].make_snapshot(
+                        "BattleManager",
+                        (
+                            0,
+                            f"无法获取玩家 {user_id} 的AI代码 {ai_code_id} 路径，对战 {battle_id} 无法启动",
+                        ), 
+                    )
                     # 可以在这里调用 service 的 mark_battle_as_error
                     self.battle_service.mark_battle_as_error(
                         battle_id, {"error": f"AI代码 {ai_code_id} 路径无效"}
@@ -101,6 +126,13 @@ class BattleManager:
                     return False
             else:
                 logger.error(f"参与者数据不完整 {p_data}，对战 {battle_id} 无法启动")
+                self.battle_observers[battle_id].make_snapshot(
+                        "BattleManager",
+                        (
+                            0,
+                            f"参与者数据不完整 {p_data}，对战 {battle_id} 无法启动",
+                        ), 
+                    )
                 self.battle_service.mark_battle_as_error(
                     battle_id, {"error": "参与者数据不完整"}
                 )
@@ -115,9 +147,6 @@ class BattleManager:
             )
             return False
 
-        battle_observer = Observer(battle_id)
-        self.battle_observers[battle_id] = battle_observer
-
         def battle_thread_func():
             try:
                 # 1. 更新状态为 playing (通过 service)
@@ -130,6 +159,13 @@ class BattleManager:
                     logger.error(
                         f"对战 {battle_id} 启动失败：无法更新数据库状态为 playing"
                     )
+                    self.battle_observers[battle_id].make_snapshot(
+                        "BattleManager",
+                        (
+                            0,
+                            f"对战 {battle_id} 启动失败：无法更新数据库状态为 playing",
+                        ), 
+                    )
                     return  # 终止线程
 
                 # 2. 更新内存状态
@@ -137,6 +173,13 @@ class BattleManager:
                 self.battle_service.log_info(
                     f"对战 {battle_id} 线程开始执行"
                 )  # 使用 service log
+                self.battle_observers[battle_id].make_snapshot(
+                    "BattleManager",
+                    (
+                        0,
+                        f"对战 {battle_id} 线程开始执行",
+                    ), 
+                )
 
                 # 3. 初始化裁判
                 referee = AvalonReferee(

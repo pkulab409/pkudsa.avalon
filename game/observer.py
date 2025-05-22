@@ -172,6 +172,8 @@ class Observer:
             "Bug"
                 -- 显示成bug信息
 
+            "BattleManager"
+                -- 对战管理器信息
 
         """
 
