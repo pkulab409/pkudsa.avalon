@@ -4,7 +4,6 @@
 """
 
 import os
-from tkinter.tix import MAX
 import uuid
 import logging
 import threading
