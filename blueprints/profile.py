@@ -26,6 +26,7 @@ def profile(username=None):
         if not current_user.is_authenticated:
             return redirect(url_for("auth.login"))
         user = current_user
+        user_id = current_user.id
     else:
         # 使用数据库函数查找用户
         user = get_user_by_username(username)
