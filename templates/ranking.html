@@ -481,22 +481,37 @@
     <script>
     // Add smooth animation for win rate bars when page loads
     document.addEventListener('DOMContentLoaded', function() {
-        // Get all win rate bars
-        const winRateBars = document.querySelectorAll('.win-rate-bar');
-
-        // Initially set all widths to 0
-        winRateBars.forEach(bar => {
+        // 获取所有胜率条
+        const greenBars = document.querySelectorAll('.win-rate-green-bar');
+        const redBars = document.querySelectorAll('.win-rate-red-bar');
+        
+        // 初始化设置胜率条宽度为0
+        greenBars.forEach(bar => {
+            // 保存最终宽度
+            const finalWidth = bar.style.width;
+            // 设置初始宽度为0
             bar.style.width = '0%';
-        });
-
-        // Timeout to allow the browser to render the initial state
-        setTimeout(() => {
-            // Animate each bar to its final width
-            winRateBars.forEach(bar => {
-                const finalWidth = bar.getAttribute('style').replace('width: 0%', '').trim();
+            
+            // 延迟后恢复到最终宽度
+            setTimeout(() => {
                 bar.style.width = finalWidth;
-            });
-        }, 100);
+            }, 100);
+        });
+        
+        // 初始化设置红色条的剪裁路径
+        redBars.forEach(bar => {
+            const greenBarWidth = bar.parentElement.querySelector('.win-rate-green-bar').style.width;
+            const lossPercent = (100 - parseFloat(greenBarWidth)).toFixed(2) + '%';
+            bar.style.setProperty('--loss-percent', lossPercent);
+            
+            // 初始状态下设置完整显示
+            bar.style.clipPath = 'inset(0 0 0 0)';
+            
+            // 延迟后设置最终剪裁状态
+            setTimeout(() => {
+                bar.style.clipPath = `inset(0 0 0 calc(100% - var(--loss-percent)))`;
+            }, 100);
+        });
     });
     </script>
 {% endblock content %}
