@@ -152,27 +152,15 @@ def initialize_default_data(app):
                             app.logger.warning(f"⚠️ AI代码源文件不存在: {source_path}")
                             continue
 
-                        # 创建用户上传目录
-                        user_dir = os.path.join(upload_folder, str(user.id))
-                        os.makedirs(user_dir, exist_ok=True)
-
-                        # 复制文件
-                        filename = os.path.basename(source_path)
-                        dest_path = os.path.join(user_dir, filename)
-                        try:
-                            shutil.copy(source_path, dest_path)
-                            app.logger.info(
-                                f"📄 复制AI代码: {source_path} -> {dest_path}"
-                            )
-                        except Exception as e:
-                            app.logger.error(f"❌ 文件复制失败: {str(e)}")
-                            continue
+                        # 直接使用源文件路径，而不是复制文件
+                        # 使用相对于app_root的路径
+                        relative_path = os.path.relpath(source_path, app.root_path)
 
                         # 创建AI记录
                         ai = AICode(
                             user_id=user.id,
                             name=ai_config["name"],
-                            code_path=os.path.join(str(user.id), filename),
+                            code_path=relative_path,  # 直接使用相对路径
                             description=ai_config.get("description", ""),
                             is_active=ai_config.get("make_active", False),
                             created_at=datetime.utcnow(),
