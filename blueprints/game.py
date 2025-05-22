@@ -52,15 +52,12 @@ logger = logging.getLogger(__name__)
 def lobby():
     """显示游戏大厅页面，列出最近的对战，支持筛选和分页"""
     page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 10, type=int)  # Or your preferred default
+    # 减少默认每页显示数量
+    per_page = request.args.get("per_page", 5, type=int)  # 从10条减少到5条
     status_filter = request.args.get("status", None, type=str)
     date_from_str = request.args.get("date_from", None, type=str)
     date_to_str = request.args.get("date_to", None, type=str)
-
-    # Get multiple players (can be passed as a list from form)
-    player_filters = request.args.getlist(
-        "players"
-    )  # Use getlist to get all values with the same name
+    player_filters = request.args.getlist("players")
 
     filters = {}
     if status_filter and status_filter != "all":  # 'all' means no status filter
@@ -90,8 +87,13 @@ def lobby():
         filters=filters, page=page, per_page=per_page
     )
 
-    # Fetch all users for the datalist suggestion
-    all_users = User.query.order_by(User.username).all()
+    # 懒加载用户列表 - 只在需要时才加载
+    all_users = []
+    if request.args.get("load_users") == "true":
+        all_users = User.query.order_by(User.username).all()
+    else:
+        # 只加载少量常用用户或不加载
+        all_users = User.query.order_by(User.username).limit(20).all()
 
     # 获取更详细的automatch状态
     automatch = get_automatch()
