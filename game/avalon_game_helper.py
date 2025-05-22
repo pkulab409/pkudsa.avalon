@@ -51,6 +51,7 @@ class GameHelper:
         self.call_count_added = 0
         self.tokens = [{"input": 0, "output": 0} for i in range(7)]
         self.client_manager = get_client_manager()
+        self.observer = None
 
     def set_current_context(self, player_id: int, game_id: str) -> None:
         """

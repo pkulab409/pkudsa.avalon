@@ -216,6 +216,7 @@ class AvalonReferee:
 
         # Observer实例
         self.battle_observer = battle_observer
+        self.game_helper.observer = battle_observer
 
         # 加载玩家代码
         if player_code_paths:
