@@ -1,69 +1,69 @@
 {% extends "base.html" %}
 {% block title %}
-    对战进行中 - {{ battle.id[:8] }}...
+  对战进行中 - {{ battle.id[:8] }}...
 {% endblock title %}
 {% block content %}
-    <div class="container mt-4">
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-                <h4 class="mb-0">对战id ({{ battle.id }})</h4>
-                <span class="badge bg-light text-dark">
-                    状态:
-                    {% if battle.status == 'playing' %}
-                        进行中
-                    {% elif battle.status == 'waiting' %}
-                        等待中
-                    {% else %}
-                        {{ battle.status }}
-                    {% endif %}
-                </span>
-            </div>
-            <div class="card-body">
-                <p>
-                    <strong>创建时间:</strong> {{ battle.created_at.strftime("%Y-%m-%d %H:%M:%S") if battle.created_at else 'N/A' }}
-                </p>
-                <p>
-                    <strong>开始时间:</strong> {{ battle.started_at.strftime("%Y-%m-%d %H:%M:%S") if battle.started_at else '尚未开始' }}
-                </p>
-                <h5>参与玩家</h5>
-                <ul class="list-group">
-                    {% for player in battle_players %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                玩家 {{ player.player_index }}:
-                                <a href="{{ url_for('profile.profile', username=player.user.username) }}">{{ player.user.username }}</a>
-                                {% if player.user_id == current_user.id %}<span class="badge bg-secondary ms-1">你</span>{% endif %}
-                            </div>
-                            <span class="text-muted">使用AI: {{ player.ai_code.name if player.ai_code else '未知AI' }}</span>
-                        </li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-        <div class="card shadow-sm">
-            <div class="card-header">
-                <h5 class="mb-0">对战状态</h5>
-            </div>
-            <div class="card-body">
-                <div id="battleStatus" class="text-center">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">正在加载状态...</span>
-                    </div>
-                    <p class="mt-2">正在加载对战状态...</p>
-                </div>
-                <div id="snapshotsContainer"
-                     class="mt-3"
-                     style="max-height: 400px;
-                            overflow-y: auto">
-                    <!-- 快照信息将显示在这里 -->
-                </div>
-            </div>
-        </div>
+  <div class="container mt-4">
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">对战id ({{ battle.id }})</h4>
+        <span class="badge bg-light text-dark">
+          状态:
+          {% if battle.status == 'playing' %}
+            进行中
+          {% elif battle.status == 'waiting' %}
+            等待中
+          {% else %}
+            {{ battle.status }}
+          {% endif %}
+        </span>
+      </div>
+      <div class="card-body">
+        <p>
+          <strong>创建时间:</strong> {{ battle.created_at.strftime("%Y-%m-%d %H:%M:%S") if battle.created_at else 'N/A' }}
+        </p>
+        <p>
+          <strong>开始时间:</strong> {{ battle.started_at.strftime("%Y-%m-%d %H:%M:%S") if battle.started_at else '尚未开始' }}
+        </p>
+        <h5>参与玩家</h5>
+        <ul class="list-group">
+          {% for player in battle_players %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                玩家 {{ player.player_index }}:
+                <a href="{{ url_for('profile.profile', username=player.user.username) }}">{{ player.user.username }}</a>
+                {% if player.user_id == current_user.id %}<span class="badge bg-secondary ms-1">你</span>{% endif %}
+              </div>
+              <span class="text-muted">使用AI: {{ player.ai_code.name if player.ai_code else '未知AI' }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
     </div>
+    <div class="card shadow-sm">
+      <div class="card-header">
+        <h5 class="mb-0">对战状态</h5>
+      </div>
+      <div class="card-body">
+        <div id="battleStatus" class="text-center">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">正在加载状态...</span>
+          </div>
+          <p class="mt-2">正在加载对战状态...</p>
+        </div>
+        <div id="snapshotsContainer"
+             class="mt-3"
+             style="max-height: 400px;
+                    overflow-y: auto">
+          <!-- 快照信息将显示在这里 -->
+        </div>
+      </div>
+    </div>
+  </div>
 {% endblock content %}
 {% block scripts %}
-    {{ super() }}
-    <script>
+  {{ super() }}
+  <script>
     document.addEventListener('DOMContentLoaded', function() {
       const battleId = '{{ battle.id }}';
       const statusDiv = document.getElementById('battleStatus');
@@ -586,7 +586,6 @@
           }
         } catch (error) {
           console.error('获取对战状态时出错:', error);
-          statusDiv.innerHTML = `<p class="text-danger">获取对战状态时发生网络错误。将继续显示上一次成功获取的数据。</p>`;
           // 不再清除轮询，继续尝试获取数据
           // 继续显示上一次的快照（如果有）
           displayLastSnapshots();
@@ -658,5 +657,5 @@
         }
       });
     });
-    </script>
+  </script>
 {% endblock scripts %}
