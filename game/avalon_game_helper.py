@@ -7,9 +7,13 @@ import json
 import time
 import logging
 import threading
+import signal
 from typing import Dict, Any, List, Tuple, Optional
 from dotenv import load_dotenv
 from .client_manager import ClientManager, get_client_manager
+from functools import wraps
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 # 配置日志
 logging.basicConfig(
@@ -148,72 +152,165 @@ class GameHelper:
 
         return reply
 
+    # 添加一个超时装饰器
+    def timeout_handler(seconds, error_message="超时"):
+        def decorator(func):
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                def handle_timeout(signum, frame):
+                    raise TimeoutError(error_message)
+
+                # 设置信号处理器
+                original_handler = signal.getsignal(signal.SIGALRM)
+                signal.signal(signal.SIGALRM, handle_timeout)
+                signal.alarm(seconds)  # 设置超时秒数
+
+                try:
+                    result = func(*args, **kwargs)
+                    return result
+                finally:
+                    # 重置信号处理器
+                    signal.alarm(0)
+                    signal.signal(signal.SIGALRM, original_handler)
+
+            return wrapper
+
+        return decorator
+
     def _fetch_LLM_reply(self, history, cur_prompt) -> str:
         """
         从历史记录和当前提示中获取LLM回复。
+        添加了20秒超时重试机制。
         """
         logger.info(
             f"Player {self.current_player_id} requesting LLM with prompt length {len(cur_prompt)}"
         )
 
         client_instance, client_id, client_model_name = None, None, None
+        max_retries = 3
+        retry_count = 0
 
-        try:
-            # 获取客户端，不设置超时
-            client_instance, client_id, client_model_name = (
-                self.client_manager.get_client()
-            )
-
-            if client_instance is None:
-                logger.error(
-                    f"Player {self.current_player_id} failed to get an OpenAI client"
+        while retry_count < max_retries:
+            try:
+                # 获取客户端
+                client_instance, client_id, client_model_name = (
+                    self.client_manager.get_client()
                 )
-                return "LLM调用错误：没有可用的OpenAI客户端"
 
-            logger.info(f"Player {self.current_player_id} using client {client_id}")
+                if client_instance is None:
+                    logger.error(
+                        f"Player {self.current_player_id} failed to get an OpenAI client"
+                    )
+                    return "LLM调用错误：没有可用的OpenAI客户端"
 
-            import time
+                logger.info(f"Player {self.current_player_id} using client {client_id}")
 
-            start_time = time.time()
+                import time
 
-            # 直接调用API，不使用ThreadPoolExecutor和超时参数
-            completion = client_instance.chat.completions.create(
-                model=client_model_name,
-                messages=history + [{"role": "user", "content": cur_prompt}],
-                stream=False,
-                temperature=_TEMPERATURE,
-                max_tokens=_MAX_OUTPUT_TOKENS,
-                top_p=_TOP_P,
-                presence_penalty=_PRESENCE_PENALTY,
-                frequency_penalty=_FREQUENCY_PENALTY,
-                # 移除超时参数
-            )
+                start_time = time.time()
 
-            response_content = completion.choices[0].message.content
+                # 使用子线程和超时控制机制
+                response_content = None
 
-            elapsed = time.time() - start_time
-            token = len(response_content)
-            self.tokens[self.current_player_id - 1]["output"] += token
+                def call_api():
+                    nonlocal response_content
+                    completion = client_instance.chat.completions.create(
+                        model=client_model_name,
+                        messages=history + [{"role": "user", "content": cur_prompt}],
+                        stream=False,
+                        temperature=_TEMPERATURE,
+                        max_tokens=_MAX_OUTPUT_TOKENS,
+                        top_p=_TOP_P,
+                        presence_penalty=_PRESENCE_PENALTY,
+                        frequency_penalty=_FREQUENCY_PENALTY,
+                    )
+                    response_content = completion.choices[0].message.content
 
-            logger.info(
-                f"Player {self.current_player_id} received response in {elapsed:.2f}s"
-            )
+                # 创建线程执行API调用
+                with ThreadPoolExecutor() as executor:
+                    future = executor.submit(call_api)
 
-            return response_content or "LLM调用未返回有效结果"
+                    # 等待执行，最多20秒
+                    timeout_seconds = 20
+                    timeout = False
 
-        except Exception as e:
-            logger.error(
-                f"Player {self.current_player_id} error: {str(e)}", exc_info=True
-            )
-            return f"LLM调用错误: {str(e)[:100]}..."
-        finally:
-            # 释放客户端
-            if client_id is not None:
-                try:
-                    self.client_manager.release_client(client_id)
-                    logger.info(f"Released client {client_id}")
-                except Exception as e:
-                    logger.error(f"Error releasing client {client_id}: {str(e)}")
+                    for _ in range(timeout_seconds):
+                        if future.done():
+                            break
+                        time.sleep(1)
+                        elapsed = time.time() - start_time
+                        if elapsed > timeout_seconds:
+                            timeout = True
+                            break
+
+                    if timeout:
+                        # 超时，准备重试
+                        logger.warning(
+                            f"Player {self.current_player_id} LLM request timed out after {timeout_seconds}s. Retry {retry_count+1}/{max_retries}"
+                        )
+                        # 释放客户端后重试
+                        if client_id is not None:
+                            try:
+                                self.client_manager.release_client(client_id)
+                                logger.info(
+                                    f"Released client {client_id} after timeout"
+                                )
+                            except Exception as e:
+                                logger.error(
+                                    f"Error releasing client {client_id}: {str(e)}"
+                                )
+
+                        retry_count += 1
+                        continue
+
+                    # 如果没有超时但出现其他问题
+                    if not future.done():
+                        raise TimeoutError("API调用未完成且未超时，可能存在其他问题")
+
+                if response_content is None:
+                    raise Exception("API调用完成但未返回内容")
+
+                elapsed = time.time() - start_time
+                token = len(response_content)
+                self.tokens[self.current_player_id - 1]["output"] += token
+
+                logger.info(
+                    f"Player {self.current_player_id} received response in {elapsed:.2f}s"
+                )
+
+                return response_content or "LLM调用未返回有效结果"
+
+            except Exception as e:
+                logger.error(
+                    f"Player {self.current_player_id} error: {str(e)}", exc_info=True
+                )
+
+                # 发生异常时立即释放客户端
+                if client_id is not None:
+                    try:
+                        self.client_manager.release_client(client_id)
+                        logger.info(f"Released client {client_id} after exception")
+                        client_id = None  # 避免重复释放
+                    except Exception as release_e:
+                        logger.error(f"Error releasing client {client_id}: {str(release_e)}")
+
+                if retry_count < max_retries - 1:
+                    retry_count += 1
+                    logger.info(f"Retrying LLM request, attempt {retry_count}/{max_retries}")
+                    continue
+                else:
+                    return f"LLM调用错误(重试{max_retries}次后): {str(e)[:100]}..."
+        
+            finally:
+                # 确保客户端总是被释放
+                if client_id is not None:
+                    try:
+                        self.client_manager.release_client(client_id)
+                        logger.info(f"Released client {client_id} in finally block")
+                    except Exception as e:
+                        logger.error(f"Error releasing client {client_id} in finally: {str(e)}")
+
+        return "LLM调用多次失败，请稍后再试"
 
     def _get_private_lib_content(self) -> dict:
         """

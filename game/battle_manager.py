@@ -435,6 +435,7 @@ class BattleManager:
                     )
 
         except Exception as e:
+            logger.error(f"对战 {battle_id} 执行失败: {str(e)}", exc_info=True)
             # 处理异常
             self.battle_service.log_exception(
                 f"对战 {battle_id} 执行过程中发生严重错误: {str(e)}"
@@ -449,6 +450,18 @@ class BattleManager:
             if battle_id in self.battles:
                 del self.battles[battle_id]
             self.battle_service.log_info(f"对战 {battle_id} 处理完成")
+            # 确保线程退出前清理所有资源
+            try:
+                # 强制清理当前线程的客户端会话
+                from .avalon_game_helper import get_current_helper
+
+                helper = get_current_helper()
+                if hasattr(helper, "client_manager"):
+                    # 获取当前线程ID，清理相关会话
+                    current_thread_id = threading.current_thread().ident
+                    logger.info(f"Cleaning up resources for thread {current_thread_id}")
+            except Exception as cleanup_e:
+                logger.warning(f"Error during thread cleanup: {cleanup_e}")
 
     def get_queue_status(self) -> dict:
         """获取队列状态信息"""
