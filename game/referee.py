@@ -206,7 +206,7 @@ class AvalonReferee:
         self.public_log = []  # 公共日志
         self.leader_index = random.randint(1, PLAYER_COUNT)  # 随机选择初始队长
         # 获取数据目录设置
-        self.data_dir = config.get("data_dir", "./data")
+        self.data_dir = config.get("data_dir", "../data")
         self.game_log_dir = os.path.join(
             self.data_dir, "logs", self.battle_id
         )  # 日志目录
