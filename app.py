@@ -27,6 +27,48 @@ from database import (
 csrf = CSRFProtect()
 
 
+def cleanup_invalid_ai_codes(app):
+    """在服务器启动时检查并删除文件不存在的AI代码记录"""
+    with app.app_context():
+        try:
+            from database.models import AICode, db, BattlePlayer
+            from database.action import delete_ai_code, get_ai_code_path_full
+
+            all_ai_codes = AICode.query.all()
+            if not all_ai_codes:
+                app.logger.info("✅ 没有发现需要检查的AI代码记录")
+                return
+
+            app.logger.info(f"🔍 开始检查 {len(all_ai_codes)} 个AI代码文件是否存在...")
+            deleted_count = 0
+
+            for ai_code in all_ai_codes:
+                file_path = get_ai_code_path_full(ai_code.id)
+
+                # 如果路径为None或文件不存在
+                if not file_path or not os.path.exists(file_path):
+                    app.logger.warning(
+                        f"⚠️ AI代码 {ai_code.id} ({ai_code.name}) 的文件不存在: {file_path}"
+                    )
+
+                    # 使用数据库操作函数删除记录
+                    if delete_ai_code(ai_code):
+                        app.logger.info(
+                            f"🗑️ 已删除文件不存在的AI代码: {ai_code.id} ({ai_code.name})"
+                        )
+                        deleted_count += 1
+                    else:
+                        app.logger.error(f"❌ 删除AI代码 {ai_code.id} 失败")
+
+            if deleted_count > 0:
+                app.logger.warning(f"⚠️ 共删除 {deleted_count} 个文件不存在的AI代码记录")
+            else:
+                app.logger.info("✅ 所有AI代码文件都存在")
+
+        except Exception as e:
+            app.logger.error(f"💥 清理无效AI代码记录时出错: {str(e)}", exc_info=True)
+
+
 def initialize_default_data(app):
     """初始化预设用户、管理员和AI代码"""
     with app.app_context():
@@ -404,6 +446,8 @@ def create_app(config_object=Config):
 
     # 再清理意外中断的对局
     cleanup_stale_battles(app)
+    # 清理文件不存在的AI代码记录
+    cleanup_invalid_ai_codes(app)
 
     app.logger.info("Flask应用初始化完成")
     return app
