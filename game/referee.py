@@ -229,7 +229,6 @@ class AvalonReferee:
             dec = DebugDecorator(self.battle_id)
             self.game_helper = dec.decorate_instance(self.game_helper)
 
-
         self.game_helper.game_session_id = self.game_id  # 直接设置game_id
 
         # 创建数据目录
