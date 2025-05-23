@@ -292,15 +292,19 @@ class GameHelper:
                         logger.info(f"Released client {client_id} after exception")
                         client_id = None  # 避免重复释放
                     except Exception as release_e:
-                        logger.error(f"Error releasing client {client_id}: {str(release_e)}")
+                        logger.error(
+                            f"Error releasing client {client_id}: {str(release_e)}"
+                        )
 
                 if retry_count < max_retries - 1:
                     retry_count += 1
-                    logger.info(f"Retrying LLM request, attempt {retry_count}/{max_retries}")
+                    logger.info(
+                        f"Retrying LLM request, attempt {retry_count}/{max_retries}"
+                    )
                     continue
                 else:
                     return f"LLM调用错误(重试{max_retries}次后): {str(e)[:100]}..."
-        
+
             finally:
                 # 确保客户端总是被释放
                 if client_id is not None:
@@ -308,7 +312,9 @@ class GameHelper:
                         self.client_manager.release_client(client_id)
                         logger.info(f"Released client {client_id} in finally block")
                     except Exception as e:
-                        logger.error(f"Error releasing client {client_id} in finally: {str(e)}")
+                        logger.error(
+                            f"Error releasing client {client_id} in finally: {str(e)}"
+                        )
 
         return "LLM调用多次失败，请稍后再试"
 

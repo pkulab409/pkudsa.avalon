@@ -15,12 +15,11 @@ from typing import Dict, Any, Optional, List, Tuple
 
 # 导入裁判和观察者
 from .referee import AvalonReferee  # 确保导入正确
-from .observer import Observer # 确保导入正确
+from .observer import Observer  # 确保导入正确
 from services.battle_service import BattleService  # 假设 BattleService 在 services 包中
 
 # 导入装饰器
 from .decorator import DebugDecorator, settings
-
 
 
 # 配置日志 (BattleManager 自身的日志)
@@ -261,7 +260,6 @@ class BattleManager:
             dec = DebugDecorator(battle_id)
             battle_observer = dec.decorate_instance(battle_observer)
 
-
         self.battle_observers[battle_id] = battle_observer
 
         self.battle_observers[battle_id].make_snapshot(
@@ -409,49 +407,52 @@ class BattleManager:
             )
 
             # 装饰器
-        if settings["referee.AvalonReferee"] == 1:
-            # 装饰实例
-            dec = DebugDecorator(battle_id)
-            referee = dec.decorate_instance(referee)
+            if settings["referee.AvalonReferee"] == 1:
+                # 装饰实例
+                dec = DebugDecorator(battle_id)
+                referee = dec.decorate_instance(referee)
 
+                # 4. 运行游戏
+                result_data = referee.run_game()
 
-            # 4. 运行游戏
-            result_data = referee.run_game()
+                # 5. 记录内存结果
+                self.battle_results[battle_id] = result_data
 
-            # 5. 记录内存结果
-            self.battle_results[battle_id] = result_data
-
-            # 检查结果是否正常完成
-            if "error" not in result_data and result_data.get("winner") is not None:
-                # 正常完成
-                self.battle_status[battle_id] = "completed"
-                self.get_snapshots_archive(battle_id)  # 保存快照
-                self.battle_service.log_info(
-                    f"对战 {battle_id} 结果已保存到 {self.data_dir}"
-                )
-
-                # 更新数据库
-                if self.battle_service.mark_battle_as_completed(battle_id, result_data):
-                    self.battle_service.log_info(f"对战 {battle_id} 完成，结果已处理")
-                else:
-                    self.battle_service.log_error(
-                        f"对战 {battle_id} 完成，但结果处理或数据库更新失败"
-                    )
-            else:
-                # 非正常完成
-                self.battle_service.log_info(
-                    f"对战 {battle_id} 非正常结束，保持原状态，结果已记录"
-                )
-                self.get_snapshots_archive(battle_id)
-
-                # 错误处理
-                if "error" in result_data:
-                    self.battle_status[battle_id] = "error"
-                    self.battle_service.mark_battle_as_error(battle_id, result_data)
-                else:
+                # 检查结果是否正常完成
+                if "error" not in result_data and result_data.get("winner") is not None:
+                    # 正常完成
+                    self.battle_status[battle_id] = "completed"
+                    self.get_snapshots_archive(battle_id)  # 保存快照
                     self.battle_service.log_info(
-                        f"对战 {battle_id} 非正常结束，但未发现错误，保持原状态"
+                        f"对战 {battle_id} 结果已保存到 {self.data_dir}"
                     )
+
+                    # 更新数据库
+                    if self.battle_service.mark_battle_as_completed(
+                        battle_id, result_data
+                    ):
+                        self.battle_service.log_info(
+                            f"对战 {battle_id} 完成，结果已处理"
+                        )
+                    else:
+                        self.battle_service.log_error(
+                            f"对战 {battle_id} 完成，但结果处理或数据库更新失败"
+                        )
+                else:
+                    # 非正常完成
+                    self.battle_service.log_info(
+                        f"对战 {battle_id} 非正常结束，保持原状态，结果已记录"
+                    )
+                    self.get_snapshots_archive(battle_id)
+
+                    # 错误处理
+                    if "error" in result_data:
+                        self.battle_status[battle_id] = "error"
+                        self.battle_service.mark_battle_as_error(battle_id, result_data)
+                    else:
+                        self.battle_service.log_info(
+                            f"对战 {battle_id} 非正常结束，但未发现错误，保持原状态"
+                        )
 
         except Exception as e:
             logger.error(f"对战 {battle_id} 执行失败: {str(e)}", exc_info=True)
