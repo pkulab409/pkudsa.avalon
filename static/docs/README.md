@@ -91,7 +91,7 @@
 
 **总体流程**：【夜晚】 → 【任务1】 → 【任务2】 → 【任务3】，视情况进行【任务4】【任务5】【刺杀】
 
-![process](https://git.pku3d.com/chenbin/pkudsa.avalon/media/branch/master/pictures/process.png)
+![process](https://git.pku3d.com/chenbin/pkudsa.avalon/media/branch/master/static/images/process.png)
 
 #### 1. **初始阶段**
 - 每名玩家获得自己的编号。
@@ -104,7 +104,7 @@
 
 #### 3. **【任务】流程（至多循环5轮）**
 
-![mission](https://git.pku3d.com/chenbin/pkudsa.avalon/media/branch/master/pictures/mission.png)
+![mission](https://git.pku3d.com/chenbin/pkudsa.avalon/media/branch/master/static/images/mission.png)
 
 1. **队长组队**  
    - 首轮【队长】固定为1号玩家。后续任务的【队长】按编号顺序递增。
@@ -127,7 +127,8 @@
    - 从队长开始，所有玩家按编号顺序进行发言。
    - 【梅林】【派西维尔】【莫甘娜】【刺客】只能听见以自己为中心、**3×3**的范围内的玩家的发言。而【骑士】【奥伯伦】拥有更大的听力范围，能听见以自己为中心、**5×5**的范围内的玩家的发言。
      
-![views](https://git.pku3d.com/chenbin/pkudsa.avalon/media/branch/master/pictures/views.png)
+
+![views](https://git.pku3d.com/chenbin/pkudsa.avalon/media/branch/master/static/images/views.png)
 
 5. **公投表决**  
    - 所有玩家**同时**对于是否【执行】本次任务进行投票（支持/反对）。**投票结果公开。**

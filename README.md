@@ -23,7 +23,7 @@
 
 项目采用Flask框架构建Web应用，前后端交互。
 
-* **后端核心 (`platform`目录)**：
+* **后端核心**：
     * **应用入口 (`app.py`)**：Flask应用初始化，配置加载，蓝图注册，数据库和登录管理器初始化，预设数据（用户、AI）的初始化。
     * **蓝图 (`blueprints`目录)**：
         * `main.py`：处理主页等基本路由。
@@ -108,10 +108,10 @@
 * **Controller**: 由 `blueprints` 目录下的各个Python模块实现，处理HTTP请求，与服务层、模型层交互，并返回视图或JSON数据。
 * **Game Services**: 位于 `game` 和 `services` 目录，处理核心游戏逻辑、AI执行、对战管理等。
 
-#### 2. 目录结构（`platform`核心部分）
+#### 2. 目录结构（核心部分）
 
 ```
-pkudsa.avalon/platform/
+pkudsa.avalon/
 ├── app.py                      # Flask应用主入口和初始化
 ├── requirements.txt            # Python依赖
 ├── config/                     # 配置文件夹

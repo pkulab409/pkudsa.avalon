@@ -1,9 +1,5 @@
-/* 导入本地字体 */
-@font-face {
-    font-family: 'Dianke';
-    src: url('../fonts/dianke.ttf') format('truetype');
-}
-
+/* 导入中世纪风格字体 */
+@import url('https://fonts.googleapis.com/css2?family=Uncial+Antiqua&family=MedievalSharp&display=swap');
 
 /* 定义中世纪颜色变量 */
 :root {
@@ -68,15 +64,11 @@
     color: var(--medieval-danger) !important;
 }
 
-.text-muted {
-    color: #494f54 !important;
-}
-
 /* 设置页面背景为羊皮纸纹理 */
 body {
     background-image: url('../images/wooden-floor-background.jpg');
     background-size: cover;
-    font-family: 'Dianke', cursive;
+    font-family: 'MedievalSharp', 'Uncial Antiqua', cursive;
     color: #333;
     position: relative;
 }
@@ -99,7 +91,7 @@ body::before {
     background-color: var(--medieval-primary);
     border: 2px solid var(--medieval-accent);
     color: #fff;
-    font-family: 'Dianke', cursive;
+    font-family: 'MedievalSharp', 'Uncial Antiqua', cursive;
     padding: 8px 16px;
     text-transform: uppercase;
     transition: all 0.3s ease;
@@ -147,8 +139,9 @@ body::before {
 
 .navbar-brand, .nav-link {
     color: #fff !important;
-    font-family: 'Dianke', cursive;
+    font-family: 'MedievalSharp', 'Uncial Antiqua', cursive;
     text-transform: uppercase;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
     position: relative;
 }
 
@@ -173,7 +166,7 @@ body::before {
 
 /* 卡片样式 */
 .card, .chat-container {
-    background-color: #f4e4bc3d;
+    background-color: var(--medieval-parchment);
     border: 2px solid var(--medieval-border);
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
     position: relative;
@@ -195,7 +188,7 @@ body::before {
 .card-header {
     background-color: var(--medieval-secondary);
     color: #fff;
-    font-family: 'Dianke', cursive;
+    font-family: 'MedievalSharp', 'Uncial Antiqua', cursive;
     border-bottom: 2px solid var(--medieval-accent);
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
@@ -210,11 +203,7 @@ body::before {
 }
 
 .list-group-item {
-    background-color: #f4e4bc7a;
-}
-
-.table>:not(caption)>*>* {
-    background-color: #f4e4bc7a !important;
+    background-color: var(--medieval-parchment);
 }
 
 /* 标题装饰 */
@@ -222,7 +211,7 @@ h1, h2, h3 {
     border-bottom: 3px solid var(--medieval-accent);
     padding-bottom: 10px;
     color: var(--medieval-primary);
-    font-family: 'Dianke', cursive;
+    font-family: 'MedievalSharp', 'Uncial Antiqua', cursive;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
     position: relative;
 }
@@ -240,7 +229,7 @@ h1::after, h2::after, h3::after {
 .form-control {
     border: 2px solid var(--medieval-border);
     background-color: var(--medieval-parchment);
-    font-family: 'Dianke', cursive;
+    font-family: 'MedievalSharp', 'Uncial Antiqua', cursive;
     box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
 }
 
@@ -289,7 +278,7 @@ h1::after, h2::after, h3::after {
 }
 
 .message-content {
-    max-width: 90%;
+    max-width: 80%;
 }
 
 .card-decoration {
@@ -415,7 +404,3 @@ h1::after, h2::after, h3::after {
 /*
 ---------------- 图片接口在上面 -----------------
 */
-
-footer {
-    background-color: #382b04cf !important;
-}
