@@ -183,3 +183,5 @@ uploads/
 config/config.yaml
 game/client_usage_times.json
 .env
+
+battle_ai_modules/
