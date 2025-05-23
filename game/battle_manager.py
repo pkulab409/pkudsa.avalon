@@ -9,6 +9,7 @@ import logging
 import threading
 import multiprocessing
 import time
+import queue  # 确保在文件顶部已导入
 from queue import Queue
 from typing import Dict, Any, Optional, List, Tuple
 
@@ -211,7 +212,7 @@ class BattleManager:
                 finally:
                     self.battle_queue.task_done()
                     logger.info(f"完成对战 {battle_id} 处理")
-            except Queue.Empty:
+            except queue.Empty:  # 使用queue.Empty
                 # 队列为空，继续等待
                 continue
 
