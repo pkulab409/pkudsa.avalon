@@ -19,6 +19,7 @@ from copy import deepcopy
 import logging
 import importlib.util
 from datetime import datetime
+from .decorator import DebugDecorator, settings
 from .observer import Observer
 from .avalon_game_helper import INIT_PRIVA_LOG_DICT
 from .restrictor import RESTRICTED_BUILTINS
@@ -221,6 +222,14 @@ class AvalonReferee:
 
         # 为这个referee创建一个专用的GameHelper实例
         self.game_helper = GameHelper(data_dir=self.data_dir)
+
+        # 装饰器
+        if settings["avalon_game_helper.GameHelper"] == 1:
+            # 装饰实例
+            dec = DebugDecorator(self.battle_id)
+            self.game_helper = dec.decorate_instance(self.game_helper)
+
+
         self.game_helper.game_session_id = self.game_id  # 直接设置game_id
 
         # 创建数据目录

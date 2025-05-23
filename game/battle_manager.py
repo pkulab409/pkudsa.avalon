@@ -15,8 +15,12 @@ from typing import Dict, Any, Optional, List, Tuple
 
 # 导入裁判和观察者
 from .referee import AvalonReferee  # 确保导入正确
-from .observer import Observer  # 确保导入正确
+from .observer import Observer # 确保导入正确
 from services.battle_service import BattleService  # 假设 BattleService 在 services 包中
+
+# 导入装饰器
+from .decorator import DebugDecorator, settings
+
 
 
 # 配置日志 (BattleManager 自身的日志)
@@ -250,6 +254,14 @@ class BattleManager:
         返回：是否成功加入队列
         """
         battle_observer = Observer(battle_id)
+
+        # 装饰器
+        if settings["observer.Observer"] == 1:
+            # 装饰实例
+            dec = DebugDecorator(battle_id)
+            battle_observer = dec.decorate_instance(battle_observer)
+
+
         self.battle_observers[battle_id] = battle_observer
 
         self.battle_observers[battle_id].make_snapshot(
@@ -395,6 +407,13 @@ class BattleManager:
                 observer=battle_observer,  # 观察者对象
                 battle_service=self.battle_service,  # 服务对象
             )
+
+            # 装饰器
+        if settings["referee.AvalonReferee"] == 1:
+            # 装饰实例
+            dec = DebugDecorator(battle_id)
+            referee = dec.decorate_instance(referee)
+
 
             # 4. 运行游戏
             result_data = referee.run_game()
