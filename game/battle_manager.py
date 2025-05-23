@@ -19,7 +19,7 @@ from services.battle_service import BattleService
 logger = logging.getLogger("BattleManager")
 
 
-MAX_CONCURRENT_BATTLES = 32  # 默认最大并发对战数
+MAX_CONCURRENT_BATTLES = 64  # 默认最大并发对战数
 
 
 class BattleManager:
@@ -188,7 +188,7 @@ class BattleManager:
 
         # 添加到队列
         self.battle_queue.put((battle_id, participant_data))
-        self.battle_status[battle_id] = "queued"
+        self.battle_status[battle_id] = "waiting"
         self.battles[battle_id] = True  # 标记为有效对战，但不再存储线程对象
 
         logger.info(
@@ -353,7 +353,7 @@ class BattleManager:
         current_status = self.get_battle_status(battle_id)
 
         # 只有等待中或正在进行的对战可以被取消
-        if current_status not in ["waiting", "playing", "queued"]:
+        if current_status not in ["waiting", "playing"]:
             logger.warning(f"对战 {battle_id} 状态为 {current_status}，无法取消")
             return False
 
