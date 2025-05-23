@@ -27,7 +27,7 @@
 
 /* 中世纪风格背景色类 */
 .bg-primary {
-    background-image: url('../images/wood-texture.jpg');
+    background-image: url('../images/wood-texture.png');
     background-size: cover;
     color: var(--medieval-accent) !important;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
@@ -84,7 +84,7 @@
 
 /* 设置页面背景为羊皮纸纹理 */
 body {
-    background-image: url('../images/wooden-floor-background.jpg');
+    background-image: url('../images/wooden-floor-background.png');
     background-size: cover;
     font-family: 'Dianke', cursive;
     color: #333;
@@ -282,10 +282,32 @@ h3::after {
 
 /* 添加装饰性边框 */
 .decorative-border {
-    border: 8px solid transparent;
-    border-image: url('../images/medieval-border.png') 8 repeat;
-    padding: 15px;
-    margin: 10px 0;
+    position: relative;
+    border: 5px solid var(--medieval-border);
+    outline: 2px solid var(--medieval-accent);
+    outline-offset: -10px;
+    padding: 25px;
+    margin: 15px 0;
+    background-color: var(--medieval-parchment);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
+}
+
+.decorative-border::before {
+    content: "❧";
+    position: absolute;
+    bottom: 5px;
+    right: 10px;
+    color: var(--medieval-accent);
+    font-size: 1.2em;
+}
+
+.decorative-border::after {
+    content: "❦";
+    position: absolute;
+    top: 5px;
+    left: 10px;
+    color: var(--medieval-accent);
+    font-size: 1.2em;
 }
 
 .message-wrapper {
