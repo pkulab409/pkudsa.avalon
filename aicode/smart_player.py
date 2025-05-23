@@ -179,11 +179,16 @@ class Player:
 
         # 构建提示词，请求LLM帮助选择队员
         prompt = self._build_prompt_for_team_selection(team_size)
-        response = askLLM(prompt)
 
-        # 解析LLM回复，提取队员编号
         try:
-            # 尝试直接从回复中提取数字列表
+            response = askLLM(prompt)
+
+            # 确保response不是None
+            if response is None:
+                write_into_private("LLM返回了None，使用备选策略")
+                return self._fallback_team_selection(team_size)
+
+            # 解析LLM回复，提取队员编号
             numbers = re.findall(r"\d+", response)
             # 去重并保留顺序
             seen = set()
@@ -199,7 +204,8 @@ class Player:
             # 如果提取失败或数量不对，使用备选策略
             if len(team) != team_size:
                 team = self._fallback_team_selection(team_size)
-        except:
+        except Exception as e:
+            write_into_private(f"解析LLM响应时出错: {str(e)}")
             team = self._fallback_team_selection(team_size)
 
         # 如果队伍过小，顺序补充

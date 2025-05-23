@@ -763,9 +763,22 @@ def start_ai_series_test():
             )
 
             # 填充剩余的Smart AI
-            smart_ais_to_fill = random.sample(
-                available_smart_ais, k=MAX_PLAYERS - 1
-            )  # 随机选6个不重复的
+            if len(available_smart_ais) < 6:
+                # 当Smart AI不足6个时，允许重复使用
+                smart_ais_to_fill = []
+                while len(smart_ais_to_fill) < MAX_PLAYERS - 1:
+                    # 循环添加AI直到数量足够
+                    for ai in available_smart_ais:
+                        if len(smart_ais_to_fill) < MAX_PLAYERS - 1:
+                            smart_ais_to_fill.append(ai)
+                current_app.logger.info(
+                    f"智能AI不足，启用重复使用模式。使用 {len(available_smart_ais)} 个智能AI填充 {MAX_PLAYERS-1} 个位置"
+                )
+            else:
+                # 如果足够，仍然使用不重复的
+                smart_ais_to_fill = random.sample(
+                    available_smart_ais, k=MAX_PLAYERS - 1
+                )
 
             current_smart_ai_index = 0
             for pos in range(1, MAX_PLAYERS + 1):

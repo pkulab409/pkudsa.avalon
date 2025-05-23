@@ -260,7 +260,6 @@ def get_user_index_in_battle(battle_id, user_id):
 
 
 def get_active_ai_codes_by_ranking_ids(ranking_ids: list[int] = None) -> list[AICode]:
-    
     """
     获取指定 ranking_id 列表中的用户的激活 AI 代码。
     如果 ranking_ids 为 None 或为空列表，则获取所有用户的激活 AI 代码。
@@ -282,7 +281,7 @@ def get_active_ai_codes_by_ranking_ids(ranking_ids: list[int] = None) -> list[AI
         normalized_ranking_ids = []
     else:
         normalized_ranking_ids = sorted(list(set(ranking_ids)))  # 去重并排序
-    
+
     active_ai_codes = []
     try:
         if not normalized_ranking_ids:
@@ -301,14 +300,17 @@ def get_active_ai_codes_by_ranking_ids(ranking_ids: list[int] = None) -> list[AI
                     ai_code = get_user_active_ai_code(user_id)
                     if ai_code and ai_code not in active_ai_codes:  # 避免重复
                         active_ai_codes.append(ai_code)
-        
+
         logger.info(f"成功获取 {len(active_ai_codes)} 个激活的AI代码")
         return active_ai_codes
-    
+
     except Exception as e:
-        ranking_id_str = "全部" if not normalized_ranking_ids else str(normalized_ranking_ids)
+        ranking_id_str = (
+            "全部" if not normalized_ranking_ids else str(normalized_ranking_ids)
+        )
         logger.error(f"获取榜单 {ranking_id_str} 的AI代码列表失败: {e}", exc_info=True)
         return []
+
 
 def get_user_ai_codes(user_id):
     """获取用户的所有AI代码记录。"""

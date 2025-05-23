@@ -586,7 +586,6 @@
           }
         } catch (error) {
           console.error('获取对战状态时出错:', error);
-          statusDiv.innerHTML = `<p class="text-danger">获取对战状态时发生网络错误。将继续显示上一次成功获取的数据。</p>`;
           // 不再清除轮询，继续尝试获取数据
           // 继续显示上一次的快照（如果有）
           displayLastSnapshots();
