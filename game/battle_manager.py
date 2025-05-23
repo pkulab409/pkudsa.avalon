@@ -7,6 +7,9 @@ import os
 import uuid
 import logging
 import threading
+import multiprocessing
+import time
+import queue  # 确保在文件顶部已导入
 from queue import Queue
 from typing import Dict, Any, Optional, List, Tuple
 
@@ -15,14 +18,86 @@ from .referee import AvalonReferee  # 确保导入正确
 from .observer import Observer  # 确保导入正确
 from services.battle_service import BattleService  # 假设 BattleService 在 services 包中
 
-from .decorator import DebugDecorator, settings  # 确保导入正确
+# 导入装饰器
+from .decorator import DebugDecorator, settings
+
 
 
 # 配置日志 (BattleManager 自身的日志)
 logger = logging.getLogger("BattleManager")
 
 
-MAX_CONCURRENT_BATTLES = 64  # 默认最大并发对战数
+try:
+    import psutil
+
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+
+
+def calculate_optimal_threads():
+    """根据CPU核心数计算最佳线程数量"""
+    cpu_count = multiprocessing.cpu_count()
+    # I/O密集型任务通常设为CPU核心数的2倍较合适
+    # 但设置上限避免线程过多
+    return min(cpu_count * 2, 32)
+
+
+MAX_CONCURRENT_BATTLES = calculate_optimal_threads()  # 默认最大并发对战数
+
+
+# 添加自适应线程控制类
+class AdaptiveThreadPool:
+    """自适应线程池控制器"""
+
+    def __init__(self, initial_threads, min_threads=4, max_threads=32):
+        self.current_max_threads = initial_threads
+        self.min_threads = min_threads
+        self.max_threads = max_threads
+        self.active_threads = 0
+        self.last_adjustment_time = time.time()
+
+    def adjust_thread_limit(self):
+        """根据系统负载调整线程限制"""
+        if not PSUTIL_AVAILABLE:
+            return
+
+        # 限制调整频率
+        current_time = time.time()
+        if current_time - self.last_adjustment_time < 30:  # 至少30秒一次调整
+            return
+
+        self.last_adjustment_time = current_time
+
+        # 获取系统负载
+        cpu_usage = psutil.cpu_percent(interval=0.5)
+        memory_percent = psutil.virtual_memory().percent
+
+        # 根据负载调整线程数
+        if cpu_usage > 75 or memory_percent > 80:  # 高负载，减少线程
+            self._decrease_threads()
+        elif cpu_usage < 30 and memory_percent < 60:  # 低负载，增加线程
+            self._increase_threads()
+
+    def _increase_threads(self):
+        """增加线程数上限"""
+        if self.current_max_threads < self.max_threads:
+            self.current_max_threads = min(
+                self.current_max_threads + 2, self.max_threads
+            )
+            logger.info(f"系统负载低，增加最大线程数至 {self.current_max_threads}")
+
+    def _decrease_threads(self):
+        """减少线程数上限"""
+        if self.current_max_threads > self.min_threads:
+            self.current_max_threads = max(
+                self.current_max_threads - 2, self.min_threads
+            )
+            logger.info(f"系统负载高，减少最大线程数至 {self.current_max_threads}")
+
+    def get_max_threads(self):
+        """获取当前最大线程数"""
+        return self.current_max_threads
 
 
 class BattleManager:
@@ -77,12 +152,29 @@ class BattleManager:
         self.battle_observers: Dict[str, Observer] = {}
         self.data_dir = os.environ.get("AVALON_DATA_DIR", "./data")
 
-        # 初始化任务队列
-        self.battle_queue = Queue()
+        # 添加线程控制信号量
+        self._shutdown_event = threading.Event()
+        self._thread_lock = threading.Lock()
+
+        # 修改：限制队列大小为100
+        self.battle_queue = Queue(maxsize=100)
         self.worker_threads = []
+
+        # 添加自适应线程池控制
+        self.thread_pool = AdaptiveThreadPool(
+            initial_threads=max_concurrent_battles,
+            min_threads=4,
+            max_threads=max_concurrent_battles,
+        )
 
         # 启动工作线程池
         self._start_worker_threads()
+
+        # 添加监控线程
+        self.monitor_thread = threading.Thread(
+            target=self._monitor_system_load, daemon=True, name="LoadMonitor"
+        )
+        self.monitor_thread.start()
 
         os.makedirs(self.data_dir, exist_ok=True)
         logger.info(
@@ -92,36 +184,67 @@ class BattleManager:
 
     def _start_worker_threads(self):
         """启动工作线程池处理对战队列"""
-        for i in range(self.max_concurrent_battles):
-            thread = threading.Thread(
-                target=self._battle_worker,
-                name=f"BattleWorker-{i}",
-                daemon=True,  # 设为守护线程，随主程序退出
-            )
-            thread.start()
-            self.worker_threads.append(thread)
-            logger.info(f"工作线程 {thread.name} 已启动")
+        with self._thread_lock:
+            for i in range(self.max_concurrent_battles):
+                thread = threading.Thread(
+                    target=self._battle_worker,
+                    name=f"BattleWorker-{i}",
+                    daemon=True,  # 设为守护线程，随主程序退出
+                )
+                thread.start()
+                self.worker_threads.append(thread)
+                logger.info(f"工作线程 {thread.name} 已启动")
 
     def _battle_worker(self):
         """工作线程：从队列获取对战任务并执行"""
-        while True:
-            battle_id, participant_data = self.battle_queue.get()
+        while not self._shutdown_event.is_set():
             try:
-                logger.info(f"工作线程开始处理对战 {battle_id}")
-                self._execute_battle(battle_id, participant_data)
-            except Exception as e:
-                logger.exception(f"处理对战 {battle_id} 时发生异常: {str(e)}")
-                # 确保对战状态被标记为错误
-                self.battle_status[battle_id] = "error"
-                self.battle_results[battle_id] = {
-                    "error": f"处理对战任务时发生异常: {str(e)}"
-                }
-                self.battle_service.mark_battle_as_error(
-                    battle_id, {"error": f"对战任务处理异常: {str(e)}"}
-                )
-            finally:
-                self.battle_queue.task_done()
-                logger.info(f"完成对战 {battle_id} 处理")
+                # 使用超时，以便线程能够定期检查关闭信号
+                battle_id, participant_data = self.battle_queue.get(timeout=1.0)
+                try:
+                    logger.info(f"工作线程开始处理对战 {battle_id}")
+                    self._execute_battle(battle_id, participant_data)
+                except Exception as e:
+                    logger.exception(f"处理对战 {battle_id} 时发生异常: {str(e)}")
+                    # 确保对战状态被标记为错误
+                    self.battle_status[battle_id] = "error"
+                    self.battle_results[battle_id] = {
+                        "error": f"处理对战任务时发生异常: {str(e)}"
+                    }
+                    self.battle_service.mark_battle_as_error(
+                        battle_id, {"error": f"对战任务处理异常: {str(e)}"}
+                    )
+                finally:
+                    self.battle_queue.task_done()
+                    logger.info(f"完成对战 {battle_id} 处理")
+            except queue.Empty:  # 使用queue.Empty
+                # 队列为空，继续等待
+                continue
+
+    def _adjust_worker_threads(self, target_count):
+        """根据目标线程数调整工作线程数量"""
+        with self._thread_lock:
+            current_count = len(self.worker_threads)
+
+            # 移除不活跃线程
+            self.worker_threads = [t for t in self.worker_threads if t.is_alive()]
+
+            if len(self.worker_threads) < target_count:
+                # 需要增加线程
+                for i in range(len(self.worker_threads), target_count):
+                    thread = threading.Thread(
+                        target=self._battle_worker,
+                        name=f"BattleWorker-{i}",
+                        daemon=True,
+                    )
+                    thread.start()
+                    self.worker_threads.append(thread)
+                    logger.info(
+                        f"已增加工作线程 {thread.name}，当前线程数: {len(self.worker_threads)}"
+                    )
+
+            # 注意：不主动终止线程，而是让它们自然结束
+            # 当线程池缩小时，多余的线程会在处理完当前任务后自动退出
 
     def start_battle(
         self, battle_id: str, participant_data: List[Dict[str, str]]
@@ -131,11 +254,13 @@ class BattleManager:
         返回：是否成功加入队列
         """
         battle_observer = Observer(battle_id)
-        
-        if settings["observer.Obeserver"] == 1:
-            # 使用装饰器
-            dec = DebugDecorator(battle_id=battle_id)
+
+        # 装饰器
+        if settings["observer.Observer"] == 1:
+            # 装饰实例
+            dec = DebugDecorator(battle_id)
             battle_observer = dec.decorate_instance(battle_observer)
+
 
         self.battle_observers[battle_id] = battle_observer
 
@@ -152,14 +277,35 @@ class BattleManager:
 
         # 验证参与者数据和AI代码
         player_code_paths = {}
-        for p_data in participant_data:
+
+        # 补全 position 信息 - 先从数据库获取完整的 BattlePlayer 记录
+        from database.models import BattlePlayer
+
+        battle_players = BattlePlayer.query.filter_by(battle_id=battle_id).all()
+
+        # 创建 BattlePlayer 记录到 participant_data 的映射
+        bp_map = {}
+        for bp in battle_players:
+            bp_map[bp.user_id] = bp
+
+        # 补全 participant_data 中的 position 字段
+        enhanced_participant_data = []
+        for i, p_data in enumerate(participant_data):
             user_id = p_data.get("user_id")
             ai_code_id = p_data.get("ai_code_id")
+
+            # 如果用户在 BattlePlayer 记录中能找到，使用其位置
+            position = bp_map.get(user_id).position if user_id in bp_map else i + 1
+
+            enhanced_participant_data.append(
+                {"user_id": user_id, "ai_code_id": ai_code_id, "position": position}
+            )
+
+            # 验证 AI 代码路径
             if user_id and ai_code_id:
                 full_path = self.battle_service.get_ai_code_path(ai_code_id)
                 if full_path:
-                    player_index = participant_data.index(p_data) + 1
-                    player_code_paths[player_index] = full_path
+                    player_code_paths[position] = full_path
                 else:
                     logger.error(
                         f"无法获取玩家 {user_id} 的AI代码 {ai_code_id} 路径，对战 {battle_id} 无法启动"
@@ -195,8 +341,8 @@ class BattleManager:
             )
             return False
 
-        # 添加到队列
-        self.battle_queue.put((battle_id, participant_data))
+        # 添加到队列 - 使用补全后的参与者数据
+        self.battle_queue.put((battle_id, enhanced_participant_data))
         self.battle_status[battle_id] = "waiting"
         self.battles[battle_id] = True  # 标记为有效对战，但不再存储线程对象
 
@@ -251,22 +397,22 @@ class BattleManager:
                         player_code_paths[player_index] = full_path
 
             # 3. 初始化裁判
-                referee = AvalonReferee(
-                    battle_id=battle_id,
-                    participant_data=participant_data,  # 传递参与者数据列表
-                    config={
-                        "data_dir": self.data_dir,
-                        "player_code_paths": player_code_paths,
-                    },  # 配置字典 # 配置字典
-                    observer=battle_observer,  # 观察者对象
-                    battle_service=self.battle_service,  # 服务对象
-                )
+            referee = AvalonReferee(
+                battle_id=battle_id,
+                participant_data=participant_data,  # 传递参与者数据列表
+                config={
+                    "data_dir": self.data_dir,
+                    "player_code_paths": player_code_paths,
+                },  # 配置字典
+                observer=battle_observer,  # 观察者对象
+                battle_service=self.battle_service,  # 服务对象
+            )
 
             # 装饰器
-            if settings["referee.AvalonReferee"] == 1:
-                # 使用装饰器
-                dec = DebugDecorator(battle_id=battle_id)
-                referee = dec.decorate_instance(referee)
+        if settings["referee.AvalonReferee"] == 1:
+            # 装饰实例
+            dec = DebugDecorator(battle_id)
+            referee = dec.decorate_instance(referee)
 
 
             # 4. 运行游戏
@@ -398,3 +544,48 @@ class BattleManager:
 
         logger.info(f"对战 {battle_id} 已成功取消：{reason}")
         return True
+
+    def _monitor_system_load(self):
+        """监控系统负载并调整线程池大小"""
+        while True:
+            try:
+                self.thread_pool.adjust_thread_limit()
+                # 动态调整工作线程数量
+                current_max = self.thread_pool.get_max_threads()
+                if current_max != self.max_concurrent_battles:
+                    old_max = self.max_concurrent_battles
+                    self.max_concurrent_battles = current_max
+                    logger.info(
+                        f"调整最大并发对战数：{old_max} -> {self.max_concurrent_battles}"
+                    )
+
+                    # 调整实际工作线程数量
+                    self._adjust_worker_threads(self.max_concurrent_battles)
+
+                # 定期清理已结束的线程
+                if len(self.worker_threads) > self.max_concurrent_battles:
+                    with self._thread_lock:
+                        self.worker_threads = [
+                            t for t in self.worker_threads if t.is_alive()
+                        ]
+                    logger.info(f"清理后的工作线程数量: {len(self.worker_threads)}")
+
+                time.sleep(60)  # 每分钟检查一次
+            except Exception as e:
+                logger.error(f"监控系统负载时出错: {str(e)}")
+                time.sleep(120)  # 出错时延长休眠时间
+
+    def shutdown(self):
+        """优雅关闭对战管理器"""
+        logger.info("正在关闭对战管理器...")
+        self._shutdown_event.set()
+
+        # 等待所有任务完成
+        self.battle_queue.join()
+
+        # 等待所有线程结束
+        for thread in self.worker_threads:
+            if thread.is_alive():
+                thread.join(timeout=1.0)
+
+        logger.info("对战管理器已关闭")
