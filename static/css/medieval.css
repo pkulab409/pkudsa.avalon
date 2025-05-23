@@ -11,7 +11,7 @@
     /* 深红 */
     --medieval-secondary: #642500;
     /* 深红 */
-    --medieval-accent: #FFD700;
+    --medieval-accent: #a98c16;
     /* 金色 */
     --medieval-background: #8B4513;
     /* 棕色 */
@@ -19,7 +19,7 @@
     /* 暗淡的蓝色 */
     --medieval-danger: #8B0000;
     /* 暗淡的红色 */
-    --medieval-parchment: #F4E4BC;
+    --medieval-parchment: #f4e4bc70;
     /* 羊皮纸色 */
     --medieval-border: #5C4033;
     /* 深木色 */
@@ -161,23 +161,12 @@ body::before {
     position: relative;
 }
 
-.nav-link::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    width: 0;
-    height: 2px;
-    background-color: var(--medieval-accent);
-    transition: width 0.3s ease;
+.dropdown-menu {
+    background-color: #e9ecef;
 }
 
-.nav-link:hover::after {
-    width: 100%;
-}
-
-.navbar-toggler-icon {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(255, 215, 0, 1)' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+.dropdown-item {
+    padding: 0.3rem 1.5rem;
 }
 
 /* 卡片样式 */
@@ -220,7 +209,7 @@ body::before {
 }
 
 .list-group-item {
-    background-color: #f4e4bc7a;
+    background-color: #00000000;
 }
 
 .table>:not(caption)>*>* {
@@ -287,7 +276,7 @@ h3::after {
     outline: 2px solid var(--medieval-accent);
     outline-offset: -10px;
     padding: 25px;
-    margin: 15px 0;
+    margin-bottom: 20px;
     background-color: var(--medieval-parchment);
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
 }
@@ -310,6 +299,10 @@ h3::after {
     font-size: 1.2em;
 }
 
+.row>* {
+    margin-top: 15px;
+}
+
 .message-wrapper {
     position: relative;
     margin: 15px 0;
@@ -330,13 +323,15 @@ h3::after {
 }
 
 .card-decoration {
-    width: 40px;
-    height: 60px;
+    width: 42px !important;
+    height: 60px !important;
     border: 2px solid #8b4513;
     border-radius: 5px;
     position: relative;
     box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
     margin: 0 10px;
+    background-size: cover;
+    background-position: center;
 }
 
 .card-decoration::before {
