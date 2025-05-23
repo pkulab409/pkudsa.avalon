@@ -37,6 +37,7 @@ from database import (
     get_recent_battles as db_get_recent_battles,
 )
 from database.models import Battle, BattlePlayer, User, AICode
+from database import db
 from utils.battle_manager_utils import get_battle_manager
 from utils.automatch_utils import get_automatch
 from datetime import datetime  # For date filtering
@@ -112,10 +113,38 @@ def lobby():
                     }
                 )
 
+    # 获取不同状态的对战统计
+    from sqlalchemy import func
+    from database.models import Battle
+
+    # 获取各种状态的对战数量
+    battles_stats = (
+        db.session.query(Battle.status, func.count(Battle.id))
+        .group_by(Battle.status)
+        .all()
+    )
+
+    # 将结果转换为字典
+    battles_count = {
+        "playing": 0,
+        "waiting": 0,
+        "completed": 0,
+        "error": 0,
+        "cancelled": 0,
+        "total": 0,
+    }
+
+    for status, count in battles_stats:
+        if status in battles_count:
+            battles_count[status] = count
+        battles_count["total"] += count
+
+    # 自动对战统计信息已经存在，可以直接使用或扩展
+
     return render_template(
         "lobby.html",
         battles_pagination=battles_pagination,
-        automatch_is_on=automatch_is_on,  # Use the pre-computed value, not calling is_on again
+        automatch_is_on=automatch_is_on,
         automatch_status=automatch_status,
         all_users=all_users,
         current_filters={  # Pass current filters back to the template
@@ -124,6 +153,7 @@ def lobby():
             "date_to": date_to_str,
             "players": player_filters,  # Now passing the list of players back to the template
         },
+        battles_count=battles_count,  # 新增：添加对战数量统计
     )
 
 
