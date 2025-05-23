@@ -458,7 +458,7 @@ class AvalonReferee:
                 self.data_dir, f"game_{self.game_id}_player_{player_id}_private.json"
             )
             with open(private_log_file, "w", encoding="utf-8") as f:
-                json.dump(INIT_PRIVA_LOG_DICT, f)
+                json.dump(INIT_PRIVA_LOG_DICT, f, ensure_ascii=False)
         logger.info(f"Public and private log files initialized in {self.data_dir}")
 
     def init_game(self):

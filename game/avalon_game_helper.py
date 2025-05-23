@@ -260,7 +260,7 @@ class GameHelper:
 
         # 打开文件，写回
         with open(private_file, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
+            json.dump(data, f, indent=2, ensure_ascii=False)
 
     def read_private_lib(self) -> List[str]:
         """从私有库中读取内容"""
