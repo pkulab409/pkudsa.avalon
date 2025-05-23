@@ -224,7 +224,7 @@ class AvalonReferee:
         self.game_helper = GameHelper(data_dir=self.data_dir)
 
         # 装饰器
-        if settings["observer.Observer"] == 1:
+        if settings["avalon_game_helper.GameHelper"] == 1:
             # 装饰实例
             dec = DebugDecorator(self.battle_id)
             self.game_helper = dec.decorate_instance(self.game_helper)
