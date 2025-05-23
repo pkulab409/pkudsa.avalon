@@ -276,88 +276,45 @@ class Player:
     def walk(self) -> tuple[str, ...]:
         """移动策略，最多走3步，终点不能与其他玩家重合"""
         try:
-            if not self.map or not self.location:
+            # 更严格的初始检查
+            if not self.map or not self.location or not self.player_positions:
                 return tuple()
 
             x, y = self.location
-            others_pos = [
-                self.player_positions[i] for i in range(1, 8) if i != self.index
-            ]
+            others_pos = []
+            # 更安全的 others_pos 处理
+            for i in range(1, 8):
+                if i != self.index and i in self.player_positions:
+                    others_pos.append(self.player_positions[i])
 
             # 计算到最近任务点的路径
             if self.key_locations:
-                target = min(
-                    self.key_locations,
-                    key=lambda pos: abs(pos[0] - x) + abs(pos[1] - y),
-                )
-                path = self._find_path_to_target(x, y, target)
-                if path:
-                    steps = path[:3]
-                    # 计算终点
-                    cx, cy = x, y
-                    for move in steps:
-                        if move == "Up":
-                            cx -= 1
-                        elif move == "Down":
-                            cx += 1
-                        elif move == "Left":
-                            cy -= 1
-                        elif move == "Right":
-                            cy += 1
-                    if (cx, cy) not in others_pos:
-                        return tuple(steps)
+                try:
+                    target = min(
+                        self.key_locations,
+                        key=lambda pos: abs(pos[0] - x) + abs(pos[1] - y),
+                    )
+                    path = self._find_path_to_target(x, y, target)
+                    if path and len(path) > 0:  # 确保路径有效
+                        steps = path[:3]
+                        # 计算终点
+                        cx, cy = x, y
+                        for move in steps:
+                            if move == "Up":
+                                cx -= 1
+                            elif move == "Down":
+                                cx += 1
+                            elif move == "Left":
+                                cy -= 1
+                            elif move == "Right":
+                                cy += 1
+                        if (cx, cy) not in others_pos:
+                            return tuple(steps)
+                except Exception as e:
+                    write_into_private(f"计算路径时出错: {e}")
+                    return tuple()  # 发生错误时返回空移动
 
-            # 如果没有找到路径或没有任务点，尝试接近其他玩家
-            if not self.is_evil:
-                trusted_players = [
-                    p
-                    for p, prob in self.evil_probability.items()
-                    if prob < self.strategy["trust_threshold"] and p != self.index
-                ]
-                if trusted_players:
-                    target_pos = self.player_positions.get(trusted_players[0])
-                    if target_pos:
-                        path = self._find_path_to_target(x, y, target_pos)
-                        if path:
-                            steps = path[:3]
-                            cx, cy = x, y
-                            for move in steps:
-                                if move == "Up":
-                                    cx -= 1
-                                elif move == "Down":
-                                    cx += 1
-                                elif move == "Left":
-                                    cy -= 1
-                                elif move == "Right":
-                                    cy += 1
-                            if (cx, cy) not in others_pos:
-                                return tuple(steps)
-            else:
-                potential_merlins = [
-                    p
-                    for p, prob in self.evil_probability.items()
-                    if prob < 0.3 and p != self.index
-                ]
-                if potential_merlins:
-                    target_pos = self.player_positions.get(potential_merlins[0])
-                    if target_pos:
-                        path = self._find_path_to_target(x, y, target_pos)
-                        if path:
-                            steps = path[:3]
-                            cx, cy = x, y
-                            for move in steps:
-                                if move == "Up":
-                                    cx -= 1
-                                elif move == "Down":
-                                    cx += 1
-                                elif move == "Left":
-                                    cy -= 1
-                                elif move == "Right":
-                                    cy += 1
-                            if (cx, cy) not in others_pos:
-                                return tuple(steps)
-
-            # 原始有效移动
+            # 原始有效移动逻辑保持不变...
             valid_moves = []
             directions = [
                 ("Up", -1, 0),
@@ -392,7 +349,7 @@ class Player:
             return tuple()
         except Exception as e:
             write_into_private(f"walk异常: {e}")
-            return tuple()
+            return tuple()  # 确保在任何情况下都返回有效的元组
 
     def _find_path_to_target(self, x, y, target):
         """使用BFS寻找从(x,y)到target的最短路径"""

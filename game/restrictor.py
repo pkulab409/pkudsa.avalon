@@ -31,6 +31,16 @@ def _restricted_importer(name, globals=None, locals=None, fromlist=(), level=0):
         "collections": __import__("collections"),
         "math": __import__("math"),
         "json": __import__("json"),
+        # 建议添加的模块
+        "itertools": __import__("itertools"),  # 提供高效的循环迭代工具
+        "functools": __import__("functools"),  # 高阶函数和操作可调用对象的工具
+        "copy": __import__("copy"),  # 提供深浅拷贝功能
+        "heapq": __import__("heapq"),  # 堆队列算法
+        "datetime": __import__("datetime"),  # 日期时间处理
+        "string": __import__("string"),  # 常用字符串常量和操作
+        "bisect": __import__("bisect"),  # 数组二分查找算法
+        "statistics": __import__("statistics"),  # 提供数学统计功能
+        "typing": __import__("typing"),  # 类型提示支持
     }
 
     if name in allowed_modules:
@@ -105,4 +115,26 @@ RESTRICTED_BUILTINS = {
     "Exception": Exception,
     "ValueError": ValueError,
     "IndexError": IndexError,
+    # 新增的内置函数
+    "ascii": ascii,
+    "iter": iter,
+    "next": next,
+    "getattr": getattr,
+    "hasattr": hasattr,
+    "setattr": setattr,
+    "delattr": delattr,
+    "type": type,
+    "vars": vars,
+    "__doc__": __doc__,
+    # 更多异常类
+    "TypeError": TypeError,
+    "KeyError": KeyError,
+    "AttributeError": AttributeError,
+    "StopIteration": StopIteration,
+    "NameError": NameError,
+    "SyntaxError": SyntaxError,
+    "RuntimeError": RuntimeError,
+    "ZeroDivisionError": ZeroDivisionError,
+    "AssertionError": AssertionError,
+    "ImportError": ImportError,
 }
