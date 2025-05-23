@@ -3,12 +3,17 @@
 """
 
 import os
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BATTLE_AI_BASE_DIR_NAME = "battle_ai_modules"
+BATTLE_AI_ABSOLUTE_BASE_DIR = os.path.join(PROJECT_ROOT, BATTLE_AI_BASE_DIR_NAME)
+import shutil
 import sys
 import json
 import random
 import importlib
 import traceback
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 import time
 from copy import deepcopy
 import logging
@@ -32,18 +37,6 @@ logger = logging.getLogger("Referee")
 
 # 导入辅助模块
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# 确保导入成功
-# try:
-#     from game.avalon_game_helper import set_current_context, set_current_round
-# except ImportError:
-#     logger.error("Failed to import modules from game.avalon_game_helper")
-
-#     # 可以选择退出或提供默认实现
-#     def set_current_context(player_id: int, game_id: str):
-#         pass  # 空实现或记录错误
-
-#     def set_current_round(round_: int):
-#         pass
 
 
 # 角色常量
@@ -184,14 +177,25 @@ class BattleStatusChecker:
 class AvalonReferee:
     def __init__(
         self,
-        game_id: str,
-        battle_observer: Observer,
-        data_dir: str = "./data",
-        player_code_paths: Dict[int, str] = None,
+        battle_id: str,
+        participant_data: List[
+            Dict[str, Any]
+        ],  # 确保包含 position, user_id, ai_code_id
+        config: Dict[str, Any],
+        observer: Any,  # BattleObserver 类型
+        battle_service: Any,  # BattleService 类型
     ):
-        self.game_id = game_id
-        self.data_dir = data_dir
+        self.battle_id = battle_id
+        self.game_id = battle_id  # 保持与旧代码兼容
+        self.participant_data = participant_data
+        self.config = config
+        self.battle_observer = observer
+        self.battle_service = battle_service  # 用于获取原始AI路径
         self.players = {}  # 玩家对象字典 {1: player1, 2: player2, ...}
+        self.player_module_import_paths = {}  # 存储Python导入路径
+        self.game_suspended = False  # 追踪游戏是否已挂起
+
+        # 游戏状态变量初始化
         self.roles = {}  # 角色分配 {1: "Merlin", 2: "Assassin", ...}
         self.map_data = []  # 地图数据
         self.player_positions = {}  # 玩家位置 {1: (x, y), 2: (x, y), ...}
@@ -201,27 +205,242 @@ class AvalonReferee:
         self.red_wins = 0  # 红方胜利次数
         self.public_log = []  # 公共日志
         self.leader_index = random.randint(1, PLAYER_COUNT)  # 随机选择初始队长
+        # 获取数据目录设置
+        self.data_dir = config.get("data_dir", "./data")
+        self.game_log_dir = os.path.join(
+            self.data_dir, "logs", self.battle_id
+        )  # 日志目录
+
+        # 确保目录存在
+        os.makedirs(self.data_dir, exist_ok=True)
+        os.makedirs(self.game_log_dir, exist_ok=True)
+
         logger.info(
-            f"Game {game_id} initialized. Data dir: {data_dir}. Initial leader: {self.leader_index}"
+            f"Game {battle_id} initialized. Data dir: {self.data_dir}. Initial leader: {self.leader_index}"
         )
+
         # 为这个referee创建一个专用的GameHelper实例
-        self.game_helper = GameHelper(data_dir=data_dir)
-        self.game_helper.game_session_id = game_id  # 直接设置game_id
+        self.game_helper = GameHelper(data_dir=self.data_dir)
+        self.game_helper.game_session_id = self.game_id  # 直接设置game_id
 
         # 创建数据目录
-        os.makedirs(os.path.join(data_dir), exist_ok=True)
+        os.makedirs(os.path.join(self.data_dir), exist_ok=True)
 
         # 初始化日志文件
         self.init_logs()
 
         # Observer实例
-        self.battle_observer = battle_observer
-        self.game_helper.observer = battle_observer
+        self.battle_observer = observer
+        self.game_helper.observer = observer
 
-        # 加载玩家代码
-        if player_code_paths:
-            player_modules = self._load_codes(player_code_paths)
-            self.load_player_codes(player_modules)
+        # 准备并加载AI模块
+        if not self._prepare_battle_ai_modules():
+            logger.error(
+                f"Failed to prepare AI modules for battle {self.battle_id}. Game cannot start."
+            )
+            return
+
+        if not self._load_player_instances():
+            logger.error(
+                f"Failed to load player instances for battle {self.battle_id}. Game cannot start."
+            )
+            return
+
+        logger.info(
+            f"Referee initialized successfully for battle {self.battle_id} with {len(self.players)} players."
+        )
+
+    def _prepare_battle_ai_modules(self) -> bool:
+        """
+        为当前对战准备AI模块：复制AI文件到 battle_id 专属目录。
+        返回 True 表示成功，False 表示失败。
+        """
+        battle_specific_module_dir = os.path.join(
+            BATTLE_AI_ABSOLUTE_BASE_DIR, self.battle_id
+        )
+        try:
+            if os.path.exists(battle_specific_module_dir):
+                shutil.rmtree(battle_specific_module_dir)  # 清理旧的（如果存在）
+            os.makedirs(battle_specific_module_dir, exist_ok=True)
+            logger.info(
+                f"Created battle-specific AI directory: {battle_specific_module_dir}"
+            )
+
+            # 在 battle_id 目录中创建 __init__.py 使其成为一个包
+            with open(
+                os.path.join(battle_specific_module_dir, "__init__.py"), "w"
+            ) as f:
+                pass
+
+            for p_data in self.participant_data:
+                player_position = p_data.get("position")  # 游戏中的位置 (1-7)
+                ai_code_id = p_data.get("ai_code_id")
+
+                if player_position is None or ai_code_id is None:
+                    logger.error(
+                        f"Participant data missing position or ai_code_id: {p_data}"
+                    )
+                    self.suspend_game(
+                        "critical_setup_error",
+                        player_position,
+                        ai_code_id,
+                        "Participant data incomplete for AI module prep.",
+                    )
+                    return False
+
+                original_ai_path = self.battle_service.get_ai_code_path(ai_code_id)
+                if not original_ai_path or not os.path.exists(original_ai_path):
+                    logger.error(
+                        f"Original AI code path not found or invalid for AI ID {ai_code_id}. Path: {original_ai_path}"
+                    )
+                    self.suspend_game(
+                        "critical_setup_error",
+                        player_position,
+                        ai_code_id,
+                        f"Original AI file not found: {original_ai_path}",
+                    )
+                    return False
+
+                # 新模块文件名，例如 player_1.py
+                new_module_filename = f"player_{player_position}.py"
+                destination_path = os.path.join(
+                    battle_specific_module_dir, new_module_filename
+                )
+
+                shutil.copy(original_ai_path, destination_path)
+                logger.info(
+                    f"Copied AI for player {player_position} (AI ID: {ai_code_id}) from '{original_ai_path}' to '{destination_path}'"
+                )
+
+                # 存储Python导入路径，例如 "battle_ai_modules.battle_id_xyz.player_1"
+                module_import_path = f"{BATTLE_AI_BASE_DIR_NAME}.{self.battle_id}.player_{player_position}"
+                self.player_module_import_paths[player_position] = module_import_path
+
+            logger.info(f"Successfully prepared AI modules for battle {self.battle_id}")
+            return True
+
+        except Exception as e:
+            logger.error(
+                f"Error preparing AI modules for battle {self.battle_id}: {e}",
+                exc_info=True,
+            )
+            self.suspend_game(
+                "critical_setup_error",
+                None,
+                None,
+                f"Exception during AI module preparation: {e}",
+            )
+            return False
+
+    def _load_player_instances(self) -> bool:
+        """
+        从准备好的模块路径静态导入并实例化Player对象。
+        返回 True 表示成功，False 表示失败。
+        """
+        if not self.player_module_import_paths:
+            logger.error(
+                f"No player module import paths were prepared for battle {self.battle_id}."
+            )
+            if not self.game_suspended:
+                self.suspend_game(
+                    "critical_setup_error",
+                    None,
+                    None,
+                    "Player module paths not prepared for loading.",
+                )
+            return False
+
+        for player_pos, module_path in self.player_module_import_paths.items():
+            try:
+                logger.info(
+                    f"Loading Player instance for player {player_pos} from module: {module_path}"
+                )
+
+                # 如果模块已加载 (不太可能，因为路径唯一)，重新加载它
+                if module_path in sys.modules:
+                    logger.debug(
+                        f"Reloading module {module_path} for player {player_pos}"
+                    )
+                    player_module = importlib.reload(sys.modules[module_path])
+                else:
+                    player_module = importlib.import_module(module_path)
+
+                if hasattr(player_module, "Player"):
+                    player_instance = player_module.Player()
+                    self.players[player_pos] = player_instance
+                    logger.info(
+                        f"Successfully created Player instance for player {player_pos} from {module_path}"
+                    )
+
+                    # 调用玩家初始化方法
+                    self.safe_execute(player_pos, "set_player_index", player_pos)
+                else:
+                    logger.error(
+                        f"Module {module_path} for player {player_pos} is missing the 'Player' class."
+                    )
+                    self.suspend_game(
+                        "critical_player_ERROR",
+                        player_pos,
+                        module_path,
+                        "Missing 'Player' class.",
+                    )
+                    return False
+
+            except ImportError as e:
+                logger.error(
+                    f"ImportError for player {player_pos} module {module_path}: {e}",
+                    exc_info=True,
+                )
+                self.suspend_game(
+                    "critical_player_ERROR",
+                    player_pos,
+                    module_path,
+                    f"ImportError: {e}",
+                )
+                return False
+            except Exception as e:
+                logger.error(
+                    f"Exception loading player {player_pos} from {module_path}: {e}",
+                    exc_info=True,
+                )
+                self.suspend_game(
+                    "critical_player_ERROR", player_pos, module_path, f"Exception: {e}"
+                )
+                return False
+
+        logger.info(f"All player instances loaded for battle {self.battle_id}")
+        return True
+
+    def _cleanup_battle_ai_modules(self):
+        """清理为本次对战创建的AI模块目录和sys.modules中的条目。"""
+        battle_specific_module_dir = os.path.join(
+            BATTLE_AI_ABSOLUTE_BASE_DIR, self.battle_id
+        )
+        logger.info(
+            f"Cleaning up AI modules for battle {self.battle_id} from {battle_specific_module_dir}"
+        )
+        try:
+            # 从 sys.modules 中移除
+            for player_pos, module_path in self.player_module_import_paths.items():
+                if module_path in sys.modules:
+                    del sys.modules[module_path]
+                    logger.debug(f"Removed module {module_path} from sys.modules")
+
+            # 移除 battle_id 下的 __init__.py 所在的包
+            battle_package_path = f"{BATTLE_AI_BASE_DIR_NAME}.{self.battle_id}"
+            if battle_package_path in sys.modules:
+                del sys.modules[battle_package_path]
+                logger.debug(f"Removed package {battle_package_path} from sys.modules")
+
+            # 删除物理目录
+            if os.path.exists(battle_specific_module_dir):
+                shutil.rmtree(battle_specific_module_dir)
+                logger.info(f"Removed directory: {battle_specific_module_dir}")
+        except Exception as e:
+            logger.error(
+                f"Error cleaning up AI modules for battle {self.battle_id}: {e}",
+                exc_info=True,
+            )
 
     def init_logs(self):
         """初始化游戏日志"""
@@ -241,94 +460,6 @@ class AvalonReferee:
             with open(private_log_file, "w", encoding="utf-8") as f:
                 json.dump(INIT_PRIVA_LOG_DICT, f)
         logger.info(f"Public and private log files initialized in {self.data_dir}")
-
-    def _load_codes(self, player_codes):
-        player_modules = {}
-
-        for player_id, code_path in player_codes.items():
-            # 创建唯一模块名
-            module_name = f"player_{player_id}_module_{int(time.time()*1000)}"
-            logger.info(f"为玩家 {player_id} 创建模块: {module_name}")
-
-            try:
-                # 检查code_path是否是文件路径
-                if isinstance(code_path, str) and os.path.exists(code_path):
-                    # 如果是文件路径，读取文件内容
-                    try:
-                        with open(code_path, "r", encoding="utf-8") as f:
-                            code_content = f.read()
-                        logger.info(f"从文件 {code_path} 加载玩家 {player_id} 代码")
-                    except Exception as e:
-                        logger.error(f"读取玩家 {player_id} 代码文件时出错: {str(e)}")
-                        continue
-                else:
-                    # 如果不是文件路径，假设是直接传递的代码内容
-                    code_content = code_path
-
-                # 创建模块规范
-                spec = importlib.util.spec_from_loader(module_name, loader=None)
-                if spec is None:
-                    logger.error(f"为 {module_name} 创建规范失败")
-                    continue
-
-                # 从规范创建模块
-                module = importlib.util.module_from_spec(spec)
-                sys.modules[module_name] = module  # 注册模块
-
-                # 执行代码（限制 builtins）
-                module.__dict__["__builtins__"] = RESTRICTED_BUILTINS
-                exec(code_content, module.__dict__)
-
-                # 检查Player类是否存在
-                if not hasattr(module, "Player"):
-                    logger.error(f"玩家 {player_id} 的代码已执行但未找到 'Player' 类")
-                    self.suspend_game(
-                        "critical_player_ERROR",
-                        player_id,
-                        "Player",
-                        f"玩家 {player_id} 的代码已执行但未找到 'Player' 类",
-                    )
-                # 存储模块
-                player_modules[player_id] = module
-                logger.info(f"玩家 {player_id} 代码加载成功")
-
-            except Exception as e:
-                logger.error(f"加载玩家 {player_id} 代码时出错: {str(e)}")
-                traceback.print_exc()
-
-        return player_modules
-
-    def load_player_codes(self, player_modules: Dict[int, Any]):
-        """
-        加载玩家代码模块
-        player_modules: {1: module1, 2: module2, ...}
-        """
-        logger.info(f"Loading player code for {len(player_modules)} players.")
-        for player_id, module in player_modules.items():
-            try:
-                # 实例化Player类
-                player_instance = module.Player()
-                self.players[player_id] = player_instance
-                # 设置玩家编号
-            except Exception as e:  # 玩家代码 __init__ 报错
-                logger.error(
-                    f"Error executing Player {player_id} method '__init__': {str(e)}",
-                    exc_info=True,  # Include traceback in log
-                )
-                try:
-                    self.suspend_game(  # 统一走过 suspend 过程，会报一个错，这边倒到 e_
-                        "critical_player_ERROR", player_id, "__init__", str(e)
-                    )
-                except Exception as e_:  # suspend_game 抛出的错误导到这里
-                    logger.error(
-                        f"Critical error during game {self.game_id}: {str(e)}",
-                        exc_info=True,
-                    )
-                    raise RuntimeError(e_)
-
-            # 分配编号
-            self.safe_execute(player_id, "set_player_index", player_id)
-            logger.info(f"Player {player_id} code loaded and instance created.")
 
     def init_game(self):
         """初始化游戏：分配角色、初始化地图"""
@@ -1703,6 +1834,10 @@ class AvalonReferee:
             # 记录错误事件
             self.log_public_event({"type": "game_error", "result": error_result})
             return error_result
+        finally:
+            # 无论游戏如何结束（正常、终止或出错），都执行清理操作
+            self._cleanup_battle_ai_modules()
+            logger.info(f"AI modules for battle {self.game_id} have been cleaned up")
 
     def safe_execute(self, player_id: int, method_name: str, *args, **kwargs):
         """

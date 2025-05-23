@@ -14,9 +14,10 @@ from queue import Queue
 from typing import Dict, Any, Optional, List, Tuple
 
 # 导入裁判和观察者
-from .referee import AvalonReferee
-from .observer import Observer
-from services.battle_service import BattleService
+from .referee import AvalonReferee  # 确保导入正确
+from .observer import Observer  # 确保导入正确
+from services.battle_service import BattleService  # 假设 BattleService 在 services 包中
+
 
 # 配置日志 (BattleManager 自身的日志)
 logger = logging.getLogger("BattleManager")
@@ -264,14 +265,35 @@ class BattleManager:
 
         # 验证参与者数据和AI代码
         player_code_paths = {}
-        for p_data in participant_data:
+
+        # 补全 position 信息 - 先从数据库获取完整的 BattlePlayer 记录
+        from database.models import BattlePlayer
+
+        battle_players = BattlePlayer.query.filter_by(battle_id=battle_id).all()
+
+        # 创建 BattlePlayer 记录到 participant_data 的映射
+        bp_map = {}
+        for bp in battle_players:
+            bp_map[bp.user_id] = bp
+
+        # 补全 participant_data 中的 position 字段
+        enhanced_participant_data = []
+        for i, p_data in enumerate(participant_data):
             user_id = p_data.get("user_id")
             ai_code_id = p_data.get("ai_code_id")
+
+            # 如果用户在 BattlePlayer 记录中能找到，使用其位置
+            position = bp_map.get(user_id).position if user_id in bp_map else i + 1
+
+            enhanced_participant_data.append(
+                {"user_id": user_id, "ai_code_id": ai_code_id, "position": position}
+            )
+
+            # 验证 AI 代码路径
             if user_id and ai_code_id:
                 full_path = self.battle_service.get_ai_code_path(ai_code_id)
                 if full_path:
-                    player_index = participant_data.index(p_data) + 1
-                    player_code_paths[player_index] = full_path
+                    player_code_paths[position] = full_path
                 else:
                     logger.error(
                         f"无法获取玩家 {user_id} 的AI代码 {ai_code_id} 路径，对战 {battle_id} 无法启动"
@@ -307,8 +329,8 @@ class BattleManager:
             )
             return False
 
-        # 添加到队列
-        self.battle_queue.put((battle_id, participant_data))
+        # 添加到队列 - 使用补全后的参与者数据
+        self.battle_queue.put((battle_id, enhanced_participant_data))
         self.battle_status[battle_id] = "waiting"
         self.battles[battle_id] = True  # 标记为有效对战，但不再存储线程对象
 
@@ -364,7 +386,14 @@ class BattleManager:
 
             # 3. 初始化裁判
             referee = AvalonReferee(
-                battle_id, battle_observer, self.data_dir, player_code_paths
+                battle_id=battle_id,
+                participant_data=participant_data,  # 传递参与者数据列表
+                config={
+                    "data_dir": self.data_dir,
+                    "player_code_paths": player_code_paths,
+                },  # 配置字典
+                observer=battle_observer,  # 观察者对象
+                battle_service=self.battle_service,  # 服务对象
             )
 
             # 4. 运行游戏
