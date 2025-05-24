@@ -264,16 +264,13 @@ def get_active_ai_codes_by_ranking_ids(ranking_ids: list[int] = None) -> list[AI
     获取指定 ranking_id 列表中的用户的激活 AI 代码。
     如果 ranking_ids 为 None 或为空列表，则获取所有用户的激活 AI 代码。
 
-    改进版本：
-    1. 为每个不同的ranking_ids组合使用单独的锁和缓存
-    2. 增强了错误处理和重试逻辑
-    3. 添加了更多的日志记录支持
-
     参数:
         ranking_ids (list[int], optional): 一个可选的整数列表，指定要筛选的 ranking_id。
 
     返回:
         list[AICode]: 一个 AICode 对象的列表。
+
+    现在传入的ranking_ids为一个长度为1的列表，因此输出的数据结构为一个一维列表，这不会导致不同榜单之间的混乱。
     """
 
     # 标准化ranking_ids参数，确保它始终是一个list
@@ -298,8 +295,10 @@ def get_active_ai_codes_by_ranking_ids(ranking_ids: list[int] = None) -> list[AI
                 for game_stats in game_stats_list:
                     user_id = game_stats.user_id
                     ai_code = get_user_active_ai_code(user_id)
-                    if ai_code and ai_code not in active_ai_codes:  # 避免重复
+                    if ai_code:
                         active_ai_codes.append(ai_code)
+                    else:
+                        safe_delete(game_stats)
 
         logger.info(f"成功获取 {len(active_ai_codes)} 个激活的AI代码")
         return active_ai_codes
@@ -411,35 +410,6 @@ def delete_ai_code(ai_code):
     if not ai_code:
         return False
     try:
-        # 检查是否有BattlePlayer记录引用此AI
-        battle_players = BattlePlayer.query.filter_by(
-            selected_ai_code_id=ai_code.id
-        ).all()
-
-        if battle_players:
-            # 只在同一用户的AI代码中查找替代品
-            default_ai_code = AICode.query.filter(
-                AICode.user_id == ai_code.user_id,  # 限制为同一用户
-                AICode.id != ai_code.id,
-            ).first()
-
-            if not default_ai_code:
-                logger.error(
-                    f"删除AI代码 {ai_code.id} 失败: 该用户没有其他可用AI代码作为替代，但此AI已被用于对战"
-                )
-                return False
-
-            # 更新所有引用
-            for bp in battle_players:
-                bp.selected_ai_code_id = default_ai_code.id
-
-            # 提交更改
-            if not safe_commit():
-                logger.error(
-                    f"删除AI代码 {ai_code.id} 失败: 无法更新关联的BattlePlayer记录"
-                )
-                return False
-
         # 删除AI代码
         return safe_delete(ai_code)
     except Exception as e:
@@ -1231,19 +1201,10 @@ def process_battle_results_and_update_stats(battle_id, results_data):
             ).all()
         }
 
-        # 创建缺失的统计记录
+        # 缺失的统计记录
         for user_id in involved_user_ids:
             if user_id not in user_stats_map:
-                new_stats = create_game_stats(
-                    user_id, battle_ranking_id
-                )  # 使用对战的排行榜ID
-                if new_stats:
-                    user_stats_map[user_id] = new_stats
-                    db.session.add(new_stats)
-                else:
-                    logger.error(
-                        f"[Battle {battle_id}] 无法为玩家 {user_id} 创建统计记录"
-                    )
+                logger.error(f"玩家 {user_id} 已从榜单{battle_ranking_id}中注销")
 
         # 错误处理分支 - 代码错误的玩家将受到ELO扣除
         if err_user_id is not None:
