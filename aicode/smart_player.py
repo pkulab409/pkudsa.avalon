@@ -320,10 +320,10 @@ class Player:
                 step += 1
 
         for i in range(len(valid_moves)):
-                    # 处理每个方向
-                    if not isinstance(valid_moves[i], str):
-                        return tuple()
-                    
+            # 处理每个方向
+            if not isinstance(valid_moves[i], str):
+                return tuple()
+
         return tuple(valid_moves)
 
     def _find_path_to_target(self, x, y, target):

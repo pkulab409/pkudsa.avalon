@@ -284,7 +284,6 @@ class Player:
         # 如果没有有效移动，原地不动
         return tuple()
 
-    
     def say(self) -> str:
         """发言策略"""
         # 根据角色和策略生成发言
@@ -367,7 +366,7 @@ class Player:
         return True
 
     def assass(self) -> int:
-        if self.index == 7 :
-            return  1
-        else :
+        if self.index == 7:
+            return 1
+        else:
             return self.index + 1
