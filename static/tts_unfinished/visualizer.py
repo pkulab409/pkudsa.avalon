@@ -780,53 +780,46 @@ def extract_player_movements(game_data):
     return deepcopy(movements_by_player)
 
 
-@visualizer_bp.route('/tts/<game_id>/<message_id>', methods=['POST'])
+@visualizer_bp.route("/tts/<game_id>/<message_id>", methods=["POST"])
 @login_required
 async def generate_tts(game_id, message_id):
     """生成语音文件"""
     try:
         data = request.get_json()
-        text = data.get('text')
-        role = data.get('role')
-        
+        text = data.get("text")
+        role = data.get("role")
+
         if not text or not role:
-            return jsonify({'error': '缺少必要参数'}), 400
+            return jsonify({"error": "缺少必要参数"}), 400
 
         # 检查语音文件是否已存在
         voice_path = tts_service.get_voice_file_path(game_id, message_id)
         if voice_path.exists():
-            return jsonify({
-                'audio_url': f'/visualizer/voice/{game_id}/{message_id}'
-            })
+            return jsonify({"audio_url": f"/visualizer/voice/{game_id}/{message_id}"})
 
         # 生成新的语音文件
         voice_path = await tts_service.generate_voice(text, role, game_id, message_id)
         if not voice_path:
-            return jsonify({'error': '语音生成失败'}), 500
+            return jsonify({"error": "语音生成失败"}), 500
 
-        return jsonify({
-            'audio_url': f'/visualizer/voice/{game_id}/{message_id}'
-        })
+        return jsonify({"audio_url": f"/visualizer/voice/{game_id}/{message_id}"})
 
     except Exception as e:
         current_app.logger.error(f"TTS生成失败: {str(e)}")
-        return jsonify({'error': '语音生成失败'}), 500
+        return jsonify({"error": "语音生成失败"}), 500
 
-@visualizer_bp.route('/voice/<game_id>/<message_id>')
+
+@visualizer_bp.route("/voice/<game_id>/<message_id>")
 @login_required
 def get_voice_file(game_id, message_id):
     """获取语音文件"""
     try:
         voice_path = tts_service.get_voice_file_path(game_id, message_id)
         if not voice_path.exists():
-            return jsonify({'error': '语音文件不存在'}), 404
+            return jsonify({"error": "语音文件不存在"}), 404
 
-        return send_file(
-            voice_path,
-            mimetype='audio/mpeg',
-            as_attachment=False
-        )
+        return send_file(voice_path, mimetype="audio/mpeg", as_attachment=False)
 
     except Exception as e:
         current_app.logger.error(f"获取语音文件失败: {str(e)}")
-        return jsonify({'error': '获取语音文件失败'}), 500
+        return jsonify({"error": "获取语音文件失败"}), 500

@@ -1,4 +1,4 @@
- #coding=utf-8
+# coding=utf-8
 
 import os
 import json
@@ -8,6 +8,7 @@ import asyncio
 import websockets
 from typing import Dict, Optional
 from pathlib import Path
+
 
 class TTSService:
     def __init__(self, app=None):
@@ -56,17 +57,17 @@ class TTSService:
                 "pitch_ratio": 1.0,
             },
         }
-        
+
         # 从环境变量或配置文件加载API配置
         self.appid = os.getenv("TTS_APPID", "8748328986")
         self.token = os.getenv("TTS_TOKEN", "7wPh9Cf7dTTl4N94FfP3RmCzcQnCPJHm")
         self.cluster = os.getenv("TTS_CLUSTER", "2h3Vt087svOT6Q0LZOT0vI8jaeWRRlW5")
         self.host = "openspeech.bytedance.com"
         self.api_url = f"wss://{self.host}/api/v1/tts/ws_binary"
-        
+
         # 默认请求头
-        self.default_header = bytearray(b'\x11\x10\x11\x00')
-        
+        self.default_header = bytearray(b"\x11\x10\x11\x00")
+
         # 存储游戏角色映射
         self.game_roles = {}
 
@@ -90,13 +91,17 @@ class TTSService:
         """根据玩家ID获取角色"""
         return self.game_roles.get(str(player_id), "Knight")  # 默认使用骑士语音
 
-    async def generate_voice(self, text: str, player_id: str, battle_id: str, timestamp: str) -> Optional[str]:
+    async def generate_voice(
+        self, text: str, player_id: str, battle_id: str, timestamp: str
+    ) -> Optional[str]:
         """生成语音文件"""
         try:
             role = self.get_role_by_player_id(player_id)
-            voice_settings = self.voice_settings.get(role, self.voice_settings["Knight"])
+            voice_settings = self.voice_settings.get(
+                role, self.voice_settings["Knight"]
+            )
             output_path = self.get_voice_file_path(battle_id, timestamp)
-            
+
             if output_path.exists():
                 return str(output_path)
 
@@ -104,11 +109,9 @@ class TTSService:
                 "app": {
                     "appid": self.appid,
                     "token": self.token,
-                    "cluster": self.cluster
+                    "cluster": self.cluster,
                 },
-                "user": {
-                    "uid": str(uuid.uuid4())
-                },
+                "user": {"uid": str(uuid.uuid4())},
                 "audio": {
                     "voice_type": voice_settings["voice_type"],
                     "encoding": "mp3",
@@ -120,20 +123,22 @@ class TTSService:
                     "reqid": str(uuid.uuid4()),
                     "text": text,
                     "text_type": "plain",
-                    "operation": "submit"
-                }
+                    "operation": "submit",
+                },
             }
 
             payload_bytes = str.encode(json.dumps(request_json))
             payload_bytes = gzip.compress(payload_bytes)
             full_client_request = bytearray(self.default_header)
-            full_client_request.extend((len(payload_bytes)).to_bytes(4, 'big'))
+            full_client_request.extend((len(payload_bytes)).to_bytes(4, "big"))
             full_client_request.extend(payload_bytes)
 
             header = {"Authorization": f"Bearer; {self.token}"}
-            async with websockets.connect(self.api_url, extra_headers=header, ping_interval=None) as ws:
+            async with websockets.connect(
+                self.api_url, extra_headers=header, ping_interval=None
+            ) as ws:
                 await ws.send(full_client_request)
-                
+
                 with open(output_path, "wb") as f:
                     while True:
                         res = await ws.recv()
@@ -150,14 +155,14 @@ class TTSService:
     def _parse_response(self, res: bytes, file) -> bool:
         """解析TTS响应"""
         protocol_version = res[0] >> 4
-        header_size = res[0] & 0x0f
+        header_size = res[0] & 0x0F
         message_type = res[1] >> 4
-        message_type_specific_flags = res[1] & 0x0f
+        message_type_specific_flags = res[1] & 0x0F
         serialization_method = res[2] >> 4
-        message_compression = res[2] & 0x0f
-        payload = res[header_size*4:]
+        message_compression = res[2] & 0x0F
+        payload = res[header_size * 4 :]
 
-        if message_type == 0xb:  # audio-only server response
+        if message_type == 0xB:  # audio-only server response
             if message_type_specific_flags == 0:  # no sequence number as ACK
                 return False
             else:
@@ -166,7 +171,7 @@ class TTSService:
                 payload = payload[8:]
                 file.write(payload)
                 return sequence_number < 0
-        elif message_type == 0xf:  # error message
+        elif message_type == 0xF:  # error message
             code = int.from_bytes(payload[:4], "big", signed=False)
             msg_size = int.from_bytes(payload[4:8], "big", signed=False)
             error_msg = payload[8:]
@@ -177,6 +182,7 @@ class TTSService:
                 self.app.logger.error(f"TTS错误: {error_msg}")
             return True
         return True
+
 
 # 创建全局TTS服务实例
 tts_service = TTSService()
