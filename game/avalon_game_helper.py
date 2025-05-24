@@ -422,7 +422,8 @@ class GameHelper:
 
         try:
             public_file = os.path.join(
-                self.data_dir, f"{self.game_session_id}/public_game_{self.game_session_id}.json"
+                self.data_dir,
+                f"{self.game_session_id}/public_game_{self.game_session_id}.json",
             )
 
             if os.path.exists(public_file):

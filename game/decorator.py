@@ -101,7 +101,7 @@ class DebugDecorator:
                 if callable(attr):
                     setattr(instance, name, self(attr))  # 用__call__装饰方法
         return instance
-    
+
     def decorate_instance(self, instance):
         """动态装饰一个实例的所有私有方法"""
         for name in dir(instance):
@@ -110,4 +110,3 @@ class DebugDecorator:
                 if callable(attr):
                     setattr(instance, name, self(attr))  # 用__call__装饰方法
         return instance
-
