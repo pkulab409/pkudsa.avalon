@@ -69,6 +69,7 @@ from .action import (
     add_player_to_battle,
     create_battle_instance,
     load_initial_users_from_config,
+    safe_delete,
 )
 
 # 从 promotion.py 导出晋级相关函数
