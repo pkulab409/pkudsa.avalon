@@ -1002,7 +1002,7 @@ def download_logs(battle_id):
         )
 
         # 3. 构造日志文件名
-        log_file_name = f"game_{battle_id}_archive.json"
+        log_file_name = f"{battle_id}/archive_game_{battle_id}.json"
 
         # 4. 构造完整的日志文件路径，用于检查文件是否存在
         log_file_full_path = os.path.join(data_directory_path, log_file_name)
@@ -1062,7 +1062,7 @@ def download_private(battle_id):
             return redirect(url_for("game.view_battle", battle_id=battle_id))
 
         # 3. 构造日志文件名
-        log_file_name = f"game_{battle_id}_player_{player_idx}_private.json"
+        log_file_name = f"{battle_id}/private_player_{player_idx}_game_{battle_id}.json"
 
         # 4. 构造完整的日志文件路径，用于检查文件是否存在
         log_file_full_path = os.path.join(data_directory_path, log_file_name)
