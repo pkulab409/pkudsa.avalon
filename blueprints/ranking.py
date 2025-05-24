@@ -165,7 +165,7 @@ def show_ranking():
                 )  # 新增日志
     else:
         current_app.logger.error(
-            f"full_leaderboard_raw is not a list: {type(full_leaderboard_raw)}"
+            f"full_leaderboard_raw is not a list: {type(leaderboard_items)}"
         )  # 新增日志
 
     current_app.logger.debug(

@@ -295,8 +295,10 @@ def get_active_ai_codes_by_ranking_ids(ranking_ids: list[int] = None) -> list[AI
                 for game_stats in game_stats_list:
                     user_id = game_stats.user_id
                     ai_code = get_user_active_ai_code(user_id)
-                    if ai_code and ai_code not in active_ai_codes:  # 避免重复
+                    if ai_code:
                         active_ai_codes.append(ai_code)
+                    else:
+                        safe_delete(game_stats)
 
         logger.info(f"成功获取 {len(active_ai_codes)} 个激活的AI代码")
         return active_ai_codes
