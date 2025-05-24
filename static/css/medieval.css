@@ -324,16 +324,19 @@ h3::after {
 }
 
 .card-decoration {
-    width: 42px !important;
-    height: 60px !important;
+    width: 46.2px !important;
+    height: 66px !important;
     border: 2px solid #8b4513;
     border-radius: 5px;
     position: relative;
     box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
-    margin: 0 10px;
+    margin: 0 12px;
     background-size: cover;
     background-position: center;
+    transform: scale(1.10);
+    transform-origin: center;
 }
+
 
 .card-decoration::before {
     content: '';
