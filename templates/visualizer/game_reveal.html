@@ -658,6 +658,54 @@
         const mapSize = parseInt('{{ map_size }}');
         const gameId = "{{ game_id }}";
 
+        // 添加当前视图状态跟踪
+        let currentView = 'main'; // 默认显示游戏进程视图
+
+        // 移动端视图切换
+        const viewButtons = document.querySelectorAll('[data-view]');
+        const views = document.querySelectorAll('.mobile-view');
+        
+        function switchView(viewName) {
+            currentView = viewName; // 更新当前视图状态
+            views.forEach(view => {
+                if (view.id === viewName + 'View') {
+                    view.style.display = 'block';
+                } else {
+                    view.style.display = 'none';
+                }
+            });
+            
+            viewButtons.forEach(btn => {
+                if (btn.dataset.view === viewName) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        viewButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                switchView(btn.dataset.view);
+            });
+        });
+
+        // 初始化移动端视图
+        if (window.innerWidth <= 768) {
+            switchView('main');
+        }
+
+        // 监听窗口大小变化
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                views.forEach(view => {
+                    view.style.display = '';
+                });
+            } else {
+                switchView(currentView); // 使用保存的当前视图状态
+            }
+        });
+
         // Determine max round from events or score
         const maxRoundFromEvents = gameEvents.length > 0
             ? (gameEvents[gameEvents.length - 1].round === 'assassination'
@@ -754,8 +802,8 @@
 
         // --- 修改自动滚动功能，确保在自动滚动时也更新地图 ---
         function startSmoothScroll() {
-            if (isSmoothScrolling || chatContainer.scrollHeight <= chatContainer.clientHeight) {
-                return;
+            if (isSmoothScrolling || chatContainer.scrollHeight <= chatContainer.clientHeight || currentView !== 'main') {
+                return; // 如果不在游戏进程视图，不启动自动滚动
             }
 
             isSmoothScrolling = true;
