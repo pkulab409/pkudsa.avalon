@@ -988,12 +988,10 @@ class AvalonReferee:
                     f"Returned non-string speech: {type(speech)} during global speech, but it should be str.",
                 )
 
-            logger.info(
-                f"Global Speech - Player {player_id}: {speech[:100]}{'...' if len(speech) > 100 else ''}"
-            )
+            logger.info(f"Global Speech - Player {player_id}: {speech}")
             self.battle_observer.make_snapshot(
                 "PublicSpeech",
-                (player_id, speech[:100] + ("..." if len(speech) > 100 else "")),
+                (player_id, speech),
             )
             speeches.append((player_id, speech))
 
@@ -1276,9 +1274,7 @@ class AvalonReferee:
                     f"Returned non-string speech: {type(speech)} during limited speech, but it should be str.",
                 )
 
-            logger.info(
-                f"Limited Speech - Player {speaker_id}: {speech[:100]}{'...' if len(speech) > 100 else ''}"
-            )
+            logger.info(f"Limited Speech - Player {speaker_id}: {speech}")
 
             speeches.append((speaker_id, speech))
 
@@ -1295,7 +1291,7 @@ class AvalonReferee:
                 "PrivateSpeech",
                 (
                     speaker_id,
-                    speech[:100] + ("..." if len(speech) > 100 else ""),
+                    speech,
                     " ".join(map(str, hearers)),
                 ),
             )
