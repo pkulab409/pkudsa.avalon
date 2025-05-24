@@ -71,6 +71,27 @@ def reset_ranking(ranking_id):
     return flag
 
 
+def reset_stats(ranking_id):
+    """
+    重置榜单中所有玩家的战绩
+    """
+    try:
+        game_stats_list = GameStats.query.filter_by(ranking_id=ranking_id).all()
+        for game_stats in game_stats_list:
+            game_stats.elo_score = DEFAULT_NEW_ELO
+            game_stats.games_played = 0
+            game_stats.wins = 0
+            game_stats.losses = 0
+            game_stats.draws = 0
+        db.session.commit()
+        logger.info(f"成功重置榜单 {ranking_id}中所有玩家的战绩.")
+        return True
+    except Exception as e:
+        db.session.rollback()
+        logger.info(f"未成功重置榜单 {ranking_id}中所有玩家的战绩.")
+        return False
+
+
 def promote_players_to_ranking(players_stats, target_ranking_id):
     """
     将指定玩家列表晋级到目标榜单
