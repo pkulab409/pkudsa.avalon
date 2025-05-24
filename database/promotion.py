@@ -70,6 +70,7 @@ def reset_ranking(ranking_id):
         logger.info(f"未成功重置榜单 {ranking_id}.")
     return flag
 
+
 def reset_stats(ranking_id):
     """
     重置榜单中所有玩家的战绩
@@ -89,6 +90,7 @@ def reset_stats(ranking_id):
         db.session.rollback()
         logger.info(f"未成功重置榜单 {ranking_id}中所有玩家的战绩.")
         return False
+
 
 def promote_players_to_ranking(players_stats, target_ranking_id):
     """
