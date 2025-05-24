@@ -411,34 +411,34 @@ def delete_ai_code(ai_code):
     if not ai_code:
         return False
     try:
-        # 检查是否有BattlePlayer记录引用此AI
-        battle_players = BattlePlayer.query.filter_by(
-            selected_ai_code_id=ai_code.id
-        ).all()
+        # # 检查是否有BattlePlayer记录引用此AI
+        # battle_players = BattlePlayer.query.filter_by(
+        #     selected_ai_code_id=ai_code.id
+        # ).all()
 
-        if battle_players:
-            # 只在同一用户的AI代码中查找替代品
-            default_ai_code = AICode.query.filter(
-                AICode.user_id == ai_code.user_id,  # 限制为同一用户
-                AICode.id != ai_code.id,
-            ).first()
+        # if battle_players:
+        #     # 只在同一用户的AI代码中查找替代品
+        #     default_ai_code = AICode.query.filter(
+        #         AICode.user_id == ai_code.user_id,  # 限制为同一用户
+        #         AICode.id != ai_code.id,
+        #     ).first()
 
-            if not default_ai_code:
-                logger.error(
-                    f"删除AI代码 {ai_code.id} 失败: 该用户没有其他可用AI代码作为替代，但此AI已被用于对战"
-                )
-                return False
+        #     if not default_ai_code:
+        #         logger.error(
+        #             f"删除AI代码 {ai_code.id} 失败: 该用户没有其他可用AI代码作为替代，但此AI已被用于对战"
+        #         )
+        #         return False
 
-            # 更新所有引用
-            for bp in battle_players:
-                bp.selected_ai_code_id = default_ai_code.id
+        #     # 更新所有引用
+        #     for bp in battle_players:
+        #         bp.selected_ai_code_id = default_ai_code.id
 
-            # 提交更改
-            if not safe_commit():
-                logger.error(
-                    f"删除AI代码 {ai_code.id} 失败: 无法更新关联的BattlePlayer记录"
-                )
-                return False
+        #     # 提交更改
+        #     if not safe_commit():
+        #         logger.error(
+        #             f"删除AI代码 {ai_code.id} 失败: 无法更新关联的BattlePlayer记录"
+        #         )
+        #         return False
 
         # 删除AI代码
         return safe_delete(ai_code)

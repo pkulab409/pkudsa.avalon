@@ -236,23 +236,23 @@ def delete_ai(ai_id):
         flash("您没有权限删除此AI代码或AI不存在", "danger")
         return redirect(url_for("ai.list_ai"))
 
-    # 先尝试删除文件
-    file_deleted = False
-    try:
-        # 使用 get_ai_code_path_full 获取完整路径
-        full_path = db_get_ai_code_path_full(ai_id)
-        if full_path and os.path.exists(full_path):
-            os.remove(full_path)
-            file_deleted = True
-        elif full_path:
-            current_app.logger.warning(f"AI代码文件未找到，但尝试删除记录: {full_path}")
-            file_deleted = True  # 允许继续删除记录
-        else:
-            current_app.logger.error(f"获取AI代码 {ai_id} 的路径失败，无法删除文件")
+    # # 先尝试删除文件
+    # file_deleted = False
+    # try:
+    #     # 使用 get_ai_code_path_full 获取完整路径
+    #     full_path = db_get_ai_code_path_full(ai_id)
+    #     if full_path and os.path.exists(full_path):
+    #         os.remove(full_path)
+    #         file_deleted = True
+    #     elif full_path:
+    #         current_app.logger.warning(f"AI代码文件未找到，但尝试删除记录: {full_path}")
+    #         file_deleted = True  # 允许继续删除记录
+    #     else:
+    #         current_app.logger.error(f"获取AI代码 {ai_id} 的路径失败，无法删除文件")
 
-    except Exception as e:
-        current_app.logger.error(f"删除AI代码文件失败: {str(e)}")
-        flash("删除AI代码文件时出错", "warning")
+    # except Exception as e:
+    #     current_app.logger.error(f"删除AI代码文件失败: {str(e)}")
+    #     flash("删除AI代码文件时出错", "warning")
 
     # 尝试删除数据库记录
     if db_delete_ai_code(ai_code):
