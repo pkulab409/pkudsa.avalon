@@ -92,7 +92,7 @@
         border-radius: 2px;
         overflow: hidden;
         opacity: 0;
-        animation: fadeIn 0.5s ease 1s forwards;
+        animation: fadeIn 0.5s ease 0.5s forwards;
     }
 
     .loading-progress {
@@ -772,7 +772,7 @@
                 setTimeout(() => {
                     introAnimation.style.display = 'none';
                 }, 500);
-            }, 3000); // 3秒后开始淡出
+            }, 1800); // 1.8秒后开始淡出
         });
 
         // --- Data from Flask ---
