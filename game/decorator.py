@@ -27,7 +27,7 @@ class DebugDecorator:
     def __init__(self, battle_id):
         # 获取当前脚本的绝对路径
         current_file = os.path.abspath(__file__)
-        filename = "decorator_out.log"  # 日志文件名
+        filename = f"_decorator_out_{battle_id}.log"  # 日志文件名
 
         # 增强路径安全性检测
         current_file = os.path.abspath(
@@ -94,9 +94,19 @@ class DebugDecorator:
         return wrapper
 
     def decorate_instance(self, instance):
-        """动态装饰一个实例的所有方法"""
+        """动态装饰一个实例的所有非私有方法"""
         for name in dir(instance):
             if not name.startswith("_"):  # 跳过私有方法
+                attr = getattr(instance, name)
+                if callable(attr):
+                    setattr(instance, name, self(attr))  # 用__call__装饰方法
+        return instance
+
+    # 会报错目前
+    def _decorate_instance(self, instance):
+        """动态装饰一个实例的所有私有方法"""
+        for name in dir(instance):
+            if name.startswith("_"):  # 跳过非私有方法
                 attr = getattr(instance, name)
                 if callable(attr):
                     setattr(instance, name, self(attr))  # 用__call__装饰方法

@@ -16,7 +16,7 @@ from typing import Dict, Any, Optional, List, Tuple
 # 导入裁判和观察者
 from .referee import AvalonReferee  # 确保导入正确
 from .observer import Observer  # 确保导入正确
-from services.battle_service import BattleService  # 假设 BattleService 在 services 包中
+from services.battle_service import BattleService
 
 # 导入装饰器
 from .decorator import DebugDecorator, settings
@@ -476,6 +476,13 @@ class BattleManager:
                 from .avalon_game_helper import get_current_helper
 
                 helper = get_current_helper()
+
+                # 装饰器
+                if settings["avalon_game_helper.GameHelper"] == 1:
+                    # 装饰实例
+                    dec = DebugDecorator(battle_id)
+                    helper = dec.decorate_instance(helper)
+
                 if hasattr(helper, "client_manager"):
                     # 获取当前线程ID，清理相关会话
                     current_thread_id = threading.current_thread().ident

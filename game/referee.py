@@ -473,7 +473,7 @@ class AvalonReferee:
         logger.info(f"Initializing logs for game {self.game_id}")
         # 初始化公共日志文件
         public_log_file = os.path.join(
-            self.data_dir, f"game_{self.game_id}_public.json"
+            self.data_dir, f"{self.game_id}/public_game_{self.game_id}.json"
         )
         with open(public_log_file, "w", encoding="utf-8") as f:
             json.dump([], f)
@@ -481,7 +481,8 @@ class AvalonReferee:
         # 为每个玩家初始化私有日志文件
         for player_id in range(1, PLAYER_COUNT + 1):
             private_log_file = os.path.join(
-                self.data_dir, f"game_{self.game_id}_player_{player_id}_private.json"
+                self.data_dir,
+                f"{self.game_id}/private_player_{player_id}_game_{self.game_id}.json",
             )
             with open(private_log_file, "w", encoding="utf-8") as f:
                 json.dump(INIT_PRIVA_LOG_DICT, f, ensure_ascii=False)
@@ -1624,7 +1625,7 @@ class AvalonReferee:
                     "rounds_played": self.current_round,
                     "roles": roles_dict,  # 使用标准格式的角色字典
                     "public_log_file": os.path.join(
-                        self.data_dir, f"game_{self.game_id}_public.json"
+                        self.data_dir, f"{self.game_id}/public_game_{self.game_id}.json"
                     ),
                     "winner": None,
                     "win_reason": f"aborted_due_to_battle_state_{battle_status}",
@@ -1682,7 +1683,8 @@ class AvalonReferee:
                             "rounds_played": self.current_round,
                             "roles": roles_dict,
                             "public_log_file": os.path.join(
-                                self.data_dir, f"game_{self.game_id}_public.json"
+                                self.data_dir,
+                                f"{self.game_id}/public_game_{self.game_id}.json",
                             ),
                             "winner": None,
                             "win_reason": "terminated_due_to_status_change",
@@ -1719,7 +1721,7 @@ class AvalonReferee:
                 "rounds_played": self.current_round,
                 "roles": roles_dict,  # 使用标准格式的角色字典
                 "public_log_file": os.path.join(
-                    self.data_dir, f"game_{self.game_id}_public.json"
+                    self.data_dir, f"{self.game_id}/public_game_{self.game_id}.json"
                 ),
             }
 
@@ -1815,7 +1817,7 @@ class AvalonReferee:
                 "rounds_played": self.current_round,
                 "roles": roles_dict,  # 使用标准格式的角色字典
                 "public_log_file": os.path.join(
-                    self.data_dir, f"game_{self.game_id}_public.json"
+                    self.data_dir, f"{self.game_id}/public_game_{self.game_id}.json"
                 ),
                 "winner": None,
                 "win_reason": "terminated_due_to_status_change",
@@ -1853,7 +1855,7 @@ class AvalonReferee:
                 "rounds_played": self.current_round,
                 "roles": roles_dict,  # 使用标准格式的角色字典
                 "public_log_file": os.path.join(
-                    self.data_dir, f"game_{self.game_id}_public.json"
+                    self.data_dir, f"{self.game_id}/public_game_{self.game_id}.json"
                 ),
                 "traceback": tb_str,
             }
@@ -1977,7 +1979,7 @@ class AvalonReferee:
 
         # 写入公共日志文件
         public_log_file = os.path.join(
-            self.data_dir, f"game_{self.game_id}_public.json"
+            self.data_dir, f"{self.game_id}/public_game_{self.game_id}.json"
         )
         try:
             with open(public_log_file, "w", encoding="utf-8") as f:

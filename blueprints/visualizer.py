@@ -66,7 +66,7 @@ def game_replay(game_id):
             # 原有的游戏日志文件路径构建逻辑
             log_file = os.path.join(
                 Config._yaml_config.get("DATA_DIR", "./data"),
-                f"game_{game_id}_archive.json",
+                f"{game_id}/archive_game_{game_id}.json",
             )
 
         print(f"尝试读取文件: {log_file}")
@@ -142,7 +142,7 @@ def game_replay_data(game_id):
     try:
         log_file = os.path.join(
             Config._yaml_config.get("DATA_DIR", "./data"),
-            f"game_{game_id}_public.json",  # 注意：这里用的是 public.json
+            f"{game_id}/public_game_{game_id}.json",  # 注意：这里用的是 public.json
         )
 
         if not os.path.exists(log_file):
@@ -163,7 +163,7 @@ def get_round_data(game_id, round_num):
     try:
         log_file = os.path.join(
             Config._yaml_config.get("DATA_DIR", "./data"),
-            f"game_{game_id}_archive.json",
+            f"{game_id}/archive_game_{game_id}.json",
         )
 
         if not os.path.exists(log_file):
@@ -196,7 +196,7 @@ def get_movement_data(game_id):
     try:
         log_file = os.path.join(
             Config._yaml_config.get("DATA_DIR", "./data"),
-            f"game_{game_id}_archive.json",
+            f"{game_id}/archive_game_{game_id}.json",
         )
 
         if not os.path.exists(log_file):
@@ -257,15 +257,15 @@ def process_upload():
                 # 简单的UUID格式检查 (不严格)
                 if len(potential_id) > 10:  # Basic check
                     game_id = potential_id
-                    filename = f"game_{game_id}_archive.json"
+                    filename = f"{game_id}/archive_game_{game_id}.json"
                     print(f"Using game_id from filename: {game_id}")
                 else:
                     game_id = str(uuid.uuid4())
-                    filename = f"game_{game_id}_archive.json"
+                    filename = f"{game_id}/archive_game_{game_id}.json"
                     print(f"Generated new game_id: {game_id}")
             else:
                 game_id = str(uuid.uuid4())
-                filename = f"game_{game_id}_archive.json"
+                filename = f"{game_id}/archive_game_{game_id}.json"
                 print(f"Generated new game_id: {game_id}")
 
             # 确保目录存在
