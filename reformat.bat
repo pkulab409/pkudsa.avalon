@@ -1,3 +1,3 @@
-# commit 之前 ./reformat.sh
+# commit 之前 ./reformat.bat
 black .
 djlint . --reformat --profile=jinja
