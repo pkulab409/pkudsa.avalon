@@ -47,7 +47,7 @@ class DebugDecorator:
         self.local_data = threading.local()
         self.lock = threading.RLock()
 
-    def _log(self, event_type, func_name, stack, args):
+    def _log(self, event_type, func_name, stack, args, result=None):
         """日志处理方法"""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
         thread_id = threading.get_ident()
@@ -59,6 +59,7 @@ class DebugDecorator:
             f"      嵌套层级: {len(stack)}\n"
             f"      调用关系: \033[33m{' → '.join(stack)}\033[0m\n"
             f"      接收参数: args={args}\n"
+            f"      返回值: \033[32m{result}\033[0m\n"
         )
         print(console_msg)
 
@@ -66,7 +67,8 @@ class DebugDecorator:
         file_msg = (
             f"[{timestamp}] [Thread-{thread_id}] [{event_type}] "
             f"函数名: {func_name} | 层级: {len(stack)} | "
-            f"调用链: {'→'.join(stack)} | 参数: args={args}\n"
+            f"调用链: {'→'.join(stack)} | 参数: args={args} | "
+            f"返回值: {result}\n"
         )
 
         with self.lock:
@@ -87,7 +89,7 @@ class DebugDecorator:
                 result = func(*args)
             finally:
                 self.local_data.stack.pop()
-                self._log("Done", func.__name__, current_stack, args)
+                self._log("Done", func.__name__, current_stack, args, result=result)
 
             return result
 
