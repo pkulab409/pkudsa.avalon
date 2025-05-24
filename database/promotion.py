@@ -5,9 +5,13 @@
 import logging
 from sqlalchemy import desc
 from .models import GameStats, User
+from .action import safe_delete
 from .base import db
+import math
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_NEW_ELO = 1200
 
 
 def get_top_players_from_ranking(source_ranking_id, percentage=0.5):
@@ -36,7 +40,7 @@ def get_top_players_from_ranking(source_ranking_id, percentage=0.5):
             logger.warning(f"榜单 {source_ranking_id} 没有有效玩家数据")
             return []
 
-        players_to_select = max(1, int(total_players * percentage))
+        players_to_select = max(1, math.ceil(total_players * percentage))
         top_players = all_stats[:players_to_select]
 
         logger.info(
@@ -49,6 +53,22 @@ def get_top_players_from_ranking(source_ranking_id, percentage=0.5):
             f"获取榜单 {source_ranking_id} 的顶尖玩家失败: {str(e)}", exc_info=True
         )
         return []
+
+
+def reset_ranking(ranking_id):
+    """
+    清空榜单
+    """
+    game_stats_list = GameStats.query.filter_by(ranking_id=ranking_id).all()
+    flag = True
+    for game_stats in game_stats_list:
+        if not safe_delete(game_stats):
+            flag = False
+    if flag:
+        logger.info(f"成功重置榜单 {ranking_id}.")
+    else:
+        logger.info(f"未成功重置榜单 {ranking_id}.")
+    return flag
 
 
 def promote_players_to_ranking(players_stats, target_ranking_id):
@@ -77,17 +97,17 @@ def promote_players_to_ranking(players_stats, target_ranking_id):
             if existing_stat:
                 # 如果已存在，更新为源榜单的ELO值
                 # 可以根据需要决定是否保留原有ELO或使用平均值等其他策略
-                existing_stat.elo_score = stat.elo_score
+                existing_stat.elo_score = DEFAULT_NEW_ELO
                 db.session.add(existing_stat)
                 logger.info(
-                    f"更新用户 {user_id} 在榜单 {target_ranking_id} 的ELO为 {stat.elo_score}"
+                    f"更新用户 {user_id} 在榜单 {target_ranking_id} 的ELO为{DEFAULT_NEW_ELO}."
                 )
             else:
                 # 如果不存在，创建新记录
                 new_stat = GameStats(
                     user_id=user_id,
                     ranking_id=target_ranking_id,
-                    elo_score=1200,
+                    elo_score=DEFAULT_NEW_ELO,
                     games_played=0,  # 在新榜单中初始为0场比赛
                     wins=0,
                     losses=0,
@@ -95,7 +115,7 @@ def promote_players_to_ranking(players_stats, target_ranking_id):
                 )
                 db.session.add(new_stat)
                 logger.info(
-                    f"将用户 {user_id} 晋级到榜单 {target_ranking_id}，初始ELO为 {stat.elo_score}"
+                    f"将用户 {user_id} 晋级到榜单 {target_ranking_id}，初始ELO为{DEFAULT_NEW_ELO}."
                 )
 
             success_count += 1
