@@ -451,14 +451,3 @@ def create_app(config_object=Config):
 
     app.logger.info("Flask应用初始化完成")
     return app
-
-
-
-
-
-
-a = 1
-
-
-
-
