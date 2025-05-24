@@ -1,12 +1,11 @@
 <!-- dashboard.html -->
 {% extends "base.html" %}
 {% block head %}
-    {{ super() }}
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 {% endblock %}
 {% block content %}
-    <style>
+<style>
   .dashboard-container {
     max-width: 1300px;
     margin: 2rem auto;
@@ -62,10 +61,13 @@
       grid-template-columns: 1fr;
     }
   }
+
   .btn-secondary {
-    background-color: #9daab5; /* 修改为你想要的灰色，比如 #888 */
+    background-color: #9daab5;
+    /* 修改为你想要的灰色，比如 #888 */
     border-color: #9daab5;
-    color: #070524; /* 根据背景亮度选择文字颜色 */
+    color: #070524;
+    /* 根据背景亮度选择文字颜色 */
   }
 
   .btn-secondary:hover {
@@ -79,335 +81,339 @@
     border-color: #4a4f54;
     box-shadow: 0 0 0 0.2rem rgba(130, 138, 145, 0.5);
   }
+
   .btn-danger {
-    background-color: #b60606; /* 修改为你想要的灰色，比如 #888 */
+    background-color: #b60606;
+    /* 修改为你想要的灰色，比如 #888 */
     border-color: #b60606;
-    color: #ffebeb; /* 根据背景亮度选择文字颜色 */
+    color: #ffebeb;
+    /* 根据背景亮度选择文字颜色 */
   }
 
-   .btn-danger:hover {
+  .btn-danger:hover {
     background-color: #89100d;
     border-color: #89100d;
-  } 
+  }
 
-   .btn-danger:active,
+  .btn-danger:active,
   .btn-danger:focus {
     background-color: #750202;
     border-color: #750202;
     box-shadow: 0 0 0 0.2rem #750202;
-  } 
-    </style>
-    <div class="dashboard-container">
-        <div class="admin-panel">
-            <h1 class="d-flex align-items-center gap-2 mb-4">
-                <i class="bi bi-gear-fill"></i>管理员控制面板
-            </h1>
-            <!-- 修改位置：用户管理标题下方，表格上方 -->
-            <div class="admin-section">
-                <h2 class="d-flex align-items-center gap-2 mb-4">
-                    <i class="bi bi-people-fill"></i>用户管理
-                </h2>
-                <!-- 添加搜索框 -->
-                <div class="input-group mb-3">
-                    <input type="text" id="searchInput" class="form-control" placeholder="搜索用户名">
-                    <button class="btn btn-primary" type="button" onclick="searchUser()">
-                        <i class="bi bi-search"></i> 搜索
-                    </button>
-                </div>
-                <table class="user-table">
-                    <thead>
-                        <tr>
-                            <th>用户名(根据字母排序)</th>
-                            <th>用户ID</th>
-                            <th>ELO分数</th>
-                            <th>管理员</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for user in users %}
-                            <tr>
-                                <td>{{ user.username }}</td>
-                                <td>{{ user.id }}</td>
-                                <td>{{ user.get_game_stats().elo_score if user.get_game_stats() else 'N/A' }}</td>
-                                <td>{{ '✅' if user.is_admin else '❌' }}</td>
-                                <td class="text-nowrap">
-                                    <button class="btn btn-danger btn-sm"
-                                            onclick="handleUserDeletion('{{ user.id }}', '{{ user.username }}')">
-                                        <i class="bi bi-trash"></i>删除
-                                    </button>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <!-- 在用户表格下方添加分页导航 -->
-                <div class="pagination-container">
-                    <nav aria-label="用户分页">
-                        <ul class="pagination">
-                            {% if users.has_prev %}
-                                <li class="page-item">
-                                    <a class="page-link"
-                                       href="{{ url_for('admin.admin_dashboard', page=users.prev_num) }}">上一页</a>
-                                </li>
-                            {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">上一页</span>
-                                </li>
-                            {% endif %}
-                            {% for page_num in users.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-                                {% if page_num %}
-                                    <li class="page-item {% if page_num == users.page %}active{% endif %}">
-                                        <a class="page-link"
-                                           href="{{ url_for('admin.admin_dashboard', page=page_num) }}">
-                                            {{ page_num }}
-                                        </a>
-                                    </li>
-                                {% else %}
-                                    <li class="page-item disabled">
-                                        <span class="page-link">...</span>
-                                    </li>
-                                {% endif %}
-                            {% endfor %}
-                            {% if users.has_next %}
-                                <li class="page-item">
-                                    <a class="page-link"
-                                       href="{{ url_for('admin.admin_dashboard', page=users.next_num) }}">下一页</a>
-                                </li>
-                            {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">下一页</span>
-                                </li>
-                            {% endif %}
-                        </ul>
-                    </nav>
-                    <div class="pagination-info">
-                        第 {{ current_page }} 页 / 共 {{ total_pages }} 页
-                        （总用户数：{{ users.total }}）
-                    </div>
-                </div>
-            </div>
-            <!-- 系统工具 -->
-            <div class="admin-section">
-                <h2 class="d-flex align-items-center gap-2 mb-4">
-                    <i class="bi bi-tools"></i>系统工具
-                </h2>
-                <div class="row">
-                    <!-- 左侧：权限相关操作 -->
-                    <div class="col-12 col-md-6 d-flex flex-column gap-3">
-                        <!-- 权限管理 -->
-                        <div class="col-12">
-                            <form class="row g-2 w-100" onsubmit="handleToggleAdmin(event)">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <div class="col-12">
-                                    <input class="form-control"
-                                           type="text"
-                                           name="user_id"
-                                           placeholder="输入用户ID"
-                                           required>
-                                </div>
-                                <div class="col-12">
-                                    <button class="btn btn-secondary w-100" type="submit">
-                                        <i class="bi bi-arrow-repeat"></i>切换权限
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                        <!-- Elo设置 -->
-                        <div class="col-12">
-                            <form class="row g-2 w-100" onsubmit="handleSetElo(event)">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <div class="col-12 col-lg-8">
-                                    <input class="form-control"
-                                           type="text"
-                                           name="user_id"
-                                           placeholder="用户ID"
-                                           required>
-                                </div>
-                                <div class="col-12 col-lg-4">
-                                    <input class="form-control"
-                                           type="number"
-                                           name="elo"
-                                           placeholder="新Elo值"
-                                           required>
-                                </div>
-                                <div class="col-12">
-                                    <button class="btn btn-secondary w-100" type="submit">
-                                        <i class="bi bi-graph-up"></i>设置Elo
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                        <!-- 终止对局 -->
-                        <div class="col-12">
-                            <form class="row g-2 w-100" onsubmit="handleTerminateGame(event)">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <div class="col-12">
-                                    <input class="form-control"
-                                           type="text"
-                                           name="game_id"
-                                           placeholder="输入对局ID"
-                                           required>
-                                </div>
-                                <div class="col-12">
-                                    <button class="btn btn-secondary w-100" type="submit">
-                                        <i class="bi bi-slash-circle"></i>终止对局
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                        <!-- 删除对局 -->
-                        <div class="col-12">
-                            <form class="row g-2 w-100" onsubmit="handleDeleteGame(event)">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <div class="col-12">
-                                    <input class="form-control"
-                                           type="text"
-                                           name="game_id"
-                                           placeholder="输入对局ID"
-                                           required>
-                                </div>
-                                <div class="col-12">
-                                    <button class="btn btn-secondary w-100" type="submit">
-                                        <i class="bi bi-trash"></i>删除记录
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                    <!-- 右侧：其他操作 -->
-                    <div class="col-12 col-md-6 d-flex flex-column gap-3">
-                        <div class="col-12">
-                            <!-- 测试赛控制 -->
-                            <div class="mb-4">
-                                <h5 class="text-primary mb-2">
-                                    <i class="bi bi-flask"></i> 测试赛
-                                </h5>
-                                <div class="d-flex gap-2 flex-wrap">
-                                    <form onsubmit="handleStartTestMatch(event)">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button class="btn btn-secondary" type="submit">
-                                            <i class="bi bi-play-circle"></i>启动
-                                        </button>
-                                    </form>
-                                    <form onsubmit="handleStopTestMatch(event)">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button class="btn btn-secondary" type="submit">
-                                            <i class="bi bi-stop-circle"></i>停止
-                                        </button>
-                                    </form>
-                                    <form onsubmit="handleTerminateTestMatch(event)">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button class="btn btn-secondary" type="submit">
-                                            <i class="bi bi-x-circle"></i>终止
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                            <!-- 初赛控制 -->
-                            <div class="mb-4">
-                                <h5 class="text-success mb-2">
-                                    <i class="bi bi-flag"></i> 初赛
-                                </h5>
-                                <div class="d-flex gap-2 flex-wrap">
-                                    <form onsubmit="handleStartPrimaryMatch(event)">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button class="btn btn-success" type="submit">
-                                            <i class="bi bi-play-circle"></i>启动
-                                        </button>
-                                    </form>
-                                    <form onsubmit="handleStopPrimaryMatch(event)">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button class="btn btn-success" type="submit">
-                                            <i class="bi bi-stop-circle"></i>停止
-                                        </button>
-                                    </form>
-                                    <form onsubmit="handleTerminatePrimaryMatch(event)">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button class="btn btn-success" type="submit">
-                                            <i class="bi bi-x-circle"></i>终止
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                            <!-- 半决赛控制 -->
-                            <div class="mb-4">
-                                <h5 class="text-warning mb-2">
-                                    <i class="bi bi-trophy"></i> 半决赛
-                                </h5>
-                                <div class="d-flex gap-2 flex-wrap">
-                                    <form onsubmit="handleStartSemiMatch(event)">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button class="btn btn-warning" type="submit">
-                                            <i class="bi bi-play-circle"></i>启动
-                                        </button>
-                                    </form>
-                                    <form onsubmit="handleStopSemiMatch(event)">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button class="btn btn-warning" type="submit">
-                                            <i class="bi bi-stop-circle"></i>停止
-                                        </button>
-                                    </form>
-                                    <form onsubmit="handleTerminateSemiMatch(event)">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button class="btn btn-warning" type="submit">
-                                            <i class="bi bi-x-circle"></i>终止
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                            <!-- 决赛控制 -->
-                            <div class="mb-4">
-                                <h5 class="text-danger mb-2">
-                                    <i class="bi bi-award"></i> 决赛
-                                </h5>
-                                <div class="d-flex gap-2 flex-wrap">
-                                    <form onsubmit="handleStartFinalMatch(event)">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button class="btn btn-danger" type="submit">
-                                            <i class="bi bi-play-circle"></i>启动
-                                        </button>
-                                    </form>
-                                    <form onsubmit="handleStopFinalMatch(event)">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button class="btn btn-danger" type="submit">
-                                            <i class="bi bi-stop-circle"></i>停止
-                                        </button>
-                                    </form>
-                                    <form onsubmit="handleTerminateFinalMatch(event)">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button class="btn btn-danger" type="submit">
-                                            <i class="bi bi-x-circle"></i>终止
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+  }
+</style>
+<div class="dashboard-container">
+  <div class="admin-panel">
+    <h1 class="d-flex align-items-center gap-2 mb-4">
+      <i class="bi bi-gear-fill"></i>管理员控制面板
+    </h1>
+    <!-- 修改位置：用户管理标题下方，表格上方 -->
+    <div class="admin-section">
+      <h2 class="d-flex align-items-center gap-2 mb-4">
+        <i class="bi bi-people-fill"></i>用户管理
+      </h2>
+      <!-- 添加搜索框 -->
+      <div class="input-group mb-3">
+        <input type="text" id="searchInput" class="form-control" placeholder="搜索用户名">
+        <button class="btn btn-primary" type="button" onclick="searchUser()">
+          <i class="bi bi-search"></i> 搜索
+        </button>
+      </div>
+      <table class="user-table">
+        <thead>
+          <tr>
+            <th>用户名(根据字母排序)</th>
+            <th>用户ID</th>
+            <th>ELO分数</th>
+            <th>管理员</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+          <tr>
+            <td>{{ user.username }}</td>
+            <td>{{ user.id }}</td>
+            <td>{{ user.get_game_stats().elo_score if user.get_game_stats() else 'N/A' }}</td>
+            <td>{{ '✅' if user.is_admin else '❌' }}</td>
+            <td class="text-nowrap">
+              <button class="btn btn-danger btn-sm"
+                onclick="handleUserDeletion('{{ user.id }}', '{{ user.username }}')">
+                <i class="bi bi-trash"></i>删除
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <!-- 在用户表格下方添加分页导航 -->
+      <div class="pagination-container">
+        <nav aria-label="用户分页">
+          <ul class="pagination">
+            {% if users.has_prev %}
+            <li class="page-item">
+              <a class="page-link" href="{{ url_for('admin.admin_dashboard', page=users.prev_num) }}">上一页</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+              <span class="page-link">上一页</span>
+            </li>
+            {% endif %}
+            {% for page_num in users.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page_num %}
+            <li class="page-item {% if page_num == users.page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('admin.admin_dashboard', page=page_num) }}">
+                {{ page_num }}
+              </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+              <span class="page-link">...</span>
+            </li>
+            {% endif %}
+            {% endfor %}
+            {% if users.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="{{ url_for('admin.admin_dashboard', page=users.next_num) }}">下一页</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+              <span class="page-link">下一页</span>
+            </li>
+            {% endif %}
+          </ul>
+        </nav>
+        <div class="pagination-info">
+          第 {{ current_page }} 页 / 共 {{ total_pages }} 页
+          （总用户数：{{ users.total }}）
         </div>
-        <script>
-  // 搜索功能（更新样式适配）
-  async function searchUser() {
-    const searchInput = document.getElementById('searchInput').value;
-    if (!searchInput) {
-      window.location.reload();
-      return;
-    }
-    try {
-      const csrfToken = document.querySelector('[name="csrf_token"]').value;
-      const res = await fetch(`/admin/search_user?username=${encodeURIComponent(searchInput)}`, {
-        method: 'GET',
-        headers: { 'X-CSRFToken': csrfToken }
-      });
-      const data = await res.json();
-      if (res.ok) {
-        const tableBody = document.querySelector('.user-table tbody');
-        tableBody.innerHTML = '';
-        data.users.forEach(user => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
+      </div>
+    </div>
+    <!-- 系统工具 -->
+    <div class="admin-section">
+      <h2 class="d-flex align-items-center gap-2 mb-4">
+        <i class="bi bi-tools"></i>系统工具
+      </h2>
+      <div class="row">
+        <!-- 左侧：权限相关操作 -->
+        <div class="col-12 col-md-6 d-flex flex-column gap-3">
+          <!-- 权限管理 -->
+          <div class="col-12">
+            <form class="row g-2 w-100" onsubmit="handleToggleAdmin(event)">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="col-12">
+                <input class="form-control" type="text" name="user_id" placeholder="输入用户ID" required>
+              </div>
+              <div class="col-12">
+                <button class="btn btn-secondary w-100" type="submit">
+                  <i class="bi bi-arrow-repeat"></i>切换权限
+                </button>
+              </div>
+            </form>
+          </div>
+          <!-- Elo设置 -->
+          <div class="col-12">
+            <form class="row g-2 w-100" onsubmit="handleSetElo(event)">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="col-12 col-lg-8">
+                <input class="form-control" type="text" name="user_id" placeholder="用户ID" required>
+              </div>
+              <div class="col-12 col-lg-4">
+                <input class="form-control" type="number" name="elo" placeholder="新Elo值" required>
+              </div>
+              <div class="col-12">
+                <button class="btn btn-secondary w-100" type="submit">
+                  <i class="bi bi-graph-up"></i>设置Elo
+                </button>
+              </div>
+            </form>
+          </div>
+          <!-- 终止对局 -->
+          <div class="col-12">
+            <form class="row g-2 w-100" onsubmit="handleTerminateGame(event)">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="col-12">
+                <input class="form-control" type="text" name="game_id" placeholder="输入对局ID" required>
+              </div>
+              <div class="col-12">
+                <button class="btn btn-secondary w-100" type="submit">
+                  <i class="bi bi-slash-circle"></i>终止对局
+                </button>
+              </div>
+            </form>
+          </div>
+          <!-- 删除对局 -->
+          <div class="col-12">
+            <form class="row g-2 w-100" onsubmit="handleDeleteGame(event)">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="col-12">
+                <input class="form-control" type="text" name="game_id" placeholder="输入对局ID" required>
+              </div>
+              <div class="col-12">
+                <button class="btn btn-secondary w-100" type="submit">
+                  <i class="bi bi-trash"></i>删除记录
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <!-- 右侧：其他操作 -->
+        <div class="col-12 col-md-6 d-flex flex-column gap-3">
+          <div class="col-12">
+            <!-- 测试赛控制 -->
+            <div class="mb-4">
+              <h5 class="text-primary mb-2">
+                <i class="bi bi-flask"></i> 测试赛
+              </h5>
+              <div class="d-flex gap-2 flex-wrap">
+                <form onsubmit="handleResetTestMatch(event)">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-secondary" type="submit">
+                    <i class="bi bi-play-circle"></i>重置战绩
+                  </button>
+                </form>
+                <form onsubmit="handleStartTestMatch(event)">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-secondary" type="submit">
+                    <i class="bi bi-play-circle"></i>启动
+                  </button>
+                </form>
+                <form onsubmit="handleStopTestMatch(event)">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-secondary" type="submit">
+                    <i class="bi bi-stop-circle"></i>停止
+                  </button>
+                </form>
+                <form onsubmit="handleTerminateTestMatch(event)">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-secondary" type="submit">
+                    <i class="bi bi-x-circle"></i>终止
+                  </button>
+                </form>
+              </div>
+            </div>
+            <!-- 初赛控制 -->
+            <div class="mb-4">
+              <h5 class="text-success mb-2">
+                <i class="bi bi-flag"></i> 初赛
+              </h5>
+              <div class="d-flex gap-2 flex-wrap">
+                <form onsubmit="handleResetPrimaryMatch(event)">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-success" type="submit">
+                    <i class="bi bi-play-circle"></i>重置战绩
+                  </button>
+                </form>
+                <form onsubmit="handleStartPrimaryMatch(event)">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-success" type="submit">
+                    <i class="bi bi-play-circle"></i>启动
+                  </button>
+                </form>
+                <form onsubmit="handleStopPrimaryMatch(event)">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-success" type="submit">
+                    <i class="bi bi-stop-circle"></i>停止
+                  </button>
+                </form>
+                <form onsubmit="handleTerminatePrimaryMatch(event)">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-success" type="submit">
+                    <i class="bi bi-x-circle"></i>终止
+                  </button>
+                </form>
+              </div>
+            </div>
+            <!-- 半决赛控制 -->
+            <div class="mb-4">
+              <h5 class="text-warning mb-2">
+                <i class="bi bi-trophy"></i> 半决赛
+              </h5>
+              <div class="d-flex gap-2 flex-wrap">
+                <form onsubmit="handleResetSemiMatch(event)">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-warning" type="submit">
+                    <i class="bi bi-play-circle"></i>重置榜单
+                  </button>
+                </form>
+                <form onsubmit="handleStartSemiMatch(event)">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-warning" type="submit">
+                    <i class="bi bi-play-circle"></i>启动
+                  </button>
+                </form>
+                <form onsubmit="handleStopSemiMatch(event)">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-warning" type="submit">
+                    <i class="bi bi-stop-circle"></i>停止
+                  </button>
+                </form>
+                <form onsubmit="handleTerminateSemiMatch(event)">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-warning" type="submit">
+                    <i class="bi bi-x-circle"></i>终止
+                  </button>
+                </form>
+              </div>
+            </div>
+            <!-- 决赛控制 -->
+            <div class="mb-4">
+              <h5 class="text-danger mb-2">
+                <i class="bi bi-award"></i> 决赛
+              </h5>
+              <div class="d-flex gap-2 flex-wrap">
+                <form onsubmit="handleResetFinalMatch(event)">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-danger" type="submit">
+                    <i class="bi bi-play-circle"></i>重置榜单
+                  </button>
+                </form>
+                <form onsubmit="handleStartFinalMatch(event)">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-danger" type="submit">
+                    <i class="bi bi-play-circle"></i>启动
+                  </button>
+                </form>
+                <form onsubmit="handleStopFinalMatch(event)">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-danger" type="submit">
+                    <i class="bi bi-stop-circle"></i>停止
+                  </button>
+                </form>
+                <form onsubmit="handleTerminateFinalMatch(event)">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-danger" type="submit">
+                    <i class="bi bi-x-circle"></i>终止
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    // 搜索功能（更新样式适配）
+    async function searchUser() {
+      const searchInput = document.getElementById('searchInput').value;
+      if (!searchInput) {
+        window.location.reload();
+        return;
+      }
+      try {
+        const csrfToken = document.querySelector('[name="csrf_token"]').value;
+        const res = await fetch(`/admin/search_user?username=${encodeURIComponent(searchInput)}`, {
+          method: 'GET',
+          headers: { 'X-CSRFToken': csrfToken }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          const tableBody = document.querySelector('.user-table tbody');
+          tableBody.innerHTML = '';
+          data.users.forEach(user => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
             <td>${user.username}</td>
             <td>${user.id}</td>
             <td>${user.elo !== 0 ? user.elo : 'N/A'}</td>
@@ -418,20 +424,20 @@
               </button>
             </td>
           `;
-          tableBody.appendChild(row);
-        });
-      } else {
-        // 使用Bootstrap Toast替代alert
-        showBootstrapAlert(`错误: ${data.message}`, 'danger');
+            tableBody.appendChild(row);
+          });
+        } else {
+          // 使用Bootstrap Toast替代alert
+          showBootstrapAlert(`错误: ${data.message}`, 'danger');
+        }
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
       }
-    } catch (error) {
-      showBootstrapAlert(`错误: ${error.message}`, 'danger');
     }
-  }
 
-  // 统一使用Bootstrap风格提示
-  function showBootstrapAlert(message, type = 'info') {
-    const alertHtml = `
+    // 统一使用Bootstrap风格提示
+    function showBootstrapAlert(message, type = 'info') {
+      const alertHtml = `
       <div class="toast show fade" role="alert" aria-live="assertive" aria-atomic="true">
         <div class="toast-header bg-${type} text-white">
           <strong class="me-auto">系统通知</strong>
@@ -440,283 +446,339 @@
         <div class="toast-body">${message}</div>
       </div>
     `;
-    document.querySelector('.toast-container').innerHTML = alertHtml;
-  }
-
-  async function handleResponse(res) {
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || '操作失败');
-    return data;
-  }
-
-  async function handleUserDeletion(userId, username) {
-    if (!confirm(`确认删除用户 ${username}？`)) return;
-    try {
-      const csrfToken = document.querySelector('[name="csrf_token"]').value;
-      const res = await fetch(`/admin/delete_user/${userId}`, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': csrfToken }
-      });
-      await handleResponse(res);
-      showBootstrapAlert('删除成功', 'success');
-      window.location.reload();
-    } catch (error) {
-      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      document.querySelector('.toast-container').innerHTML = alertHtml;
     }
-  }
 
-  async function handleToggleAdmin(e) {
-    e.preventDefault();
-    const form = e.target;
-    try {
-      const res = await fetch(`/admin/toggle_admin/${form.user_id.value}`, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': form.csrf_token.value }
-      });
-      const data = await handleResponse(res);
-      showBootstrapAlert(`${data.message}，当前状态：${data.is_admin ? '管理员' : '普通用户'}`, 'success');
-      form.reset();
-      window.location.reload();
-    } catch (error) {
-      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    async function handleResponse(res) {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || '操作失败');
+      return data;
     }
-  }
 
-  async function handleSetElo(e) {
-    e.preventDefault();
-    const form = e.target;
-    try {
-      const res = await fetch(`/admin/set_elo/${form.user_id.value}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': form.csrf_token.value
-        },
-        body: JSON.stringify({ elo: parseInt(form.elo.value) })
-      });
-      await handleResponse(res);
-      showBootstrapAlert('Elo更新成功', 'success');
-      form.reset();
-      window.location.reload();
-    } catch (error) {
-      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    async function handleUserDeletion(userId, username) {
+      if (!confirm(`确认删除用户 ${username}？`)) return;
+      try {
+        const csrfToken = document.querySelector('[name="csrf_token"]').value;
+        const res = await fetch(`/admin/delete_user/${userId}`, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': csrfToken }
+        });
+        await handleResponse(res);
+        showBootstrapAlert('删除成功', 'success');
+        window.location.reload();
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
     }
-  }
 
-  async function handleTerminateGame(e) {
-    e.preventDefault();
-    const form = e.target;
-    try {
-      const res = await fetch(`/admin/terminate_game/${form.game_id.value}`, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': form.csrf_token.value }
-      });
-      await handleResponse(res);
-      showBootstrapAlert('对局已终止', 'success');
-      form.reset();
-    } catch (error) {
-      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    async function handleToggleAdmin(e) {
+      e.preventDefault();
+      const form = e.target;
+      try {
+        const res = await fetch(`/admin/toggle_admin/${form.user_id.value}`, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': form.csrf_token.value }
+        });
+        const data = await handleResponse(res);
+        showBootstrapAlert(`${data.message}，当前状态：${data.is_admin ? '管理员' : '普通用户'}`, 'success');
+        form.reset();
+        window.location.reload();
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
     }
-  }
 
-  async function handleDeleteGame(e) {
-    e.preventDefault();
-    const form = e.target;
-    try {
-      const res = await fetch(`/admin/delete_game/${form.game_id.value}`, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': form.csrf_token.value }
-      });
-      await handleResponse(res);
-      showBootstrapAlert('对局已删除', 'success');
-      form.reset();
-    } catch (error) {
-      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    async function handleSetElo(e) {
+      e.preventDefault();
+      const form = e.target;
+      try {
+        const res = await fetch(`/admin/set_elo/${form.user_id.value}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': form.csrf_token.value
+          },
+          body: JSON.stringify({ elo: parseInt(form.elo.value) })
+        });
+        await handleResponse(res);
+        showBootstrapAlert('Elo更新成功', 'success');
+        form.reset();
+        window.location.reload();
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
     }
-  }
 
-  // 测试赛控制
-  async function handleStartTestMatch(e) {
-    e.preventDefault();
-    const form = e.target;
-    try {
-      const res = await fetch('/admin/start_auto_test_match', {
-        method: 'POST',
-        headers: { 'X-CSRFToken': form.csrf_token.value }
-      });
-      const data = await handleResponse(res);
-      showBootstrapAlert(data.message || '测试赛已启动', 'success');
-    } catch (error) {
-      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    async function handleTerminateGame(e) {
+      e.preventDefault();
+      const form = e.target;
+      try {
+        const res = await fetch(`/admin/terminate_game/${form.game_id.value}`, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': form.csrf_token.value }
+        });
+        await handleResponse(res);
+        showBootstrapAlert('对局已终止', 'success');
+        form.reset();
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
     }
-  }
 
-  async function handleStopTestMatch(e) {
-    e.preventDefault();
-    const form = e.target;
-    try {
-      const res = await fetch('/admin/stop_auto_test_match', {
-        method: 'POST',
-        headers: { 'X-CSRFToken': form.csrf_token.value }
-      });
-      const data = await handleResponse(res);
-      showBootstrapAlert(data.message || '测试赛已停止', 'success');
-    } catch (error) {
-      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    async function handleDeleteGame(e) {
+      e.preventDefault();
+      const form = e.target;
+      try {
+        const res = await fetch(`/admin/delete_game/${form.game_id.value}`, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': form.csrf_token.value }
+        });
+        await handleResponse(res);
+        showBootstrapAlert('对局已删除', 'success');
+        form.reset();
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
     }
-  }
 
-  async function handleTerminateTestMatch(e) {
-    e.preventDefault();
-    const form = e.target;
-    try {
-      const res = await fetch('/admin/terminate_auto_test_match', {
-        method: 'POST',
-        headers: { 'X-CSRFToken': form.csrf_token.value }
-      });
-      const data = await handleResponse(res);
-      showBootstrapAlert(data.message || '测试赛已终止', 'success');
-    } catch (error) {
-      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    // 测试赛控制
+    async function handleResetTestMatch(e) {
+      e.preventDefault();
+      const form = e.target;
+      try {
+        const res = await fetch('/admin/reset_auto_test_match', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': form.csrf_token.value }
+        });
+        const data = await handleResponse(res);
+        showBootstrapAlert(data.message || '测试赛战绩已重置', 'success');
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
     }
-  }
+    async function handleStartTestMatch(e) {
+      e.preventDefault();
+      const form = e.target;
+      try {
+        const res = await fetch('/admin/start_auto_test_match', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': form.csrf_token.value }
+        });
+        const data = await handleResponse(res);
+        showBootstrapAlert(data.message || '测试赛已启动', 'success');
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
+    }
 
-  // 初赛控制
-  async function handleStartPrimaryMatch(e) {
-    e.preventDefault();
-    const form = e.target;
-    try {
-      const res = await fetch('/admin/start_auto_primary_match', {
-        method: 'POST',
-        headers: { 'X-CSRFToken': form.csrf_token.value }
-      });
-      const data = await handleResponse(res);
-      showBootstrapAlert(data.message || '初赛已启动', 'success');
-    } catch (error) {
-      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    async function handleStopTestMatch(e) {
+      e.preventDefault();
+      const form = e.target;
+      try {
+        const res = await fetch('/admin/stop_auto_test_match', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': form.csrf_token.value }
+        });
+        const data = await handleResponse(res);
+        showBootstrapAlert(data.message || '测试赛已停止', 'success');
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
     }
-  }
 
-  async function handleStopPrimaryMatch(e) {
-    e.preventDefault();
-    const form = e.target;
-    try {
-      const res = await fetch('/admin/stop_auto_primary_match', {
-        method: 'POST',
-        headers: { 'X-CSRFToken': form.csrf_token.value }
-      });
-      const data = await handleResponse(res);
-      showBootstrapAlert(data.message || '初赛已停止', 'success');
-    } catch (error) {
-      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    async function handleTerminateTestMatch(e) {
+      e.preventDefault();
+      const form = e.target;
+      try {
+        const res = await fetch('/admin/terminate_auto_test_match', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': form.csrf_token.value }
+        });
+        const data = await handleResponse(res);
+        showBootstrapAlert(data.message || '测试赛已终止', 'success');
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
     }
-  }
 
-  async function handleTerminatePrimaryMatch(e) {
-    e.preventDefault();
-    const form = e.target;
-    try {
-      const res = await fetch('/admin/terminate_auto_primary_match', {
-        method: 'POST',
-        headers: { 'X-CSRFToken': form.csrf_token.value }
-      });
-      const data = await handleResponse(res);
-      showBootstrapAlert(data.message || '初赛已终止', 'success');
-    } catch (error) {
-      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    // 初赛控制
+    async function handleResetPrimaryMatch(e) {
+      e.preventDefault();
+      const form = e.target;
+      try {
+        const res = await fetch('/admin/reset_auto_primary_match', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': form.csrf_token.value }
+        });
+        const data = await handleResponse(res);
+        showBootstrapAlert(data.message || '初赛战绩已重置', 'success');
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
     }
-  }
+    async function handleStartPrimaryMatch(e) {
+      e.preventDefault();
+      const form = e.target;
+      try {
+        const res = await fetch('/admin/start_auto_primary_match', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': form.csrf_token.value }
+        });
+        const data = await handleResponse(res);
+        showBootstrapAlert(data.message || '初赛已启动', 'success');
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
+    }
 
-  // 半决赛控制
-  async function handleStartSemiMatch(e) {
-    e.preventDefault();
-    const form = e.target;
-    try {
-      const res = await fetch('/admin/start_auto_semi_match', {
-        method: 'POST',
-        headers: { 'X-CSRFToken': form.csrf_token.value }
-      });
-      const data = await handleResponse(res);
-      showBootstrapAlert(data.message || '半决赛已启动', 'success');
-    } catch (error) {
-      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    async function handleStopPrimaryMatch(e) {
+      e.preventDefault();
+      const form = e.target;
+      try {
+        const res = await fetch('/admin/stop_auto_primary_match', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': form.csrf_token.value }
+        });
+        const data = await handleResponse(res);
+        showBootstrapAlert(data.message || '初赛已停止', 'success');
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
     }
-  }
 
-  async function handleStopSemiMatch(e) {
-    e.preventDefault();
-    const form = e.target;
-    try {
-      const res = await fetch('/admin/stop_auto_semi_match', {
-        method: 'POST',
-        headers: { 'X-CSRFToken': form.csrf_token.value }
-      });
-      const data = await handleResponse(res);
-      showBootstrapAlert(data.message || '半决赛已停止', 'success');
-    } catch (error) {
-      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    async function handleTerminatePrimaryMatch(e) {
+      e.preventDefault();
+      const form = e.target;
+      try {
+        const res = await fetch('/admin/terminate_auto_primary_match', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': form.csrf_token.value }
+        });
+        const data = await handleResponse(res);
+        showBootstrapAlert(data.message || '初赛已终止', 'success');
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
     }
-  }
 
-  async function handleTerminateSemiMatch(e) {
-    e.preventDefault();
-    const form = e.target;
-    try {
-      const res = await fetch('/admin/terminate_auto_semi_match', {
-        method: 'POST',
-        headers: { 'X-CSRFToken': form.csrf_token.value }
-      });
-      const data = await handleResponse(res);
-      showBootstrapAlert(data.message || '半决赛已终止', 'success');
-    } catch (error) {
-      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    // 半决赛控制
+    async function handleResetSemiMatch(e) {
+      e.preventDefault();
+      const form = e.target;
+      try {
+        const res = await fetch('/admin/reset_auto_semi_match', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': form.csrf_token.value }
+        });
+        const data = await handleResponse(res);
+        showBootstrapAlert(data.message || '半决赛榜单已重置', 'success');
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
     }
-  }
+    async function handleStartSemiMatch(e) {
+      e.preventDefault();
+      const form = e.target;
+      try {
+        const res = await fetch('/admin/start_auto_semi_match', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': form.csrf_token.value }
+        });
+        const data = await handleResponse(res);
+        showBootstrapAlert(data.message || '半决赛已启动', 'success');
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
+    }
 
-  // 决赛控制  
-  async function handleStartFinalMatch(e) {
-    e.preventDefault();
-    const form = e.target;
-    try {
-      const res = await fetch('/admin/start_auto_final_match', {
-        method: 'POST',
-        headers: { 'X-CSRFToken': form.csrf_token.value }
-      });
-      const data = await handleResponse(res);
-      showBootstrapAlert(data.message || '决赛已启动', 'success');
-    } catch (error) {
-      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    async function handleStopSemiMatch(e) {
+      e.preventDefault();
+      const form = e.target;
+      try {
+        const res = await fetch('/admin/stop_auto_semi_match', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': form.csrf_token.value }
+        });
+        const data = await handleResponse(res);
+        showBootstrapAlert(data.message || '半决赛已停止', 'success');
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
     }
-  }
 
-  async function handleStopFinalMatch(e) {
-    e.preventDefault();
-    const form = e.target;
-    try {
-      const res = await fetch('/admin/stop_auto_final_match', {
-        method: 'POST',
-        headers: { 'X-CSRFToken': form.csrf_token.value }
-      });
-      const data = await handleResponse(res);
-      showBootstrapAlert(data.message || '决赛已停止', 'success');
-    } catch (error) {
-      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    async function handleTerminateSemiMatch(e) {
+      e.preventDefault();
+      const form = e.target;
+      try {
+        const res = await fetch('/admin/terminate_auto_semi_match', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': form.csrf_token.value }
+        });
+        const data = await handleResponse(res);
+        showBootstrapAlert(data.message || '半决赛已终止', 'success');
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
     }
-  }
 
-  async function handleTerminateFinalMatch(e) {
-    e.preventDefault();
-    const form = e.target;
-    try {
-      const res = await fetch('/admin/terminate_auto_final_match', {
-        method: 'POST',
-        headers: { 'X-CSRFToken': form.csrf_token.value }
-      });
-      const data = await handleResponse(res);
-      showBootstrapAlert(data.message || '决赛已终止', 'success');
-    } catch (error) {
-      showBootstrapAlert(`错误: ${error.message}`, 'danger');
+    // 决赛控制  
+    async function handleResetFinalMatch(e) {
+      e.preventDefault();
+      const form = e.target;
+      try {
+        const res = await fetch('/admin/reset_auto_final_match', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': form.csrf_token.value }
+        });
+        const data = await handleResponse(res);
+        showBootstrapAlert(data.message || '决赛榜单已重置', 'success');
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
     }
-  }
-        </script>
-    {% endblock %}
+    async function handleStartFinalMatch(e) {
+      e.preventDefault();
+      const form = e.target;
+      try {
+        const res = await fetch('/admin/start_auto_final_match', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': form.csrf_token.value }
+        });
+        const data = await handleResponse(res);
+        showBootstrapAlert(data.message || '决赛已启动', 'success');
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
+    }
+
+    async function handleStopFinalMatch(e) {
+      e.preventDefault();
+      const form = e.target;
+      try {
+        const res = await fetch('/admin/stop_auto_final_match', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': form.csrf_token.value }
+        });
+        const data = await handleResponse(res);
+        showBootstrapAlert(data.message || '决赛已停止', 'success');
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
+    }
+
+    async function handleTerminateFinalMatch(e) {
+      e.preventDefault();
+      const form = e.target;
+      try {
+        const res = await fetch('/admin/terminate_auto_final_match', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': form.csrf_token.value }
+        });
+        const data = await handleResponse(res);
+        showBootstrapAlert(data.message || '决赛已终止', 'success');
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
+    }
+  </script>
+  {% endblock %}
