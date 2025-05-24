@@ -24,14 +24,15 @@ def health_check():
 
 
 # 查看最后一次 commit 信息
-@app.route('/commit-info')
+@app.route("/commit-info")
 def commit_info():
     try:
         import subprocess
 
         result = subprocess.run(
-            ['git', 'log', '-1', '--pretty=format:%h - %an, %ad : %s'],
-            capture_output=True, text=True
+            ["git", "log", "-1", "--pretty=format:%h - %an, %ad : %s"],
+            capture_output=True,
+            text=True,
         )
         return jsonify(commit=result.stdout.strip())
     except Exception:
@@ -39,4 +40,4 @@ def commit_info():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=False, host="0.0.0.0", port=5000)
