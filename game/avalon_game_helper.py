@@ -10,6 +10,7 @@ import threading
 import signal
 from typing import Dict, Any, List, Tuple, Optional
 from dotenv import load_dotenv
+from .decorator import DebugDecorator, settings
 from .client_manager import ClientManager, get_client_manager
 from functools import wraps
 import asyncio
@@ -56,6 +57,7 @@ class GameHelper:
         self.tokens = [{"input": 0, "output": 0} for i in range(7)]
         self.client_manager = get_client_manager()
         self.observer = None
+        self.dec = None
 
     def set_current_context(self, player_id: int, game_id: str) -> None:
         """
@@ -67,6 +69,11 @@ class GameHelper:
         """
         self.current_player_id = player_id
         self.game_session_id = game_id
+
+        # # 装饰器
+        # if settings["avalon_game_helper.GameHelper"] == 1:
+        #     # 实例化装饰器
+        #     self.dec = DebugDecorator(game_id)
 
     def reset_llm_limit(self, round_: int) -> None:
         """
@@ -331,7 +338,7 @@ class GameHelper:
         # 构建私有数据文件路径
         private_file = os.path.join(
             self.data_dir,
-            f"game_{self.game_session_id}_player_{self.current_player_id}_private.json",
+            f"{self.game_session_id}/private_player_{self.current_player_id}_game_{self.game_session_id}.json",
         )
 
         # 确保目录存在
@@ -355,7 +362,7 @@ class GameHelper:
         # 构建私有数据文件路径
         private_file = os.path.join(
             self.data_dir,
-            f"game_{self.game_session_id}_player_{self.current_player_id}_private.json",
+            f"{self.game_session_id}/private_player_{self.current_player_id}_game_{self.game_session_id}.json",
         )
 
         # 确保目录存在
@@ -415,7 +422,7 @@ class GameHelper:
 
         try:
             public_file = os.path.join(
-                self.data_dir, f"game_{self.game_session_id}_public.json"
+                self.data_dir, f"{self.game_session_id}/public_game_{self.game_session_id}.json"
             )
 
             if os.path.exists(public_file):
