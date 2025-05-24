@@ -483,7 +483,6 @@ class BattleManager:
                     dec = DebugDecorator(battle_id)
                     helper = dec.decorate_instance(helper)
 
-                
                 if hasattr(helper, "client_manager"):
                     # 获取当前线程ID，清理相关会话
                     current_thread_id = threading.current_thread().ident

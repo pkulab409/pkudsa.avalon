@@ -310,8 +310,12 @@ def cleanup_stale_battles(app):
                     # 先处理日志文件删除（避免删除对局后无法访问ID）
                     data_dir = app.config.get("DATA_DIR", "./data")
                     log_files = [
-                        os.path.join(data_dir, f"game_{battle.id}_public.json"),
-                        os.path.join(data_dir, f"game_{battle.id}_archive.json"),
+                        os.path.join(
+                            data_dir, f"{battle.id}/public_game_{battle.id}.json"
+                        ),
+                        os.path.join(
+                            data_dir, f"{battle.id}/archive_game_{battle.id}.json"
+                        ),
                     ]
 
                     # 处理所有玩家的私有日志
@@ -319,7 +323,7 @@ def cleanup_stale_battles(app):
                         log_files.append(
                             os.path.join(
                                 data_dir,
-                                f"game_{battle.id}_player_{player_id}_private.json",
+                                f"{battle.id}/private_player_{player_id}_game_{battle.id}.json",
                             )
                         )
 
