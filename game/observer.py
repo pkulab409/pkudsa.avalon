@@ -36,7 +36,7 @@ class Observer:
         # 初始化并创建archive.json文件
         self.archive_file_path = os.path.join(
             Config._yaml_config.get("DATA_DIR", "./data"),
-            f"game_{self.battle_id}_archive.json",
+            f"{self.battle_id}/archive_game_{self.battle_id}.json",
         )
         self._init_archive_file()
 

@@ -114,6 +114,12 @@ class ClientManager:
                 f"Initialization complete with {len(self._clients_map)} clients in pool"
             )
 
+            # 启动监控线程，定期检查未释放会话
+            self._monitor_thread = threading.Thread(
+                target=self._monitor_unreleased_sessions, daemon=True
+            )
+            self._monitor_thread.start()
+
     def _init_clients(self):
         """初始化client实例，按后缀匹配环境变量创建多个client实例"""
         logger.info("Starting client instances initialization")
@@ -347,14 +353,19 @@ class ClientManager:
                     "start_time": session_data["start_time"],
                     "end_time": end_time,
                     "usage_time": usage_time,
+                    "completed": True,  # 标记为正常完成
                 }
                 self._usage_time_log.append(log_entry)
 
-                # 定期写入文件
-                self._log_write_counter += 1
-                if self._log_write_counter >= self._log_write_interval:
+                # 立即写入日志文件，确保不会丢失
+                try:
                     self._write_logs_to_file()
-                    self._log_write_counter = 0
+                    logger.debug(
+                        f"Successfully logged usage for client {client_id}, session {session_id}"
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to write usage log: {e}")
+                    # 即使写入失败，也继续执行释放逻辑
 
                 logger.info(
                     f"Client {client_id} session {session_id} usage time: {usage_time:.4f} seconds"
@@ -364,15 +375,11 @@ class ClientManager:
                     f"No session data found for client {client_id}, session {session_id}"
                 )
 
-            # 记录释放前的状态
-            previous_active_count = client_item.active_count
-
             # 减少活跃使用计数
             if client_item.active_count > 0:
                 client_item.active_count -= 1
                 logger.info(
-                    f"Released client {client_id}. "
-                    f"Active count reduced: {previous_active_count} -> {client_item.active_count}"
+                    f"Released client {client_id}. Active count: {client_item.active_count}"
                 )
             else:
                 logger.warning(f"Client {client_id} already has zero active count")
@@ -434,6 +441,47 @@ class ClientManager:
             if self._usage_time_log:
                 self._write_logs_to_file()
                 logger.info(f"Wrote {len(self._usage_time_log)} remaining logs on exit")
+
+    def _monitor_unreleased_sessions(self):
+        """监控未释放的会话，定期清理"""
+        current_time = time.time()
+        timeout_threshold = 300  # 5分钟超时
+
+        with self._lock:
+            expired_sessions = []
+            for session_id, session_data in self._usage_sessions.items():
+                if current_time - session_data["start_time"] > timeout_threshold:
+                    expired_sessions.append(session_id)
+
+            # 清理过期会话
+            for session_id in expired_sessions:
+                logger.warning(f"Force releasing expired session: {session_id}")
+                session_data = self._usage_sessions.pop(session_id)
+
+                # 记录强制释放的使用时间
+                usage_time = current_time - session_data["start_time"]
+                log_entry = {
+                    "client_id": session_data["client_id"],
+                    "session_id": session_id,
+                    "model": session_data["model"],
+                    "start_time": session_data["start_time"],
+                    "end_time": current_time,
+                    "usage_time": usage_time,
+                    "completed": False,  # 标记为强制结束
+                    "reason": "timeout",
+                }
+                self._usage_time_log.append(log_entry)
+
+                # 减少客户端活跃计数
+                client_id = session_data["client_id"]
+                if client_id in self._clients_map:
+                    client_item = self._clients_map[client_id]
+                    if client_item.active_count > 0:
+                        client_item.active_count -= 1
+
+            # 如果有清理的会话，立即写入日志
+            if expired_sessions:
+                self._write_logs_to_file()
 
     def get_client_stats(self):
         """获取所有client的统计信息"""

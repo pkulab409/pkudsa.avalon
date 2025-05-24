@@ -42,6 +42,7 @@ from database import (
     update_battle,
     get_game_stats_by_user_id,
     create_game_stats,
+    safe_delete,
 )
 from database.models import AICode, BattlePlayer  # 仍然需要模型用于类型提示或特定查询
 from datetime import datetime
@@ -53,6 +54,7 @@ import json
 import time
 
 PARTITION_NUMBER = 6
+RANKING_IDS = [0, 1, 2, 3, 4, 5, 6, 11, 21]
 from utils.battle_manager_utils import get_battle_manager
 
 # 创建蓝图
@@ -236,30 +238,21 @@ def delete_ai(ai_id):
         flash("您没有权限删除此AI代码或AI不存在", "danger")
         return redirect(url_for("ai.list_ai"))
 
-    # 先尝试删除文件
-    file_deleted = False
-    try:
-        # 使用 get_ai_code_path_full 获取完整路径
-        full_path = db_get_ai_code_path_full(ai_id)
-        if full_path and os.path.exists(full_path):
-            os.remove(full_path)
-            file_deleted = True
-        elif full_path:
-            current_app.logger.warning(f"AI代码文件未找到，但尝试删除记录: {full_path}")
-            file_deleted = True  # 允许继续删除记录
-        else:
-            current_app.logger.error(f"获取AI代码 {ai_id} 的路径失败，无法删除文件")
-
-    except Exception as e:
-        current_app.logger.error(f"删除AI代码文件失败: {str(e)}")
-        flash("删除AI代码文件时出错", "warning")
-
     # 尝试删除数据库记录
     if db_delete_ai_code(ai_code):
         flash("AI代码已删除", "success")
     else:
         flash("删除AI代码数据库记录失败", "danger")
         # 如果数据库删除失败，但文件已删除，可能需要考虑恢复文件或标记记录为孤立:TODO
+
+    # 没有备选的已激活ai时删除gamestats记录
+    active_ai = db_get_user_active_ai_code(current_user.id)
+    if not active_ai:
+        for ranking_id in RANKING_IDS[1:]:
+            game_stats = get_game_stats_by_user_id(current_user.id, ranking_id)
+            if game_stats:
+                if safe_delete(game_stats):
+                    flash("删除了激活的AI，已退出天梯榜单", "success")
 
     return redirect(url_for("ai.list_ai"))
 

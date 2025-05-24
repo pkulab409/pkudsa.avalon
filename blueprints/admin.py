@@ -7,6 +7,7 @@ from flask_login import login_required, current_user
 from functools import wraps
 from sqlalchemy.orm import joinedload
 from database.models import User, Battle, GameStats, AICode, BattlePlayer
+from database.promotion import promote_from_multiple_rankings, reset_ranking
 from database import db
 from utils.automatch_utils import get_automatch
 
@@ -472,7 +473,9 @@ def terminate_auto_primary_match():
 @admin_bp.route("/admin/start_auto_semi_match", methods=["POST"])
 @admin_required
 def start_auto_semi_match():
-    from database.promotion import promote_from_multiple_rankings
+
+    # 重置半决赛榜单
+    reset_ranking(SEMI_RANKING_START_ID)
 
     # 1. 从榜单1-6的前50%晋级到榜单11
     primary_ids = list(
@@ -531,7 +534,9 @@ def terminate_auto_semi_match():
 @admin_bp.route("/admin/start_auto_final_match", methods=["POST"])
 @admin_required
 def start_auto_final_match():
-    from database.promotion import promote_from_multiple_rankings
+
+    # 重置决赛榜单
+    reset_ranking(FINAL_RANKING_START_ID)
 
     # 1. 从半决赛榜单(11)的前50%晋级到决赛榜单(21)
     semi_ids = list(

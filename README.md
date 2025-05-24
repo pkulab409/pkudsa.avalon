@@ -8,7 +8,7 @@
 
 #### 1. 游戏规则与核心逻辑
 
-游戏的详细规则、背景故事、角色设定、胜负条件等在项目的 `README.md` 及 `platform/static/docs/README.md` 中有详细阐述。核心玩法围绕两大阵营（骑士方和反抗军方）在至多五轮任务中的博弈，融合了身份隐藏、推理、投票、执行任务以及最终的刺杀环节。
+游戏的详细规则、背景故事、角色设定、胜负条件等在项目的 `README.md` 及 `static/docs/README.md` 中有详细阐述。核心玩法围绕两大阵营（骑士方和反抗军方）在至多五轮任务中的博弈，融合了身份隐藏、推理、投票、执行任务以及最终的刺杀环节。
 
 * **阵营与角色**：包含梅林、派西维尔、骑士（蓝方）和莫甘娜、刺客、奥伯伦（红方），每个角色拥有独特能力和信息视角。
 * **游戏流程**：夜晚阶段（角色互认、梅林/派西维尔获取信息）-> 任务阶段（队长组队 -> 全图发言 -> 玩家移动 -> 有限范围发言 -> 公投表决 -> 任务执行）-> （可能发生的）刺杀阶段。
@@ -65,7 +65,7 @@
 
 玩家需要提交包含特定接口的Python类 (`Player`或`MyStrategy`)。
 
-* **核心接口 (`Player`类 - 参考 `documentation/document4users/code_submission_guide.md` 及 `platform/static/docs/code_submission_guide.md`)**：
+* **核心接口 (`Player`类 - 参考 `README_code_submission_guide.md` 及 `static/docs/code_submission_guide.md`)**：
     * `__init__(self)`: 初始化玩家状态。
     * `set_player_index(self, index: int)`: 设置玩家编号。
     * `set_role_type(self, role_type: str)`: 设置玩家角色。
@@ -95,7 +95,7 @@
 * **游戏日志**：
     * **公共日志 (`game_{GAME_ID}_public.json`)**: 记录游戏流程中的公开事件，如游戏开始、夜晚结束、任务开始、队伍提名、发言、移动、投票结果、任务结果、刺杀、游戏结束等。详细格式见 `documentation/technical_docs/lib_data_format.md` 及 `documentation/document4users/server_func.md`。
     * **私有日志 (`game_{GAME_ID}_player_{PLAYER_ID}_private.json`)**: 存储每个玩家的私有笔记和LLM交互历史。格式包含`logs` (玩家自定义内容) 和 `llm_history` (对话记录)，`llm_call_counts` (LLM调用计数)。
-    * **快照日志 (`game_{GAME_ID}_archive.json`)**: 由`Observer`类 生成，记录详细的游戏事件快照，用于可视化回放。事件类型包括阶段（Phase）、事件（Event）、动作（Action）、标识（Sign）、信息（Information）、大事件（Big_Event）、地图（Map）、Bug。格式说明见 `platform/game/README_snapshot.md`。 示例见 `platform/example/example_game_replay.json`。
+    * **快照日志 (`game_{GAME_ID}_archive.json`)**: 由`Observer`类 生成，记录详细的游戏事件快照，用于可视化回放。事件类型包括阶段（Phase）、事件（Event）、动作（Action）、标识（Sign）、信息（Information）、大事件（Big_Event）、地图（Map）、Bug。格式说明见 `game/README_snapshot.md`。 示例见 `example/example_game_replay.json`。
 
 ### 三、项目架构
 

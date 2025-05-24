@@ -1,7 +1,7 @@
 # 给开发者
 ```cmd
 conda activate dsa
-bash reformat.sh
+bash _for_developers/reformat.sh
 python3 startup.py
 git clean -fdx # 删除所有未跟踪的文件（包括被忽略的文件）
 # 先cd到项目的根目录

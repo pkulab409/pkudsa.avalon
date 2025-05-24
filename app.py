@@ -286,7 +286,7 @@ def initialize_default_data(app):
 
 
 def cleanup_stale_battles(app):
-    """在服务器启动时删除所有标记为playing、waiting或cancelled或error状态的对局"""
+    """在服务器启动时删除所有标记为playing、waiting或cancelled状态的对局"""
     with app.app_context():
         try:
             from database.models import Battle, GameStats, BattlePlayer, db
@@ -294,7 +294,7 @@ def cleanup_stale_battles(app):
 
             # 修改查询条件，也包括已取消的对局
             stale_battles = Battle.query.filter(
-                Battle.status.in_(["playing", "waiting", "cancelled", "error"])
+                Battle.status.in_(["playing", "waiting", "cancelled"])
             ).all()
 
             if not stale_battles:
@@ -310,8 +310,12 @@ def cleanup_stale_battles(app):
                     # 先处理日志文件删除（避免删除对局后无法访问ID）
                     data_dir = app.config.get("DATA_DIR", "./data")
                     log_files = [
-                        os.path.join(data_dir, f"game_{battle.id}_public.json"),
-                        os.path.join(data_dir, f"game_{battle.id}_archive.json"),
+                        os.path.join(
+                            data_dir, f"{battle.id}/public_game_{battle.id}.json"
+                        ),
+                        os.path.join(
+                            data_dir, f"{battle.id}/archive_game_{battle.id}.json"
+                        ),
                     ]
 
                     # 处理所有玩家的私有日志
@@ -319,7 +323,7 @@ def cleanup_stale_battles(app):
                         log_files.append(
                             os.path.join(
                                 data_dir,
-                                f"game_{battle.id}_player_{player_id}_private.json",
+                                f"{battle.id}/private_player_{player_id}_game_{battle.id}.json",
                             )
                         )
 

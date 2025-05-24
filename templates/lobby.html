@@ -234,30 +234,95 @@
                 <i class="bi bi-plus-circle me-1"></i> 创建对战
             </a>
         </div>
-        {% if automatch_is_on %}
-            <div class="alert alert-info">
-                <h5>后台自动对战正在进行中</h5>
-                <ul>
-                    {% for ranking in automatch_status.active_rankings %}
-                        <li>
-                            {% if ranking.ranking_id == 0 %}
-                                测试赛 (#{{ ranking.ranking_id }}):
-                            {% elif 1 <= ranking.ranking_id <= 10 %}
-                                初赛 (#{{ ranking.ranking_id }}):
-                            {% elif 11 <= ranking.ranking_id <= 20 %}
-                                半决赛 (#{{ ranking.ranking_id }}):
-                            {% elif 21 <= ranking.ranking_id <= 30 %}
-                                决赛 (#{{ ranking.ranking_id }}):
-                            {% else %}
-                                未知赛事 (#{{ ranking.ranking_id }}):
-                            {% endif %}
-                            已进行 {{ ranking.battle_count }} 场对战 /
-                            当前参与者 {{ ranking.participants }} 人次
-                        </li>
-                    {% endfor %}
-                </ul>
+        <!-- 对战统计卡片 -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <i class="bi bi-graph-up me-2"></i>对战统计
+                </h5>
             </div>
-        {% endif %}
+            <div class="card-body">
+                <div class="row">
+                    <!-- 对战状态统计 -->
+                    <div class="col-lg-8">
+                        <h6 class="border-bottom pb-2 mb-3">对战状态分布</h6>
+                        <div class="row text-center g-3">
+                            <div class="col-md-4 col-sm-6">
+                                <div class="p-3 bg-light rounded shadow-sm">
+                                    <h3 class="text-primary mb-1">{{ battles_count.total }}</h3>
+                                    <p class="text-muted mb-0 small">总对战数</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-sm-6">
+                                <div class="p-3 bg-light rounded shadow-sm">
+                                    <h3 class="text-info mb-1">{{ battles_count.playing }}</h3>
+                                    <p class="text-muted mb-0 small">进行中</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-sm-6">
+                                <div class="p-3 bg-light rounded shadow-sm">
+                                    <h3 class="text-warning mb-1">{{ battles_count.waiting }}</h3>
+                                    <p class="text-muted mb-0 small">等待中</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-sm-6">
+                                <div class="p-3 bg-light rounded shadow-sm">
+                                    <h3 class="text-success mb-1">{{ battles_count.completed }}</h3>
+                                    <p class="text-muted mb-0 small">已完成</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-sm-6">
+                                <div class="p-3 bg-light rounded shadow-sm">
+                                    <h3 class="text-danger mb-1">{{ battles_count.error }}</h3>
+                                    <p class="text-muted mb-0 small">错误</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-sm-6">
+                                <div class="p-3 bg-light rounded shadow-sm">
+                                    <h3 class="text-secondary mb-1">{{ battles_count.cancelled }}</h3>
+                                    <p class="text-muted mb-0 small">已取消</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 自动对战状态 -->
+                    <div class="col-lg-4">
+                        <h6 class="border-bottom pb-2 mb-3">自动对战状态</h6>
+                        <div class="p-3 bg-light rounded shadow-sm">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>状态:</span>
+                                <span class="badge {{ 'bg-success' if automatch_is_on else 'bg-secondary' }}">
+                                    {{ '运行中' if automatch_is_on else '未运行' }}
+                                </span>
+                            </div>
+                            {% if automatch_is_on and automatch_status.active_rankings %}
+                                <div class="mt-3">
+                                    <h6>活跃榜单</h6>
+                                    <ul class="list-group list-group-flush small">
+                                        {% for ranking in automatch_status.active_rankings %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                                                {% if ranking.ranking_id == 0 %}
+                                                    测试赛 #{{ ranking.ranking_id }}
+                                                {% elif 1 <= ranking.ranking_id <= 10 %}
+                                                    初赛 #{{ ranking.ranking_id }}
+                                                {% elif 11 <= ranking.ranking_id <= 20 %}
+                                                    半决赛 #{{ ranking.ranking_id }}
+                                                {% elif 21 <= ranking.ranking_id <= 30 %}
+                                                    决赛 #{{ ranking.ranking_id }}
+                                                {% else %}
+                                                    未知赛事 #{{ ranking.ranking_id }}
+                                                {% endif %}
+                                                <span class="text-muted">{{ ranking.battle_count }} 对战 / {{ ranking.participants }} 参与者</span>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-light">
                 <h5 class="mb-0">

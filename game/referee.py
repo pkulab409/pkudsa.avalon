@@ -19,6 +19,7 @@ from copy import deepcopy
 import logging
 import importlib.util
 from datetime import datetime
+from .decorator import DebugDecorator, settings
 from .observer import Observer
 from .avalon_game_helper import INIT_PRIVA_LOG_DICT
 from .restrictor import RESTRICTED_BUILTINS
@@ -221,6 +222,13 @@ class AvalonReferee:
 
         # 为这个referee创建一个专用的GameHelper实例
         self.game_helper = GameHelper(data_dir=self.data_dir)
+
+        # 装饰器
+        if settings["avalon_game_helper.GameHelper"] == 1:
+            # 装饰实例
+            dec = DebugDecorator(self.battle_id)
+            self.game_helper = dec.decorate_instance(self.game_helper)
+
         self.game_helper.game_session_id = self.game_id  # 直接设置game_id
 
         # 创建数据目录
@@ -320,6 +328,10 @@ class AvalonReferee:
             return True
 
         except Exception as e:
+            import traceback
+
+            tb_str = traceback.format_exc()
+
             logger.error(
                 f"Error preparing AI modules for battle {self.battle_id}: {e}",
                 exc_info=True,
@@ -329,6 +341,7 @@ class AvalonReferee:
                 None,
                 None,
                 f"Exception during AI module preparation: {e}",
+                tb_str,
             )
             return False
 
@@ -387,6 +400,10 @@ class AvalonReferee:
                     return False
 
             except ImportError as e:
+                import traceback
+
+                tb_str = traceback.format_exc()
+
                 logger.error(
                     f"ImportError for player {player_pos} module {module_path}: {e}",
                     exc_info=True,
@@ -396,15 +413,24 @@ class AvalonReferee:
                     player_pos,
                     module_path,
                     f"ImportError: {e}",
+                    tb_str,
                 )
                 return False
             except Exception as e:
+                import traceback
+
+                tb_str = traceback.format_exc()
+
                 logger.error(
                     f"Exception loading player {player_pos} from {module_path}: {e}",
                     exc_info=True,
                 )
                 self.suspend_game(
-                    "critical_player_ERROR", player_pos, module_path, f"Exception: {e}"
+                    "critical_player_ERROR",
+                    player_pos,
+                    module_path,
+                    f"Exception: {e}",
+                    tb_str,
                 )
                 return False
 
@@ -447,7 +473,7 @@ class AvalonReferee:
         logger.info(f"Initializing logs for game {self.game_id}")
         # 初始化公共日志文件
         public_log_file = os.path.join(
-            self.data_dir, f"game_{self.game_id}_public.json"
+            self.data_dir, f"{self.game_id}/public_game_{self.game_id}.json"
         )
         with open(public_log_file, "w", encoding="utf-8") as f:
             json.dump([], f)
@@ -455,7 +481,8 @@ class AvalonReferee:
         # 为每个玩家初始化私有日志文件
         for player_id in range(1, PLAYER_COUNT + 1):
             private_log_file = os.path.join(
-                self.data_dir, f"game_{self.game_id}_player_{player_id}_private.json"
+                self.data_dir,
+                f"{self.game_id}/private_player_{player_id}_game_{self.game_id}.json",
             )
             with open(private_log_file, "w", encoding="utf-8") as f:
                 json.dump(INIT_PRIVA_LOG_DICT, f, ensure_ascii=False)
@@ -642,14 +669,14 @@ class AvalonReferee:
             # 验证队员数量和有效性
             if not isinstance(mission_members, list):
                 logger.error(
-                    f"Leader {self.leader_index} returned non-list: {type(mission_members)}.",
+                    f"Leader {self.leader_index} returned non-list: {type(mission_members)}, but it should be a list.",
                     exc_info=True,  # Include traceback in log
                 )
                 self.suspend_game(
-                    "player_ruturn_ERROR",
+                    "player_return_ERROR",
                     self.leader_index,
                     "decide_mission_member",
-                    f"Leader {self.leader_index} returned non-list: {type(mission_members)}",
+                    f"Leader {self.leader_index} returned non-list: {type(mission_members)}, but it should be a list.",
                 )
 
             else:
@@ -952,22 +979,20 @@ class AvalonReferee:
 
             if not isinstance(speech, str):  # 用户给的 speech 异常
                 logger.error(
-                    f"Player {player_id} returned non-string speech: {type(speech)}.",
+                    f"Player {player_id} returned non-string speech: {type(speech)}, but it should be str.",
                     exc_info=True,  # Include traceback in log
                 )
                 self.suspend_game(
                     "player_ruturn_ERROR",
                     player_id,
                     "say",
-                    f"Returned non-string speech: {type(speech)} during global speech",
+                    f"Returned non-string speech: {type(speech)} during global speech, but it should be str.",
                 )
 
-            logger.info(
-                f"Global Speech - Player {player_id}: {speech[:100]}{'...' if len(speech) > 100 else ''}"
-            )
+            logger.info(f"Global Speech - Player {player_id}: {speech}")
             self.battle_observer.make_snapshot(
                 "PublicSpeech",
-                (player_id, speech[:100] + ("..." if len(speech) > 100 else "")),
+                (player_id, speech),
             )
             speeches.append((player_id, speech))
 
@@ -1049,26 +1074,26 @@ class AvalonReferee:
 
             if not isinstance(directions, tuple):
                 logger.error(
-                    f"Player {player_id} returned invalid directions type: {type(directions)}. No movement."
+                    f"Player {player_id} returned invalid directions type: {type(directions)}. No movement. It should be a tuple.",
                 )
                 self.suspend_game(
                     "player_ruturn_ERROR",
                     player_id,
                     "walk",
-                    f"Returned invalid directions type: {type(directions)}",
+                    f"Returned invalid directions type: {type(directions)}, but it should be a tuple.",
                 )
 
             # 最多移动3步
             steps = len(directions)
             if steps > 3:
                 logger.error(
-                    f"Player {player_id} returned invalid directions length: {len(directions)}. No movement."
+                    f"Player {player_id} returned invalid directions length: {len(directions)}. No movement. It should be at most 3.",
                 )
                 self.suspend_game(
                     "player_ruturn_ERROR",
                     player_id,
                     "walk",
-                    f"Returned invalid directions length: {len(directions)}",
+                    f"Returned invalid directions length: {len(directions)}, but it should be at most 3.",
                 )
 
             new_pos = current_pos
@@ -1081,13 +1106,13 @@ class AvalonReferee:
                 # 处理每个方向
                 if not isinstance(directions[i], str):
                     logger.error(
-                        f"Player {player_id} returned invalid direction type: {type(directions[i])}. i_index: {i}"
+                        f"Returned invalid direction type: {type(directions[i])} in the movement {i} of the movements tuple, but it should be str, such as 'up', 'down', 'left', 'right'"
                     )
                     self.suspend_game(
                         "player_ruturn_ERROR",
                         player_id,
                         "walk",
-                        f"Returned invalid direction type: {type(directions[i])}. i_index: {i}",
+                        f"Returned invalid direction type: {type(directions[i])} in the movement {i} of the movements tuple, but it should be str, such as 'up', 'down', 'left', 'right'",
                     )
 
                 direction = directions[i].lower()
@@ -1109,13 +1134,13 @@ class AvalonReferee:
                 else:
                     # 无效移动，报错
                     logger.error(
-                        f"Player {player_id} attempted invalid move: {direction}. i_index: {i}"
+                        f"Player {player_id} attempted invalid move: {direction} in the movement {i} of the movements tuple"
                     )
                     self.suspend_game(
                         "player_ruturn_ERROR",
                         player_id,
                         "walk",
-                        f"Attempted invalid move: {direction}. i_index: {i}",
+                        f"Attempted invalid move: {direction} in the movement {i} of the movements tuple",
                     )
 
                 # 检查是否与其他玩家重叠
@@ -1126,13 +1151,13 @@ class AvalonReferee:
                 ]:
                     # 回退到上一个位置
                     logger.error(
-                        f"Player {player_id} attempted to move to occupied position: {deepcopy(new_pos)}. i_index: {i}"
+                        f"Player {player_id} attempted to move to occupied position: {deepcopy(new_pos)} in the movement {i} of the movements tuple"
                     )
                     self.suspend_game(
                         "player_ruturn_ERROR",
                         player_id,
                         "walk",
-                        f"Attempted to move to occupied position: {deepcopy(new_pos)}. i_index: {i}",
+                        f"Attempted to move to occupied position: {deepcopy(new_pos)} in the movement {i} of the movements tuple",
                     )
 
                 # 快照记录每一步移动与地图
@@ -1240,19 +1265,17 @@ class AvalonReferee:
 
             if not isinstance(speech, str):
                 logger.error(
-                    f"Player {speaker_id} returned non-string speech: {type(speech)}.",
+                    f"Player {speaker_id} returned non-string speech: {type(speech)}. It should be str.",
                     exc_info=True,  # Include traceback in log
                 )
                 self.suspend_game(
                     "player_ruturn_ERROR",
                     speaker_id,
                     "say",
-                    f"Returned non-string speech: {type(speech)} during limited speech",
+                    f"Returned non-string speech: {type(speech)} during limited speech, but it should be str.",
                 )
 
-            logger.info(
-                f"Limited Speech - Player {speaker_id}: {speech[:100]}{'...' if len(speech) > 100 else ''}"
-            )
+            logger.info(f"Limited Speech - Player {speaker_id}: {speech}")
 
             speeches.append((speaker_id, speech))
 
@@ -1269,7 +1292,7 @@ class AvalonReferee:
                 "PrivateSpeech",
                 (
                     speaker_id,
-                    speech[:100] + ("..." if len(speech) > 100 else ""),
+                    speech,
                     " ".join(map(str, hearers)),
                 ),
             )
@@ -1351,14 +1374,14 @@ class AvalonReferee:
             # 确保投票结果是布尔值
             if not isinstance(vote, bool):
                 logger.error(
-                    f"Player {player_id} returned non-bool public vote: {type(vote)}.",
+                    f"Player {player_id} returned non-bool public vote: {type(vote)}. It should be bool.",
                     exc_info=True,  # Include traceback in log
                 )
                 self.suspend_game(
-                    "player_ruturn_ERROR",
+                    "player_return_ERROR",
                     player_id,
                     "mission_vote1",
-                    f"Returned non-bool public vote: {type(vote)}",
+                    f"Returned non-bool public vote: {type(vote)}, but it should be bool.",
                 )
 
             votes[player_id] = vote
@@ -1413,14 +1436,14 @@ class AvalonReferee:
             # 确保投票结果是布尔值
             if not isinstance(vote, bool):
                 logger.error(
-                    f"Player {player_id} returned non-bool mission vote: {type(vote)}.",
+                    f"Player {player_id} returned non-bool mission vote: {type(vote)}. It should be bool.",
                     exc_info=True,
                 )
                 self.suspend_game(
-                    "player_ruturn_ERROR",
+                    "player_return_ERROR",
                     player_id,
                     "mission_vote2",
-                    f"Returned non-bool mission vote: {type(vote)}",
+                    f"Returned non-bool mission vote: {type(vote)}, but it should be bool.",
                 )
 
             # 检查蓝方投失败票
@@ -1502,14 +1525,14 @@ class AvalonReferee:
         # 确保目标是有效玩家ID
         if not isinstance(target_id, int) or target_id < 1 or target_id > PLAYER_COUNT:
             logger.error(
-                f"Assassin returned invalid target: {target_id}.",
+                f"Assassin returned invalid target: {target_id}. It should be an integer between 1 and {PLAYER_COUNT}.",
                 exc_info=True,  # Include traceback in log
             )
             self.suspend_game(
-                "player_ruturn_ERROR",
+                "player_return_ERROR",
                 assassin_id,
                 "assass",
-                f"Assassin returned invalid target: {target_id}",
+                f"Assassin returned invalid target: {target_id} during assassination phase. It should be an integer between 1 and {PLAYER_COUNT}.",
             )
         # 不考虑刺客刺杀自己，因为无法改变游戏结果
         # 我倒是觉得可以做个彩蛋，刺杀自己就是蠢蛋，而且刺杀自己属于代码问题，就是用户的bug
@@ -1602,7 +1625,7 @@ class AvalonReferee:
                     "rounds_played": self.current_round,
                     "roles": roles_dict,  # 使用标准格式的角色字典
                     "public_log_file": os.path.join(
-                        self.data_dir, f"game_{self.game_id}_public.json"
+                        self.data_dir, f"{self.game_id}/public_game_{self.game_id}.json"
                     ),
                     "winner": None,
                     "win_reason": f"aborted_due_to_battle_state_{battle_status}",
@@ -1660,7 +1683,8 @@ class AvalonReferee:
                             "rounds_played": self.current_round,
                             "roles": roles_dict,
                             "public_log_file": os.path.join(
-                                self.data_dir, f"game_{self.game_id}_public.json"
+                                self.data_dir,
+                                f"{self.game_id}/public_game_{self.game_id}.json",
                             ),
                             "winner": None,
                             "win_reason": "terminated_due_to_status_change",
@@ -1697,7 +1721,7 @@ class AvalonReferee:
                 "rounds_played": self.current_round,
                 "roles": roles_dict,  # 使用标准格式的角色字典
                 "public_log_file": os.path.join(
-                    self.data_dir, f"game_{self.game_id}_public.json"
+                    self.data_dir, f"{self.game_id}/public_game_{self.game_id}.json"
                 ),
             }
 
@@ -1793,7 +1817,7 @@ class AvalonReferee:
                 "rounds_played": self.current_round,
                 "roles": roles_dict,  # 使用标准格式的角色字典
                 "public_log_file": os.path.join(
-                    self.data_dir, f"game_{self.game_id}_public.json"
+                    self.data_dir, f"{self.game_id}/public_game_{self.game_id}.json"
                 ),
                 "winner": None,
                 "win_reason": "terminated_due_to_status_change",
@@ -1806,8 +1830,12 @@ class AvalonReferee:
             return terminate_result
 
         except Exception as e:
+            import traceback
+
+            tb_str = traceback.format_exc()
             logger.error(
-                f"Critical error during game {self.game_id}: {str(e)}", exc_info=True
+                f"Critical error during game {self.game_id}: {str(e)}",
+                exc_info=True,
             )
 
             # 创建标准格式的角色信息字典
@@ -1827,12 +1855,14 @@ class AvalonReferee:
                 "rounds_played": self.current_round,
                 "roles": roles_dict,  # 使用标准格式的角色字典
                 "public_log_file": os.path.join(
-                    self.data_dir, f"game_{self.game_id}_public.json"
+                    self.data_dir, f"{self.game_id}/public_game_{self.game_id}.json"
                 ),
+                "traceback": tb_str,
             }
 
             # 记录错误事件
             self.log_public_event({"type": "game_error", "result": error_result})
+            logger.error(f"Error context: {error_result}")
             return error_result
         finally:
             # 无论游戏如何结束（正常、终止或出错），都执行清理操作
@@ -1917,7 +1947,7 @@ class AvalonReferee:
             # 检查执行时间
             # This check is just a warning
             if execution_time > MAX_EXECUTION_TIME:  # Lowered threshold for warning
-                time_exceed_msg = f"Player {player_id} ({self.roles.get(player_id)}) method {method_name} took {execution_time:.2f} seconds (timeout)"
+                time_exceed_msg = f"Player {player_id} ({self.roles.get(player_id)}) method {method_name} took {execution_time:.2f} seconds (timeout), exceeding the limit of {MAX_EXECUTION_TIME} seconds. This may be caused by a deadlock ,infinite loop or our llm service error."
                 logger.error(time_exceed_msg)
                 self.suspend_game(
                     "critical_player_ERROR", player_id, method_name, time_exceed_msg
@@ -1925,11 +1955,17 @@ class AvalonReferee:
             return result
 
         except Exception as e:  # 玩家代码运行过程中报错
+            import traceback
+
+            tb_str = traceback.format_exc()
+
             logger.error(
                 f"Error executing Player {player_id} ({self.roles.get(player_id)}) method '{method_name}': {str(e)}",
                 exc_info=True,  # Include traceback in log
             )
-            self.suspend_game("critical_player_ERROR", player_id, method_name, str(e))
+            self.suspend_game(
+                "critical_player_ERROR", player_id, method_name, str(e), tb_str
+            )
 
     def log_public_event(self, event: Dict[str, Any]):
         """记录公共事件到日志"""
@@ -1943,7 +1979,7 @@ class AvalonReferee:
 
         # 写入公共日志文件
         public_log_file = os.path.join(
-            self.data_dir, f"game_{self.game_id}_public.json"
+            self.data_dir, f"{self.game_id}/public_game_{self.game_id}.json"
         )
         try:
             with open(public_log_file, "w", encoding="utf-8") as f:
@@ -1954,14 +1990,12 @@ class AvalonReferee:
     def suspend_game(
         self,
         game_error_type: str,
-        # - 来自服务器 referee 的错误 - "critical_referee_ERROR"
-        # - 来自用户的代码出错 - "critical_player_ERROR"
-        # - 用户代码的 return 不符合要求 - "player_return_ERROR"
-        error_code_pid: int,  # 服务器出错则为0
+        error_code_pid: int,
         error_code_method_name: str,
         error_msg: str,
+        traceback_str: str = None,  # 新增参数
     ):
-        "一键中止游戏。代替前文反反复复出现的堆积如山的 raise RuntimeError。"
+        """一键中止游戏，提供详细的错误信息和 traceback"""
 
         SUSPEND_BROADCAST_MSG = (
             (
@@ -1979,17 +2013,34 @@ class AvalonReferee:
         self.log_public_event(
             {"type": "tokens", "result": self.game_helper.get_tokens()}
         )
-        self.log_public_event(
-            {
-                "type": game_error_type,
-                "error_code_pid": error_code_pid,
-                "error_code_method": error_code_method_name,
-                "error_msg": error_msg,
-            }
-        )
 
-        # 2. 给observer添加报错信息
-        self.battle_observer.make_snapshot("Bug", SUSPEND_BROADCAST_MSG)
+        # 添加 traceback 到日志事件
+        error_event = {
+            "type": game_error_type,
+            "error_code_pid": error_code_pid,
+            "error_code_method": error_code_method_name,
+            "error_msg": error_msg,
+        }
+
+        # 如果有 traceback 信息，添加到事件中
+        if traceback_str:
+            error_event["traceback"] = traceback_str
+
+        self.log_public_event(error_event)
+
+        # 2. 给 observer 添加详细的报错信息
+        # 为观察者准备精简但有用的错误消息
+        observer_msg = SUSPEND_BROADCAST_MSG
+        if traceback_str:
+            # 添加截断的 traceback（最后 5 行）以保持可读性
+            tb_lines = traceback_str.strip().split("\n")
+            if len(tb_lines) > 5:
+                short_tb = "\n".join(tb_lines[-5:])
+                observer_msg += f"\n\nTraceback (last 5 lines):\n{short_tb}"
+            else:
+                observer_msg += f"\n\nTraceback:\n{traceback_str}"
+
+        self.battle_observer.make_snapshot("Bug", observer_msg)
 
         # 3. 抛出错误，终止游戏
         raise RuntimeError(SUSPEND_BROADCAST_MSG)
