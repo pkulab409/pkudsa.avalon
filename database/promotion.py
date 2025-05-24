@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_NEW_ELO = 1200
 
+
 def get_top_players_from_ranking(source_ranking_id, percentage=0.5):
     """
     从指定榜单中获取排名前percentage的玩家
@@ -68,6 +69,7 @@ def reset_ranking(ranking_id):
     else:
         logger.info(f"未成功重置榜单 {ranking_id}.")
     return flag
+
 
 def promote_players_to_ranking(players_stats, target_ranking_id):
     """

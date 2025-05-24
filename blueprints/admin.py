@@ -534,7 +534,7 @@ def terminate_auto_semi_match():
 @admin_bp.route("/admin/start_auto_final_match", methods=["POST"])
 @admin_required
 def start_auto_final_match():
-    
+
     # 重置决赛榜单
     reset_ranking(FINAL_RANKING_START_ID)
 
