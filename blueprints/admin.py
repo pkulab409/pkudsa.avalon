@@ -7,7 +7,11 @@ from flask_login import login_required, current_user
 from functools import wraps
 from sqlalchemy.orm import joinedload
 from database.models import User, Battle, GameStats, AICode, BattlePlayer
-from database.promotion import promote_from_multiple_rankings, reset_ranking, reset_stats
+from database.promotion import (
+    promote_from_multiple_rankings,
+    reset_ranking,
+    reset_stats,
+)
 from database import db
 from utils.automatch_utils import get_automatch
 
@@ -430,6 +434,7 @@ def terminate_auto_test_match():
     primary_ids = range(1)
     return _handle_terminate_operation(get_automatch, primary_ids)
 
+
 @admin_bp.route("/admin/reset_auto_test_match", methods=["POST"])
 @admin_required
 def reset_auto_test_match():
@@ -437,32 +442,48 @@ def reset_auto_test_match():
     results = {}
     success_count = 0
     total = len(list(primary_ids))
-    
+
     for ranking_id in primary_ids:
         if reset_stats(ranking_id):
             success_count += 1
             results[str(ranking_id)] = "success"
         else:
             results[str(ranking_id)] = "failure"
-    
+
     if success_count == total:
-        return jsonify({
-            "status": "success",
-            "message": f"成功重置所有测试榜单 ({success_count}/{total})",
-            "details": results
-        }), 200
+        return (
+            jsonify(
+                {
+                    "status": "success",
+                    "message": f"成功重置所有测试榜单 ({success_count}/{total})",
+                    "details": results,
+                }
+            ),
+            200,
+        )
     elif success_count > 0:
-        return jsonify({
-            "status": "partial_success",
-            "message": f"部分测试榜单重置成功 ({success_count}/{total})",
-            "details": results
-        }), 207
+        return (
+            jsonify(
+                {
+                    "status": "partial_success",
+                    "message": f"部分测试榜单重置成功 ({success_count}/{total})",
+                    "details": results,
+                }
+            ),
+            207,
+        )
     else:
-        return jsonify({
-            "status": "error",
-            "message": "所有测试榜单重置失败",
-            "details": results
-        }), 500
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "所有测试榜单重置失败",
+                    "details": results,
+                }
+            ),
+            500,
+        )
+
 
 @admin_bp.route("/admin/start_auto_primary_match", methods=["POST"])
 @admin_required
@@ -502,6 +523,7 @@ def terminate_auto_primary_match():
     )
     return _handle_terminate_operation(get_automatch, primary_ids)
 
+
 @admin_bp.route("/admin/reset_auto_primary_match", methods=["POST"])
 @admin_required
 def reset_auto_primary_match():
@@ -511,32 +533,48 @@ def reset_auto_primary_match():
     results = {}
     success_count = 0
     total = len(list(primary_ids))
-    
+
     for ranking_id in primary_ids:
         if reset_stats(ranking_id):
             success_count += 1
             results[str(ranking_id)] = "success"
         else:
             results[str(ranking_id)] = "failure"
-    
+
     if success_count == total:
-        return jsonify({
-            "status": "success",
-            "message": f"成功重置所有初选赛榜单 ({success_count}/{total})",
-            "details": results
-        }), 200
+        return (
+            jsonify(
+                {
+                    "status": "success",
+                    "message": f"成功重置所有初选赛榜单 ({success_count}/{total})",
+                    "details": results,
+                }
+            ),
+            200,
+        )
     elif success_count > 0:
-        return jsonify({
-            "status": "partial_success",
-            "message": f"部分初选赛榜单重置成功 ({success_count}/{total})",
-            "details": results
-        }), 207
+        return (
+            jsonify(
+                {
+                    "status": "partial_success",
+                    "message": f"部分初选赛榜单重置成功 ({success_count}/{total})",
+                    "details": results,
+                }
+            ),
+            207,
+        )
     else:
-        return jsonify({
-            "status": "error",
-            "message": "所有初选赛榜单重置失败",
-            "details": results
-        }), 500
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "所有初选赛榜单重置失败",
+                    "details": results,
+                }
+            ),
+            500,
+        )
+
 
 @admin_bp.route("/admin/start_auto_semi_match", methods=["POST"])
 @admin_required
@@ -595,6 +633,7 @@ def terminate_auto_semi_match():
     semi_ids = range(SEMI_RANKING_START_ID, SEMI_RANKING_START_ID + SEMI_PARTITION)
     return _handle_terminate_operation(get_automatch, semi_ids)
 
+
 @admin_bp.route("/admin/reset_auto_semi_match", methods=["POST"])
 @admin_required
 def reset_auto_semi_match():
@@ -602,32 +641,48 @@ def reset_auto_semi_match():
     results = {}
     success_count = 0
     total = len(list(semi_ids))
-    
+
     for ranking_id in semi_ids:
         if reset_ranking(ranking_id):
             success_count += 1
             results[str(ranking_id)] = "success"
         else:
             results[str(ranking_id)] = "failure"
-    
+
     if success_count == total:
-        return jsonify({
-            "status": "success",
-            "message": f"成功重置所有半决赛榜单 ({success_count}/{total})",
-            "details": results
-        }), 200
+        return (
+            jsonify(
+                {
+                    "status": "success",
+                    "message": f"成功重置所有半决赛榜单 ({success_count}/{total})",
+                    "details": results,
+                }
+            ),
+            200,
+        )
     elif success_count > 0:
-        return jsonify({
-            "status": "partial_success",
-            "message": f"部分半决赛榜单重置成功 ({success_count}/{total})",
-            "details": results
-        }), 207
+        return (
+            jsonify(
+                {
+                    "status": "partial_success",
+                    "message": f"部分半决赛榜单重置成功 ({success_count}/{total})",
+                    "details": results,
+                }
+            ),
+            207,
+        )
     else:
-        return jsonify({
-            "status": "error",
-            "message": "所有半决赛榜单重置失败",
-            "details": results
-        }), 500
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "所有半决赛榜单重置失败",
+                    "details": results,
+                }
+            ),
+            500,
+        )
+
 
 @admin_bp.route("/admin/start_auto_final_match", methods=["POST"])
 @admin_required
@@ -686,6 +741,7 @@ def terminate_auto_final_match():
     final_ids = range(FINAL_RANKING_START_ID, FINAL_RANKING_START_ID + FINAL_PARTITION)
     return _handle_terminate_operation(get_automatch, final_ids)
 
+
 @admin_bp.route("/admin/reset_auto_final_match", methods=["POST"])
 @admin_required
 def reset_auto_final_match():
@@ -693,32 +749,48 @@ def reset_auto_final_match():
     results = {}
     success_count = 0
     total = len(list(final_ids))
-    
+
     for ranking_id in final_ids:
         if reset_ranking(ranking_id):
             success_count += 1
             results[str(ranking_id)] = "success"
         else:
             results[str(ranking_id)] = "failure"
-    
+
     if success_count == total:
-        return jsonify({
-            "status": "success",
-            "message": f"成功重置所有决赛榜单 ({success_count}/{total})",
-            "details": results
-        }), 200
+        return (
+            jsonify(
+                {
+                    "status": "success",
+                    "message": f"成功重置所有决赛榜单 ({success_count}/{total})",
+                    "details": results,
+                }
+            ),
+            200,
+        )
     elif success_count > 0:
-        return jsonify({
-            "status": "partial_success",
-            "message": f"部分决赛榜单重置成功 ({success_count}/{total})",
-            "details": results
-        }), 207
+        return (
+            jsonify(
+                {
+                    "status": "partial_success",
+                    "message": f"部分决赛榜单重置成功 ({success_count}/{total})",
+                    "details": results,
+                }
+            ),
+            207,
+        )
     else:
-        return jsonify({
-            "status": "error",
-            "message": "所有决赛榜单重置失败",
-            "details": results
-        }), 500
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "所有决赛榜单重置失败",
+                    "details": results,
+                }
+            ),
+            500,
+        )
+
 
 @admin_bp.route("/admin/toggle_admin/<string:user_id>", methods=["POST"])
 @login_required
