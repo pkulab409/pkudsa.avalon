@@ -1,6 +1,6 @@
 # 游戏对战平台主程序入口
 from app import create_app
-from flask import render_template  # 添加这一行导入render_template函数
+from flask import render_template, jsonify  # 添加这一行导入render_template函数
 
 # 创建应用实例
 app = create_app()
@@ -23,5 +23,20 @@ def health_check():
     return {"status": "ok", "service": "game-platform"}, 200
 
 
+# 查看最后一次 commit 信息
+@app.route('/commit-info')
+def commit_info():
+    try:
+        import subprocess
+
+        result = subprocess.run(
+            ['git', 'log', '-1', '--pretty=format:%h - %an, %ad : %s'],
+            capture_output=True, text=True
+        )
+        return jsonify(commit=result.stdout.strip())
+    except Exception:
+        return "Cannot get the latest commit info"
+
+
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=5000)
