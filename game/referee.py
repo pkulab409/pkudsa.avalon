@@ -473,7 +473,7 @@ class AvalonReferee:
         logger.info(f"Initializing logs for game {self.game_id}")
         # 初始化公共日志文件
         public_log_file = os.path.join(
-            self.data_dir, f"{self.game_id}/game_{self.game_id}_public.json"
+            self.data_dir, f"{self.game_id}/public_game_{self.game_id}.json"
         )
         with open(public_log_file, "w", encoding="utf-8") as f:
             json.dump([], f)
