@@ -53,15 +53,35 @@ class AutoMatchInstance:
         with self.app.app_context():
             # 确保只获取当前榜单的AI代码
             try:
-                self.current_participants = get_active_ai_codes_by_ranking_ids(
+                ai_codes = get_active_ai_codes_by_ranking_ids(
                     ranking_ids=[self.ranking_id]
                 )
+
+                # 立即提取AICode的所有需要的数据，包括ID，用户ID等
+                # 这样在session关闭后仍可安全访问这些数据
+                self.current_participants = []
+                for ai_code in ai_codes:
+                    # 创建AICode的副本，并确保所有需要的属性都被获取
+                    ai_code_copy = AICode(
+                        id=ai_code.id,
+                        user_id=ai_code.user_id,
+                        name=ai_code.name,
+                        code_path=ai_code.code_path,
+                        description=ai_code.description,
+                        is_active=ai_code.is_active,
+                        created_at=ai_code.created_at,
+                        version=ai_code.version,
+                    )
+                    self.current_participants.append(ai_code_copy)
 
                 logger.info(
                     f"[Rank-{self.ranking_id}] 加载到 {len(self.current_participants)} 个激活AI代码。"
                 )
             except Exception as e:
-                logger.error(f"[Rank-{self.ranking_id}] 获取AI代码时出错: {str(e)}")
+                logger.error(
+                    f"[Rank-{self.ranking_id}] 获取AI代码时出错: {str(e)}",
+                    exc_info=True,
+                )
 
     def _loop(self):
         """单个榜单的后台对战循环"""
@@ -123,10 +143,20 @@ class AutoMatchInstance:
                             participants_ai_codes = sample(
                                 self.current_participants, num_to_sample
                             )
-                            # 创建组合标识符
-                            combination_id = frozenset(
-                                ai_code.id for ai_code in participants_ai_codes
-                            )
+                            # 创建组合标识符 - 使用安全的方式获取ID以避免会话问题
+                            try:
+                                combination_id = frozenset(
+                                    ai_code.id for ai_code in participants_ai_codes
+                                )
+                            except Exception as e:
+                                logger.error(
+                                    f"[Rank-{self.ranking_id}] 创建对战组合ID时出错: {e}",
+                                    exc_info=True,
+                                )
+                                # 重新获取参与者列表并尝试一次
+                                self._fetch_participants()
+                                sleep(1)  # 短暂休眠
+                                continue
 
                             # 检查是否是近期使用过的组合
                             if combination_id not in selected_combinations:

@@ -297,7 +297,7 @@ def get_active_ai_codes_by_ranking_ids(ranking_ids: list[int] = None) -> list[AI
                     ai_code = get_user_active_ai_code(user_id)
                     if ai_code:
                         active_ai_codes.append(ai_code)
-                    else:
+                    elif ranking_id != 0:
                         safe_delete(game_stats)
 
         logger.info(f"成功获取 {len(active_ai_codes)} 个激活的AI代码")
