@@ -22,9 +22,12 @@ from database import (
     AICode,
     GameStats,
 )
+from werkzeug.middleware.profiler import ProfilerMiddleware
 
 # 初始化csrf保护
 csrf = CSRFProtect()
+
+is_debug = True  # 设置为True以启用调试模式
 
 
 def cleanup_invalid_ai_codes(app):
@@ -452,6 +455,22 @@ def create_app(config_object=Config):
     cleanup_stale_battles(app)
     # 清理文件不存在的AI代码记录
     cleanup_invalid_ai_codes(app)
+    if is_debug:
+        # 如果是开发环境，添加性能分析中间件
+        # 确定日志文件路径（根目录）
+        profile_dir = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "profiler"
+        )
+        # 确保目录存在
+        os.makedirs(profile_dir, exist_ok=True)
+        # 应用中间件
+        app.wsgi_app = ProfilerMiddleware(
+            app.wsgi_app,
+            restrictions=[100],  # 显示最慢的100个函数
+            profile_dir=profile_dir,  # 将分析结果保存到根目录的profiler文件夹
+            filename_format="{method}.{path}.{time:.0f}ms.{elapsed:.0f}ms.prof",  # 自定义文件名格式
+        )
+        app.logger.info(f"性能分析中间件已启用，结果将保存到 {profile_dir}")
 
     app.logger.info("Flask应用初始化完成")
     return app
