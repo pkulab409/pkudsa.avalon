@@ -284,70 +284,6 @@ class Player:
         # 如果没有有效移动，原地不动
         return tuple()
 
-    '''def walk(self) -> tuple[str, ...]:
-        """移动策略"""
-        if not self.location:
-            return tuple()
-    
-        # 根据游戏阶段选择目标
-        if self.round == 0:  # 初始阶段前往中心
-            target = self.key_locations["meeting"]
-        else:  # 根据任务需要移动
-            mission_locs = self.key_locations["mission"]
-            target = mission_locs[self.round % len(mission_locs)]
-    
-        # 计算路径
-        path = self.calculate_path(self.location, target)
-        return path[:3]  # 最多返回3步
-    
-    def calculate_path(self, start, end) -> tuple[str, ...]:
-        """计算从起点到终点的路径"""
-        dx = end[0] - start[0]
-        dy = end[1] - start[1]
-    
-        moves = []
-        # 水平移动
-        if dx > 0:
-            moves.extend(["Right"] * dx)
-        elif dx < 0:
-            moves.extend(["Left"] * -dx)
-    
-        # 垂直移动
-        if dy > 0:
-            moves.extend(["Up"] * dy)
-        elif dy < 0:
-            moves.extend(["Down"] * -dy)
-    
-        # 避开其他玩家的位置并检查边界
-        other_positions = set(pos for pid, pos in self.player_positions.items() if pid != self.index)
-        filtered_moves = []
-        current_pos = list(start)
-        for move in moves:
-            if move == "Right":
-                current_pos[0] += 1
-            elif move == "Left":
-                current_pos[0] -= 1
-            elif move == "Up":
-                current_pos[1] += 1
-            elif move == "Down":
-                current_pos[1] -= 1
-    
-            # 检查是否超出边界或与其他玩家位置冲突
-            if (
-                0 <= current_pos[0] < len(self.map[0])  # 检查水平边界
-                and 0 <= current_pos[1] < len(self.map)  # 检查垂直边界
-                and tuple(current_pos) not in other_positions  # 检查是否与其他玩家位置冲突
-            ):
-                filtered_moves.append(move)
-            else:
-                # 记录无效移动的原因
-                write_into_private(
-                    f"Invalid move: {move} to {tuple(current_pos)}. "
-                    f"Reason: {'Out of bounds' if not (0 <= current_pos[0] < len(self.map[0]) and 0 <= current_pos[1] < len(self.map)) else 'Occupied by another player'}"
-                )
-    
-        return tuple(filtered_moves[:3])  # 最多返回3步'''
-
     def say(self) -> str:
         """发言策略"""
         # 根据角色和策略生成发言
@@ -430,24 +366,7 @@ class Player:
         return True
 
     def assass(self) -> int:
-        """刺客刺杀梅林"""
-        if not self.known_merlin:
-            # 分析发言记录
-            for player_id, speeches in self.memory["speech"].items():
-                for speech in speeches:
-                    prompt = f"""
-                    在阿瓦隆游戏中，{player_id}号玩家说:"{speech}"。
-                    你是{self.index}号玩家，角色是{self.role}。
-                    请判断这段发言是否可能来自梅林。
-                    回答是或否。
-                    """
-                    analysis = askLLM(prompt)
-                    if "是" in analysis:
-                        self.known_merlin = player_id
-                        break
-            # 如果没有明确目标，选择最可疑的玩家
-            if not self.known_merlin:
-                suspects = list(self.suspects)
-                self.known_merlin = random.choice(suspects) if suspects else 1
-        write_into_private(f"选择刺杀{self.known_merlin}号玩家")
-        return self.known_merlin
+        if self.index == 7:
+            return 1
+        else:
+            return self.index + 1

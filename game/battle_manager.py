@@ -39,7 +39,7 @@ def calculate_optimal_threads():
     cpu_count = multiprocessing.cpu_count()
     # I/O密集型任务通常设为CPU核心数的2倍较合适
     # 但设置上限避免线程过多
-    return min(cpu_count * 4, 32)
+    return min(cpu_count * 6, 64)
 
 
 MAX_CONCURRENT_BATTLES = calculate_optimal_threads()  # 默认最大并发对战数
