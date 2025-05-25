@@ -273,83 +273,58 @@ class Player:
 
         return team[:team_size]
 
-    def walk(self) -> tuple[str, ...]:
-        """移动策略，最多走3步，终点不能与其他玩家重合"""
-        try:
-            # 更严格的初始检查
-            if not self.map or not self.location or not self.player_positions:
+    def walk(self) -> tuple:
+
+        origin_pos = self.player_positions[self.index]  # tuple
+        x, y = origin_pos
+        others_pos = [self.player_positions[i] for i in range(1, 8) if i != self.index]
+        total_step = random.randint(0, 3)
+
+        # 被包围的情况,开始前判定一次即可
+        if (
+            ((x - 1, y) in others_pos or x == 0)
+            and ((x + 1, y) in others_pos or x == MAP_SIZE - 1)
+            and ((x, y - 1) in others_pos or y == 0)
+            and ((x, y + 1) in others_pos or y == MAP_SIZE - 1)
+        ):
+            total_step = 0
+
+        valid_moves = []
+        step = 0
+        while step < total_step:
+            direction = random.choice(["Left", "Up", "Right", "Down"])
+
+            if direction == "Up" and x > 0 and (x - 1, y) not in others_pos:
+                x, y = x - 1, y
+                valid_moves.append("Up")
+                step += 1
+            elif (
+                direction == "Down"
+                and x < MAP_SIZE - 1
+                and (x + 1, y) not in others_pos
+            ):
+                x, y = x + 1, y
+                valid_moves.append("Down")
+                step += 1
+            elif direction == "Left" and y > 0 and (x, y - 1) not in others_pos:
+                x, y = x, y - 1
+                valid_moves.append("Left")
+                step += 1
+            elif (
+                direction == "Right"
+                and y < MAP_SIZE - 1
+                and (x, y + 1) not in others_pos
+            ):
+                x, y = x, y + 1
+                valid_moves.append("Right")
+                step += 1
+
+        for i in range(len(valid_moves)):
+            # 处理每个方向
+            if not isinstance(valid_moves[i], str):
                 return tuple()
 
-            x, y = self.location
-            others_pos = []
-            # 更安全的 others_pos 处理
-            for i in range(1, 8):
-                if i != self.index and i in self.player_positions:
-                    others_pos.append(self.player_positions[i])
-
-            # 计算到最近任务点的路径
-            if self.key_locations:
-                try:
-                    target = min(
-                        self.key_locations,
-                        key=lambda pos: abs(pos[0] - x) + abs(pos[1] - y),
-                    )
-                    path = self._find_path_to_target(x, y, target)
-                    if path and len(path) > 0:  # 确保路径有效
-                        steps = path[:3]
-                        # 计算终点
-                        cx, cy = x, y
-                        for move in steps:
-                            if move == "Up":
-                                cx -= 1
-                            elif move == "Down":
-                                cx += 1
-                            elif move == "Left":
-                                cy -= 1
-                            elif move == "Right":
-                                cy += 1
-                        if (cx, cy) not in others_pos:
-                            return tuple(steps)
-                except Exception as e:
-                    write_into_private(f"计算路径时出错: {e}")
-                    return tuple()  # 发生错误时返回空移动
-
-            # 原始有效移动逻辑保持不变...
-            valid_moves = []
-            directions = [
-                ("Up", -1, 0),
-                ("Down", 1, 0),
-                ("Left", 0, -1),
-                ("Right", 0, 1),
-            ]
-            for direction, dx, dy in directions:
-                nx, ny = x + dx, y + dy
-                if (
-                    (0 <= nx < self.map_size)
-                    and (0 <= ny < self.map_size)
-                    and ((nx, ny) not in others_pos)
-                ):
-                    valid_moves.append(direction)
-
-            if valid_moves:
-                # 只走一步，终点不重合
-                nx, ny = x, y
-                move = valid_moves[0]
-                if move == "Up":
-                    nx -= 1
-                elif move == "Down":
-                    nx += 1
-                elif move == "Left":
-                    ny -= 1
-                elif move == "Right":
-                    ny += 1
-                if (nx, ny) not in others_pos:
-                    return (move,)
-
-            return tuple()
-        except Exception as e:
-            write_into_private(f"walk异常: {e}")
-            return tuple()  # 确保在任何情况下都返回有效的元组
+        return tuple(valid_moves)
 
     def _find_path_to_target(self, x, y, target):
         """使用BFS寻找从(x,y)到target的最短路径"""
@@ -859,7 +834,7 @@ class Player:
                 作为莫甘娜，你应该尝试伪装成梅林，发表看似有洞察力的言论。
                 可以适当指责其他玩家，特别是真正的好人，转移怀疑。
                 不要暴露自己的身份，也不要暴露其他邪恶方成员。
-                请直接生成一段严格小于100字的发言,不许附带任何其他的文字。
+                请直接生成一段严格小于100字的发言,严禁添加不属于发言内容的分析语句。
                 """
             elif self.role == "Assassin":
                 prompt += """
@@ -867,7 +842,7 @@ class Player:
                 作为刺客，你需要通过发言收集信息，找出谁可能是梅林。
                 可以伪装成好人，表现出对任务成功的关心。
                 观察其他玩家的反应，特别是那些表现出对邪恶方了解的玩家。
-                请直接生成一段严格小于100字的发言,不许附带任何其他的文字。
+                请直接生成一段严格小于100字的发言,严禁添加不属于发言内容的分析语句。
                 """
             else:  # Oberon
                 prompt += """
@@ -875,7 +850,7 @@ class Player:
                 作为奥伯伦，你不知道其他邪恶方是谁，他们也不知道你是谁。
                 你可以表现得像一个困惑的好人，或者尝试通过发言找出其他邪恶方。
                 不要过于明显地破坏任务，但要确保正义方不会胜利。
-                请直接生成一段严格小于100字的发言,不许附带任何其他的文字。
+                请直接生成一段严格小于100字的发言,严禁添加不属于发言内容的分析语句。
                 """
         else:
             if self.role == "Merlin":
@@ -884,7 +859,7 @@ class Player:
                 作为梅林，你知道谁是邪恶方（除了奥伯伦）。
                 你需要引导好人找出邪恶方，但不能过于明显地暴露自己的身份，否则会被刺客刺杀。
                 可以通过暗示和间接方式提供信息，让其他好人信任你。
-                请直接生成一段严格小于100字的发言,不许附带任何其他的文字。
+                请直接生成一段严格小于100字的发言,严禁添加不属于发言内容的分析语句。
                 """
             elif self.role == "Percival":
                 prompt += """
@@ -892,7 +867,7 @@ class Player:
                 作为派西维尔，你知道谁可能是梅林（但也可能是莫甘娜）。
                 你需要保护真正的梅林，同时帮助好人找出邪恶方。
                 可以表现出对某些玩家的信任，但不要明确指出谁是梅林。
-                请直接生成一段严格小于100字的发言,不许附带任何其他的文字。
+                请直接生成一段严格小于100字的发言,严禁添加不属于发言内容的分析语句。
                 """
             else:  # 普通好人
                 prompt += """
@@ -900,7 +875,7 @@ class Player:
                 作为普通好人，你需要通过观察和分析找出邪恶方。
                 关注任务失败的情况，分析投票模式和发言内容。
                 表达你的怀疑和信任，但要基于逻辑和观察。
-                请直接生成一段严格小于100字的发言,不许附带任何其他的文字。
+                请直接生成一段严格小于100字的发言,严禁添加不属于发言内容的分析语句。
                 """
 
         return prompt
