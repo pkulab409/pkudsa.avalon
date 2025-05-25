@@ -54,7 +54,7 @@ def lobby():
     """显示游戏大厅页面，列出最近的对战，支持筛选和分页"""
     page = request.args.get("page", 1, type=int)
     # 减少默认每页显示数量
-    per_page = request.args.get("per_page", 5, type=int)  # 从10条减少到5条
+    per_page = request.args.get("per_page", 15, type=int)  # 从10条减少到5条
     status_filter = request.args.get("status", None, type=str)
     date_from_str = request.args.get("date_from", None, type=str)
     date_to_str = request.args.get("date_to", None, type=str)

@@ -208,7 +208,7 @@
   .player-selector .input-group-sm {
     align-items: stretch;
   }
-  
+
   .player-selector .input-group-sm > .form-control,
   .player-selector .input-group-sm > .btn {
     height: 31px;
@@ -577,12 +577,12 @@ function initPlayerSelector() {
     const addPlayerBtn = document.getElementById('addPlayerBtn');
     const playerTagsContainer = document.getElementById('playerTagsContainer');
     const MAX_PLAYERS = 7;
-    
+
     function addPlayerTag(playerName) {
         if (!playerName) return false;
-        
+
         playerName = playerName.trim();
-        
+
         // 检查玩家是否已添加
         const existingTags = playerTagsContainer.querySelectorAll('.player-tag');
         for (let tag of existingTags) {
@@ -593,14 +593,14 @@ function initPlayerSelector() {
                 return false;
             }
         }
-        
+
         // 检查是否达到最大限制
         if (existingTags.length >= MAX_PLAYERS) {
             playerTagsContainer.classList.add('limit-reached');
             setTimeout(() => playerTagsContainer.classList.remove('limit-reached'), 1000);
             return false;
         }
-        
+
         // 创建并添加标签
         const tag = document.createElement('div');
         tag.className = 'player-tag';
@@ -609,26 +609,26 @@ function initPlayerSelector() {
             <span class="remove-tag" data-player="${playerName}" title="移除">×</span>
             <input type="hidden" name="players" value="${playerName}">
         `;
-        
+
         // 绑定删除事件
         tag.querySelector('.remove-tag').addEventListener('click', () => {
             tag.remove();
             playerTagsContainer.classList.remove('limit-reached');
         });
-        
+
         // 添加到容器
         playerTagsContainer.appendChild(tag);
-        
+
         // 清空输入框并聚焦
         playerInput.value = '';
         playerInput.focus();
-        
+
         return true;
     }
-    
+
     // 绑定按钮点击事件
     addPlayerBtn.addEventListener('click', () => addPlayerTag(playerInput.value));
-    
+
     // 绑定Enter键事件
     playerInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
@@ -636,7 +636,7 @@ function initPlayerSelector() {
             addPlayerTag(playerInput.value);
         }
     });
-    
+
     // 绑定已有标签的删除事件
     document.querySelectorAll('.player-tag .remove-tag').forEach(btn => {
         btn.addEventListener('click', () => btn.closest('.player-tag').remove());
@@ -647,7 +647,7 @@ function initPlayerSelector() {
 document.addEventListener('DOMContentLoaded', function() {
     // 初始化玩家选择器
     initPlayerSelector();
-    
+
     // 防抖函数
     function debounce(func, wait) {
         let timeout;
@@ -657,7 +657,7 @@ document.addEventListener('DOMContentLoaded', function() {
             timeout = setTimeout(() => func.apply(context, args), wait);
         };
     }
-    
+
     // 启用表格行的延迟加载
     const battlesTable = document.getElementById('battlesTable');
     if (battlesTable) {
@@ -666,7 +666,7 @@ document.addEventListener('DOMContentLoaded', function() {
         for (let i = 10; i < allRows.length; i++) {
             allRows[i].style.display = 'none';
         }
-        
+
         // 滚动时显示更多行
         let visibleRows = 10;
         const showMoreRows = debounce(function() {
@@ -674,7 +674,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (allRows[i]) allRows[i].style.display = '';
             }
             visibleRows += 5;
-            
+
             // 如果所有行都显示，移除滚动监听
             if (visibleRows >= allRows.length) {
                 window.removeEventListener('scroll', handleScroll);
@@ -682,31 +682,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (lazyLoadRow) lazyLoadRow.style.display = 'none';
             }
         }, 200);
-        
+
         // 滚动处理函数
         function handleScroll() {
             const scrollPos = window.scrollY + window.innerHeight;
             const tableBottom = battlesTable.offsetTop + battlesTable.offsetHeight;
-            
+
             if (scrollPos > tableBottom - 300) {
                 showMoreRows();
             }
         }
-        
+
         // 添加滚动监听
         window.addEventListener('scroll', handleScroll);
-        
+
         // 用户列表懒加载
         const loadMoreBtn = document.getElementById('loadMoreBtn');
         if (loadMoreBtn && {{ all_users|length }} < 20) {
             loadMoreBtn.classList.remove('d-none');
             loadMoreBtn.addEventListener('click', function() {
-                window.location.href = "{{ url_for('game.lobby', load_users='true') }}" + 
+                window.location.href = "{{ url_for('game.lobby', load_users='true') }}" +
                                        window.location.search.replace(/[?&]load_users=true/, '');
             });
         }
     }
-    
+
     // 优化玩家下拉列表加载
     const playerInput = document.getElementById('player_input');
     if (playerInput) {

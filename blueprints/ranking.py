@@ -1,35 +1,17 @@
-# author: shihuaidexianyu (refactored by AI assistant)
-# date: 2025-04-25
-# status: done
-# description: 用户排行版块蓝图，包含排行榜和用户统计数据的路由。
-# 包含页面html: ranking.html
-
-"""
-用户排行版块蓝图，包含排行榜和用户统计数据的路由。
-- 上接后端数据库排行榜 database.actions 和 database.models 操作函数和模型
-- 下接浏览器页面 ranking.html
-"""
-
 from flask import Blueprint, render_template, jsonify, request, current_app
 from flask_login import current_user
-
-# 导入需要的数据库操作函数和模型
-# 假设这些函数按预期工作
 from database.action import get_leaderboard, get_game_stats_by_user_id, get_user_by_id
-from database.models import User, GameStats  # 确保 GameStats 已导入
+from database.models import User, GameStats
 
-# 创建蓝图
 ranking_bp = Blueprint("ranking", __name__)
 
-
-# 分页辅助类 (移至模块级别)
 class Pagination:
     def __init__(self, items, page, per_page, total):
-        self.items = items  # 当前页的项目
+        self.items = items
         self.page = page
         self.per_page = per_page
-        self.total = total  # 总项目数
-        if self.per_page == 0:  # 防止除以零
+        self.total = total
+        if self.per_page == 0:
             self.pages = 0
         else:
             self.pages = (total - 1) // per_page + 1 if total > 0 else 0
@@ -44,7 +26,7 @@ class Pagination:
         left_edge=1,
         left_current=2,
         right_current=4,
-        right_edge=1,  # 调整了默认值以适应更多页码显示
+        right_edge=1,
     ):
         last = 0
         for num in range(1, self.pages + 1):
@@ -54,7 +36,7 @@ class Pagination:
                 or num > self.pages - right_edge
             ):
                 if last + 1 != num:
-                    yield None  # 生成省略号占位符
+                    yield None
                 yield num
                 last = num
 
@@ -62,13 +44,13 @@ class Pagination:
 @ranking_bp.route("/ranking")
 def show_ranking():
     """显示排行榜页面"""
-    current_app.logger.debug("--- Entering show_ranking ---")  # 新增日志
+    current_app.logger.debug("--- Entering show_ranking ---")
 
     page = request.args.get("page", 1, type=int)
-    per_page = 15
+    per_page = 15  # 每页15个项目
     current_app.logger.debug(
         f"Request params: page={page}, per_page={per_page}"
-    )  # 新增日志
+    )
 
     try:
         all_ranking_ids_tuples = (
@@ -80,7 +62,7 @@ def show_ranking():
         all_ranking_ids = sorted([r[0] for r in all_ranking_ids_tuples])
         current_app.logger.debug(
             f"Fetched all_ranking_ids: {all_ranking_ids}"
-        )  # 新增日志
+        )
     except Exception as e:
         current_app.logger.error(f"Error fetching all_ranking_ids: {e}")
         all_ranking_ids = [0]
@@ -89,124 +71,103 @@ def show_ranking():
     ranking_id = request.args.get("ranking_id", default_ranking_id, type=int)
     current_app.logger.debug(
         f"Determined ranking_id: {ranking_id} (default was {default_ranking_id})"
-    )  # 新增日志
+    )
 
     if ranking_id not in all_ranking_ids and all_ranking_ids:
         ranking_id = all_ranking_ids[0]
         current_app.logger.debug(
             f"Corrected ranking_id to: {ranking_id} (was not in all_ranking_ids)"
-        )  # 新增日志
-    elif not all_ranking_ids and ranking_id != 0:
+        )
+    elif not all_ranking_ids and ranking_id != 0: # Ensure ranking_id is 0 if no other IDs exist
         ranking_id = 0
         current_app.logger.debug(
-            f"Corrected ranking_id to: {ranking_id} (all_ranking_ids was empty)"
-        )  # 新增日志
+            f"Corrected ranking_id to: {ranking_id} (all_ranking_ids was empty or invalid initial ranking_id)"
+        )
+
 
     min_games = request.args.get("min_games", 0, type=int)
-    current_app.logger.debug(f"min_games: {min_games}")  # 新增日志
+    current_app.logger.debug(f"min_games: {min_games}")
+
+    paged_leaderboard_items = []
+    actual_total_db_items = 0
 
     try:
         current_app.logger.debug(
-            f"Calling get_leaderboard with ranking_id={ranking_id}, limit=None, min_games_played={min_games}"
-        )  # 新增日志
-        leaderboard_items, total_count = get_leaderboard(
+            f"Calling get_leaderboard with ranking_id={ranking_id}, page={page}, per_page={per_page}, min_games_played={min_games}"
+        )
+        # Assumption: get_leaderboard returns items for the current page and the total count across all pages for that ranking_id.
+        items_for_current_page, total_items_in_db = get_leaderboard(
             ranking_id=ranking_id,
             page=page,
             per_page=per_page,
             min_games_played=min_games,
         )
-        if leaderboard_items is None:
-            current_app.logger.warning(
-                "get_leaderboard returned None, defaulting to empty list."
-            )  # 新增日志
-            leaderboard_items = []
-        # 打印获取到的原始数据的前几条，以及总数
+
+        if items_for_current_page is None:
+            current_app.logger.warning("get_leaderboard returned None for items, defaulting to empty list.")
+            items_for_current_page = []
+        actual_total_db_items = total_items_in_db if total_items_in_db is not None else 0
+
         current_app.logger.debug(
-            f"Raw data from get_leaderboard (first 3 items): {leaderboard_items[:3]}"
-        )  # 新增日志
-        current_app.logger.debug(
-            f"Total items from get_leaderboard: {len(leaderboard_items)}"
-        )  # 新增日志
+            f"Data from get_leaderboard: {len(items_for_current_page)} items for current page. Total items in DB for ranking: {actual_total_db_items}"
+        )
+        paged_leaderboard_items = items_for_current_page
 
     except Exception as e:
         current_app.logger.error(
             f"Error fetching leaderboard data for ranking_id {ranking_id}: {e}"
         )
-        leaderboard_items = []
+        # paged_leaderboard_items remains []
+        # actual_total_db_items remains 0
 
-    full_leaderboard_with_rank = []
-    if isinstance(leaderboard_items, list):  # 确保是列表才进行迭代
-        for i, player_data in enumerate(leaderboard_items):
-            if isinstance(player_data, dict):  # 确保列表元素是字典
+    # Process items for the current page, adding correct global rank
+    leaderboard_page_items_with_global_rank = []
+    if isinstance(paged_leaderboard_items, list):
+        for i, player_data in enumerate(paged_leaderboard_items):
+            if isinstance(player_data, dict):
                 player_data_copy = player_data.copy()
-                player_data_copy["rank"] = i + 1
-                player_data_copy.setdefault(
-                    "score", player_data_copy.get("elo_score", 0)
-                )
-                player_data_copy.setdefault(
-                    "total", player_data_copy.get("games_played", 0)
-                )
-                if "win_rate" not in player_data_copy:
-                    if player_data_copy.get("total", 0) > 0:
-                        player_data_copy["win_rate"] = round(
-                            (
-                                player_data_copy.get("wins", 0)
-                                / player_data_copy["total"]
-                            )
-                            * 100,
-                            1,
-                        )
-                    else:
-                        player_data_copy["win_rate"] = 0
-                full_leaderboard_with_rank.append(player_data_copy)
+                # Calculate global rank based on current page and item index on page
+                player_data_copy["rank"] = (page - 1) * per_page + i + 1
+
+                player_data_copy.setdefault("score", player_data_copy.get("elo_score", 0))
+                player_data_copy.setdefault("total", player_data_copy.get("games_played", 0))
+
+                if "win_rate" not in player_data_copy: # Calculate win_rate if not present
+                    total_games = player_data_copy.get("total", 0)
+                    wins = player_data_copy.get("wins", 0)
+                    player_data_copy["win_rate"] = round((wins / total_games) * 100, 1) if total_games > 0 else 0
+
+                leaderboard_page_items_with_global_rank.append(player_data_copy)
             else:
                 current_app.logger.warning(
-                    f"Item in full_leaderboard_raw is not a dict: {player_data}"
-                )  # 新增日志
+                    f"Item in paged_leaderboard_items is not a dict: {player_data}"
+                )
     else:
         current_app.logger.error(
-            f"full_leaderboard_raw is not a list: {type(leaderboard_items)}"
-        )  # 新增日志
+            f"paged_leaderboard_items received from get_leaderboard is not a list: {type(paged_leaderboard_items)}"
+        )
 
     current_app.logger.debug(
-        f"Data after adding rank (first 3 items): {full_leaderboard_with_rank[:3]}"
-    )  # 新增日志
-    current_app.logger.debug(
-        f"Total items after adding rank: {len(full_leaderboard_with_rank)}"
-    )  # 新增日志
-
-    total_items = len(full_leaderboard_with_rank)
-
-    if per_page > 0:
-        total_pages = (total_items - 1) // per_page + 1 if total_items > 0 else 0
-        page = max(1, min(page, total_pages if total_pages > 0 else 1))
-    else:
-        total_pages = 0
-        page = 1
-    current_app.logger.debug(
-        f"Pagination params: total_items={total_items}, total_pages={total_pages}, current_page={page}"
-    )  # 新增日志
-
-    offset = (page - 1) * per_page
-    leaderboard_page_items = full_leaderboard_with_rank[offset : offset + per_page]
-    current_app.logger.debug(
-        f"Items for current page (first 3): {leaderboard_page_items[:3]}"
-    )  # 新增日志
-    current_app.logger.debug(
-        f"Number of items for current page: {len(leaderboard_page_items)}"
-    )  # 新增日志
-
-    pagination = Pagination(
-        items=leaderboard_page_items, page=page, per_page=per_page, total=total_items
+        f"Processed items for current page with global rank (first 3): {leaderboard_page_items_with_global_rank[:3]}"
     )
     current_app.logger.debug(
-        f"Pagination object created. Has_next: {pagination.has_next}, Has_prev: {pagination.has_prev}, Total pages: {pagination.pages}"
-    )  # 新增日志
+        f"Total items for current page after processing: {len(leaderboard_page_items_with_global_rank)}"
+    )
 
-    sort_by = request.args.get("sort_by", "score")
+    # Create Pagination object using the items for the current page and the actual total from the database
+    pagination = Pagination(
+        items=leaderboard_page_items_with_global_rank, # These are the items to display on this page
+        page=page,
+        per_page=per_page,
+        total=actual_total_db_items # This is the grand total for the query
+    )
+    current_app.logger.debug(
+        f"Pagination object created. Page: {pagination.page}, Per_page: {pagination.per_page}, Total_items_in_db: {pagination.total}, Total_pages: {pagination.pages}, Has_next: {pagination.has_next}, Has_prev: {pagination.has_prev}"
+    )
+
     current_app.logger.debug(
         "--- Exiting show_ranking, rendering template ---"
-    )  # 新增日志
+    )
 
     return render_template(
         "ranking.html",
