@@ -30,7 +30,9 @@ def get_top_players_from_ranking(source_ranking_id, percentage=0.5):
         all_stats = (
             GameStats.query.filter_by(ranking_id=source_ranking_id)
             .filter(GameStats.games_played > 0)  # 确保只选择至少参与过一场比赛的玩家
-            .order_by(desc(GameStats.elo_score))
+            .order_by(
+                desc(GameStats.elo_score), desc(GameStats.wins / GameStats.games_played)
+            )
             .all()
         )
 
