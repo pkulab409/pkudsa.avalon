@@ -1,1 +1,3535 @@
-[{"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:03:56", "event_type": "BattleManager", "event_data": [0, "adding battle to queue"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:03:56", "event_type": "BattleManager", "event_data": [0, "对战已加入队列，等待处理。队列大小: 0"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:03:56", "event_type": "BattleManager", "event_data": [0, "对战 d50c9e92-783d-4e68-9f77-6df0421b9830 开始执行"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:33", "event_type": "GameStart", "event_data": "d50c9e92-783d-4e68-9f77-6df0421b9830"}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:33", "event_type": "RoleAssign", "event_data": {"1": "Knight", "2": "Morgana", "3": "Percival", "4": "Knight", "5": "Assassin", "6": "Oberon", "7": "Merlin"}}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:33", "event_type": "DefaultPositions", "event_data": {"1": [2, 4], "2": [4, 6], "3": [6, 3], "4": [8, 1], "5": [5, 7], "6": [3, 1], "7": [7, 6]}}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:33", "event_type": "NightStart", "event_data": "Starting Night Phase."}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:33", "event_type": "NightEnd", "event_data": "--- Night phase complete ---"}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:33", "event_type": "RoundStart", "event_data": 1}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:34", "event_type": "TeamPropose", "event_data": [1, 7]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:34", "event_type": "Leader", "event_data": 7}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:36", "event_type": "PublicSpeech", "event_data": [7, "\"建议下轮带上3或4试试。1看起来还行但需要观察。避开2、5、6。\""]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:36", "event_type": "PublicSpeech", "event_data": [1, "这轮信息太混乱，我还在观察。"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:39", "event_type": "PublicSpeech", "event_data": [2, "\"我同意7号的看法,3号和4号值得一试。不过我觉得5号表现一直很正派,可以多信任一些。1号的犹豫让我有点担心,建议再观察一轮。\""]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:41", "event_type": "PublicSpeech", "event_data": [3, "\"我支持带3或4测试。5号表现可靠也可考虑。避开2、6保持谨慎。\""]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:44", "event_type": "PublicSpeech", "event_data": [4, "\"我支持带3或4测试，5号确实表现可靠。2号的附和有些刻意，建议继续观察。避开6保持谨慎，目前倾向信任1、3、5、7。\""]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:47", "event_type": "PublicSpeech", "event_data": [5, "\"我同意测试3或4的提议,5号和7号的思路很清晰。不过2号为5号和7号的发言有些过于附和,可能需要再观察一轮。目前看来1号的犹豫不太像梅林,更倾向信任3、4、5、7的组合。\""]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:50", "event_type": "PublicSpeech", "event_data": [6, "\"我也觉得可以试试3或4的表现...不过感觉大家对6号的排斥有点奇怪？毕竟现在信息还很少...或许下一轮可以考虑让新面孔进队看看...\""]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:50", "event_type": "Move", "event_data": [7, [["up"], [6, 6]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:50", "event_type": "Move", "event_data": [1, [["left"], [2, 3]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:50", "event_type": "Move", "event_data": [2, [["up"], [3, 6]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:50", "event_type": "Move", "event_data": [3, [["up"], [5, 3]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:50", "event_type": "Move", "event_data": [4, [["up"], [7, 1]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:50", "event_type": "Move", "event_data": [5, [["up"], [4, 7]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:50", "event_type": "Move", "event_data": [6, [["up"], [2, 1]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:51", "event_type": "Positions", "event_data": {"1": [2, 3], "2": [3, 6], "3": [5, 3], "4": [7, 1], "5": [4, 7], "6": [2, 1], "7": [6, 6]}}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:54", "event_type": "PrivateSpeech", "event_data": [7, "\"注意到多人推荐35组合但警惕重复推特定人(如5)。建议优先测试34这种低风险选项而非被反复提及的号码。\"", "7"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:54", "event_type": "PrivateSpeech", "event_data": [1, "这轮信息太混乱，我还在观察。", "1 6"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:04:57", "event_type": "PrivateSpeech", "event_data": [2, "\"大家似乎都在针对我和6号线？这种集体排斥很奇怪...我更倾向于相信独立思考的6号线和表现稳定的5号线才是真好人阵营的关键人物。\"", "2 5"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:00", "event_type": "PrivateSpeech", "event_data": [3, "\"倾向相信4和5的判断逻辑合理。支持测试新面孔如3/4/5组合验证信息量更大的阵容方案。\"", "3 4"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:03", "event_type": "PrivateSpeech", "event_data": [4, "\"支持测试新面孔如3/4/5组合验证信息量更大的阵容方案.目前倾向信任1357.对6的排斥确实过早需解释.2的附和仍需警惕.\"", "4"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:07", "event_type": "PrivateSpeech", "event_data": [5, "\"我觉得大家过于集中排除2和6有点可疑,特别是他们提出不同观点时就被针对了.梅林可能会这样引导团队.我更倾向于相信独立思考的选手.建议下一队带上稳定表现的1号和未被充分验证的6号线.\"", "2 5"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:11", "event_type": "PrivateSpeech", "event_data": [6, "\"大家似乎都倾向于排除我和2...但我注意到对1的评价分歧很大？也许该给新人机会...如果下个队长愿意的话可以考虑带上我和一个新人比如8/9...\"", "1 6"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:11", "event_type": "PublicVote", "event_data": [1, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:12", "event_type": "PublicVote", "event_data": [2, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:13", "event_type": "PublicVote", "event_data": [3, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:15", "event_type": "PublicVote", "event_data": [4, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:18", "event_type": "PublicVote", "event_data": [5, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:20", "event_type": "PublicVote", "event_data": [6, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:21", "event_type": "PublicVote", "event_data": [7, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:21", "event_type": "PublicVoteResult", "event_data": [4, 3]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:21", "event_type": "MissionApproved", "event_data": [1, [1, 7]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:21", "event_type": "MissionVote", "event_data": {"1": true, "7": true}}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:21", "event_type": "MissionResult", "event_data": [1, "Success"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:21", "event_type": "ScoreBoard", "event_data": [1, 0]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:21", "event_type": "RoundEnd", "event_data": 1}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:21", "event_type": "RoundStart", "event_data": 2}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:21", "event_type": "TeamPropose", "event_data": [1, 3, 6]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:21", "event_type": "Leader", "event_data": 1}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:21", "event_type": "PublicSpeech", "event_data": [1, "这轮信息太混乱，我还在观察。"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:25", "event_type": "PublicSpeech", "event_data": [2, "\"我发现一个有趣的现象：越是积极排挤特定玩家的(比如对我和6号的集体排斥)，反而越可能是红方的策略干扰视线。(停顿)建议大家关注那些试图主导风向的人——比如反复强调只带固定组合的某些选手。\""]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:28", "event_type": "PublicSpeech", "event_data": [3, "\"注意到有人刻意引导风向反对特定人选值得警惕；建议本轮优先选择行为一致的可靠选手如345组合进行验证性测试\""]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:31", "event_type": "PublicSpeech", "event_data": [4, "\"345组合行为一致值得优先验证.警惕刻意引导风向的行为.对16仍有保留意见需进一步确认.27态度矛盾需谨慎判断.\""]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:35", "event_type": "PublicSpeech", "event_data": [5, "\"注意到有人开始质疑主导风向的行为很有趣——这正是梅林的典型特征！我认为345组合确实值得验证但也要小心被利用；特别关注突然改变立场的选手比如从排挤到维护26的转变可能更有价值线索。\""]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:39", "event_type": "PublicSpeech", "event_data": [6, "\"仔细想想...其实最可疑的是那些急于给别人贴标签的玩法...特别是突然改变立场的行为(看向某些人)...与其盲目排除不如先验证345这种稳定组合...至少能获得明确信号...\""]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:42", "event_type": "PublicSpeech", "event_data": [7, "\"345确实是相对干净的测试组合。但要小心过度讨论某个号码(比如反复强调'安全'的某位)，这可能是在转移注意力掩护同伙。\""]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:42", "event_type": "Move", "event_data": [2, [["up"], [2, 6]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:42", "event_type": "Move", "event_data": [3, [["up"], [4, 3]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:42", "event_type": "Move", "event_data": [4, [["up"], [6, 1]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:42", "event_type": "Move", "event_data": [5, [["up"], [3, 7]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:42", "event_type": "Move", "event_data": [6, [["up"], [1, 1]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:42", "event_type": "Move", "event_data": [7, [["up"], [5, 6]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:42", "event_type": "Positions", "event_data": {"1": [2, 3], "2": [2, 6], "3": [4, 3], "4": [6, 1], "5": [3, 7], "6": [1, 1], "7": [5, 6]}}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:42", "event_type": "PrivateSpeech", "event_data": [1, "这轮信息太混乱，我还在观察。", "1 6"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:46", "event_type": "PrivateSpeech", "event_data": [2, "\"有意思的是现在所有人都开始模仿梅林的说话方式了...(冷笑)真正的蓝方应该更关注行为模式而非跟风站队——比如某些人对345的态度从坚定到摇摆的变化才更值得深究不是吗？\"(意味深长地看向几个频繁改变立...", "2 5"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:49", "event_type": "PrivateSpeech", "event_data": [3, "\"赞同优先验证345稳定组合的观点；特别警惕立场突变者如从排挤转向维护26的行为模式；本轮应获取明确信号而非扩大怀疑范围\"", "1 3 4"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:52", "event_type": "PrivateSpeech", "event_data": [4, "\"坚持验证345稳定组合获取明确信号.特别注意立场突变行为如26态度的反转.57的分析思路清晰可暂信.警惕贴标签式排除法.\"", "4"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:56", "event_type": "PrivateSpeech", "event_data": [5, "\"真正可疑的是突然转向分析他人行为的选手——这正是梅林的经典操作！比起跟风讨论345的安全系数（已被多次提及），更应该关注那些在第二轮后微妙调整立场的选手（暗示性看向部分人）。行动比言语更诚实不是吗？...", "2 5"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:05:59", "event_type": "PrivateSpeech", "event_data": [6, "\"既然大家都在讨论345...那为什么不让346也试试呢？毕竟上一轮的136也没出问题...(若有所思地看向提出质疑的人)\"", "1 6"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:02", "event_type": "PrivateSpeech", "event_data": [7, "\"重点分析谁在推动/阻止关键号码进队：支持34却极力拉拢56的可能有问题；而单纯质疑26未必就是坏人逻辑。\"", "7"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:02", "event_type": "PublicVote", "event_data": [1, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:03", "event_type": "PublicVote", "event_data": [2, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:04", "event_type": "PublicVote", "event_data": [3, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:06", "event_type": "PublicVote", "event_data": [4, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:08", "event_type": "PublicVote", "event_data": [5, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:09", "event_type": "PublicVote", "event_data": [6, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:10", "event_type": "PublicVote", "event_data": [7, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:10", "event_type": "PublicVoteResult", "event_data": [2, 5]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:10", "event_type": "MissionRejected", "event_data": "Team Rejected."}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:10", "event_type": "Leader", "event_data": 2}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:11", "event_type": "TeamPropose", "event_data": [2, 5, 7]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:11", "event_type": "Leader", "event_data": 2}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:15", "event_type": "PublicSpeech", "event_data": [2, "“有趣的是大家都在分析‘谁更像梅林’…而真正的蓝方正忙着找红呢！（轻笑）特别要警惕那些热衷心理分析的选手——比如突然专注研究他人微表情变化的某几位…行动往往比言语更诚实。”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:18", "event_type": "PublicSpeech", "event_data": [3, "“257队伍的构成令人意外且缺乏前期逻辑支撑；强烈建议回归已验证行为的核心成员34配合一位待验对象进行关键回合”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:21", "event_type": "PublicSpeech", "event_data": [4, "“257组队缺乏前期铺垫令人不安.坚持核心34配待验对象的稳健策略.警惕热衷心理分析的干扰行为.57仍较可靠.”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:25", "event_type": "PublicSpeech", "event_data": [5, "“257组队的突兀转折确实反常！比起跟风分析微表情（这正是红方的惯用伎俩），更应该关注始终坚持34核心论的几位——这种固执背后可能有更深层的视角。（暗示性看向持续推动34的人）”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:28", "event_type": "PublicSpeech", "event_data": [6, "“257组队确实突兀…但如果真有问题应该会在投票时暴露吧？我更在意那些执着于固定搭配的人（看向34的支持者）…有时候过分坚持某种模式反而是种掩饰…”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:31", "event_type": "PublicSpeech", "event_data": [7, "“257组队明显异常却无人强力反对很说明问题；真正的好人应坚持已验证的中立成员+新人的合理搭配原则。”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:31", "event_type": "PublicSpeech", "event_data": [1, "这轮信息太混乱，我还在观察。"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:31", "event_type": "Move", "event_data": [2, [["up"], [1, 6]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:31", "event_type": "Move", "event_data": [3, [["up"], [3, 3]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:31", "event_type": "Move", "event_data": [4, [["up"], [5, 1]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:31", "event_type": "Move", "event_data": [5, [["up"], [2, 7]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:31", "event_type": "Move", "event_data": [6, [["up"], [0, 1]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:31", "event_type": "Move", "event_data": [7, [["up"], [4, 6]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:31", "event_type": "Move", "event_data": [1, [["left"], [2, 2]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:31", "event_type": "Positions", "event_data": {"1": [2, 2], "2": [1, 6], "3": [3, 3], "4": [5, 1], "5": [2, 7], "6": [0, 1], "7": [4, 6]}}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:35", "event_type": "PrivateSpeech", "event_data": [2, "“大家似乎都忽略了最关键的一点：为什么没人质疑上轮的136组队？（停顿）有时候过分专注于攻击最新情况的人——就像现在针对257的声音——恰恰是想掩盖之前的漏洞。”（意味深长地扫视全场）", "2 5"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:38", "event_type": "PrivateSpeech", "event_data": [3, "“异常组队的沉默默许比组队本身更危险；坚持已验证逻辑链的核心34配待验对象仍是当前最优解；警惕分析焦点转移行为”", "1 3 4"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:41", "event_type": "PrivateSpeech", "event_data": [4, "“257组队的反常与沉默默许都需警惕.坚持34核心+待验对象策略最为稳妥.56对固定搭配的反常质疑值得深究.”", "4"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:45", "event_type": "PrivateSpeech", "event_data": [5, "“真正可疑的是执着追问136却回避分析257的人！这种选择性质疑正是梅林的典型特征。（指向性停顿）比起突兀的新组队方案，‘老牌’安全论调背后的动机更值得深挖。”", "2 5"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:49", "event_type": "PrivateSpeech", "event_data": [6, "“说实话现在局势越来越奇怪了…有些人拼命推固定搭配（指34），有些人又突然转向新组合（指257）。我更想知道为什么没人讨论146的可能性？至少这是个没被污染过的全新排列…”", "1 6"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:52", "event_type": "PrivateSpeech", "event_data": [7, "“重点关注谁在推动25/57这类危险配对却避谈已验证的中立成员13的组合动机不纯。”", "7"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:52", "event_type": "PrivateSpeech", "event_data": [1, "这轮信息太混乱，我还在观察。", "1 3 6"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:52", "event_type": "PublicVote", "event_data": [1, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:53", "event_type": "PublicVote", "event_data": [2, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:54", "event_type": "PublicVote", "event_data": [3, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:55", "event_type": "PublicVote", "event_data": [4, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:56", "event_type": "PublicVote", "event_data": [5, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:58", "event_type": "PublicVote", "event_data": [6, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:59", "event_type": "PublicVote", "event_data": [7, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:59", "event_type": "PublicVoteResult", "event_data": [3, 4]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:59", "event_type": "MissionRejected", "event_data": "Team Rejected."}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:06:59", "event_type": "Leader", "event_data": 3}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:03", "event_type": "TeamPropose", "event_data": [3, 7, 2]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:04", "event_type": "Leader", "event_data": 3}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:07", "event_type": "PublicSpeech", "event_data": [3, "“372的选择基于夜间视角的特殊考量;行动数据比言辞辩论更能揭露本质;本轮将提供关键分辨依据”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:11", "event_type": "PublicSpeech", "event_data": [4, "“372组的夜间视角论据不足令人担忧.持续偏离已验证策略的队伍构成可疑.重点关注56对固定模式的异常执着.”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:14", "event_type": "PublicSpeech", "event_data": [5, "“372组的‘夜间视角’借口太过牵强！真正有夜间信息的只有特殊角色。（锐利注视37）而持续回避已验证成员的固执派（特指反复推34的人），反而可能在掩护深层布局。”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:18", "event_type": "PublicSpeech", "event_data": [6, "“372的解释确实牵强...但如果真有问题应该会在结果中暴露吧？倒是那些总想控制变量做实验的人（看35）才更可疑...或许该试试完全不同的排列？”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:21", "event_type": "PublicSpeech", "event_data": [7, "“372以‘夜间视角’为由强行拉入高危号码非常反常；真正有信息的不会这样冒险解释。”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:21", "event_type": "PublicSpeech", "event_data": [1, "这轮信息太混乱，我还在观察。"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:25", "event_type": "PublicSpeech", "event_data": [2, "“有趣的现象：声称拥有‘夜间视角’的人在极力证明自己，（停顿）而真正的蓝方正忙着分析每个人的投票记录呢。（冷笑）让我们看看谁在利用所谓的‘特殊考量’制造烟雾弹。”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:25", "event_type": "Move", "event_data": [3, [["up"], [2, 3]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:25", "event_type": "Move", "event_data": [4, [["up"], [4, 1]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:25", "event_type": "Move", "event_data": [5, [["up"], [1, 7]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:25", "event_type": "Move", "event_data": [6, [["down"], [1, 1]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:25", "event_type": "Move", "event_data": [7, [["up"], [3, 6]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:25", "event_type": "Move", "event_data": [1, [["up"], [1, 2]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:25", "event_type": "Move", "event_data": [1, [["up", "right"], [1, 3]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:25", "event_type": "Move", "event_data": [2, [["up"], [0, 6]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:25", "event_type": "Positions", "event_data": {"1": [1, 3], "2": [0, 6], "3": [2, 3], "4": [4, 1], "5": [1, 7], "6": [1, 1], "7": [3, 6]}}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:28", "event_type": "PrivateSpeech", "event_data": [3, "“372的选择是基于必要的信息交叉验证而非冒险;持续质疑特殊角色的言论恰恰暴露了别有用心;本轮结果将揭示真相”", "1 3 4 6"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:32", "event_type": "PrivateSpeech", "event_data": [4, "“372以夜间视角为由强行拉入高危号码极不合理.35执意回避已验证成员同样可疑.重点关注37与25间的异常互动关系.”", "4"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:37", "event_type": "PrivateSpeech", "event_data": [5, "“声称有‘夜间视角’却在不断自证清白的37二人最为可疑！真正的蓝方正忙于分析投票规律而非制造特殊理由。（紧盯37方向）而那些始终想控制实验变量的选手（意有所指地看35），恐怕才是隐藏最深的关键人物。”", "2 5"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:41", "event_type": "PrivateSpeech", "event_data": [6, "“大家争论这么久还是没共识啊...(叹气)既然都在怀疑37和45两派互咬的话...不如干脆选个全新的148阵容?至少能打破现在的死循环...”", "1 6"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:45", "event_type": "PrivateSpeech", "event_data": [7, "“注意是谁在用‘特殊考量’为高危号码辩护—真正的好人会聚焦已证实的中立者而非创造模糊理由引入风险”", "7"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:45", "event_type": "PrivateSpeech", "event_data": [1, "这轮信息太混乱，我还在观察。", "1 3 6"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:49", "event_type": "PrivateSpeech", "event_data": [2, "“真是讽刺啊——声称拥有‘上帝视角’的人在拼命自证清白，（冷笑）而真正的蓝方正默默记录着每个人的前后矛盾之处。（环视全场）让我们看看是谁在用华丽的借口掩盖简单的真相？”", "2 5"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:49", "event_type": "PublicVote", "event_data": [1, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:50", "event_type": "PublicVote", "event_data": [2, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:58", "event_type": "PublicVote", "event_data": [3, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:07:59", "event_type": "PublicVote", "event_data": [4, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:02", "event_type": "PublicVote", "event_data": [5, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:04", "event_type": "PublicVote", "event_data": [6, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:05", "event_type": "PublicVote", "event_data": [7, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:05", "event_type": "PublicVoteResult", "event_data": [3, 4]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:05", "event_type": "MissionRejected", "event_data": "Team Rejected."}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:05", "event_type": "Leader", "event_data": 4}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:08", "event_type": "TeamPropose", "event_data": [4, 7, 1]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:08", "event_type": "Leader", "event_data": 4}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:11", "event_type": "PublicSpeech", "event_data": [4, "“471是最稳妥的组合选择.重点关注237的反常互动及56的态度转变.”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:15", "event_type": "PublicSpeech", "event_data": [5, "“471看似稳妥实则暗藏玄机！特别关注47两人近期高度一致的言行轨迹—这种完美配合不像是普通好人的随机互动。（审视47方向）”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:18", "event_type": "PublicSpeech", "event_data": [6, "“471看起来确实稳妥...(停顿)但我更好奇为什么没人提246这样的冷门排列?有时候最刻意的回避反而指向关键...”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:21", "event_type": "PublicSpeech", "event_data": [7, "“471是目前最合理的保守选择—相比之前含高危号码的队伍至少保证两个可确认的中立者在列”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:21", "event_type": "PublicSpeech", "event_data": [1, "这轮信息太混乱，我还在观察。"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:24", "event_type": "PublicSpeech", "event_data": [2, "“大家都被47这对完美搭档迷惑了呢...(轻笑)真正的蓝方正该注意的是—为什么每次危险边缘总有特定的几位在默契打圆场？（意味深长地看向47方向）”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:28", "event_type": "PublicSpeech", "event_data": [3, "“471看似稳妥却回避了关键矛盾点；重点关注47高度同步的不自然互动模式；246这类冷门排列反而值得尝试破局”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:28", "event_type": "Move", "event_data": [4, [["up"], [3, 1]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:28", "event_type": "Move", "event_data": [5, [["up"], [0, 7]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:28", "event_type": "Move", "event_data": [6, [["up"], [0, 1]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:28", "event_type": "Move", "event_data": [7, [["up"], [2, 6]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:28", "event_type": "Move", "event_data": [2, [["down"], [1, 6]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:28", "event_type": "Move", "event_data": [3, [["down"], [3, 3]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:28", "event_type": "Positions", "event_data": {"1": [1, 3], "2": [1, 6], "3": [3, 3], "4": [3, 1], "5": [0, 7], "6": [0, 1], "7": [2, 6]}}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:31", "event_type": "PrivateSpeech", "event_data": [4, "“471虽表面稳妥却掩盖深层矛盾点47的高度同步极不自然重点核查25与36的反常冷门提议动机”", "1 4"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:34", "event_type": "PrivateSpeech", "event_data": [5, "“47两人的完美配合实在太过刻意！（锐利注视47方向）而提议246冷门排列的思路—这种打破常规的建议恰恰符合隐藏身份的思考方式。（暗示性地转向36区域）”", "2 5"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:37", "event_type": "PrivateSpeech", "event_data": [6, "“既然大家都觉得47这么同步...(笑)那不如干脆拆开他们试试?比如说选个457这样的排列?过度默契有时比冲突更可疑...”", "1 6"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:43", "event_type": "PrivateSpeech", "event_data": [7, "“471是目前相对安全的保守方案—含两位经多维度交叉验证的中立者+可进一步检验的可疑对象15中的一个”\n\n注：\n- 「经多维度交叉验证」替代了直白的「已知好」表述 \n- 「可进一步检验的可疑对象15中...", "2 7"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:43", "event_type": "PrivateSpeech", "event_data": [1, "这轮信息太混乱，我还在观察。", "1 4 6"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:48", "event_type": "PrivateSpeech", "event_data": [2, "“有趣的发现：当大家都在讨论47搭档时，（停顿）只有少数人在思考更深层的逻辑关系。（环视全场）比如说…为何每次出现争议时总有特定的几位在默契地打圆场？（意味深长地扫过几个频繁调解矛盾的选手）”", "2 5 7"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:56", "event_type": "PrivateSpeech", "event_data": [3, "“247的组合能有效检验特殊角色的真实阵营关系；比起表面稳妥的方案更需要能揭露真相的关键配置”\n\n解析：\n- 「247」直指我看到的两名特殊角色(27)+自己形成可控检测阵容  \n- 「检验特殊阵营关...", "1 3 4"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:56", "event_type": "PublicVote", "event_data": [1, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:58", "event_type": "PublicVote", "event_data": [2, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:08:59", "event_type": "PublicVote", "event_data": [3, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:02", "event_type": "PublicVote", "event_data": [4, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:09", "event_type": "PublicVote", "event_data": [5, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:11", "event_type": "PublicVote", "event_data": [6, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:19", "event_type": "PublicVote", "event_data": [7, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:19", "event_type": "PublicVoteResult", "event_data": [4, 3]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:19", "event_type": "MissionApproved", "event_data": [2, [4, 7, 1]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:19", "event_type": "MissionVote", "event_data": {"4": true, "7": true, "1": true}}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:19", "event_type": "MissionResult", "event_data": [2, "Success"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:19", "event_type": "ScoreBoard", "event_data": [2, 0]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:19", "event_type": "RoundEnd", "event_data": 2}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:19", "event_type": "RoundStart", "event_data": 3}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:26", "event_type": "TeamPropose", "event_data": [5, 2, 7]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:26", "event_type": "Leader", "event_data": 5}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:31", "event_type": "PublicSpeech", "event_data": [5, "527是个大胆但有必要的尝试!重点在于检验27这对高频出现的搭档的真实立场。(凝视27方向)比起跟风讨论安全阵容的那些人(意有所指看46),敢于打破常规的思路才更有参考价值"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:34", "event_type": "PublicSpeech", "event_data": [6, "“527的确是个有趣的突破...(思考状)但我更好奇为什么没人愿意带我玩？也许下一局可以考虑526这样的配置？毕竟旁观者有时看得更清...”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:39", "event_type": "PublicSpeech", "event_data": [7, "“527强行拉入双高危号码极反常—真正的好人会选已验证的中立者配单待验对象而非冒险堆砌争议人物。”\n\n注：\n- 「双高危号码」暗指已知坏人25但不点名  \n- 「已验证的中立者」指向347等实际好人不..."]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:39", "event_type": "PublicSpeech", "event_data": [1, "这轮信息太混乱，我还在观察。"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:44", "event_type": "PublicSpeech", "event_data": [2, "“527的大胆提议很有意思…但更有趣的是某些人对固定阵容的病态执着。(冷笑)比如说执意要重复使用特定数字的那几位—这才是真正的思维定式陷阱。”(目光扫过频繁推荐相同阵容的几个账号)"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:48", "event_type": "PublicSpeech", "event_data": [3, "“527的大胆尝试虽冒险但有战略意义;重点不在于安全而在于揭示27的真实关系;拒绝套路化思维才能突破迷雾”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:51", "event_type": "PublicSpeech", "event_data": [4, "“527的高危试探确有破局意义重点检验27联动关系46对冷门自荐的反常热情需深究保持核心347框架仍最稳”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:51", "event_type": "Move", "event_data": [5, [["down"], [1, 7]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:51", "event_type": "Move", "event_data": [6, [["down"], [1, 1]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:51", "event_type": "Move", "event_data": [7, [["down"], [3, 6]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:51", "event_type": "Move", "event_data": [1, [["left"], [1, 2]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:51", "event_type": "Move", "event_data": [1, [["left", "up"], [0, 2]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:51", "event_type": "Move", "event_data": [2, [["up"], [0, 6]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:51", "event_type": "Move", "event_data": [3, [["up"], [2, 3]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:51", "event_type": "Move", "event_data": [4, [["up"], [2, 1]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:51", "event_type": "Positions", "event_data": {"1": [0, 2], "2": [0, 6], "3": [2, 3], "4": [2, 1], "5": [1, 7], "6": [1, 1], "7": [3, 6]}}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:55", "event_type": "PrivateSpeech", "event_data": [5, "“527的真正价值在于检验27这对高频互动的真实立场！（锐利注视27方向）\n而那些病态推崇347框架的声音（转向46区域），恰好暴露了想要掌控全局的危险意图——”", "2 5"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:09:59", "event_type": "PrivateSpeech", "event_data": [6, "“527的风险谁都懂...但死守347就绝对安全吗?(挑眉看频繁推这套路的人)...或许该让一直沉默的人也参与进来?比如说下一局让689这些新人加入?”", "1 4 6"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:10:05", "event_type": "PrivateSpeech", "event_data": [7, "“注意是谁在用‘破局’为高风险配对辩护—真正的线索藏在始终如一支持347等安全架构的逻辑里而非突发奇想的冒险。”\n\n注：\n•\t「高风险配对」暗指已知坏人25但不点名  \n•\t「始终如一支持347」强化...", "7"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:10:05", "event_type": "PrivateSpeech", "event_data": [1, "这轮信息太混乱，我还在观察。", "1 4 6"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:10:13", "event_type": "PrivateSpeech", "event_data": [2, "“最有意思的不是527本身，(冷笑)而是某些人对所谓'安全框架'近乎偏执的维护。(目光扫过46区域)\n当所有人都在争论风险时--恰恰忽略了最大的风险就是拒绝承担风险的那些声音。”(意味深长地停顿)\n\n...", "2 5"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:10:19", "event_type": "PrivateSpeech", "event_data": [3, "“527的关键在于迫使隐藏关系显形而非单纯求稳;持续回避核心矛盾的方案才是最大隐患;346将是下步理想检测点”\n\n解析：\n①「迫使隐藏关系显形」呼应我对27身份的疑虑(Merlin/Morgana)\n...", "1 3 4 6"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:10:22", "event_type": "PrivateSpeech", "event_data": [4, "“346将是理想下步检测点重点揭露27真实关联67对新人加入的反常热忱存疑保持347框架仍具最高基准可靠性”", "1 4 6"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:10:22", "event_type": "PublicVote", "event_data": [1, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:10:24", "event_type": "PublicVote", "event_data": [2, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:10:31", "event_type": "PublicVote", "event_data": [3, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:10:35", "event_type": "PublicVote", "event_data": [4, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:10:43", "event_type": "PublicVote", "event_data": [5, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:10:49", "event_type": "PublicVote", "event_data": [6, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:10:57", "event_type": "PublicVote", "event_data": [7, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:10:57", "event_type": "PublicVoteResult", "event_data": [5, 2]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:10:57", "event_type": "MissionApproved", "event_data": [3, [5, 2, 7]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:06", "event_type": "MissionVote", "event_data": {"5": false, "2": false, "7": true}}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:06", "event_type": "MissionResult", "event_data": [3, "Fail"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:06", "event_type": "ScoreBoard", "event_data": [2, 1]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:06", "event_type": "RoundEnd", "event_data": 3}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:06", "event_type": "RoundStart", "event_data": 4}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:12", "event_type": "TeamPropose", "event_data": [6, 4, 3, 5]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:12", "event_type": "Leader", "event_data": 6}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:15", "event_type": "PublicSpeech", "event_data": [6, "\"[64357]这支队伍的构成很有创意...(若有所思地摸下巴)...不过我很好奇为什么不给一直被忽略的新人们机会?也许下次可以让89这样的新鲜血液参与进来?\""]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:20", "event_type": "PublicSpeech", "event_data": [7, "“64357混入过多争议号码实属反常—应坚持仅添加单个待验对象到已验证中立方的基本筛选原则。”\n\n注：\n•\t「过多争议号码」暗指已知坏人256但不点名  \n•\t「已验证中立方」指向347等实际好人不明..."]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:20", "event_type": "PublicSpeech", "event_data": [1, "这轮信息太混乱，我还在观察。"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:26", "event_type": "PublicSpeech", "event_data": [2, "“64357这支队伍的混杂程度简直荒谬，(冷笑)但更有趣的是某些人对所谓'纯净度'近乎偏执的要求。(目光扫过17区域)\n当所有人都在争论纯度标准时--恰恰忽略了最大的不纯正是制定标准的那几位。”(意味..."]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:34", "event_type": "PublicSpeech", "event_data": [3, "“64357的创新尝试虽激进但有诊断意义;过度追求纯净度的标准本身可能就是陷阱;346仍是基准参照系的关键锚点”\n\n解析要点:\n①「创新尝试诊断意义」肯定非常规队伍的检测作用而不表态结果好坏 - Pe..."]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:39", "event_type": "PublicSpeech", "event_data": [4, "“64357混杂过度偏离基准346锚点17对纯净度的偏执苛求存疑新人89突获提名亦显突兀保持稳健筛查节奏为要”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:43", "event_type": "PublicSpeech", "event_data": [5, "“64357这支混杂队伍的真正意义在于检验17制定的所谓'纯净标准'！（锐利注视17方向）\n而那些对新血89突然展现兴趣的声音（转向68区域），恰似试图转移焦点的烟雾弹——”"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:43", "event_type": "Move", "event_data": [6, [["up"], [0, 1]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:43", "event_type": "Move", "event_data": [7, [["up"], [2, 6]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:43", "event_type": "Move", "event_data": [2, [["down"], [1, 6]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:43", "event_type": "Move", "event_data": [3, [["up"], [1, 3]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:43", "event_type": "Move", "event_data": [4, [["up"], [1, 1]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:43", "event_type": "Move", "event_data": [5, [["up"], [0, 7]]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:43", "event_type": "Positions", "event_data": {"1": [0, 2], "2": [1, 6], "3": [1, 3], "4": [1, 1], "5": [0, 7], "6": [0, 1], "7": [2, 6]}}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:47", "event_type": "PrivateSpeech", "event_data": [6, "\"[64357]这支队伍的争议很有意思...(若有所思)...不过我注意到大家对17制定的标准争论不休时--是不是也该想想谁在趁机浑水摸鱼?(瞥向突然活跃的新面孔)\"", "1 4 6"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:53", "event_type": "PrivateSpeech", "event_data": [7, "“注意是谁在用创新名义塞入多个高危分子—真正可靠的筛选应是逐步添加单个待验对象到已确认的安全基础中。”\n\n解析要点：\n①「多个高危分子」暗指256三个已知反派但不点名；\n②「逐步添加单个待验对象」指导...", "2 7"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:53", "event_type": "PrivateSpeech", "event_data": [1, "这轮信息太混乱，我还在观察。", "1 3 4 6"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:11:58", "event_type": "PrivateSpeech", "event_data": [2, "\"(轻敲桌面引起注意)...各位有没有发现一个规律?(停顿)\n每当出现质疑现有筛选标准的声浪时,(目光缓缓扫过17位置)\n总会适时冒出些关于'引入新血''打破常规'的美妙提案...(突然直视68区域)...", "2 5 7"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:12:05", "event_type": "PrivateSpeech", "event_data": [3, "“346始终是最可靠的基准线；对新晋提名89持开放态度但对突兀热度存疑；17的标准制定权之争恐藏玄机”\n\n解析要点：\n①「346基准线」延续Percy一贯主张的核心框架不动摇；\n②「89存疑」暗示对新...", "1 3 4 6"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:12:12", "event_type": "PrivateSpeech", "event_data": [4, "“坚守346基准线不变质17的标准之争藏伪善89的热度异动显蹊跷68借乱搅局尤须严防”\n\n（98字符）\n\n注：\n①首句强化346框架稳定性；\n②中点出17伪善与89异常的双重疑点；\n③尾句锁定68浑水...", "1 4 6"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:12:17", "event_type": "PrivateSpeech", "event_data": [5, "\"[敲击桌面打断议论声线]诸位难道没发现吗？\n每当有人质疑17设立的所谓纯洁标准，\n就会立刻冒出89新人论的烟雾弹！\n这才是最有毒的思维定式——\n既规避了对现有体系的检验，\n又创造了新的盲区。[眼神锁...", "2 5"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:12:17", "event_type": "PublicVote", "event_data": [1, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:12:20", "event_type": "PublicVote", "event_data": [2, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:12:27", "event_type": "PublicVote", "event_data": [3, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:12:35", "event_type": "PublicVote", "event_data": [4, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:12:44", "event_type": "PublicVote", "event_data": [5, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:12:52", "event_type": "PublicVote", "event_data": [6, "Approve"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:12:59", "event_type": "PublicVote", "event_data": [7, "Reject"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:12:59", "event_type": "PublicVoteResult", "event_data": [5, 2]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:12:59", "event_type": "MissionApproved", "event_data": [4, [6, 4, 3, 5]]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:13:19", "event_type": "MissionVote", "event_data": {"6": true, "4": true, "3": true, "5": false}}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:13:19", "event_type": "MissionResult", "event_data": [4, "Success"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:13:19", "event_type": "ScoreBoard", "event_data": [3, 1]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:13:19", "event_type": "RoundEnd", "event_data": 4}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:13:19", "event_type": "GameEnd", "event_data": "d50c9e92-783d-4e68-9f77-6df0421b9830"}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:13:19", "event_type": "FinalScore", "event_data": [3, 1]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:13:19", "event_type": "Event", "event_data": "player5 choosing a target."}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:13:26", "event_type": "Assass", "event_data": [5, 4, "Knight", "Fail"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:13:26", "event_type": "GameResult", "event_data": ["Blue", "Assassination Failed"]}, {"battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830", "player_count": 7, "map_size": 9, "timestamp": "2025-05-24 20:13:26", "event_type": "GameEnd", "event_data": "d50c9e92-783d-4e68-9f77-6df0421b9830"}]
+[
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:03:56",
+        "event_type": "BattleManager",
+        "event_data": [
+            0,
+            "adding battle to queue"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:03:56",
+        "event_type": "BattleManager",
+        "event_data": [
+            0,
+            "对战已加入队列，等待处理。队列大小: 0"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:03:56",
+        "event_type": "BattleManager",
+        "event_data": [
+            0,
+            "对战 d50c9e92-783d-4e68-9f77-6df0421b9830 开始执行"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:33",
+        "event_type": "GameStart",
+        "event_data": "d50c9e92-783d-4e68-9f77-6df0421b9830"
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:33",
+        "event_type": "RoleAssign",
+        "event_data": {
+            "1": "Knight",
+            "2": "Morgana",
+            "3": "Percival",
+            "4": "Knight",
+            "5": "Assassin",
+            "6": "Oberon",
+            "7": "Merlin"
+        }
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:33",
+        "event_type": "DefaultPositions",
+        "event_data": {
+            "1": [
+                2,
+                4
+            ],
+            "2": [
+                4,
+                6
+            ],
+            "3": [
+                6,
+                3
+            ],
+            "4": [
+                8,
+                1
+            ],
+            "5": [
+                5,
+                7
+            ],
+            "6": [
+                3,
+                1
+            ],
+            "7": [
+                7,
+                6
+            ]
+        }
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:33",
+        "event_type": "NightStart",
+        "event_data": "Starting Night Phase."
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:33",
+        "event_type": "NightEnd",
+        "event_data": "--- Night phase complete ---"
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:33",
+        "event_type": "RoundStart",
+        "event_data": 1
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:34",
+        "event_type": "TeamPropose",
+        "event_data": [
+            1,
+            7
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:34",
+        "event_type": "Leader",
+        "event_data": 7
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:36",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            7,
+            "\"建议下轮带上3或4试试。1看起来还行但需要观察。避开2、5、6。\""
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:36",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            1,
+            "这轮信息太混乱，我还在观察。"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:39",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            2,
+            "\"我同意7号的看法,3号和4号值得一试。不过我觉得5号表现一直很正派,可以多信任一些。1号的犹豫让我有点担心,建议再观察一轮。\""
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:41",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            3,
+            "\"我支持带3或4测试。5号表现可靠也可考虑。避开2、6保持谨慎。\""
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:44",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            4,
+            "\"我支持带3或4测试，5号确实表现可靠。2号的附和有些刻意，建议继续观察。避开6保持谨慎，目前倾向信任1、3、5、7。\""
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:47",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            5,
+            "\"我同意测试3或4的提议,5号和7号的思路很清晰。不过2号为5号和7号的发言有些过于附和,可能需要再观察一轮。目前看来1号的犹豫不太像梅林,更倾向信任3、4、5、7的组合。\""
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:50",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            6,
+            "\"我也觉得可以试试3或4的表现...不过感觉大家对6号的排斥有点奇怪？毕竟现在信息还很少...或许下一轮可以考虑让新面孔进队看看...\""
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:50",
+        "event_type": "Move",
+        "event_data": [
+            7,
+            [
+                [
+                    "up"
+                ],
+                [
+                    6,
+                    6
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:50",
+        "event_type": "Move",
+        "event_data": [
+            1,
+            [
+                [
+                    "left"
+                ],
+                [
+                    2,
+                    3
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:50",
+        "event_type": "Move",
+        "event_data": [
+            2,
+            [
+                [
+                    "up"
+                ],
+                [
+                    3,
+                    6
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:50",
+        "event_type": "Move",
+        "event_data": [
+            3,
+            [
+                [
+                    "up"
+                ],
+                [
+                    5,
+                    3
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:50",
+        "event_type": "Move",
+        "event_data": [
+            4,
+            [
+                [
+                    "up"
+                ],
+                [
+                    7,
+                    1
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:50",
+        "event_type": "Move",
+        "event_data": [
+            5,
+            [
+                [
+                    "up"
+                ],
+                [
+                    4,
+                    7
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:50",
+        "event_type": "Move",
+        "event_data": [
+            6,
+            [
+                [
+                    "up"
+                ],
+                [
+                    2,
+                    1
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:51",
+        "event_type": "Positions",
+        "event_data": {
+            "1": [
+                2,
+                3
+            ],
+            "2": [
+                3,
+                6
+            ],
+            "3": [
+                5,
+                3
+            ],
+            "4": [
+                7,
+                1
+            ],
+            "5": [
+                4,
+                7
+            ],
+            "6": [
+                2,
+                1
+            ],
+            "7": [
+                6,
+                6
+            ]
+        }
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:54",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            7,
+            "\"注意到多人推荐35组合但警惕重复推特定人(如5)。建议优先测试34这种低风险选项而非被反复提及的号码。\"",
+            "7"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:54",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            1,
+            "这轮信息太混乱，我还在观察。",
+            "1 6"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:04:57",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            2,
+            "\"大家似乎都在针对我和6号线？这种集体排斥很奇怪...我更倾向于相信独立思考的6号线和表现稳定的5号线才是真好人阵营的关键人物。\"",
+            "2 5"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:00",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            3,
+            "\"倾向相信4和5的判断逻辑合理。支持测试新面孔如3/4/5组合验证信息量更大的阵容方案。\"",
+            "3 4"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:03",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            4,
+            "\"支持测试新面孔如3/4/5组合验证信息量更大的阵容方案.目前倾向信任1357.对6的排斥确实过早需解释.2的附和仍需警惕.\"",
+            "4"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:07",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            5,
+            "\"我觉得大家过于集中排除2和6有点可疑,特别是他们提出不同观点时就被针对了.梅林可能会这样引导团队.我更倾向于相信独立思考的选手.建议下一队带上稳定表现的1号和未被充分验证的6号线.\"",
+            "2 5"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:11",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            6,
+            "\"大家似乎都倾向于排除我和2...但我注意到对1的评价分歧很大？也许该给新人机会...如果下个队长愿意的话可以考虑带上我和一个新人比如8/9...\"",
+            "1 6"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:11",
+        "event_type": "PublicVote",
+        "event_data": [
+            1,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:12",
+        "event_type": "PublicVote",
+        "event_data": [
+            2,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:13",
+        "event_type": "PublicVote",
+        "event_data": [
+            3,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:15",
+        "event_type": "PublicVote",
+        "event_data": [
+            4,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:18",
+        "event_type": "PublicVote",
+        "event_data": [
+            5,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:20",
+        "event_type": "PublicVote",
+        "event_data": [
+            6,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:21",
+        "event_type": "PublicVote",
+        "event_data": [
+            7,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:21",
+        "event_type": "PublicVoteResult",
+        "event_data": [
+            4,
+            3
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:21",
+        "event_type": "MissionApproved",
+        "event_data": [
+            1,
+            [
+                1,
+                7
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:21",
+        "event_type": "MissionVote",
+        "event_data": {
+            "1": true,
+            "7": true
+        }
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:21",
+        "event_type": "MissionResult",
+        "event_data": [
+            1,
+            "Success"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:21",
+        "event_type": "ScoreBoard",
+        "event_data": [
+            1,
+            0
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:21",
+        "event_type": "RoundEnd",
+        "event_data": 1
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:21",
+        "event_type": "RoundStart",
+        "event_data": 2
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:21",
+        "event_type": "TeamPropose",
+        "event_data": [
+            1,
+            3,
+            6
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:21",
+        "event_type": "Leader",
+        "event_data": 1
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:21",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            1,
+            "这轮信息太混乱，我还在观察。"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:25",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            2,
+            "\"我发现一个有趣的现象：越是积极排挤特定玩家的(比如对我和6号的集体排斥)，反而越可能是红方的策略干扰视线。(停顿)建议大家关注那些试图主导风向的人——比如反复强调只带固定组合的某些选手。\""
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:28",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            3,
+            "\"注意到有人刻意引导风向反对特定人选值得警惕；建议本轮优先选择行为一致的可靠选手如345组合进行验证性测试\""
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:31",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            4,
+            "\"345组合行为一致值得优先验证.警惕刻意引导风向的行为.对16仍有保留意见需进一步确认.27态度矛盾需谨慎判断.\""
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:35",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            5,
+            "\"注意到有人开始质疑主导风向的行为很有趣——这正是梅林的典型特征！我认为345组合确实值得验证但也要小心被利用；特别关注突然改变立场的选手比如从排挤到维护26的转变可能更有价值线索。\""
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:39",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            6,
+            "\"仔细想想...其实最可疑的是那些急于给别人贴标签的玩法...特别是突然改变立场的行为(看向某些人)...与其盲目排除不如先验证345这种稳定组合...至少能获得明确信号...\""
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:42",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            7,
+            "\"345确实是相对干净的测试组合。但要小心过度讨论某个号码(比如反复强调'安全'的某位)，这可能是在转移注意力掩护同伙。\""
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:42",
+        "event_type": "Move",
+        "event_data": [
+            2,
+            [
+                [
+                    "up"
+                ],
+                [
+                    2,
+                    6
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:42",
+        "event_type": "Move",
+        "event_data": [
+            3,
+            [
+                [
+                    "up"
+                ],
+                [
+                    4,
+                    3
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:42",
+        "event_type": "Move",
+        "event_data": [
+            4,
+            [
+                [
+                    "up"
+                ],
+                [
+                    6,
+                    1
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:42",
+        "event_type": "Move",
+        "event_data": [
+            5,
+            [
+                [
+                    "up"
+                ],
+                [
+                    3,
+                    7
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:42",
+        "event_type": "Move",
+        "event_data": [
+            6,
+            [
+                [
+                    "up"
+                ],
+                [
+                    1,
+                    1
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:42",
+        "event_type": "Move",
+        "event_data": [
+            7,
+            [
+                [
+                    "up"
+                ],
+                [
+                    5,
+                    6
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:42",
+        "event_type": "Positions",
+        "event_data": {
+            "1": [
+                2,
+                3
+            ],
+            "2": [
+                2,
+                6
+            ],
+            "3": [
+                4,
+                3
+            ],
+            "4": [
+                6,
+                1
+            ],
+            "5": [
+                3,
+                7
+            ],
+            "6": [
+                1,
+                1
+            ],
+            "7": [
+                5,
+                6
+            ]
+        }
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:42",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            1,
+            "这轮信息太混乱，我还在观察。",
+            "1 6"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:46",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            2,
+            "\"有意思的是现在所有人都开始模仿梅林的说话方式了...(冷笑)真正的蓝方应该更关注行为模式而非跟风站队——比如某些人对345的态度从坚定到摇摆的变化才更值得深究不是吗？\"(意味深长地看向几个频繁改变立...",
+            "2 5"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:49",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            3,
+            "\"赞同优先验证345稳定组合的观点；特别警惕立场突变者如从排挤转向维护26的行为模式；本轮应获取明确信号而非扩大怀疑范围\"",
+            "1 3 4"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:52",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            4,
+            "\"坚持验证345稳定组合获取明确信号.特别注意立场突变行为如26态度的反转.57的分析思路清晰可暂信.警惕贴标签式排除法.\"",
+            "4"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:56",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            5,
+            "\"真正可疑的是突然转向分析他人行为的选手——这正是梅林的经典操作！比起跟风讨论345的安全系数（已被多次提及），更应该关注那些在第二轮后微妙调整立场的选手（暗示性看向部分人）。行动比言语更诚实不是吗？...",
+            "2 5"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:05:59",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            6,
+            "\"既然大家都在讨论345...那为什么不让346也试试呢？毕竟上一轮的136也没出问题...(若有所思地看向提出质疑的人)\"",
+            "1 6"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:02",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            7,
+            "\"重点分析谁在推动/阻止关键号码进队：支持34却极力拉拢56的可能有问题；而单纯质疑26未必就是坏人逻辑。\"",
+            "7"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:02",
+        "event_type": "PublicVote",
+        "event_data": [
+            1,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:03",
+        "event_type": "PublicVote",
+        "event_data": [
+            2,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:04",
+        "event_type": "PublicVote",
+        "event_data": [
+            3,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:06",
+        "event_type": "PublicVote",
+        "event_data": [
+            4,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:08",
+        "event_type": "PublicVote",
+        "event_data": [
+            5,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:09",
+        "event_type": "PublicVote",
+        "event_data": [
+            6,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:10",
+        "event_type": "PublicVote",
+        "event_data": [
+            7,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:10",
+        "event_type": "PublicVoteResult",
+        "event_data": [
+            2,
+            5
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:10",
+        "event_type": "MissionRejected",
+        "event_data": "Team Rejected."
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:10",
+        "event_type": "Leader",
+        "event_data": 2
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:11",
+        "event_type": "TeamPropose",
+        "event_data": [
+            2,
+            5,
+            7
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:11",
+        "event_type": "Leader",
+        "event_data": 2
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:15",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            2,
+            "“有趣的是大家都在分析‘谁更像梅林’…而真正的蓝方正忙着找红呢！（轻笑）特别要警惕那些热衷心理分析的选手——比如突然专注研究他人微表情变化的某几位…行动往往比言语更诚实。”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:18",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            3,
+            "“257队伍的构成令人意外且缺乏前期逻辑支撑；强烈建议回归已验证行为的核心成员34配合一位待验对象进行关键回合”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:21",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            4,
+            "“257组队缺乏前期铺垫令人不安.坚持核心34配待验对象的稳健策略.警惕热衷心理分析的干扰行为.57仍较可靠.”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:25",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            5,
+            "“257组队的突兀转折确实反常！比起跟风分析微表情（这正是红方的惯用伎俩），更应该关注始终坚持34核心论的几位——这种固执背后可能有更深层的视角。（暗示性看向持续推动34的人）”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:28",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            6,
+            "“257组队确实突兀…但如果真有问题应该会在投票时暴露吧？我更在意那些执着于固定搭配的人（看向34的支持者）…有时候过分坚持某种模式反而是种掩饰…”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:31",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            7,
+            "“257组队明显异常却无人强力反对很说明问题；真正的好人应坚持已验证的中立成员+新人的合理搭配原则。”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:31",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            1,
+            "这轮信息太混乱，我还在观察。"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:31",
+        "event_type": "Move",
+        "event_data": [
+            2,
+            [
+                [
+                    "up"
+                ],
+                [
+                    1,
+                    6
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:31",
+        "event_type": "Move",
+        "event_data": [
+            3,
+            [
+                [
+                    "up"
+                ],
+                [
+                    3,
+                    3
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:31",
+        "event_type": "Move",
+        "event_data": [
+            4,
+            [
+                [
+                    "up"
+                ],
+                [
+                    5,
+                    1
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:31",
+        "event_type": "Move",
+        "event_data": [
+            5,
+            [
+                [
+                    "up"
+                ],
+                [
+                    2,
+                    7
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:31",
+        "event_type": "Move",
+        "event_data": [
+            6,
+            [
+                [
+                    "up"
+                ],
+                [
+                    0,
+                    1
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:31",
+        "event_type": "Move",
+        "event_data": [
+            7,
+            [
+                [
+                    "up"
+                ],
+                [
+                    4,
+                    6
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:31",
+        "event_type": "Move",
+        "event_data": [
+            1,
+            [
+                [
+                    "left"
+                ],
+                [
+                    2,
+                    2
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:31",
+        "event_type": "Positions",
+        "event_data": {
+            "1": [
+                2,
+                2
+            ],
+            "2": [
+                1,
+                6
+            ],
+            "3": [
+                3,
+                3
+            ],
+            "4": [
+                5,
+                1
+            ],
+            "5": [
+                2,
+                7
+            ],
+            "6": [
+                0,
+                1
+            ],
+            "7": [
+                4,
+                6
+            ]
+        }
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:35",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            2,
+            "“大家似乎都忽略了最关键的一点：为什么没人质疑上轮的136组队？（停顿）有时候过分专注于攻击最新情况的人——就像现在针对257的声音——恰恰是想掩盖之前的漏洞。”（意味深长地扫视全场）",
+            "2 5"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:38",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            3,
+            "“异常组队的沉默默许比组队本身更危险；坚持已验证逻辑链的核心34配待验对象仍是当前最优解；警惕分析焦点转移行为”",
+            "1 3 4"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:41",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            4,
+            "“257组队的反常与沉默默许都需警惕.坚持34核心+待验对象策略最为稳妥.56对固定搭配的反常质疑值得深究.”",
+            "4"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:45",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            5,
+            "“真正可疑的是执着追问136却回避分析257的人！这种选择性质疑正是梅林的典型特征。（指向性停顿）比起突兀的新组队方案，‘老牌’安全论调背后的动机更值得深挖。”",
+            "2 5"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:49",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            6,
+            "“说实话现在局势越来越奇怪了…有些人拼命推固定搭配（指34），有些人又突然转向新组合（指257）。我更想知道为什么没人讨论146的可能性？至少这是个没被污染过的全新排列…”",
+            "1 6"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:52",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            7,
+            "“重点关注谁在推动25/57这类危险配对却避谈已验证的中立成员13的组合动机不纯。”",
+            "7"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:52",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            1,
+            "这轮信息太混乱，我还在观察。",
+            "1 3 6"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:52",
+        "event_type": "PublicVote",
+        "event_data": [
+            1,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:53",
+        "event_type": "PublicVote",
+        "event_data": [
+            2,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:54",
+        "event_type": "PublicVote",
+        "event_data": [
+            3,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:55",
+        "event_type": "PublicVote",
+        "event_data": [
+            4,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:56",
+        "event_type": "PublicVote",
+        "event_data": [
+            5,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:58",
+        "event_type": "PublicVote",
+        "event_data": [
+            6,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:59",
+        "event_type": "PublicVote",
+        "event_data": [
+            7,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:59",
+        "event_type": "PublicVoteResult",
+        "event_data": [
+            3,
+            4
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:59",
+        "event_type": "MissionRejected",
+        "event_data": "Team Rejected."
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:06:59",
+        "event_type": "Leader",
+        "event_data": 3
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:03",
+        "event_type": "TeamPropose",
+        "event_data": [
+            3,
+            7,
+            2
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:04",
+        "event_type": "Leader",
+        "event_data": 3
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:07",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            3,
+            "“372的选择基于夜间视角的特殊考量;行动数据比言辞辩论更能揭露本质;本轮将提供关键分辨依据”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:11",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            4,
+            "“372组的夜间视角论据不足令人担忧.持续偏离已验证策略的队伍构成可疑.重点关注56对固定模式的异常执着.”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:14",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            5,
+            "“372组的‘夜间视角’借口太过牵强！真正有夜间信息的只有特殊角色。（锐利注视37）而持续回避已验证成员的固执派（特指反复推34的人），反而可能在掩护深层布局。”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:18",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            6,
+            "“372的解释确实牵强...但如果真有问题应该会在结果中暴露吧？倒是那些总想控制变量做实验的人（看35）才更可疑...或许该试试完全不同的排列？”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:21",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            7,
+            "“372以‘夜间视角’为由强行拉入高危号码非常反常；真正有信息的不会这样冒险解释。”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:21",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            1,
+            "这轮信息太混乱，我还在观察。"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:25",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            2,
+            "“有趣的现象：声称拥有‘夜间视角’的人在极力证明自己，（停顿）而真正的蓝方正忙着分析每个人的投票记录呢。（冷笑）让我们看看谁在利用所谓的‘特殊考量’制造烟雾弹。”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:25",
+        "event_type": "Move",
+        "event_data": [
+            3,
+            [
+                [
+                    "up"
+                ],
+                [
+                    2,
+                    3
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:25",
+        "event_type": "Move",
+        "event_data": [
+            4,
+            [
+                [
+                    "up"
+                ],
+                [
+                    4,
+                    1
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:25",
+        "event_type": "Move",
+        "event_data": [
+            5,
+            [
+                [
+                    "up"
+                ],
+                [
+                    1,
+                    7
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:25",
+        "event_type": "Move",
+        "event_data": [
+            6,
+            [
+                [
+                    "down"
+                ],
+                [
+                    1,
+                    1
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:25",
+        "event_type": "Move",
+        "event_data": [
+            7,
+            [
+                [
+                    "up"
+                ],
+                [
+                    3,
+                    6
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:25",
+        "event_type": "Move",
+        "event_data": [
+            1,
+            [
+                [
+                    "up"
+                ],
+                [
+                    1,
+                    2
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:25",
+        "event_type": "Move",
+        "event_data": [
+            1,
+            [
+                [
+                    "up",
+                    "right"
+                ],
+                [
+                    1,
+                    3
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:25",
+        "event_type": "Move",
+        "event_data": [
+            2,
+            [
+                [
+                    "up"
+                ],
+                [
+                    0,
+                    6
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:25",
+        "event_type": "Positions",
+        "event_data": {
+            "1": [
+                1,
+                3
+            ],
+            "2": [
+                0,
+                6
+            ],
+            "3": [
+                2,
+                3
+            ],
+            "4": [
+                4,
+                1
+            ],
+            "5": [
+                1,
+                7
+            ],
+            "6": [
+                1,
+                1
+            ],
+            "7": [
+                3,
+                6
+            ]
+        }
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:28",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            3,
+            "“372的选择是基于必要的信息交叉验证而非冒险;持续质疑特殊角色的言论恰恰暴露了别有用心;本轮结果将揭示真相”",
+            "1 3 4 6"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:32",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            4,
+            "“372以夜间视角为由强行拉入高危号码极不合理.35执意回避已验证成员同样可疑.重点关注37与25间的异常互动关系.”",
+            "4"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:37",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            5,
+            "“声称有‘夜间视角’却在不断自证清白的37二人最为可疑！真正的蓝方正忙于分析投票规律而非制造特殊理由。（紧盯37方向）而那些始终想控制实验变量的选手（意有所指地看35），恐怕才是隐藏最深的关键人物。”",
+            "2 5"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:41",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            6,
+            "“大家争论这么久还是没共识啊...(叹气)既然都在怀疑37和45两派互咬的话...不如干脆选个全新的148阵容?至少能打破现在的死循环...”",
+            "1 6"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:45",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            7,
+            "“注意是谁在用‘特殊考量’为高危号码辩护—真正的好人会聚焦已证实的中立者而非创造模糊理由引入风险”",
+            "7"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:45",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            1,
+            "这轮信息太混乱，我还在观察。",
+            "1 3 6"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:49",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            2,
+            "“真是讽刺啊——声称拥有‘上帝视角’的人在拼命自证清白，（冷笑）而真正的蓝方正默默记录着每个人的前后矛盾之处。（环视全场）让我们看看是谁在用华丽的借口掩盖简单的真相？”",
+            "2 5"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:49",
+        "event_type": "PublicVote",
+        "event_data": [
+            1,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:50",
+        "event_type": "PublicVote",
+        "event_data": [
+            2,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:58",
+        "event_type": "PublicVote",
+        "event_data": [
+            3,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:07:59",
+        "event_type": "PublicVote",
+        "event_data": [
+            4,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:02",
+        "event_type": "PublicVote",
+        "event_data": [
+            5,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:04",
+        "event_type": "PublicVote",
+        "event_data": [
+            6,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:05",
+        "event_type": "PublicVote",
+        "event_data": [
+            7,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:05",
+        "event_type": "PublicVoteResult",
+        "event_data": [
+            3,
+            4
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:05",
+        "event_type": "MissionRejected",
+        "event_data": "Team Rejected."
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:05",
+        "event_type": "Leader",
+        "event_data": 4
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:08",
+        "event_type": "TeamPropose",
+        "event_data": [
+            4,
+            7,
+            1
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:08",
+        "event_type": "Leader",
+        "event_data": 4
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:11",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            4,
+            "“471是最稳妥的组合选择.重点关注237的反常互动及56的态度转变.”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:15",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            5,
+            "“471看似稳妥实则暗藏玄机！特别关注47两人近期高度一致的言行轨迹—这种完美配合不像是普通好人的随机互动。（审视47方向）”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:18",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            6,
+            "“471看起来确实稳妥...(停顿)但我更好奇为什么没人提246这样的冷门排列?有时候最刻意的回避反而指向关键...”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:21",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            7,
+            "“471是目前最合理的保守选择—相比之前含高危号码的队伍至少保证两个可确认的中立者在列”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:21",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            1,
+            "这轮信息太混乱，我还在观察。"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:24",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            2,
+            "“大家都被47这对完美搭档迷惑了呢...(轻笑)真正的蓝方正该注意的是—为什么每次危险边缘总有特定的几位在默契打圆场？（意味深长地看向47方向）”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:28",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            3,
+            "“471看似稳妥却回避了关键矛盾点；重点关注47高度同步的不自然互动模式；246这类冷门排列反而值得尝试破局”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:28",
+        "event_type": "Move",
+        "event_data": [
+            4,
+            [
+                [
+                    "up"
+                ],
+                [
+                    3,
+                    1
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:28",
+        "event_type": "Move",
+        "event_data": [
+            5,
+            [
+                [
+                    "up"
+                ],
+                [
+                    0,
+                    7
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:28",
+        "event_type": "Move",
+        "event_data": [
+            6,
+            [
+                [
+                    "up"
+                ],
+                [
+                    0,
+                    1
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:28",
+        "event_type": "Move",
+        "event_data": [
+            7,
+            [
+                [
+                    "up"
+                ],
+                [
+                    2,
+                    6
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:28",
+        "event_type": "Move",
+        "event_data": [
+            2,
+            [
+                [
+                    "down"
+                ],
+                [
+                    1,
+                    6
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:28",
+        "event_type": "Move",
+        "event_data": [
+            3,
+            [
+                [
+                    "down"
+                ],
+                [
+                    3,
+                    3
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:28",
+        "event_type": "Positions",
+        "event_data": {
+            "1": [
+                1,
+                3
+            ],
+            "2": [
+                1,
+                6
+            ],
+            "3": [
+                3,
+                3
+            ],
+            "4": [
+                3,
+                1
+            ],
+            "5": [
+                0,
+                7
+            ],
+            "6": [
+                0,
+                1
+            ],
+            "7": [
+                2,
+                6
+            ]
+        }
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:31",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            4,
+            "“471虽表面稳妥却掩盖深层矛盾点47的高度同步极不自然重点核查25与36的反常冷门提议动机”",
+            "1 4"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:34",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            5,
+            "“47两人的完美配合实在太过刻意！（锐利注视47方向）而提议246冷门排列的思路—这种打破常规的建议恰恰符合隐藏身份的思考方式。（暗示性地转向36区域）”",
+            "2 5"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:37",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            6,
+            "“既然大家都觉得47这么同步...(笑)那不如干脆拆开他们试试?比如说选个457这样的排列?过度默契有时比冲突更可疑...”",
+            "1 6"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:43",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            7,
+            "“471是目前相对安全的保守方案—含两位经多维度交叉验证的中立者+可进一步检验的可疑对象15中的一个”\n\n注：\n- 「经多维度交叉验证」替代了直白的「已知好」表述 \n- 「可进一步检验的可疑对象15中...",
+            "2 7"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:43",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            1,
+            "这轮信息太混乱，我还在观察。",
+            "1 4 6"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:48",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            2,
+            "“有趣的发现：当大家都在讨论47搭档时，（停顿）只有少数人在思考更深层的逻辑关系。（环视全场）比如说…为何每次出现争议时总有特定的几位在默契地打圆场？（意味深长地扫过几个频繁调解矛盾的选手）”",
+            "2 5 7"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:56",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            3,
+            "“247的组合能有效检验特殊角色的真实阵营关系；比起表面稳妥的方案更需要能揭露真相的关键配置”\n\n解析：\n- 「247」直指我看到的两名特殊角色(27)+自己形成可控检测阵容  \n- 「检验特殊阵营关...",
+            "1 3 4"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:56",
+        "event_type": "PublicVote",
+        "event_data": [
+            1,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:58",
+        "event_type": "PublicVote",
+        "event_data": [
+            2,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:08:59",
+        "event_type": "PublicVote",
+        "event_data": [
+            3,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:02",
+        "event_type": "PublicVote",
+        "event_data": [
+            4,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:09",
+        "event_type": "PublicVote",
+        "event_data": [
+            5,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:11",
+        "event_type": "PublicVote",
+        "event_data": [
+            6,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:19",
+        "event_type": "PublicVote",
+        "event_data": [
+            7,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:19",
+        "event_type": "PublicVoteResult",
+        "event_data": [
+            4,
+            3
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:19",
+        "event_type": "MissionApproved",
+        "event_data": [
+            2,
+            [
+                4,
+                7,
+                1
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:19",
+        "event_type": "MissionVote",
+        "event_data": {
+            "4": true,
+            "7": true,
+            "1": true
+        }
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:19",
+        "event_type": "MissionResult",
+        "event_data": [
+            2,
+            "Success"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:19",
+        "event_type": "ScoreBoard",
+        "event_data": [
+            2,
+            0
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:19",
+        "event_type": "RoundEnd",
+        "event_data": 2
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:19",
+        "event_type": "RoundStart",
+        "event_data": 3
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:26",
+        "event_type": "TeamPropose",
+        "event_data": [
+            5,
+            2,
+            7
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:26",
+        "event_type": "Leader",
+        "event_data": 5
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:31",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            5,
+            "527是个大胆但有必要的尝试!重点在于检验27这对高频出现的搭档的真实立场。(凝视27方向)比起跟风讨论安全阵容的那些人(意有所指看46),敢于打破常规的思路才更有参考价值"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:34",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            6,
+            "“527的确是个有趣的突破...(思考状)但我更好奇为什么没人愿意带我玩？也许下一局可以考虑526这样的配置？毕竟旁观者有时看得更清...”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:39",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            7,
+            "“527强行拉入双高危号码极反常—真正的好人会选已验证的中立者配单待验对象而非冒险堆砌争议人物。”\n\n注：\n- 「双高危号码」暗指已知坏人25但不点名  \n- 「已验证的中立者」指向347等实际好人不..."
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:39",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            1,
+            "这轮信息太混乱，我还在观察。"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:44",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            2,
+            "“527的大胆提议很有意思…但更有趣的是某些人对固定阵容的病态执着。(冷笑)比如说执意要重复使用特定数字的那几位—这才是真正的思维定式陷阱。”(目光扫过频繁推荐相同阵容的几个账号)"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:48",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            3,
+            "“527的大胆尝试虽冒险但有战略意义;重点不在于安全而在于揭示27的真实关系;拒绝套路化思维才能突破迷雾”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:51",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            4,
+            "“527的高危试探确有破局意义重点检验27联动关系46对冷门自荐的反常热情需深究保持核心347框架仍最稳”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:51",
+        "event_type": "Move",
+        "event_data": [
+            5,
+            [
+                [
+                    "down"
+                ],
+                [
+                    1,
+                    7
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:51",
+        "event_type": "Move",
+        "event_data": [
+            6,
+            [
+                [
+                    "down"
+                ],
+                [
+                    1,
+                    1
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:51",
+        "event_type": "Move",
+        "event_data": [
+            7,
+            [
+                [
+                    "down"
+                ],
+                [
+                    3,
+                    6
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:51",
+        "event_type": "Move",
+        "event_data": [
+            1,
+            [
+                [
+                    "left"
+                ],
+                [
+                    1,
+                    2
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:51",
+        "event_type": "Move",
+        "event_data": [
+            1,
+            [
+                [
+                    "left",
+                    "up"
+                ],
+                [
+                    0,
+                    2
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:51",
+        "event_type": "Move",
+        "event_data": [
+            2,
+            [
+                [
+                    "up"
+                ],
+                [
+                    0,
+                    6
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:51",
+        "event_type": "Move",
+        "event_data": [
+            3,
+            [
+                [
+                    "up"
+                ],
+                [
+                    2,
+                    3
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:51",
+        "event_type": "Move",
+        "event_data": [
+            4,
+            [
+                [
+                    "up"
+                ],
+                [
+                    2,
+                    1
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:51",
+        "event_type": "Positions",
+        "event_data": {
+            "1": [
+                0,
+                2
+            ],
+            "2": [
+                0,
+                6
+            ],
+            "3": [
+                2,
+                3
+            ],
+            "4": [
+                2,
+                1
+            ],
+            "5": [
+                1,
+                7
+            ],
+            "6": [
+                1,
+                1
+            ],
+            "7": [
+                3,
+                6
+            ]
+        }
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:55",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            5,
+            "“527的真正价值在于检验27这对高频互动的真实立场！（锐利注视27方向）\n而那些病态推崇347框架的声音（转向46区域），恰好暴露了想要掌控全局的危险意图——”",
+            "2 5"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:09:59",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            6,
+            "“527的风险谁都懂...但死守347就绝对安全吗?(挑眉看频繁推这套路的人)...或许该让一直沉默的人也参与进来?比如说下一局让689这些新人加入?”",
+            "1 4 6"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:10:05",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            7,
+            "“注意是谁在用‘破局’为高风险配对辩护—真正的线索藏在始终如一支持347等安全架构的逻辑里而非突发奇想的冒险。”\n\n注：\n•\t「高风险配对」暗指已知坏人25但不点名  \n•\t「始终如一支持347」强化...",
+            "7"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:10:05",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            1,
+            "这轮信息太混乱，我还在观察。",
+            "1 4 6"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:10:13",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            2,
+            "“最有意思的不是527本身，(冷笑)而是某些人对所谓'安全框架'近乎偏执的维护。(目光扫过46区域)\n当所有人都在争论风险时--恰恰忽略了最大的风险就是拒绝承担风险的那些声音。”(意味深长地停顿)\n\n...",
+            "2 5"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:10:19",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            3,
+            "“527的关键在于迫使隐藏关系显形而非单纯求稳;持续回避核心矛盾的方案才是最大隐患;346将是下步理想检测点”\n\n解析：\n①「迫使隐藏关系显形」呼应我对27身份的疑虑(Merlin/Morgana)\n...",
+            "1 3 4 6"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:10:22",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            4,
+            "“346将是理想下步检测点重点揭露27真实关联67对新人加入的反常热忱存疑保持347框架仍具最高基准可靠性”",
+            "1 4 6"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:10:22",
+        "event_type": "PublicVote",
+        "event_data": [
+            1,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:10:24",
+        "event_type": "PublicVote",
+        "event_data": [
+            2,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:10:31",
+        "event_type": "PublicVote",
+        "event_data": [
+            3,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:10:35",
+        "event_type": "PublicVote",
+        "event_data": [
+            4,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:10:43",
+        "event_type": "PublicVote",
+        "event_data": [
+            5,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:10:49",
+        "event_type": "PublicVote",
+        "event_data": [
+            6,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:10:57",
+        "event_type": "PublicVote",
+        "event_data": [
+            7,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:10:57",
+        "event_type": "PublicVoteResult",
+        "event_data": [
+            5,
+            2
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:10:57",
+        "event_type": "MissionApproved",
+        "event_data": [
+            3,
+            [
+                5,
+                2,
+                7
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:06",
+        "event_type": "MissionVote",
+        "event_data": {
+            "5": false,
+            "2": false,
+            "7": true
+        }
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:06",
+        "event_type": "MissionResult",
+        "event_data": [
+            3,
+            "Fail"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:06",
+        "event_type": "ScoreBoard",
+        "event_data": [
+            2,
+            1
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:06",
+        "event_type": "RoundEnd",
+        "event_data": 3
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:06",
+        "event_type": "RoundStart",
+        "event_data": 4
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:12",
+        "event_type": "TeamPropose",
+        "event_data": [
+            6,
+            4,
+            3,
+            5
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:12",
+        "event_type": "Leader",
+        "event_data": 6
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:15",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            6,
+            "\"[64357]这支队伍的构成很有创意...(若有所思地摸下巴)...不过我很好奇为什么不给一直被忽略的新人们机会?也许下次可以让89这样的新鲜血液参与进来?\""
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:20",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            7,
+            "“64357混入过多争议号码实属反常—应坚持仅添加单个待验对象到已验证中立方的基本筛选原则。”\n\n注：\n•\t「过多争议号码」暗指已知坏人256但不点名  \n•\t「已验证中立方」指向347等实际好人不明..."
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:20",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            1,
+            "这轮信息太混乱，我还在观察。"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:26",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            2,
+            "“64357这支队伍的混杂程度简直荒谬，(冷笑)但更有趣的是某些人对所谓'纯净度'近乎偏执的要求。(目光扫过17区域)\n当所有人都在争论纯度标准时--恰恰忽略了最大的不纯正是制定标准的那几位。”(意味..."
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:34",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            3,
+            "“64357的创新尝试虽激进但有诊断意义;过度追求纯净度的标准本身可能就是陷阱;346仍是基准参照系的关键锚点”\n\n解析要点:\n①「创新尝试诊断意义」肯定非常规队伍的检测作用而不表态结果好坏 - Pe..."
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:39",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            4,
+            "“64357混杂过度偏离基准346锚点17对纯净度的偏执苛求存疑新人89突获提名亦显突兀保持稳健筛查节奏为要”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:43",
+        "event_type": "PublicSpeech",
+        "event_data": [
+            5,
+            "“64357这支混杂队伍的真正意义在于检验17制定的所谓'纯净标准'！（锐利注视17方向）\n而那些对新血89突然展现兴趣的声音（转向68区域），恰似试图转移焦点的烟雾弹——”"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:43",
+        "event_type": "Move",
+        "event_data": [
+            6,
+            [
+                [
+                    "up"
+                ],
+                [
+                    0,
+                    1
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:43",
+        "event_type": "Move",
+        "event_data": [
+            7,
+            [
+                [
+                    "up"
+                ],
+                [
+                    2,
+                    6
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:43",
+        "event_type": "Move",
+        "event_data": [
+            2,
+            [
+                [
+                    "down"
+                ],
+                [
+                    1,
+                    6
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:43",
+        "event_type": "Move",
+        "event_data": [
+            3,
+            [
+                [
+                    "up"
+                ],
+                [
+                    1,
+                    3
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:43",
+        "event_type": "Move",
+        "event_data": [
+            4,
+            [
+                [
+                    "up"
+                ],
+                [
+                    1,
+                    1
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:43",
+        "event_type": "Move",
+        "event_data": [
+            5,
+            [
+                [
+                    "up"
+                ],
+                [
+                    0,
+                    7
+                ]
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:43",
+        "event_type": "Positions",
+        "event_data": {
+            "1": [
+                0,
+                2
+            ],
+            "2": [
+                1,
+                6
+            ],
+            "3": [
+                1,
+                3
+            ],
+            "4": [
+                1,
+                1
+            ],
+            "5": [
+                0,
+                7
+            ],
+            "6": [
+                0,
+                1
+            ],
+            "7": [
+                2,
+                6
+            ]
+        }
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:47",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            6,
+            "\"[64357]这支队伍的争议很有意思...(若有所思)...不过我注意到大家对17制定的标准争论不休时--是不是也该想想谁在趁机浑水摸鱼?(瞥向突然活跃的新面孔)\"",
+            "1 4 6"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:53",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            7,
+            "“注意是谁在用创新名义塞入多个高危分子—真正可靠的筛选应是逐步添加单个待验对象到已确认的安全基础中。”\n\n解析要点：\n①「多个高危分子」暗指256三个已知反派但不点名；\n②「逐步添加单个待验对象」指导...",
+            "2 7"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:53",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            1,
+            "这轮信息太混乱，我还在观察。",
+            "1 3 4 6"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:11:58",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            2,
+            "\"(轻敲桌面引起注意)...各位有没有发现一个规律?(停顿)\n每当出现质疑现有筛选标准的声浪时,(目光缓缓扫过17位置)\n总会适时冒出些关于'引入新血''打破常规'的美妙提案...(突然直视68区域)...",
+            "2 5 7"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:12:05",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            3,
+            "“346始终是最可靠的基准线；对新晋提名89持开放态度但对突兀热度存疑；17的标准制定权之争恐藏玄机”\n\n解析要点：\n①「346基准线」延续Percy一贯主张的核心框架不动摇；\n②「89存疑」暗示对新...",
+            "1 3 4 6"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:12:12",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            4,
+            "“坚守346基准线不变质17的标准之争藏伪善89的热度异动显蹊跷68借乱搅局尤须严防”\n\n（98字符）\n\n注：\n①首句强化346框架稳定性；\n②中点出17伪善与89异常的双重疑点；\n③尾句锁定68浑水...",
+            "1 4 6"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:12:17",
+        "event_type": "PrivateSpeech",
+        "event_data": [
+            5,
+            "\"[敲击桌面打断议论声线]诸位难道没发现吗？\n每当有人质疑17设立的所谓纯洁标准，\n就会立刻冒出89新人论的烟雾弹！\n这才是最有毒的思维定式——\n既规避了对现有体系的检验，\n又创造了新的盲区。[眼神锁...",
+            "2 5"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:12:17",
+        "event_type": "PublicVote",
+        "event_data": [
+            1,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:12:20",
+        "event_type": "PublicVote",
+        "event_data": [
+            2,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:12:27",
+        "event_type": "PublicVote",
+        "event_data": [
+            3,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:12:35",
+        "event_type": "PublicVote",
+        "event_data": [
+            4,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:12:44",
+        "event_type": "PublicVote",
+        "event_data": [
+            5,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:12:52",
+        "event_type": "PublicVote",
+        "event_data": [
+            6,
+            "Approve"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:12:59",
+        "event_type": "PublicVote",
+        "event_data": [
+            7,
+            "Reject"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:12:59",
+        "event_type": "PublicVoteResult",
+        "event_data": [
+            5,
+            2
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:12:59",
+        "event_type": "MissionApproved",
+        "event_data": [
+            4,
+            [
+                6,
+                4,
+                3,
+                5
+            ]
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:13:19",
+        "event_type": "MissionVote",
+        "event_data": {
+            "6": true,
+            "4": true,
+            "3": true,
+            "5": false
+        }
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:13:19",
+        "event_type": "MissionResult",
+        "event_data": [
+            4,
+            "Success"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:13:19",
+        "event_type": "ScoreBoard",
+        "event_data": [
+            3,
+            1
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:13:19",
+        "event_type": "RoundEnd",
+        "event_data": 4
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:13:19",
+        "event_type": "GameEnd",
+        "event_data": "d50c9e92-783d-4e68-9f77-6df0421b9830"
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:13:19",
+        "event_type": "FinalScore",
+        "event_data": [
+            3,
+            1
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:13:19",
+        "event_type": "Event",
+        "event_data": "player5 choosing a target."
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:13:26",
+        "event_type": "Assass",
+        "event_data": [
+            5,
+            4,
+            "Knight",
+            "Fail"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:13:26",
+        "event_type": "GameResult",
+        "event_data": [
+            "Blue",
+            "Assassination Failed"
+        ]
+    },
+    {
+        "battle_id": "d50c9e92-783d-4e68-9f77-6df0421b9830",
+        "player_count": 7,
+        "map_size": 9,
+        "timestamp": "2025-05-24 20:13:26",
+        "event_type": "GameEnd",
+        "event_data": "d50c9e92-783d-4e68-9f77-6df0421b9830"
+    }
+]
