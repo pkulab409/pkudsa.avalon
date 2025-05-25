@@ -1,0 +1,66 @@
+body {
+    background-color: #f8f9fa;
+}
+
+#resultContainer {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.modal pre {
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.list-group-item {
+    transition: transform 0.2s;
+}
+
+.list-group-item:hover {
+    transform: translateX(5px);
+}
+
+/* 卡片动画效果 */
+.card {
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.card:hover {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+    .card-body h5 {
+        font-size: 1rem;
+    }
+
+    .card-body h2 {
+        font-size: 1.5rem;
+    }
+}
+
+/* 按钮动画 */
+button.btn-primary {
+    transition: all 0.3s ease;
+}
+
+button.btn-primary:active {
+    transform: rotate(360deg);
+}
+
+/* 加载状态 */
+.bi-hourglass {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
