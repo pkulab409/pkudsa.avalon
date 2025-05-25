@@ -307,5 +307,34 @@
         <a href="{{ url_for('game.lobby') }}" class="btn btn-outline-secondary">返回大厅</a>
     </div>
 </div>
+<div>
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light text-dark">
+            <h4 class="mb-0">Traceback_info</h4>
+        </div>
+        <div class="card-body">
+            <p>
+                <strong>battle_id:</strong>
+            </p>
+            <p>
+                {{ error_info.get("battle_id") }}
+                {{ error_info_raw.get("battle_id") }}
+            </p>
+            <p>
+                <strong>related_player_info:</strong>
+            </p>
+            <p>
+                Player:{{ error_info_raw.get("error_pid_in_game") }}
+                <br>
+                ID:{{ error_info.get("error_user_id") }}
+                <br>
+                NAME:{{ error_info.get("error_user_name") }}
+                <p>
+                    <strong>traceback:</strong>
+                </p>
+                <p>{{ error_info_raw.get("error_msg") }}</p>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock content %}

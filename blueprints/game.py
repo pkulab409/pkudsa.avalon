@@ -449,6 +449,24 @@ def view_battle(battle_id):
     # 如果游戏已完成，可以传递结果给模板
     game_result = {"roles": {}}  # 初始化为带有空roles字典的对象
     error_info = {}
+
+    # YouZiliCC 2025/5/25 16:36
+    # 原始错误数据
+    error_info_raw = {
+        "battle_id": battle_id,
+        "error_or_NOT": None,
+        # "error_type": None,
+        "error_user_id": None,
+        "error_username": None,
+        "error_pid_in_game": None,
+        # "error_code_method": None,
+        "error_msg": None,
+        # "elo_initial": None,
+        # "elo_change": None,
+        # "elo_final": None,
+        # "friendly_msg": None,
+    }
+
     if battle.status == "completed" or battle.status == "error":
         # battle.results 存储了JSON字符串
         try:
@@ -469,6 +487,9 @@ def view_battle(battle_id):
                     error_info["error_msg"] = (
                         "无法获取对战详细错误信息：缺少日志文件路径"
                     )
+
+                    error_info_raw["error_or_NOT"] = "error"
+                    error_info_raw["error_msg"] = "game.py line485 无共有库路径"
                 else:
                     # 读取公共日志获取错误玩家
                     try:
@@ -476,6 +497,7 @@ def view_battle(battle_id):
                             data = json.load(plib)
                             # 从日志中查找错误记录（从后向前搜索）
                             error_record = None
+                            error_raw_record = False  # 记录是否找到traceback
                             for record in reversed(data):
                                 if "type" in record and record["type"] in [
                                     "critical_player_ERROR",
@@ -483,6 +505,20 @@ def view_battle(battle_id):
                                 ]:
                                     error_record = record
                                     break
+                            for record in reversed(data):
+                                # 检查是否有traceback
+                                if "traceback" in record and record["traceback"]:
+                                    # 找到traceback
+                                    error_info_raw["error_or_NOT"] = "error"
+                                    error_info_raw["error_msg"] = record["traceback"]
+                                    error_raw_record = True
+                                    break
+                            if not error_raw_record:
+                                # 如果没有找到traceback，使用默认错误信息
+                                error_info_raw["error_or_NOT"] = "error"
+                                error_info_raw["error_msg"] = (
+                                    "game.py line515 貌似没找到共有库的traceback"
+                                )
 
                             if error_record:
                                 error_pid_in_game = error_record.get("error_code_pid")
@@ -522,6 +558,19 @@ def view_battle(battle_id):
                                             error_code_method
                                         )
                                         error_info["error_msg"] = error_msg
+
+                                        # # raw
+                                        # error_info_raw["error_or_NOT"] = "error"
+                                        # error_info_raw["error_type"] = error_type
+                                        error_info_raw["error_user_id"] = err_user_id
+                                        error_info_raw["error_username"] = err_username
+                                        error_info_raw["error_pid_in_game"] = (
+                                            error_pid_in_game
+                                        )
+                                        # error_info_raw["error_code_method"] = (
+                                        #     error_code_method
+                                        # )
+                                        # error_info_raw["error_msg"] = error_msg
 
                                         # 计算ELO扣分
                                         err_player = next(
@@ -682,6 +731,18 @@ def view_battle(battle_id):
                                                         pid
                                                     )
 
+                                                    error_info_raw["error_user_id"] = (
+                                                        err_user_id
+                                                    )
+                                                    error_info_raw["error_username"] = (
+                                                        err_user.username
+                                                        if err_user
+                                                        else None
+                                                    )
+                                                    error_info_raw[
+                                                        "error_pid_in_game"
+                                                    ] = pid
+
                                                     # 尝试提取错误方法
                                                     method_match = re.search(
                                                         r"method '([^']+)'|executing ([^ ]+)",
@@ -721,12 +782,20 @@ def view_battle(battle_id):
                         )
                         error_info["error_msg"] = f"读取错误日志失败: {str(e)}"
 
+                        error_info_raw["error_or_NOT"] = "error"
+                        error_info_raw["error_msg"] = (
+                            f"game.py line751 读取公共日志失败: {str(e)}"
+                        )
+
         except Exception as e:
             logger.error(
                 f"无法解析对战 {battle_id} 的结果JSON: {str(e)}", exc_info=True
             )
             game_result = {"error": "结果解析失败", "roles": {}}  # 确保有roles键
             error_info["error_msg"] = f"结果解析失败: {str(e)}"
+
+            error_info_raw["error_or_NOT"] = "error"
+            error_info_raw["error_msg"] = f"game.py line782 解析对战结果失败: {str(e)}"
 
     # 根据状态渲染不同模板或页面部分
     if battle.status in ["waiting", "playing"]:
@@ -746,6 +815,7 @@ def view_battle(battle_id):
             battle_players=battle_players,
             game_result=game_result,
             error_info=error_info,  # 如果没有报错， error_info 是空字典
+            error_info_raw=error_info_raw,
         )  # 需要创建 battle_completed.html
     else:
         flash(f"未知的对战状态: {battle.status}", "warning")

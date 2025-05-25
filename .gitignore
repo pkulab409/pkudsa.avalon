@@ -183,5 +183,6 @@ uploads/
 config/config.yaml
 game/client_usage_times.json
 .env
+profiler
 
 battle_ai_modules/
