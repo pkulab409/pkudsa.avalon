@@ -196,6 +196,14 @@ class BattleManager:
 
     def _battle_worker(self):
         """工作线程：从队列获取对战任务并执行"""
+        # 设置较低的线程优先级
+        try:
+            import os
+
+            os.nice(10)  # 增加nice值，降低优先级（仅限UNIX系统）
+        except:
+            pass
+
         while not self._shutdown_event.is_set():
             try:
                 # 使用超时，以便线程能够定期检查关闭信号
