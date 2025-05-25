@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>PKUDSA 文件检索系统</title>
+        <link rel="stylesheet"
+              href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css">
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    </head>
+    <body>
+        <div class="container mt-4">
+            <h2 class="mb-4">游戏数据检索系统</h2>
+            <!-- 搜索框 -->
+            <div class="input-group mb-3">
+                <input type="text"
+                       id="searchInput"
+                       class="form-control"
+                       placeholder="输入游戏ID或文件名进行搜索...">
+                <button class="btn btn-primary" onclick="performSearch()">搜索</button>
+            </div>
+            <!-- 搜索结果 -->
+            <div id="resultContainer" class="list-group"></div>
+        </div>
+        <!-- 在统计卡片区块上方添加刷新按钮 -->
+        <div class="row mb-3">
+            <div class="col-12 d-flex justify-content-end">
+                <button class="btn btn-primary" onclick="refreshStats(true)">
+                    <i class="bi bi-arrow-clockwise"></i> 立即刷新
+                </button>
+            </div>
+        </div>
+        <script>
+        // 修改后的JavaScript函数
+        function refreshStats(force = false) {
+            const url = `/api/stats${force ? '?force=1' : ''}`;
+
+            // 显示加载状态
+            const btn = $('button').prop('disabled', true);
+            $('.card-text').html('<i class="bi bi-hourglass"></i> 加载中...');
+
+            $.get(url)
+                .done(function (data) {
+                    $('#folderCount').text(data.folders);
+                    $('#fileCount').text(data.files);
+                    $('#totalSize').text(data.total_size_mb + ' MB');
+                })
+                .fail(function () {
+                    alert('刷新失败');
+                })
+                .always(function () {
+                    btn.prop('disabled', false);
+                });
+        }
+
+        // 页面加载时调用（使用缓存）
+        $(document).ready(() => refreshStats());
+        </script>
+        <!-- ziyuankuang-->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">📁 文件夹</h5>
+                        <h2 id="folderCount" class="card-text">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">📄 文件数</h5>
+                        <h2 id="fileCount" class="card-text">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">💾 总存储</h5>
+                        <h2 id="totalSize" class="card-text">0 MB</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script>
+        // 在页面加载时获取统计数据
+        $(document).ready(function () {
+            $.get('/api/stats', function (data) {
+                $('#folderCount').text(data.folders);
+                $('#fileCount').text(data.files);
+                $('#totalSize').text(data.total_size_mb + ' MB');
+
+                // 添加动态效果
+                $('.card').hover(
+                    function () { $(this).css('transform', 'scale(1.02)'); },
+                    function () { $(this).css('transform', 'scale(1)'); }
+                );
+            });
+        });
+        </script>
+        <!-- 预览模态框 -->
+        <div class="modal fade" id="previewModal">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">文件预览</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <pre id="fileContent" class="p-3 bg-light rounded"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+        <script src="https://cdn.bootcdn.net/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+        <script>
+        function performSearch() {
+            const keyword = $('#searchInput').val();
+            $.get('/api/search?q=' + encodeURIComponent(keyword), function (data) {
+                renderResults(data);
+            });
+        }
+
+        function renderResults(items) {
+            const container = $('#resultContainer').empty();
+            items.forEach(item => {
+                const elem = $(`
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="badge ${item.type === 'folder' ? 'bg-primary' : 'bg-secondary'}">
+                                ${item.type}
+                            </span>
+                            ${item.name}
+                        </div>
+                        <div>
+                            ${item.type === 'file' ?
+                        `<button class="btn btn-sm btn-outline-success" onclick="previewFile('${item.path}')">预览</button>` : ''}
+                            <button class="btn btn-sm btn-danger" onclick="downloadItem('${item.path}')">下载</button>
+                        </div>
+                    </div>
+                `);
+                container.append(elem);
+            });
+        }
+
+        function previewFile(path) {
+            $.get('/api/preview?path=' + encodeURIComponent(path), function (res) {
+                $('#fileContent').text(res.content);
+                new bootstrap.Modal('#previewModal').show();
+            }).fail(() => alert('预览失败'));
+        }
+
+        function downloadItem(path) {
+            window.location.href = '/download/' + encodeURIComponent(path);
+        }
+        </script>
+    </body>
+</html>
