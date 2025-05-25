@@ -39,6 +39,23 @@ def game_replay(game_id):
         from database import get_battle_by_id
 
         battle_obj = get_battle_by_id(game_id)
+        if not battle_obj:
+            # 数据库查不到，从日志文件推断
+            data_dir = Config._yaml_config.get("DATA_DIR", "./data")
+            log_file = os.path.join(data_dir, f"{game_id}/archive_game_{game_id}.json")
+            if os.path.exists(log_file):
+                try:
+                    with open(log_file, "r", encoding="utf-8") as f:
+                        game_data = json.load(f)
+                    for event in game_data:
+                        if event.get("event_type") == "RoleAssign":
+                            player_ids = list(event.get("event_data", {}).keys())
+                            # 返回 ["玩家1", "玩家2", ...] 或直接返回编号
+                            return [f"玩家{pid}" for pid in player_ids]
+                except Exception as e:
+                    print(f"自动提取用户名失败: {e}")
+            # 实在没有就返回空
+            return []
         player_objs = battle_obj.get_players()
         return [player.username for player in player_objs]
 
@@ -52,7 +69,7 @@ def game_replay(game_id):
             # 目标文件在 platform/example/
             # 需要向上走一层 (..) 到 platform/，再进入 example/
             example_replay_path = os.path.join(
-                current_dir, "..", "example", "example_game_replay.json"
+                current_dir, "..", "example", "archive_game_example.json"
             )
             # 标准化路径 (例如，处理 '..')
             log_file = os.path.normpath(example_replay_path)
@@ -275,13 +292,8 @@ def process_upload():
             # 保存文件
             file_path = os.path.join(data_dir, filename)
 
-            # # 检查文件是否已存在
-            # if os.path.exists(file_path):
-            #     flash(
-            #         f"文件 {filename} 已存在。如果需要覆盖，请先删除旧文件。", "warning"
-            #     )
-            #     # 可以选择不覆盖并重定向，或者添加覆盖逻辑
-            #     return redirect(request.url)  # 重定向回上传页面
+            # 确保目标子目录存在
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
             if not os.path.exists(file_path):
                 file.save(file_path)
@@ -312,24 +324,24 @@ def is_valid_game_json(json_data):
         print("Validation failed: Not a list or empty.")
         return False
 
-    # 检查第一个事件是否为 GameStart
-    first_event = json_data[0]
-    if (
-        not isinstance(first_event, dict)
-        or first_event.get("event_type") != "GameStart"
-    ):
-        print(
-            f"Validation failed: First event is not GameStart. Found: {first_event.get('event_type')}"
-        )
-        return False
+    # # 检查第一个事件是否为 GameStart
+    # first_event = json_data[0]
+    # if (
+    #     not isinstance(first_event, dict)
+    #     or first_event.get("event_type") != "GameStart"
+    # ):
+    #     print(
+    #         f"Validation failed: First event is not GameStart. Found: {first_event.get('event_type')}"
+    #     )
+    #     return False
 
-    # 检查 GameStart 事件是否包含必要字段
-    required_fields = ["battle_id", "player_count", "map_size", "timestamp"]
-    if not all(field in first_event for field in required_fields):
-        print(
-            f"Validation failed: Missing fields in GameStart. Required: {required_fields}, Found: {first_event.keys()}"
-        )
-        return False
+    # # 检查 GameStart 事件是否包含必要字段
+    # required_fields = ["battle_id", "player_count", "map_size", "timestamp"]
+    # if not all(field in first_event for field in required_fields):
+    #     print(
+    #         f"Validation failed: Missing fields in GameStart. Required: {required_fields}, Found: {first_event.keys()}"
+    #     )
+    #     return False
 
     # 可以添加更多检查，例如是否存在 RoleAssign, RoundStart 等
     has_role_assign = any(
