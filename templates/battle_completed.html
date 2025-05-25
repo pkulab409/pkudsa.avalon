@@ -316,10 +316,7 @@
             <p>
                 <strong>battle_id:</strong>
             </p>
-            <p>
-                {{ error_info.get("battle_id") }}
-                {{ error_info_raw.get("battle_id") }}
-            </p>
+            <p>{{ error_info_raw.get("battle_id") }}</p>
             <p>
                 <strong>related_player_info:</strong>
             </p>
@@ -332,7 +329,8 @@
                 <p>
                     <strong>traceback:</strong>
                 </p>
-                <p>{{ error_info_raw.get("error_msg") }}</p>
+                <pre>{{ error_info_raw.get("error_msg") }}
+                </pre>
             </div>
         </div>
     </div>
