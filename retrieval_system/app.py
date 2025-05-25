@@ -213,5 +213,4 @@ if __name__ == "__main__":
     init_file_watcher()
     # 注册退出清理
     atexit.register(lambda: observer.stop() and observer.join())
-    
     app.run(port=5050, debug=False, host="0.0.0.0")
