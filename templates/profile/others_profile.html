@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% block head %}
-    {{ super() }}
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  {{ super() }}
+  <link rel="stylesheet"
+        href="{{ url_for('static', filename='libs/fontawesome/css/all.min.css') }}">
 {% endblock %}
 {% block content %}
-    <style>
+  <style>
         .profile-container {
             max-width: 1000px;
             margin: 2rem auto;
@@ -125,55 +125,55 @@
             opacity: 0.9;
             transform: translateY(-2px);
         }
-    </style>
-    <div class="profile-container">
-        <div class="user-card">
-            <div class="user-header">
-                <div class="user-avatar">{{ user.username[0] }}</div>
-                <div>
-                    <h1>{{ user.username }}</h1>
-                    <p>
-                        <i class="fas fa-envelope"></i> {{ user.email }}
-                    </p>
-                </div>
-            </div>
-            <!-- 统计信息卡片 -->
-            <div class="stats-grid">
-                <!-- Elo分数卡片 -->
-                <div class="stat-card">
-                    <i class="fas fa-trophy stat-icon text-warning"></i>
-                    <div class="stat-label">ELO分数</div>
-                    <div class="stat-value">{{ user.get_elo_score() }}</div>
-                </div>
-                <!-- 总场次卡片 -->
-                <div class="stat-card">
-                    <i class="fas fa-chart-bar stat-icon text-primary"></i>
-                    <div class="stat-label">总场次</div>
-                    <div class="stat-value">
-                        {% set stats = user.get_game_stats() %}
-                        {{ stats.games_played if stats else 0 }}
-                    </div>
-                </div>
-                <!-- 胜率卡片 -->
-                <div class="stat-card">
-                    <i class="fas fa-percent stat-icon text-success"></i>
-                    <div class="stat-label">胜率</div>
-                    <div class="stat-value">
-                        {% if stats %}
-                            {{ "%.1f"|format(stats.win_rate) }}%
-                        {% else %}
-                            0.0%
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            <!-- 他人对战历史入口 -->
-            <div class="mt-4 text-center">
-                <a href="{{ url_for('profile.public_battle_history', user_id=user.id) }}"
-                   class="btn btn-primary btn-lg">
-                    <i class="fas fa-history me-2"></i>查看{{ user.username }}的对战记录
-                </a>
-            </div>
+  </style>
+  <div class="profile-container">
+    <div class="user-card">
+      <div class="user-header">
+        <div class="user-avatar">{{ user.username[0] }}</div>
+        <div>
+          <h1>{{ user.username }}</h1>
+          <p>
+            <i class="fas fa-envelope"></i> {{ user.email }}
+          </p>
         </div>
+      </div>
+      <!-- 统计信息卡片 -->
+      <div class="stats-grid">
+        <!-- Elo分数卡片 -->
+        <div class="stat-card">
+          <i class="fas fa-trophy stat-icon text-warning"></i>
+          <div class="stat-label">ELO分数</div>
+          <div class="stat-value">{{ user.get_elo_score() }}</div>
+        </div>
+        <!-- 总场次卡片 -->
+        <div class="stat-card">
+          <i class="fas fa-chart-bar stat-icon text-primary"></i>
+          <div class="stat-label">总场次</div>
+          <div class="stat-value">
+            {% set stats = user.get_game_stats() %}
+            {{ stats.games_played if stats else 0 }}
+          </div>
+        </div>
+        <!-- 胜率卡片 -->
+        <div class="stat-card">
+          <i class="fas fa-percent stat-icon text-success"></i>
+          <div class="stat-label">胜率</div>
+          <div class="stat-value">
+            {% if stats %}
+              {{ "%.1f"|format(stats.win_rate) }}%
+            {% else %}
+              0.0%
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <!-- 他人对战历史入口 -->
+      <div class="mt-4 text-center">
+        <a href="{{ url_for('profile.public_battle_history', user_id=user.id) }}"
+           class="btn btn-primary btn-lg">
+          <i class="fas fa-history me-2"></i>查看{{ user.username }}的对战记录
+        </a>
+      </div>
     </div>
+  </div>
 {% endblock %}

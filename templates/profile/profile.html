@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% block head %}
-    {{ super() }}
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  {{ super() }}
+  <link rel="stylesheet"
+        href="{{ url_for('static', filename='libs/fontawesome/css/all.min.css') }}">
 {% endblock %}
 {% block content %}
-    <style>
+  <style>
         /* 整体容器样式 */
         .profile-container {     
             max-width: 1200px;     
@@ -135,59 +135,59 @@
             opacity: 0.9;     
             transform: translateY(-2px);   
         } 
-    </style>
-    <div class="profile-container">
-        <div class="user-card">
-            <div class="user-header">
-                <div class="user-avatar">{{ current_user.username[0] }}</div>
-                <div>
-                    <h1>{{ current_user.username }}</h1>
-                    <p>
-                        <i class="fas fa-envelope"></i> {{ current_user.email }}
-                    </p>
-                </div>
-            </div>
-            <!-- 统计信息卡片 -->
-            <div class="stats-grid">
-                <!-- Elo分数卡片 -->
-                <div class="stat-card">
-                    <i class="fas fa-trophy stat-icon text-warning"></i>
-                    <div class="stat-label">ELO分数</div>
-                    <div class="stat-value">{{ current_user.get_elo_score() }}</div>
-                </div>
-                <!-- 总场次卡片 -->
-                <div class="stat-card">
-                    <i class="fas fa-chart-bar stat-icon text-primary"></i>
-                    <div class="stat-label">总场次</div>
-                    <div class="stat-value">
-                        {% set stats = current_user.get_game_stats() %}
-                        {{ stats.games_played if stats else 0 }}
-                    </div>
-                </div>
-                <!-- 胜率卡片 -->
-                <div class="stat-card">
-                    <i class="fas fa-percent stat-icon text-success"></i>
-                    <div class="stat-label">胜率</div>
-                    <div class="stat-value">
-                        {% if stats %}
-                            {{ "%.1f"|format(stats.win_rate) }}%
-                        {% else %}
-                            0.0%
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            <!-- 按钮部分 -->
-            <div class="admin-entry">
-                <a href="{{ url_for('profile.battle_history') }}" class="admin-button">
-                    <i class="fas fa-history"></i>查看对战历史
-                </a>
-                {% if current_user.is_admin %}
-                    <a href="{{ url_for('admin.admin_dashboard') }}" class="admin-button">
-                        <i class="fas fa-user-shield"></i>进入管理员面板
-                    </a>
-                {% endif %}
-            </div>
+  </style>
+  <div class="profile-container">
+    <div class="user-card">
+      <div class="user-header">
+        <div class="user-avatar">{{ current_user.username[0] }}</div>
+        <div>
+          <h1>{{ current_user.username }}</h1>
+          <p>
+            <i class="fas fa-envelope"></i> {{ current_user.email }}
+          </p>
         </div>
+      </div>
+      <!-- 统计信息卡片 -->
+      <div class="stats-grid">
+        <!-- Elo分数卡片 -->
+        <div class="stat-card">
+          <i class="fas fa-trophy stat-icon text-warning"></i>
+          <div class="stat-label">ELO分数</div>
+          <div class="stat-value">{{ current_user.get_elo_score() }}</div>
+        </div>
+        <!-- 总场次卡片 -->
+        <div class="stat-card">
+          <i class="fas fa-chart-bar stat-icon text-primary"></i>
+          <div class="stat-label">总场次</div>
+          <div class="stat-value">
+            {% set stats = current_user.get_game_stats() %}
+            {{ stats.games_played if stats else 0 }}
+          </div>
+        </div>
+        <!-- 胜率卡片 -->
+        <div class="stat-card">
+          <i class="fas fa-percent stat-icon text-success"></i>
+          <div class="stat-label">胜率</div>
+          <div class="stat-value">
+            {% if stats %}
+              {{ "%.1f"|format(stats.win_rate) }}%
+            {% else %}
+              0.0%
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <!-- 按钮部分 -->
+      <div class="admin-entry">
+        <a href="{{ url_for('profile.battle_history') }}" class="admin-button">
+          <i class="fas fa-history"></i>查看对战历史
+        </a>
+        {% if current_user.is_admin %}
+          <a href="{{ url_for('admin.admin_dashboard') }}" class="admin-button">
+            <i class="fas fa-user-shield"></i>进入管理员面板
+          </a>
+        {% endif %}
+      </div>
     </div>
+  </div>
 {% endblock %}
