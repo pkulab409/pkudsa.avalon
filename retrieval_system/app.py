@@ -1,8 +1,14 @@
 import os
-from flask import Flask, render_template, send_file, request, jsonify
-from pathlib import Path
+import atexit
 import zipfile
 import tempfile
+import time
+from flask import Flask, render_template, send_file, request, jsonify
+from pathlib import Path
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+
+
 
 
 # 动态路径
@@ -21,10 +27,6 @@ def auto_get_data_path():
     
     return data_path
 
-# 在配置中使用
-DATA_ROOT = auto_get_data_path()
-app = Flask(__name__)
-
 def validate_path(path):
     """防止目录遍历攻击"""
     try:
@@ -34,6 +36,83 @@ def validate_path(path):
         return full_path
     except:
         return None
+
+class DataScanner:
+    _last_scan = 0
+    _cache = None
+    CACHE_TTL = 300
+
+    @classmethod
+    def get_stats(cls, force_refresh=False):
+        if force_refresh or not cls._cache or (time.time() - cls._last_scan) > cls.CACHE_TTL:
+            folder_count = 0
+            file_count = 0
+            total_size = 0
+
+            for entry in DATA_ROOT.iterdir():
+                # 跳过符号链接
+                if entry.is_symlink():
+                    continue
+
+                if entry.is_file():
+                    file_count += 1
+                    total_size += entry.stat().st_size
+                elif entry.is_dir():
+                    folder_count += 1
+                    # 递归处理子目录
+                    for sub_entry in entry.rglob('*'):
+                        if sub_entry.is_symlink():
+                            continue
+                        if sub_entry.is_file():
+                            file_count += 1
+                            total_size += sub_entry.stat().st_size
+
+            cls._cache = {
+                'folders': folder_count,
+                'files': file_count,
+                'total_size_mb': round(total_size / 1024 / 1024, 2)
+            }
+            cls._last_scan = time.time()
+        return cls._cache
+
+class FileChangeHandler(FileSystemEventHandler):
+    def on_any_event(self, event):
+        """文件系统事件处理器"""
+        # 只响应特定事件类型
+        if event.event_type in ('created', 'deleted', 'modified'):
+            app.logger.info(f"文件变更检测: {event.src_path}")
+            DataScanner.get_stats(force_refresh=True)
+
+
+DATA_ROOT = auto_get_data_path()
+app = Flask(__name__)
+
+
+def init_file_watcher():
+    """初始化文件监控"""
+    global observer
+    observer = Observer()
+    event_handler = FileChangeHandler()
+    
+    try:
+        observer.schedule(
+            event_handler, 
+            path=str(DATA_ROOT),
+            recursive=True  # 监控子目录
+        )
+        observer.start()
+        app.logger.info("文件监控服务已启动")
+    except Exception as e:
+        app.logger.error(f"监控初始化失败: {str(e)}")
+
+
+@app.route('/api/stats')
+def get_system_stats():
+    # 获取强制刷新参数
+    force_refresh = request.args.get('force', '0') == '1'
+    return jsonify(DataScanner.get_stats(force_refresh=force_refresh))
+
+
 
 @app.route('/')
 def index():
@@ -121,4 +200,10 @@ def handle_download(filepath):
         return "Not found", 404
 
 if __name__ == '__main__':
-    app.run(port=5050, debug=False)
+    # 启动文件监控
+    init_file_watcher()
+    # 注册退出清理
+    atexit.register(lambda: 
+        observer.stop() and observer.join()
+    )
+    app.run(port=5050, debug=True)
