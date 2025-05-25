@@ -459,8 +459,11 @@ def view_battle(battle_id):
                     game_result["roles"] = {}
 
             if battle.status == "error":
-                # 验证公共日志文件路径
-                PUBLIC_LIB_FILE_DIR = game_result.get("public_log_file")
+
+                PUBLIC_LIB_FILE_DIR = os.path.join(
+                    ".", "data", battle_id, f"public_game_{battle_id}.json"
+                )
+
                 if not PUBLIC_LIB_FILE_DIR:
                     logger.error(f"[Battle {battle_id}] 缺少公共日志文件路径")
                     error_info["error_msg"] = (
