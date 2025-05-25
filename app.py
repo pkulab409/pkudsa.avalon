@@ -1,4 +1,3 @@
-from re import DEBUG
 from flask import Flask, request, current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, current_user
@@ -28,7 +27,7 @@ from werkzeug.middleware.profiler import ProfilerMiddleware
 # 初始化csrf保护
 csrf = CSRFProtect()
 
-DEBUG = True  # 设置为True以启用调试模式
+is_debug = True  # 设置为True以启用调试模式
 
 
 def cleanup_invalid_ai_codes(app):
@@ -456,7 +455,7 @@ def create_app(config_object=Config):
     cleanup_stale_battles(app)
     # 清理文件不存在的AI代码记录
     cleanup_invalid_ai_codes(app)
-    if DEBUG:
+    if is_debug:
         # 如果是开发环境，添加性能分析中间件
         # 确定日志文件路径（根目录）
         profile_dir = os.path.join(
