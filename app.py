@@ -27,7 +27,7 @@ from werkzeug.middleware.profiler import ProfilerMiddleware
 # 初始化csrf保护
 csrf = CSRFProtect()
 
-is_debug = True  # 设置为True以启用调试模式
+is_debug = False # 设置为True以启用调试模式
 
 
 def cleanup_invalid_ai_codes(app):
