@@ -11,3 +11,4 @@ faker
 email_validator
 dotenv
 openai
+chardet

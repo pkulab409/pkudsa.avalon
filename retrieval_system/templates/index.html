@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>PKUDSA 文件检索系统</title>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="container mt-4">
+        <h2 class="mb-4">游戏数据检索系统</h2>
+
+        <!-- 搜索框 -->
+        <div class="input-group mb-3">
+            <input type="text" id="searchInput" class="form-control" placeholder="输入游戏ID或文件名进行搜索...">
+            <button class="btn btn-primary" onclick="performSearch()">搜索</button>
+        </div>
+
+        <!-- 搜索结果 -->
+        <div id="resultContainer" class="list-group"></div>
+    </div>
+
+    <!-- 预览模态框 -->
+    <div class="modal fade" id="previewModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">文件预览</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <pre id="fileContent" class="p-3 bg-light rounded"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function performSearch() {
+            const keyword = $('#searchInput').val();
+            $.get('/api/search?q=' + encodeURIComponent(keyword), function (data) {
+                renderResults(data);
+            });
+        }
+
+        function renderResults(items) {
+            const container = $('#resultContainer').empty();
+            items.forEach(item => {
+                const elem = $(`
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="badge ${item.type === 'folder' ? 'bg-primary' : 'bg-secondary'}">
+                                ${item.type}
+                            </span>
+                            ${item.name}
+                        </div>
+                        <div>
+                            ${item.type === 'file' ?
+                        `<button class="btn btn-sm btn-outline-success" 
+                                    onclick="previewFile('${item.path}')">预览</button>` : ''}
+                            <button class="btn btn-sm btn-danger" 
+                                onclick="downloadItem('${item.path}')">下载</button>
+                        </div>
+                    </div>
+                `);
+                container.append(elem);
+            });
+        }
+
+        function previewFile(path) {
+            $.get('/api/preview?path=' + encodeURIComponent(path), function (res) {
+                $('#fileContent').text(res.content);
+                new bootstrap.Modal('#previewModal').show();
+            }).fail(() => alert('预览失败'));
+        }
+
+        function downloadItem(path) {
+            window.location.href = '/download/' + encodeURIComponent(path);
+        }
+    </script>
+</body>
+
+</html>
