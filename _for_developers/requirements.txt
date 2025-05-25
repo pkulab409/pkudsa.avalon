@@ -12,3 +12,9 @@ email_validator
 dotenv
 openai
 chardet
+watchdog
+atexit
+paramiko
+scp
+tarfile
+tempfile
