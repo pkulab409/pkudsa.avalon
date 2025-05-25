@@ -5,7 +5,6 @@ from database.models import User, GameStats
 
 ranking_bp = Blueprint("ranking", __name__)
 
-
 class Pagination:
     def __init__(self, items, page, per_page, total):
         self.items = items
@@ -49,7 +48,9 @@ def show_ranking():
 
     page = request.args.get("page", 1, type=int)
     per_page = 15  # 每页15个项目
-    current_app.logger.debug(f"Request params: page={page}, per_page={per_page}")
+    current_app.logger.debug(
+        f"Request params: page={page}, per_page={per_page}"
+    )
 
     try:
         all_ranking_ids_tuples = (
@@ -59,7 +60,9 @@ def show_ranking():
             .all()
         )
         all_ranking_ids = sorted([r[0] for r in all_ranking_ids_tuples])
-        current_app.logger.debug(f"Fetched all_ranking_ids: {all_ranking_ids}")
+        current_app.logger.debug(
+            f"Fetched all_ranking_ids: {all_ranking_ids}"
+        )
     except Exception as e:
         current_app.logger.error(f"Error fetching all_ranking_ids: {e}")
         all_ranking_ids = [0]
@@ -75,13 +78,12 @@ def show_ranking():
         current_app.logger.debug(
             f"Corrected ranking_id to: {ranking_id} (was not in all_ranking_ids)"
         )
-    elif (
-        not all_ranking_ids and ranking_id != 0
-    ):  # Ensure ranking_id is 0 if no other IDs exist
+    elif not all_ranking_ids and ranking_id != 0: # Ensure ranking_id is 0 if no other IDs exist
         ranking_id = 0
         current_app.logger.debug(
             f"Corrected ranking_id to: {ranking_id} (all_ranking_ids was empty or invalid initial ranking_id)"
         )
+
 
     min_games = request.args.get("min_games", 0, type=int)
     current_app.logger.debug(f"min_games: {min_games}")
@@ -102,13 +104,9 @@ def show_ranking():
         )
 
         if items_for_current_page is None:
-            current_app.logger.warning(
-                "get_leaderboard returned None for items, defaulting to empty list."
-            )
+            current_app.logger.warning("get_leaderboard returned None for items, defaulting to empty list.")
             items_for_current_page = []
-        actual_total_db_items = (
-            total_items_in_db if total_items_in_db is not None else 0
-        )
+        actual_total_db_items = total_items_in_db if total_items_in_db is not None else 0
 
         current_app.logger.debug(
             f"Data from get_leaderboard: {len(items_for_current_page)} items for current page. Total items in DB for ranking: {actual_total_db_items}"
@@ -131,21 +129,13 @@ def show_ranking():
                 # Calculate global rank based on current page and item index on page
                 player_data_copy["rank"] = (page - 1) * per_page + i + 1
 
-                player_data_copy.setdefault(
-                    "score", player_data_copy.get("elo_score", 0)
-                )
-                player_data_copy.setdefault(
-                    "total", player_data_copy.get("games_played", 0)
-                )
+                player_data_copy.setdefault("score", player_data_copy.get("elo_score", 0))
+                player_data_copy.setdefault("total", player_data_copy.get("games_played", 0))
 
-                if (
-                    "win_rate" not in player_data_copy
-                ):  # Calculate win_rate if not present
+                if "win_rate" not in player_data_copy: # Calculate win_rate if not present
                     total_games = player_data_copy.get("total", 0)
                     wins = player_data_copy.get("wins", 0)
-                    player_data_copy["win_rate"] = (
-                        round((wins / total_games) * 100, 1) if total_games > 0 else 0
-                    )
+                    player_data_copy["win_rate"] = round((wins / total_games) * 100, 1) if total_games > 0 else 0
 
                 leaderboard_page_items_with_global_rank.append(player_data_copy)
             else:
@@ -166,16 +156,18 @@ def show_ranking():
 
     # Create Pagination object using the items for the current page and the actual total from the database
     pagination = Pagination(
-        items=leaderboard_page_items_with_global_rank,  # These are the items to display on this page
+        items=leaderboard_page_items_with_global_rank, # These are the items to display on this page
         page=page,
         per_page=per_page,
-        total=actual_total_db_items,  # This is the grand total for the query
+        total=actual_total_db_items # This is the grand total for the query
     )
     current_app.logger.debug(
         f"Pagination object created. Page: {pagination.page}, Per_page: {pagination.per_page}, Total_items_in_db: {pagination.total}, Total_pages: {pagination.pages}, Has_next: {pagination.has_next}, Has_prev: {pagination.has_prev}"
     )
 
-    current_app.logger.debug("--- Exiting show_ranking, rendering template ---")
+    current_app.logger.debug(
+        "--- Exiting show_ranking, rendering template ---"
+    )
 
     return render_template(
         "ranking.html",
