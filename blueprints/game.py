@@ -505,15 +505,29 @@ def view_battle(battle_id):
                                 ]:
                                     error_record = record
                                     break
+
                             for record in reversed(data):
-                                # 检查是否有traceback
-                                if "traceback" in record and record["traceback"]:
+                                # 检查result中是否有traceback
+                                if "result" in record and record["result"]:
                                     # 找到traceback
                                     error_info_raw["error_or_NOT"] = "error"
-                                    error_info_raw["error_msg"] = record["traceback"]
+                                    error_info_raw["error_msg"] = record["result"][
+                                        "traceback"
+                                    ]
                                     error_raw_record = True
                                     break
-                            if not error_raw_record:
+                            if error_raw_record == False:
+                                for record in reversed(data):
+                                    # 检查是否有traceback
+                                    if "traceback" in record and record["traceback"]:
+                                        # 找到traceback
+                                        error_info_raw["error_or_NOT"] = "error"
+                                        error_info_raw["error_msg"] = record[
+                                            "traceback"
+                                        ]
+                                        error_raw_record = True
+                                        break
+                            if error_raw_record == False:
                                 # 如果没有找到traceback，使用默认错误信息
                                 error_info_raw["error_or_NOT"] = "error"
                                 error_info_raw["error_msg"] = (
