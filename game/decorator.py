@@ -77,6 +77,10 @@ class DebugDecorator:
 
     def __call__(self, func):
         def wrapper(*args):
+
+            # 初始化result为None
+            result = None
+
             if not hasattr(self.local_data, "stack"):
                 self.local_data.stack = []
 
