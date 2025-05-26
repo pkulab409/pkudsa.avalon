@@ -177,9 +177,9 @@ class GameStats(db.Model):
     @property
     def win_rate(self):
         """计算胜率"""
-        if self.games_played == 0:
+        if self.wins + self.losses == 0:
             return 0
-        return (self.wins / self.games_played) * 100
+        return (self.wins / (self.wins + self.losses)) * 100
 
 
 # 游戏对战记录 (现在承担了游戏的整体记录和状态)
