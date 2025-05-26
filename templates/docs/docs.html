@@ -6,19 +6,19 @@
     <div class="container mt-4 col-md-7">
         <div id="markdown-content"></div>
         <!-- 1. 先加载highlight.js核心库 -->
-        <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/common.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/esm/highlight.min.js"></script>
+        <script src="{{ url_for('static', filename='libs/highlight/common.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='libs/highlight/highlight.min.js') }}"></script>
         <link rel="stylesheet"
-              href="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/styles/github.min.css">
+              href="{{ url_for('static', filename='libs/highlight/github.min.css') }}">
         <!-- 2. 再加载marked -->
-        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+        <script src="{{ url_for('static', filename='libs/marked/marked.min.js') }}"></script>
         <!-- 3. 最后加载KaTeX -->
         <link rel="stylesheet"
-              href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+              href="{{ url_for('static', filename='libs/katex/katex.min.css') }}">
         <script defer
-                src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+                src="{{ url_for('static', filename='libs/katex/katex.min.js') }}"></script>
         <script defer
-                src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+                src="{{ url_for('static', filename='libs/katex/auto-render.min.js') }}"></script>
         <script>
       // 4. 配置marked支持代码高亮和图片（必须在所有库加载完成后）
       marked.setOptions({
@@ -75,4 +75,9 @@
         });
         </script>
     </div>
+    <!-- 引入 ECharts -->
+    <script src="{{ url_for('static', filename='libs/echarts/echarts.min.js') }}"></script>
+    <!-- 引入 jQuery 和 Bootstrap -->
+    <script src="{{ url_for('static', filename='libs/jquery/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='libs/bootstrap/bootstrap.bundle.min.js') }}"></script>
 {% endblock content %}

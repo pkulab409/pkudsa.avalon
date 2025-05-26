@@ -7,6 +7,16 @@
         <title>
             {% block title %}阿瓦隆AI对战平台{% endblock %}
         </title>
+        <!-- 预加载关键资源 -->
+        <link rel="preload"
+              href="{{ url_for('static', filename='libs/bootstrap/bootstrap.min.css') }}"
+              as="style">
+        <link rel="preload"
+              href="{{ url_for('static', filename='libs/bootstrap/bootstrap.bundle.min.js') }}"
+              as="script">
+        <link rel="preload"
+              href="{{ url_for('static', filename='fonts/google-fonts.css') }}"
+              as="style">
         <!-- 动态 Favicon 根据配色 -->
         <link rel="icon"
               href="{{ url_for('static', filename='images/lightmode_favicon.ico') }}"
@@ -15,15 +25,15 @@
               href="{{ url_for('static', filename='images/darkmode_favicon.ico') }}"
               media="(prefers-color-scheme: dark)">
         <!-- Google Fonts -->
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap"
-              rel="stylesheet">
+        <link href="{{ url_for('static', filename='fonts/google-fonts.css') }}"
+              rel="stylesheet"
+              media="print"
+              onload="this.media='all'">
         <!-- Bootstrap CSS -->
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+        <link href="{{ url_for('static', filename='libs/bootstrap/bootstrap.min.css') }}"
               rel="stylesheet">
         <!-- Bootstrap Icons -->
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css"
+        <link href="{{ url_for('static', filename='libs/icons/bootstrap-icons.css') }}"
               rel="stylesheet">
         <!-- Base Styles -->
         <style>
@@ -396,47 +406,81 @@
                 <div class="copyright text-center">© DSA 2025 | 让AI策略之战激发你的灵感</div>
             </div>
         </footer>
-        <!-- Bootstrap JS Bundle with Popper -->
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-        <!-- Flash消息自动关闭脚本 -->
-        <script>
+        <!-- Bootstrap JS Bundle with Popper - 使用defer加载 -->
+        <script src="{{ url_for('static', filename='libs/bootstrap/bootstrap.bundle.min.js') }}"
+                defer></script>
+        <!-- Flash消息自动关闭脚本 - 使用defer加载 -->
+        <script defer>
             document.addEventListener('DOMContentLoaded', function() {
+                // 使用防抖优化事件处理
+                function debounce(func, wait) {
+                    let timeout;
+                    return function executedFunction(...args) {
+                        const later = () => {
+                            clearTimeout(timeout);
+                            func(...args);
+                        };
+                        clearTimeout(timeout);
+                        timeout = setTimeout(later, wait);
+                    };
+                }
+
                 // 获取所有toast元素
                 const toasts = document.querySelectorAll('.toast');
+                const currentPath = window.location.pathname;
 
+                // 使用Map缓存DOM查询结果
+                const navLinks = new Map();
+                document.querySelectorAll('.navbar-nav .nav-link').forEach(link => {
+                    navLinks.set(link.getAttribute('href'), link);
+                });
+
+                // 优化toast处理
                 toasts.forEach(function(toast) {
                     const countdownEl = toast.querySelector('.countdown');
-                    let countdown = 3; // 3秒倒计时
+                    let countdown = 3;
+                    let timer = null;
 
-                    // 设置倒计时定时器
-                    const timer = setInterval(function() {
-                        countdown--;
-                        if (countdownEl) countdownEl.textContent = countdown;
-
-                        if (countdown <= 0) {
-                            clearInterval(timer);
-                            // 使用Bootstrap的toast关闭方法
-                            const bsToast = new bootstrap.Toast(toast);
-                            bsToast.hide();
+                    const updateCountdown = debounce(() => {
+                        if (countdownEl) {
+                            countdownEl.textContent = countdown;
                         }
-                    }, 1000); // 每秒更新一次
+                    }, 100);
 
-                    // 点击关闭按钮时清除定时器
+                    const startCountdown = () => {
+                        timer = setInterval(() => {
+                            countdown--;
+                            updateCountdown();
+
+                            if (countdown <= 0) {
+                                clearInterval(timer);
+                                const bsToast = new bootstrap.Toast(toast);
+                                bsToast.hide();
+                            }
+                        }, 1000);
+                    };
+
+                    startCountdown();
+
+                    // 优化事件监听器
                     const closeBtn = toast.querySelector('.btn-close');
                     if (closeBtn) {
-                        closeBtn.addEventListener('click', function() {
+                        closeBtn.addEventListener('click', () => {
                             clearInterval(timer);
-                        });
+                        }, { once: true });
                     }
                 });
 
-                // 高亮当前活动菜单项
-                const currentPath = window.location.pathname;
-                document.querySelectorAll('.navbar-nav .nav-link').forEach(link => {
-                    if (link.getAttribute('href') === currentPath) {
-                        link.parentElement.classList.add('active');
-                    }
-                });
+                // 优化导航高亮
+                const activeLink = navLinks.get(currentPath);
+                if (activeLink) {
+                    activeLink.parentElement.classList.add('active');
+                }
+
+                // 添加性能监控
+                if (window.performance && window.performance.mark) {
+                    window.performance.mark('page_loaded');
+                }
             });
         </script>
         {% block scripts %}

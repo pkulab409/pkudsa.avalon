@@ -1,10 +1,10 @@
 # Interface Optimizing - 中世纪风格对局回放 - 说明
 
-> dmcnczy 25/5/17
+> dmcnczy 25/5/26
 
 ### 📚中世纪风格对局回放
 
-- **HTML 文件**：在 `templates/visualizer/medieval_style_replay.html`
+- **HTML 文件**：在 `templates/visualizer/medieval_style_replay_page.html`
 
 - **CSS 样式文件**：在 `static/css/medieval.css`
 
@@ -30,22 +30,20 @@
 
 - 实现监听聊天滚动，联动地图
 
-（`medieval_style_replay.html` 、 `game_reveal.html` 、 和 `game_replay.html` 均实现）
+（`medieval_style_replay_page.html` 、 `game_reveal.html` 、 和 `game_replay.html` 均实现）
 
 ### ✅待上传的角色卡片
 
-- **梅林**： `static/images/merlin.png`
+- **梅林**： `static/images/merlin.jpg`
 
-- **派西维尔**： `static/images/percival.png`
+- **派西维尔**： `static/images/percival.jpg`
 
-- **莫甘娜**： `static/images/morgana.png`
+- **莫甘娜**： `static/images/morgana.jpg`
 
-- **刺客**： `static/images/assassin.png`
+- **刺客**： `static/images/assassin.jpg`
 
-- **奥伯伦**： `static/images/oberon.png`
+- **奥伯伦**： `static/images/oberon.jpg`
 
-- **骑士1**： `static/images/knight1.png`
+- **骑士1**： `static/images/knight1.jpg`
 
-- **骑士2**： `static/images/knight2.png`
-
-（这些文件暂时不存在，因而访问网页时后台会出现 404）
+- **骑士2**： `static/images/knight2.jpg`
