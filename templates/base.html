@@ -57,14 +57,10 @@
                 min-height: 100vh;
                 background-color: #f0f2f5;
                 scroll-behavior: smooth;
-                text-rendering: optimizeSpeed;
-                -webkit-font-smoothing: antialiased;
-                -moz-osx-font-smoothing: grayscale;
             }
 
             main {
                 flex: 1;
-                will-change: transform;
             }
 
             /* Navbar Styles */
@@ -72,8 +68,6 @@
                 background: linear-gradient(to right, var(--primary-color), var(--primary-light)) !important;
                 box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
                 padding: 0.75rem 1rem;
-                will-change: transform;
-                transform: translateZ(0);
             }
 
             .navbar-brand {
@@ -86,7 +80,6 @@
                 -webkit-text-fill-color: transparent;
                 text-shadow: 0px 3px 3px rgba(0, 0, 0, 0.15);
                 transition: transform 0.3s ease;
-                will-change: transform;
             }
 
             .navbar-brand:hover {
@@ -100,7 +93,6 @@
                 border-radius: 0.5rem;
                 transition: all 0.3s ease;
                 margin: 0 0.15rem;
-                will-change: transform, background-color;
             }
 
             .navbar .nav-link:hover {
@@ -152,8 +144,6 @@
                 opacity: 1;
                 overflow: hidden;
                 min-width: 300px;
-                will-change: transform, opacity;
-                transform: translateZ(0);
             }
 
             .toast-header {
@@ -243,36 +233,12 @@
 
             /* Page Transition Animation */
             @keyframes fadeIn {
-                from { 
-                    opacity: 0; 
-                    transform: translateY(20px) translateZ(0);
-                }
-                to { 
-                    opacity: 1; 
-                    transform: translateY(0) translateZ(0);
-                }
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
             }
 
             main {
                 animation: fadeIn 0.5s ease-out;
-                will-change: transform, opacity;
-            }
-
-            /* 添加图片优化 */
-            img {
-                content-visibility: auto;
-            }
-
-            /* 优化滚动性能 */
-            * {
-                scroll-behavior: smooth;
-                -webkit-overflow-scrolling: touch;
-            }
-
-            /* 优化渲染层 */
-            .navbar, .toast, .dropdown-menu {
-                transform: translateZ(0);
-                backface-visibility: hidden;
             }
 
             /* Responsive Adjustments */
