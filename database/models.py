@@ -44,6 +44,11 @@ class User(db.Model, UserMixin):
     # battles_won: 获取用户赢得的对战列表 (通过查询 BattlePlayer 实现，关系定义在 BattlePlayer 中)
     # 无需在这里明确定义 `relationship` 如果是通过 BattlePlayer 筛选
 
+    __table_args__ = (
+        db.Index("idx_users_is_admin", is_admin),
+        db.Index("idx_users_partition", partition),
+    )
+
     def set_password(self, password):
         """设置用户的密码哈希"""
         self.password_hash = generate_password_hash(password)
@@ -127,9 +132,6 @@ class AICode(db.Model):
 # 玩家游戏统计
 class GameStats(db.Model):
     __tablename__ = "game_stats"
-    __table_args__ = (
-        db.UniqueConstraint("user_id", "ranking_id", name="uq_user_ranking"),
-    )
 
     id = db.Column(db.String(36), primary_key=True, default=generate_uuid)
     user_id = db.Column(
@@ -144,6 +146,16 @@ class GameStats(db.Model):
     draws = db.Column(db.Integer, default=0)
     ranking_id = db.Column(db.Integer, nullable=False, default=0)  # 新增 ranking_id
 
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "ranking_id", name="uq_user_ranking"),
+        # 排行榜查询索引 - 按ELO分数降序
+        db.Index("idx_gamestats_elo", ranking_id, elo_score.desc()),
+        # 排行榜查询索引 - 按游戏场次降序
+        db.Index("idx_gamestats_games_played", ranking_id, games_played.desc()),
+        # 按胜利次数排序的索引
+        db.Index("idx_gamestats_wins", ranking_id, wins.desc()),
+        # 按胜率查询的索引(可选，因为胜率是计算值)
+    )
     # 关系:
     # user: 哪个用户的统计数据 (backref="user" 在 User 模型中定义)
 
@@ -202,6 +214,14 @@ class Battle(db.Model):
     # cascade="all, delete-orphan": 当删除一个 Battle 时，相关的 BattlePlayer 记录也会被删除
     players = db.relationship(
         "BattlePlayer", backref="battle", lazy="dynamic", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        db.Index("idx_battles_status", status),
+        db.Index("idx_battles_ranking", ranking_id),
+        db.Index("idx_battles_created_at", created_at.desc()),
+        db.Index("idx_battles_ended_at", ended_at.desc()),
+        db.Index("idx_battles_type", battle_type),
     )
 
     def __repr__(self):
@@ -279,6 +299,17 @@ class BattlePlayer(db.Model):
 
     # 记录加入对战的时间 (如果需要区分何时“加入”对战列表 vs 对战实际开始)
     join_time = db.Column(db.DateTime, default=datetime.now)
+
+    __table_args__ = (
+        # 优化胜负查询
+        db.Index("idx_battleplayer_outcome", outcome),
+        # 优化用户对战结果查询
+        db.Index("idx_battleplayer_user_outcome", user_id, outcome),
+        # 优化特定对战中玩家查询
+        db.Index("idx_battleplayer_battle_user", battle_id, user_id),
+        # 优化按位置查询
+        db.Index("idx_battleplayer_position", battle_id, position),
+    )
 
     def to_dict(self):
         """将参与者信息转换为字典"""
