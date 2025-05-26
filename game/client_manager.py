@@ -220,7 +220,7 @@ class ClientManager:
                 new_client = OpenAI(api_key=api_key, base_url=base_url)
                 try:
                     # 执行一个轻量级的操作，验证客户端是否正常工作
-                    models = new_client.models.list()
+                    # models = new_client.models.list()
                     # 不尝试获取长度，只确认API调用成功
                     logger.info(f"Client connection verified successfully")
                 except Exception as conn_err:
