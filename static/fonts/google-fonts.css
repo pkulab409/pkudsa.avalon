@@ -1,35 +1,22 @@
 /* Google Fonts - Poppins */
-@font-face {
-    font-family: 'Poppins';
-    font-style: normal;
-    font-weight: 300;
-    src: url('poppins-v20-latin-300.woff2') format('woff2');
-}
 
 @font-face {
     font-family: 'Poppins';
     font-style: normal;
     font-weight: 400;
-    src: url('poppins-v20-latin-regular.woff2') format('woff2');
-}
-
-@font-face {
-    font-family: 'Poppins';
-    font-style: normal;
-    font-weight: 500;
-    src: url('poppins-v20-latin-500.woff2') format('woff2');
+    src: url('poppins/poppins-400.woff2') format('woff2');
 }
 
 @font-face {
     font-family: 'Poppins';
     font-style: normal;
     font-weight: 600;
-    src: url('poppins-v20-latin-600.woff2') format('woff2');
+    src: url('poppins/poppins-600.woff2') format('woff2');
 }
 
 @font-face {
     font-family: 'Poppins';
     font-style: normal;
     font-weight: 700;
-    src: url('poppins-v20-latin-700.woff2') format('woff2');
+    src: url('poppins/poppins-700.woff2') format('woff2');
 }
