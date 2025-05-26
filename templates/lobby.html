@@ -351,7 +351,7 @@
                         <i class="bi bi-info-circle me-1"></i> 详情
                       </a>
                       {% if battle.status in ['completed', 'error', 'playing','cancelled'] %}
-                        <a href="{{ url_for('visualizer.game_replay', game_id=battle.id) }}"
+                        <a href="{{ url_for('visualizer.replay', game_id=battle.id) }}"
                            class="btn btn-sm btn-outline-info action-btn">
                           <i class="bi bi-play-fill me-1"></i> 回放
                         </a>
@@ -730,7 +730,7 @@ function updateBattlesStats(battles_count, automatch_is_on, automatch_status) {
     setTimeout(loadBattlesStats, 60000);
 }
 
-// 加载对战列表
+// 获取对战列表
 function loadBattlesList(page) {
     // 获取筛选条件
     const status = document.getElementById('status').value;
@@ -838,11 +838,12 @@ function updateBattlesList(battles, pagination) {
     // 构建对战列表HTML
     let battlesHTML = '';
     
+    // 更新对战列表UI中的回放按钮部分
     battles.forEach(battle => {
         battlesHTML += `
             <tr class="battle-card">
                 <td>
-                    <a href="/battle/${battle.id}" class="battle-id text-decoration-none">${battle.id.substring(0, 8)}...</a>
+                    <a href="${API_BASE_PATH}/battle/${battle.id}" class="battle-id text-decoration-none">${battle.id.substring(0, 8)}...</a>
                 </td>
                 <td>
                     ${getStatusBadge(battle.status)}
@@ -853,11 +854,11 @@ function updateBattlesList(battles, pagination) {
                 <td>${battle.created_at}</td>
                 <td>${battle.ended_at}</td>
                 <td>
-                    <a href="/battle/${battle.id}" class="btn btn-sm btn-outline-primary action-btn">
+                    <a href="${API_BASE_PATH}/battle/${battle.id}" class="btn btn-sm btn-outline-primary action-btn">
                         <i class="bi bi-info-circle me-1"></i> 详情
                     </a>
                     ${battle.status === 'completed' || battle.status === 'error' || battle.status === 'playing' || battle.status === 'cancelled' ? 
-                    `<a href="/visualizer/game_replay/${battle.id}" class="btn btn-sm btn-outline-info action-btn">
+                    `<a href="/visualizer/replay/${battle.id}" class="btn btn-sm btn-outline-info action-btn">
                         <i class="bi bi-play-fill me-1"></i> 回放
                     </a>` : ''}
                 </td>
