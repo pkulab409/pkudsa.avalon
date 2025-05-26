@@ -448,6 +448,29 @@ h3::after {
     background-position: center;
 }
 
+/* .win-rate-green-bar,
+.win-rate-red-bar,
+.win-rate-gray-bar {
+    position: absolute;
+    height: 100%;
+    top: 0;
+    transition: width 0.5s;
+}
+
+.win-rate-green-bar {
+    background: #4CAF50;
+    z-index: 3;
+}
+
+.win-rate-red-bar {
+    background: #ff4444;
+    z-index: 2;
+}
+
+.win-rate-gray-bar {
+    background: #adb5bd;
+    z-index: 1; } */
+
 /*
 ---------------- 图片接口在上面 -----------------
 */

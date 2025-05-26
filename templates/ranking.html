@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}
-  排行榜 - 游戏平台
+    排行榜 - 游戏平台
 {% endblock title %}
 {% block content %}
-  <style>
+    <style>
 /* Main styles */
 .ranking-container {
 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -139,33 +139,44 @@ color: white;
 font-size: 16px;
 }
 /* 下面这一部分是胜率进度条的部分 */
+/* 胜率进度条容器 */
 .win-rate-container {
-position: relative;
-width: 100%;
-height: 12px; /* 适当增加高度 */
-background: #fff; /* 添加白色背景 */
-border-radius: 6px; /* 圆角大小与高度匹配 */
-overflow: hidden;
+  position: relative;
+  width: 100%;
+  height: 12px;
+  background: #f1f3f4;
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 8px 0;
 }
-/* 绿色部分（胜率） */
+
+/* 三段进度条统一样式 */
+.win-rate-green-bar,
+.win-rate-red-bar,
+.win-rate-gray-bar {
+  position: absolute;
+  height: 100%;
+  top: 0;
+  transition: width 0.5s ease;
+}
+
+/* 绿色胜率段 */
 .win-rate-green-bar {
-position: absolute;
-left: 0;
-height: 100%;
-background: #4CAF50;
-transition: width 0.5s ease;
-z-index: 2;
-box-shadow: inset 2px 0 3px rgba(0,0,0,0.1); /* 添加内阴影增强立体感 */
+  background: #4CAF50;
+  z-index: 3;
+  left: 0;
 }
-/* 红色部分（败率） */
+
+/* 红色败率段 */
 .win-rate-red-bar {
-position: absolute;
-left: 0; /* 改为left定位 */
-width: 100% !important; /* 始终占满容器 */
-height: 100%;
-background: #ff4444;
-transition: clip-path 0.5s ease; /* 使用裁剪路径实现动画 */
-clip-path: inset(0 0 0 calc(100% - var(--loss-percent))); /* 通过CSS变量计算败率 */
+  background: #ff4444;
+  z-index: 2;
+}
+
+/* 灰色平局段 */
+.win-rate-gray-bar {
+  background: #adb5bd;
+  z-index: 1;
 }
 /* 动态圆角处理 */
 .win-rate-green-bar {
@@ -273,333 +284,389 @@ rgba(255,255,255,0) 100%
 );
 transform: rotate(30deg);
 }
-  </style>
-  <!-- 其余内容保持不变 -->
-  <div class="container mt-4 ranking-container">
-    <div class="page-header d-flex justify-content-between align-items-center">
-      <h2>
-        <i class="fas fa-trophy me-3"></i>玩家排行榜
-      </h2>
+    </style>
+    <!-- 其余内容保持不变 -->
+    <div class="container mt-4 ranking-container">
+        <div class="page-header d-flex justify-content-between align-items-center">
+            <h2>
+                <i class="fas fa-trophy me-3"></i>玩家排行榜
+            </h2>
+        </div>
+        <!-- 榜单选择导航 - 修改为使用data属性而非直接链接 -->
+        <ul class="nav nav-tabs mb-3 ranking-tabs" id="rankingTabs">
+            {% for rid in all_ranking_ids %}
+                <li class="nav-item">
+                    <a class="nav-link {% if rid == current_ranking_id %}active{% endif %}"
+                       href="javascript:void(0);"
+                       data-ranking-id="{{ rid }}">
+                        <i class="bi bi-trophy me-1"></i>
+                        {% if rid >=1 and rid <=6 %}
+                            初赛赛区{{ rid }}
+                        {% elif rid ==0 %}
+                            测试赛
+                        {% elif rid ==11 %}
+                            半决赛
+                        {% elif rid ==21 %}
+                            决赛
+                        {% else %}
+                            榜单 {{ rid }}
+                        {% endif %}
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+        <div class="card ranking-card">
+            <div class="card-body p-0">
+                <div class="table-responsive position-relative" id="rankingTableContainer">
+                    <!-- 加载中动画，初始隐藏 -->
+                    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+                        <div class="spinner"></div>
+                    </div>
+                    <table class="table ranking-table">
+                        <thead>
+                            <tr>
+                                <th scope="col" width="10%">排名</th>
+                                <th scope="col" width="20%">用户名</th>
+                                <th scope="col" width="15%">分数 (Elo)</th>
+                                <th scope="col" width="10%">胜场</th>
+                                <th scope="col" width="10%">负场</th>
+                                <th scope="col" width="10%">平局</th>
+                                <th scope="col" width="10%">总场次</th>
+                                <th scope="col" width="15%">胜率</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rankingTableBody">
+                            <!-- 修正: 使用items而非pagination.items -->
+                            {% if items %}
+                                {% for item in items %}
+                                    <tr class="{% if item.rank == 1 %}rank-1{% elif item.rank == 2 %}rank-2{% elif item.rank == 3 %}rank-3{% endif %} {% if item.rank <= 3 %}top3{% endif %}">
+                                        <td>
+                                            {% if item.rank == 1 %}
+                                                <div class="medal medal-gold">
+                                                    <span class="medal-number">1</span>
+                                                </div>
+                                            {% elif item.rank == 2 %}
+                                                <div class="medal medal-silver">
+                                                    <span class="medal-number">2</span>
+                                                </div>
+                                            {% elif item.rank == 3 %}
+                                                <div class="medal medal-bronze">
+                                                    <span class="medal-number">3</span>
+                                                </div>
+                                            {% else %}
+                                                <span class="stat-value">#{{ item.rank }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <!-- 连接主页 -->
+                                        <td>
+                                            {% if current_user.is_authenticated and item.username == current_user.username %}
+                                                <a href="{{ url_for('profile.profile', username=item.username) }}"
+                                                   class="text-decoration-none">
+                                                    <span class="username current-user">{{ item.username }}</span>
+                                                    {% if item.rank <= 3 %}<i class="fas fa-crown rank-crown"></i>{% endif %}
+                                                </a>
+                                            {% else %}
+                                                <a href="{{ url_for('profile.user_profile', user_id=item.user_id) }}"
+                                                   class="text-decoration-none">
+                                                    <span class="username">{{ item.username }}</span>
+                                                    {% if item.rank <= 3 %}<i class="fas fa-crown rank-crown"></i>{% endif %}
+                                                </a>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="elo-score">{{ item.score }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="stat-value text-success">{{ item.wins }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="stat-value text-danger">{{ item.losses }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="stat-value text-secondary">{{ item.draws }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="stat-value">{{ item.total }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <span class="stat-value me-2">{{ item.win_rate }}%</span>
+                                                {% if item.rank <= 3 %}<i class="fas fa-star text-warning"></i>{% endif %}
+                                            </div>
+                                            <div class="win-rate-container">
+                                                <!-- 绿色胜率 -->
+                                                <div class="win-rate-green-bar"
+                                                     style="width: {{ (item.wins / item.total * 100) if item.total > 0 else 0 }}%;
+                                                            left: 0"></div>
+                                                <!-- 红色败率 -->
+                                                <div class="win-rate-red-bar"
+                                                     style="width: {{ (item.losses / item.total * 100) if item.total > 0 else 0 }}%;
+                                                            left: {{ (item.wins / item.total * 100) if item.total > 0 else 0 }}%">
+                                                </div>
+                                                <!-- 灰色平局 -->
+                                                <div class="win-rate-gray-bar"
+                                                     style="width: {{ (item.draws / item.total * 100) if item.total > 0 else 0 }}%;
+                                                            left: {{ ((item.wins + item.losses) / item.total * 100) if item.total > 0 else 0 }}%">
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="8" class="empty-state">
+                                        <i class="fas fa-chart-bar d-block"></i>
+                                        <p>暂无排名数据</p>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                    <!-- 分页导航 - 修正变量名并添加数据属性 -->
+                    <nav aria-label="Page navigation" class="my-4">
+                        <ul class="pagination justify-content-center" id="paginationContainer">
+                            {% if has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link pagination-link"
+                                       href="javascript:void(0);"
+                                       data-page="{{ prev_num }}">上一页</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">上一页</span>
+                                </li>
+                            {% endif %}
+                            <!-- 这里简化页码生成，使用JS动态生成更多页码 -->
+                            {% for page_num in range(1, pages + 1) if page_num == page or page_num == 1 or page_num == pages or (page_num >= page - 1 and page_num <= page + 1) %}
+                                <li class="page-item {% if page_num == page %}active{% endif %}">
+                                    <a class="page-link pagination-link"
+                                       href="javascript:void(0);"
+                                       data-page="{{ page_num }}">{{ page_num }}</a>
+                                </li>
+                                {% if page_num == 1 and page > 3 %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                                {% if page_num == pages - 1 and page < pages - 2 %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            {% if has_next %}
+                                <li class="page-item">
+                                    <a class="page-link pagination-link"
+                                       href="javascript:void(0);"
+                                       data-page="{{ next_num }}">下一页</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">下一页</span>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
     </div>
-    <!-- 榜单选择导航 - 修改为使用data属性而非直接链接 -->
-    <ul class="nav nav-tabs mb-3 ranking-tabs" id="rankingTabs">
-      {% for rid in all_ranking_ids %}
-        <li class="nav-item">
-          <a class="nav-link {% if rid == current_ranking_id %}active{% endif %}"
-             href="javascript:void(0);"
-             data-ranking-id="{{ rid }}">
-            <i class="bi bi-trophy me-1"></i>
-            {% if rid >=1 and rid <=6 %}
-              初赛赛区{{ rid }}
-            {% elif rid ==0 %}
-              测试赛
-            {% elif rid ==11 %}
-              半决赛
-            {% elif rid ==21 %}
-              决赛
-            {% else %}
-              榜单 {{ rid }}
-            {% endif %}
-          </a>
-        </li>
-      {% endfor %}
-    </ul>
-    <div class="card ranking-card">
-      <div class="card-body p-0">
-        <div class="table-responsive position-relative" id="rankingTableContainer">
-          <!-- 加载中动画，初始隐藏 -->
-          <div class="loading-overlay" id="loadingOverlay" style="display: none;">
-            <div class="spinner"></div>
-          </div>
-          <table class="table ranking-table">
-            <thead>
-              <tr>
-                <th scope="col" width="10%">排名</th>
-                <th scope="col" width="20%">用户名</th>
-                <th scope="col" width="15%">分数 (Elo)</th>
-                <th scope="col" width="10%">胜场</th>
-                <th scope="col" width="10%">负场</th>
-                <th scope="col" width="10%">平局</th>
-                <th scope="col" width="10%">总场次</th>
-                <th scope="col" width="15%">胜率</th>
-              </tr>
-            </thead>
-            <tbody id="rankingTableBody">
-              <!-- 修正: 使用items而非pagination.items -->
-              {% if items %}
-                {% for item in items %}
-                  <tr class="{% if item.rank == 1 %}rank-1{% elif item.rank == 2 %}rank-2{% elif item.rank == 3 %}rank-3{% endif %} {% if item.rank <= 3 %}top3{% endif %}">
+    <script>
+document.addEventListener('DOMContentLoaded', function () {
+  // 当前榜单和页面状态
+  let currentRankingId = {{ current_ranking_id }};
+  let currentPage = {{ page }};
+  let minGames = {{ request.args.get('min_games', 0) }};
+
+  // 榜单选项点击事件
+  document.querySelectorAll('#rankingTabs .nav-link').forEach(tab => {
+    tab.addEventListener('click', function (e) {
+      e.preventDefault();
+      const rankingId = parseInt(this.getAttribute('data-ranking-id'));
+
+      // 如果点击的是当前榜单，不做任何操作
+      if (rankingId === currentRankingId) return;
+
+      // 更新活动标签
+      document.querySelectorAll('#rankingTabs .nav-link').forEach(t => {
+        t.classList.remove('active');
+      });
+      this.classList.add('active');
+
+      // 重置为第一页并加载新榜单数据
+      currentRankingId = rankingId;
+      currentPage = 1;
+      loadRankingData();
+
+      // 更新URL，支持浏览器历史
+      updateUrlParams();
+    });
+  });
+
+  // 分页链接点击事件
+  document.addEventListener('click', function (e) {
+    if (e.target.classList.contains('pagination-link')) {
+      e.preventDefault();
+      const page = parseInt(e.target.getAttribute('data-page'));
+      if (page !== currentPage) {
+        currentPage = page;
+        loadRankingData();
+        updateUrlParams();
+      }
+    }
+  });
+
+  // 动画函数 - 三段式进度条
+  function animateBar(greenBar, redBar, grayBar) {
+  // 读取目标宽度
+  const winPercent = greenBar.getAttribute('data-final-width') || '0';
+  const lossPercent = redBar.getAttribute('data-final-width') || '0';
+  const drawPercent = grayBar.getAttribute('data-final-width') || '0';
+
+  greenBar.style.width = winPercent + '%';
+  greenBar.style.left = '0';
+
+  redBar.style.width = lossPercent + '%';
+  redBar.style.left = winPercent + '%';
+
+  grayBar.style.width = drawPercent + '%';
+  grayBar.style.left = (parseFloat(winPercent) + parseFloat(lossPercent)) + '%';
+}
+
+  // 初始化进度条动画
+  function initProgressBars() {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const row = entry.target;
+          const greenBar = row.querySelector('.win-rate-green-bar[data-final-width]');
+          const redBar = row.querySelector('.win-rate-red-bar[data-final-width]');
+          const grayBar = row.querySelector('.win-rate-gray-bar[data-final-width]');
+          if (greenBar && redBar && grayBar) {
+            animateBar(greenBar, redBar, grayBar);
+          }
+        }
+      });
+    }, { threshold: 0.1 });
+
+    // 只观察JS动态渲染的tr
+    document.querySelectorAll('tr').forEach(row => {
+      if (row.querySelector('.win-rate-green-bar[data-final-width]')) {
+        observer.observe(row);
+      }
+    });
+  }
+
+  // 加载榜单数据
+  function loadRankingData() {
+    // 显示加载动画
+    document.getElementById('loadingOverlay').style.display = 'flex';
+
+    // 确保使用绝对路径
+    const url = `${window.location.pathname}?ranking_id=${currentRankingId}&page=${currentPage}&min_games=${minGames}&ajax=1`;
+    console.log("请求URL:", url);
+
+    fetch(url)
+      .then(response => {
+        console.log("响应状态:", response.status);
+        if (!response.ok) {
+          throw new Error(`网络响应不正常: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        // 更新表格内容
+        updateRankingTable(data.items);
+
+        // 更新分页
+        updatePagination(data.pagination);
+
+        // 隐藏加载动画
+        document.getElementById('loadingOverlay').style.display = 'none';
+      })
+      .catch(error => {
+        console.error('获取排行榜数据出错:', error);
+        document.getElementById('loadingOverlay').style.display = 'none';
+        alert('加载数据失败，请稍后重试: ' + error.message);
+      });
+  }
+
+  // 更新排行榜表格
+  function updateRankingTable(items) {
+    const tableBody = document.getElementById('rankingTableBody');
+
+    if (!items || items.length === 0) {
+      tableBody.innerHTML = `
+                      <tr>
+                          <td colspan="8" class="empty-state">
+                              <i class="fas fa-chart-bar d-block"></i>
+                              <p>暂无排名数据</p>
+                          </td>
+                      </tr>
+                  `;
+      return;
+    }
+
+    let html = '';
+
+    items.forEach(item => {
+      const isCurrentUser = {{ current_user.is_authenticated| tojson
+      }} &&
+        item.username === '{{ current_user.username if current_user.is_authenticated else "" }}';
+    const isTop3 = item.rank <= 3;
+    const rowClass = item.rank === 1 ? 'rank-1' : 
+      item.rank === 2 ? 'rank-2' : 
+        item.rank === 3 ? 'rank-3' : '';
+    
+    // 计算各段占比
+    const total = item.wins + item.losses + item.draws;
+    const winPercent = total > 0 ? (item.wins / total * 100).toFixed(1) : 0;
+    const lossPercent = total > 0 ? (item.losses / total * 100).toFixed(1) : 0;
+    const drawPercent = total > 0 ? (item.draws / total * 100).toFixed(1) : 0;
+
+    let rankDisplay = '';
+    if (item.rank === 1) {
+      rankDisplay = `<div class="medal medal-gold"><span class="medal-number">1</span></div>`;
+    } else if (item.rank === 2) {
+      rankDisplay = `<div class="medal medal-silver"><span class="medal-number">2</span></div>`;
+    } else if (item.rank === 3) {
+      rankDisplay = `<div class="medal medal-bronze"><span class="medal-number">3</span></div>`;
+    } else {
+      rankDisplay = `<span class="stat-value">#${item.rank}</span>`;
+    }
+
+    html += `
+                  <tr class="${rowClass} ${isTop3 ? 'top3' : ''}">
+                    <td>${rankDisplay}</td>
                     <td>
-                      {% if item.rank == 1 %}
-                        <div class="medal medal-gold">
-                          <span class="medal-number">1</span>
-                        </div>
-                      {% elif item.rank == 2 %}
-                        <div class="medal medal-silver">
-                          <span class="medal-number">2</span>
-                        </div>
-                      {% elif item.rank == 3 %}
-                        <div class="medal medal-bronze">
-                          <span class="medal-number">3</span>
-                        </div>
-                      {% else %}
-                        <span class="stat-value">#{{ item.rank }}</span>
-                      {% endif %}
+                      ${isCurrentUser
+                          ? `<a href="/profile" class="text-decoration-none">
+                               <span class="username current-user">${item.username}</span>
+                               ${isTop3 ? '<i class="fas fa-crown rank-crown"></i>' : ''}
+                             </a>`
+                          : `<a href="/profile/user/${item.user_id}" class="text-decoration-none">
+                               <span class="username">${item.username}</span>
+                               ${isTop3 ? '<i class="fas fa-crown rank-crown"></i>' : ''}
+                             </a>`
+                      }
                     </td>
-                    <!-- 连接主页 -->
-                    <td>
-                      {% if current_user.is_authenticated and item.username == current_user.username %}
-                        <a href="{{ url_for('profile.profile', username=item.username) }}"
-                           class="text-decoration-none">
-                          <span class="username current-user">{{ item.username }}</span>
-                          {% if item.rank <= 3 %}<i class="fas fa-crown rank-crown"></i>{% endif %}
-                        </a>
-                      {% else %}
-                        <a href="{{ url_for('profile.user_profile', user_id=item.user_id) }}"
-                           class="text-decoration-none">
-                          <span class="username">{{ item.username }}</span>
-                          {% if item.rank <= 3 %}<i class="fas fa-crown rank-crown"></i>{% endif %}
-                        </a>
-                      {% endif %}
-                    </td>
-                    <td>
-                      <span class="elo-score">{{ item.score }}</span>
-                    </td>
-                    <td>
-                      <span class="stat-value text-success">{{ item.wins }}</span>
-                    </td>
-                    <td>
-                      <span class="stat-value text-danger">{{ item.losses }}</span>
-                    </td>
-                    <td>
-                      <span class="stat-value text-secondary">{{ item.draws }}</span>
-                    </td>
-                    <td>
-                      <span class="stat-value">{{ item.total }}</span>
-                    </td>
+                    <td><span class="elo-score">${item.score}</span></td>
+                    <td><span class="stat-value text-success">${item.wins}</span></td>
+                    <td><span class="stat-value text-danger">${item.losses}</span></td>
+                    <td><span class="stat-value text-secondary">${item.draws}</span></td>
+                    <td><span class="stat-value">${item.total}</span></td>
                     <td>
                       <div class="d-flex align-items-center">
-                        <span class="stat-value me-2">{{ item.win_rate }}%</span>
-                        {% if item.rank <= 3 %}<i class="fas fa-star text-warning"></i>{% endif %}
+                        <span class="stat-value me-2">${item.win_rate}%</span>
+                        ${isTop3 ? '<i class="fas fa-star text-warning"></i>' : ''}
                       </div>
                       <div class="win-rate-container">
-                        <!-- 新增红色背景层 -->
-                        <div class="win-rate-red-bar"
-                             style="width: calc(100% - {{ item.win_rate }}%)"></div>
-                        <!-- 修改绿色进度条 -->
-                        <div class="win-rate-green-bar"
-                             style="width: {{ item.win_rate }}%"
-                             data-width="{{ item.win_rate }}%"></div>
+                        <div class="win-rate-green-bar" data-win-rate="${item.wins}" data-final-width="${winPercent}" style="width: 0%; left: 0%;"></div>
+                        <div class="win-rate-red-bar" data-loss-rate="${item.losses}" data-final-width="${lossPercent}" style="width: 0%; left: 0%;"></div>
+                        <div class="win-rate-gray-bar" data-draw-rate="${item.draws}" data-final-width="${drawPercent}" style="width: 0%; left: 0%;"></div>
                       </div>
                     </td>
                   </tr>
-                {% endfor %}
-              {% else %}
-                <tr>
-                  <td colspan="8" class="empty-state">
-                    <i class="fas fa-chart-bar d-block"></i>
-                    <p>暂无排名数据</p>
-                  </td>
-                </tr>
-              {% endif %}
-            </tbody>
-          </table>
-          <!-- 分页导航 - 修正变量名并添加数据属性 -->
-          <nav aria-label="Page navigation" class="my-4">
-            <ul class="pagination justify-content-center" id="paginationContainer">
-              {% if has_prev %}
-                <li class="page-item">
-                  <a class="page-link pagination-link"
-                     href="javascript:void(0);"
-                     data-page="{{ prev_num }}">上一页</a>
-                </li>
-              {% else %}
-                <li class="page-item disabled">
-                  <span class="page-link">上一页</span>
-                </li>
-              {% endif %}
-              <!-- 这里简化页码生成，使用JS动态生成更多页码 -->
-              {% for page_num in range(1, pages + 1) if page_num == page or page_num == 1 or page_num == pages or (page_num >= page - 1 and page_num <= page + 1) %}
-                <li class="page-item {% if page_num == page %}active{% endif %}">
-                  <a class="page-link pagination-link"
-                     href="javascript:void(0);"
-                     data-page="{{ page_num }}">{{ page_num }}</a>
-                </li>
-                {% if page_num == 1 and page > 3 %}
-                  <li class="page-item disabled">
-                    <span class="page-link">...</span>
-                  </li>
-                {% endif %}
-                {% if page_num == pages - 1 and page < pages - 2 %}
-                  <li class="page-item disabled">
-                    <span class="page-link">...</span>
-                  </li>
-                {% endif %}
-              {% endfor %}
-              {% if has_next %}
-                <li class="page-item">
-                  <a class="page-link pagination-link"
-                     href="javascript:void(0);"
-                     data-page="{{ next_num }}">下一页</a>
-                </li>
-              {% else %}
-                <li class="page-item disabled">
-                  <span class="page-link">下一页</span>
-                </li>
-              {% endif %}
-            </ul>
-          </nav>
-        </div>
-      </div>
-    </div>
-  </div>
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // 当前榜单和页面状态
-        let currentRankingId = {{ current_ranking_id }};
-        let currentPage = {{ page }};
-        let minGames = {{ request.args.get('min_games', 0) }};
-        
-        // 榜单选项点击事件
-        document.querySelectorAll('#rankingTabs .nav-link').forEach(tab => {
-            tab.addEventListener('click', function(e) {
-                e.preventDefault();
-                const rankingId = parseInt(this.getAttribute('data-ranking-id'));
-                
-                // 如果点击的是当前榜单，不做任何操作
-                if (rankingId === currentRankingId) return;
-                
-                // 更新活动标签
-                document.querySelectorAll('#rankingTabs .nav-link').forEach(t => {
-                    t.classList.remove('active');
-                });
-                this.classList.add('active');
-                
-                // 重置为第一页并加载新榜单数据
-                currentRankingId = rankingId;
-                currentPage = 1;
-                loadRankingData();
-                
-                // 更新URL，支持浏览器历史
-                updateUrlParams();
-            });
-        });
-        
-        // 分页链接点击事件
-        document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('pagination-link')) {
-                e.preventDefault();
-                const page = parseInt(e.target.getAttribute('data-page'));
-                if (page !== currentPage) {
-                    currentPage = page;
-                    loadRankingData();
-                    updateUrlParams();
-                }
-            }
-        });
-        
-        // 加载榜单数据
-        function loadRankingData() {
-            // 显示加载动画
-            document.getElementById('loadingOverlay').style.display = 'flex';
-            
-            // 确保使用绝对路径
-            const url = `${window.location.pathname}?ranking_id=${currentRankingId}&page=${currentPage}&min_games=${minGames}&ajax=1`;
-            console.log("请求URL:", url); // 添加调试信息
-            
-            fetch(url)
-                .then(response => {
-                    console.log("响应状态:", response.status); // 添加调试信息
-                    if (!response.ok) {
-                        throw new Error(`网络响应不正常: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    // 更新表格内容
-                    updateRankingTable(data.items);
-                    
-                    // 更新分页
-                    updatePagination(data.pagination);
-                    
-                    // 隐藏加载动画
-                    document.getElementById('loadingOverlay').style.display = 'none';
-                })
-                .catch(error => {
-                    console.error('获取排行榜数据出错:', error);
-                    document.getElementById('loadingOverlay').style.display = 'none';
-                    alert('加载数据失败，请稍后重试: ' + error.message);
-                });
-        }
-        
-        // 更新排行榜表格
-        function updateRankingTable(items) {
-            const tableBody = document.getElementById('rankingTableBody');
-            
-            if (!items || items.length === 0) {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="8" class="empty-state">
-                            <i class="fas fa-chart-bar d-block"></i>
-                            <p>暂无排名数据</p>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-            
-            let html = '';
-            
-            items.forEach(item => {
-                const isCurrentUser = {{ current_user.is_authenticated|tojson }} && 
-                                     item.username === '{{ current_user.username if current_user.is_authenticated else "" }}';
-                const isTop3 = item.rank <= 3;
-                const rowClass = item.rank === 1 ? 'rank-1' : 
-                                 item.rank === 2 ? 'rank-2' : 
-                                 item.rank === 3 ? 'rank-3' : '';
-                
-                let rankDisplay = '';
-                if (item.rank === 1) {
-                    rankDisplay = `<div class="medal medal-gold"><span class="medal-number">1</span></div>`;
-                } else if (item.rank === 2) {
-                    rankDisplay = `<div class="medal medal-silver"><span class="medal-number">2</span></div>`;
-                } else if (item.rank === 3) {
-                    rankDisplay = `<div class="medal medal-bronze"><span class="medal-number">3</span></div>`;
-                } else {
-                    rankDisplay = `<span class="stat-value">#${item.rank}</span>`;
-                }
-                
-                html += `
-                    <tr class="${rowClass} ${isTop3 ? 'top3' : ''}">
-                        <td>${rankDisplay}</td>
-                        <td>
-                            ${isCurrentUser 
-                                ? `<a href="/profile" class="text-decoration-none">
-                                     <span class="username current-user">${item.username}</span>
-                                     ${isTop3 ? '<i class="fas fa-crown rank-crown"></i>' : ''}
-                                   </a>`
-                                : `<a href="/profile/user/${item.user_id}" class="text-decoration-none">
-                                     <span class="username">${item.username}</span>
-                                     ${isTop3 ? '<i class="fas fa-crown rank-crown"></i>' : ''}
-                                   </a>`
-                            }
-                        </td>
-                        <td><span class="elo-score">${item.score}</span></td>
-                        <td><span class="stat-value text-success">${item.wins}</span></td>
-                        <td><span class="stat-value text-danger">${item.losses}</span></td>
-                        <td><span class="stat-value text-secondary">${item.draws}</span></td>
-                        <td><span class="stat-value">${item.total}</span></td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <span class="stat-value me-2">${item.win_rate}%</span>
-                                ${isTop3 ? '<i class="fas fa-star text-warning"></i>' : ''}
-                            </div>
-                            <div class="win-rate-container">
-                                <div class="win-rate-red-bar" style="width: calc(100% - ${item.win_rate}%)"></div>
-                                <div class="win-rate-green-bar" style="width: ${item.win_rate}%" data-width="${item.win_rate}%"></div>
-                            </div>
-                        </td>
-                    </tr>
                 `;
             });
             
@@ -607,10 +674,10 @@ transform: rotate(30deg);
             
             // 重新应用进度条动画
             initProgressBars();
-        }
-        
-        // 更新分页控件
-        function updatePagination(pagination) {
+          }
+          
+          // 更新分页控件
+          function updatePagination(pagination) {
             const { page, pages, has_prev, has_next, prev_num, next_num } = pagination;
             const container = document.getElementById('paginationContainer');
             
@@ -618,107 +685,68 @@ transform: rotate(30deg);
             
             // 上一页按钮
             if (has_prev) {
-                html += `<li class="page-item">
-                    <a class="page-link pagination-link" href="javascript:void(0);" data-page="${prev_num}">上一页</a>
-                </li>`;
+              html += `<li class="page-item">
+                      <a class="page-link pagination-link" href="javascript:void(0);" data-page="${prev_num}">上一页</a>
+                  </li>`;
             } else {
-                html += `<li class="page-item disabled">
-                    <span class="page-link">上一页</span>
-                </li>`;
+              html += `<li class="page-item disabled">
+                      <span class="page-link">上一页</span>
+                  </li>`;
             }
             
-            // 页码按钮
+            // 页码按钮逻辑
             const visiblePages = [];
-            // 添加第一页
             visiblePages.push(1);
             
-            // 添加当前页附近的页码
             for (let i = Math.max(2, page - 1); i <= Math.min(pages - 1, page + 1); i++) {
-                visiblePages.push(i);
+              visiblePages.push(i);
             }
             
-            // 添加最后一页
             if (pages > 1) {
-                visiblePages.push(pages);
+              visiblePages.push(pages);
             }
             
-            // 渲染页码
             let lastRenderedPage = 0;
             visiblePages.sort((a, b) => a - b).forEach(p => {
-                // 添加省略号
-                if (p - lastRenderedPage > 1) {
-                    html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                }
-                
-                html += `<li class="page-item ${p === page ? 'active' : ''}">
-                    <a class="page-link pagination-link" href="javascript:void(0);" data-page="${p}">${p}</a>
-                </li>`;
-                
-                lastRenderedPage = p;
+              if (p - lastRenderedPage > 1) {
+                html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+              }
+              
+              html += `<li class="page-item ${p === page ? 'active' : ''}">
+                      <a class="page-link pagination-link" href="javascript:void(0);" data-page="${p}">${p}</a>
+                  </li>`;
+              
+              lastRenderedPage = p;
             });
             
             // 下一页按钮
             if (has_next) {
-                html += `<li class="page-item">
-                    <a class="page-link pagination-link" href="javascript:void(0);" data-page="${next_num}">下一页</a>
-                </li>`;
+              html += `<li class="page-item">
+                      <a class="page-link pagination-link" href="javascript:void(0);" data-page="${next_num}">下一页</a>
+                  </li>`;
             } else {
-                html += `<li class="page-item disabled">
-                    <span class="page-link">下一页</span>
-                </li>`;
+              html += `<li class="page-item disabled">
+                      <span class="page-link">下一页</span>
+                  </li>`;
             }
             
             container.innerHTML = html;
-        }
-        
-        // 更新URL参数
-        function updateUrlParams() {
+          }
+          
+          // 更新URL参数
+          function updateUrlParams() {
             const url = new URL(window.location);
             url.searchParams.set('ranking_id', currentRankingId);
             url.searchParams.set('page', currentPage);
             if (minGames > 0) {
-                url.searchParams.set('min_games', minGames);
+              url.searchParams.set('min_games', minGames);
             }
             
-            // 更新URL但不重新加载页面
             window.history.pushState({}, '', url);
-        }
-        
-        // 初始化进度条动画
-        function initProgressBars() {
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const row = entry.target;
-                        const greenBar = row.querySelector('.win-rate-green-bar');
-                        const redBar = row.querySelector('.win-rate-red-bar');
-                        
-                        if (greenBar && redBar) {
-                            // 激活进度条动画
-                            animateBar(greenBar, redBar);
-                        }
-                    }
-                });
-            }, {threshold: 0.1});
-            
-            // 观察每行
-            document.querySelectorAll('tr').forEach(row => {
-                observer.observe(row);
-            });
-        }
-        
-        // 动画函数
-        function animateBar(greenBar, redBar) {
-            const finalWidth = greenBar.getAttribute('data-width');
-            greenBar.style.width = finalWidth;
-            
-            const lossPercent = (100 - parseFloat(finalWidth)).toFixed(2) + '%';
-            redBar.style.setProperty('--loss-percent', lossPercent);
-            redBar.style.clipPath = `inset(0 0 0 calc(100% - var(--loss-percent)))`;
-        }
-        
-        // 初始化进度条
-        initProgressBars();
-    });
-  </script>
+          }
+          
+          // 初始化进度条
+          initProgressBars();
+});
+    </script>
 {% endblock content %}

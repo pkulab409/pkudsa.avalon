@@ -11,6 +11,7 @@ ranking_bp = Blueprint("ranking", __name__)
 _cache = {}
 _cache_last_access = {}  # 新增：记录缓存项的最后访问时间
 CACHE_TIMEOUT = 300  # 缓存过期阈值：5分钟
+RANKING_IDS = [0,1,2,3,4,5,6,11,21]
 
 
 def get_cached_data(key, fetch_func, timeout=CACHE_TIMEOUT):
@@ -77,7 +78,8 @@ def show_ranking():
     is_ajax = request.args.get("ajax", 0, type=int)  # 新增: 检查是否为AJAX请求
 
     # 获取排行榜ID
-    all_ranking_ids = get_cached_data("all_ranking_ids", get_all_ranking_ids)
+    # all_ranking_ids = get_cached_data("all_ranking_ids", get_all_ranking_ids)
+    all_ranking_ids = RANKING_IDS
     default_ranking_id = all_ranking_ids[0] if all_ranking_ids else 0
     ranking_id = request.args.get("ranking_id", default_ranking_id, type=int)
 
@@ -162,7 +164,9 @@ def show_ranking():
 
     # 如果是 AJAX 请求，返回 JSON 数据
     if is_ajax:
-        current_app.logger.debug(f"Processing AJAX request for ranking_id={ranking_id}, page={page}")
+        current_app.logger.debug(
+            f"Processing AJAX request for ranking_id={ranking_id}, page={page}"
+        )
         pagination_data = {
             "page": page,
             "pages": pages,
