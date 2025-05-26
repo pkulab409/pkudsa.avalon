@@ -70,7 +70,7 @@ class GameTerminationError(Exception):
 
 
 class BattleStatusChecker:
-    """用于安全检查对战状态的辅助类，不直接依赖Flask上下文"""
+    """用于安全检查对战状态的辅助类，支持跨进程工作"""
 
     def __init__(self, battle_id):
         """初始化状态检查器"""
@@ -84,7 +84,7 @@ class BattleStatusChecker:
 
     def get_battle_status(self, force=False):
         """
-        获取当前对战状态，使用直接SQL查询避免Flask上下文依赖
+        获取当前对战状态，支持跨进程工作
 
         参数:
             force (bool): 是否强制检查，忽略时间间隔限制
@@ -98,12 +98,22 @@ class BattleStatusChecker:
         self.last_check_time = current_time
 
         try:
-            # 尝试多种方法获取对战状态
-
-            # 方法1: 通过battle_manager获取（如果可访问）
+            # 方法1: 通过battle_manager的进程间通信获取状态
             try:
                 from utils.battle_manager_utils import get_battle_manager
+                from game.battle_manager import send_command
 
+                # 直接使用send_command函数进行跨进程通信
+                status = send_command("get_battle_status", (self.battle_id,))
+
+                if status is not None:
+                    self.last_known_status = status
+                    logger.debug(
+                        f"从battle_manager进程获取对战 {self.battle_id} 状态: {status}"
+                    )
+                    return status
+
+                # 如果send_command失败，尝试传统方法
                 battle_manager = get_battle_manager()
                 if battle_manager:
                     status = battle_manager.get_battle_status(self.battle_id)
@@ -116,12 +126,12 @@ class BattleStatusChecker:
             except Exception as e:
                 logger.debug(f"无法从battle_manager获取状态: {str(e)}")
 
-            # 方法2: 使用原始SQL查询
+            # 方法2: 使用原始SQL查询作为备份方法
             import sqlite3
             from os import path
 
             # 尝试多个可能的数据库位置
-            possible_paths = [
+            db_paths = [
                 "./database.sqlite",
                 "./platform/database.sqlite",
                 "../database.sqlite",
@@ -132,7 +142,7 @@ class BattleStatusChecker:
             ]
 
             db_path = None
-            for p in possible_paths:
+            for p in db_paths:
                 if path.exists(p):
                     db_path = p
                     break
@@ -141,23 +151,20 @@ class BattleStatusChecker:
                 logger.warning(f"无法找到数据库文件进行状态检查")
                 return self.last_known_status
 
-            # 连接数据库
-            conn = sqlite3.connect(db_path)
-            cursor = conn.cursor()
+            # 使用with语句确保连接正确关闭
+            with sqlite3.connect(db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT status FROM battles WHERE id = ?", (self.battle_id,)
+                )
+                result = cursor.fetchone()
 
-            # 执行查询
-            cursor.execute("SELECT status FROM battles WHERE id = ?", (self.battle_id,))
-            result = cursor.fetchone()
-
-            # 关闭连接
-            conn.close()
-
-            if result:
-                self.last_known_status = result[0]
-                logger.debug(f"从数据库获取对战 {self.battle_id} 状态: {result[0]}")
-                return result[0]
-            else:
-                logger.warning(f"在数据库中找不到对战 {self.battle_id}")
+                if result:
+                    self.last_known_status = result[0]
+                    logger.debug(f"从数据库获取对战 {self.battle_id} 状态: {result[0]}")
+                    return result[0]
+                else:
+                    logger.warning(f"在数据库中找不到对战 {self.battle_id}")
 
         except Exception as e:
             logger.error(f"检查对战状态时出错: {str(e)}")

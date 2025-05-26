@@ -5,7 +5,7 @@
 import logging
 from sqlalchemy import desc
 from .models import GameStats, User
-from .action import safe_delete
+from .action import safe_delete, safe_commit
 from .base import db
 import math
 
@@ -85,7 +85,7 @@ def reset_stats(ranking_id):
             game_stats.wins = 0
             game_stats.losses = 0
             game_stats.draws = 0
-        db.session.commit()
+        safe_commit()
         logger.info(f"成功重置榜单 {ranking_id}中所有玩家的战绩.")
         return True
     except Exception as e:
@@ -144,7 +144,7 @@ def promote_players_to_ranking(players_stats, target_ranking_id):
             success_count += 1
 
         # 提交所有更改
-        db.session.commit()
+        safe_commit()
         logger.info(
             f"成功将 {success_count}/{len(players_stats)} 名玩家晋级到榜单 {target_ranking_id}"
         )

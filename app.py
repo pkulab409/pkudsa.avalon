@@ -10,7 +10,7 @@ import os
 import shutil
 from utils.battle_manager_utils import init_battle_manager_utils
 from utils.automatch_utils import init_automatch_utils, get_automatch
-
+from database.action import safe_commit
 from database.base import db, login_manager
 from database import initialize_database
 from database import (
@@ -175,7 +175,7 @@ def initialize_default_data(app):
 
                             if updated:
                                 user.modified_at = datetime.utcnow()
-                                db.session.commit()
+                                safe_commit()
                                 action = "更新"
 
                     # 确保用户有对应 partition 的 GameStats 记录
@@ -269,7 +269,7 @@ def initialize_default_data(app):
                             )
 
                             db.session.add(ai)
-                    db.session.commit()
+                    safe_commit()
 
                 except KeyError as e:
                     db.session.rollback()
@@ -358,7 +358,7 @@ def cleanup_stale_battles(app):
 
                     # 再删除Battle记录
                     db.session.delete(battle)
-                    db.session.commit()
+                    safe_commit()
                     app.logger.info(f"✅ 对局 {battle.id} 已删除")
 
                 except Exception as e:

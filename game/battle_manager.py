@@ -701,18 +701,28 @@ class BattleManager:
 # 进程间通信辅助函数
 def send_command(cmd, args=(), kwargs={}):
     """发送命令到BattleManager进程并等待结果"""
-    global CMD_QUEUE, RESULT_QUEUE, INITIALIZED
+    global CMD_QUEUE, RESULT_QUEUE, INITIALIZED, MANAGER_PROCESS
 
     if not INITIALIZED:
         logger.error("BattleManager进程尚未初始化")
         return None
 
+    # 检查进程是否还活着
+    if MANAGER_PROCESS is not None and not MANAGER_PROCESS.is_alive():
+        logger.error("BattleManager进程已经不在运行")
+        return None
+
     try:
         # 发送命令
-        CMD_QUEUE.put((cmd, args, kwargs))
+        CMD_QUEUE.put((cmd, args, kwargs), timeout=5)  # 添加超时
 
-        # 等待结果
-        result, error = RESULT_QUEUE.get(timeout=30)  # 设置合理的超时时间
+        # 等待结果，为不同命令设置不同超时时间
+        timeout = 5 if cmd == "shutdown" else 30
+        try:
+            result, error = RESULT_QUEUE.get(timeout=timeout)
+        except Exception as e:
+            logger.error(f"等待命令 {cmd} 结果时出错: {str(e)}")
+            return None
 
         if error:
             logger.error(f"执行命令 {cmd} 时发生错误: {error}")
@@ -781,19 +791,49 @@ def _run_manager_process(cmd_queue, result_queue, data_dir, max_concurrent_battl
 
 def _cleanup_manager_process():
     """清理BattleManager进程"""
-    global MANAGER_PROCESS, INITIALIZED
+    global MANAGER_PROCESS, INITIALIZED, CMD_QUEUE, RESULT_QUEUE
 
-    if INITIALIZED and MANAGER_PROCESS and MANAGER_PROCESS.is_alive():
+    if not INITIALIZED or MANAGER_PROCESS is None:
+        return
+
+    if not MANAGER_PROCESS.is_alive():
+        logger.info("BattleManager进程已经不在运行")
+        return
+
+    try:
+        # 尝试发送关闭命令，但使用较短的超时时间
         try:
-            # 尝试发送关闭命令
-            send_command("shutdown")
-            # 给进程时间优雅地关闭
-            MANAGER_PROCESS.join(timeout=5)
-
-            # 如果进程仍在运行，则强制终止
-            if MANAGER_PROCESS.is_alive():
-                logger.warning("BattleManager进程未能及时关闭，将强制终止")
-                MANAGER_PROCESS.terminate()
-                MANAGER_PROCESS.join(timeout=2)
+            CMD_QUEUE.put(("shutdown", (), {}), timeout=2)
+            # 不等待响应，直接尝试关闭进程
+            logger.info("已发送关闭命令，不等待响应")
         except Exception as e:
-            logger.error(f"清理BattleManager进程时出错: {str(e)}")
+            logger.warning(f"发送关闭命令失败: {str(e)}")
+
+        # 给进程时间优雅地关闭
+        MANAGER_PROCESS.join(timeout=3)
+
+        # 如果进程仍在运行，则强制终止
+        if MANAGER_PROCESS.is_alive():
+            logger.warning("BattleManager进程未能及时关闭，将强制终止")
+            MANAGER_PROCESS.terminate()
+            MANAGER_PROCESS.join(timeout=2)
+
+            # 如果terminate后仍然存活，尝试更强力的方法
+            if MANAGER_PROCESS.is_alive() and hasattr(MANAGER_PROCESS, "kill"):
+                logger.warning("尝试强制终止进程")
+                try:
+                    MANAGER_PROCESS.kill()
+                    MANAGER_PROCESS.join(timeout=1)
+                except:
+                    pass
+    except Exception as e:
+        logger.error(f"清理BattleManager进程时出错: {str(e)}")
+    finally:
+        # 确保释放资源
+        try:
+            if CMD_QUEUE is not None:
+                CMD_QUEUE.close()
+            if RESULT_QUEUE is not None:
+                RESULT_QUEUE.close()
+        except:
+            pass

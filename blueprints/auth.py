@@ -12,6 +12,7 @@ from wtforms import StringField, PasswordField, BooleanField, SubmitField, Selec
 from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError
 from database.models import User
 from database.base import db
+from database.action import safe_commit
 
 auth = Blueprint("auth", __name__)
 
@@ -107,7 +108,7 @@ def register():
         # 保存到数据库
         try:
             db.session.add(user)
-            db.session.commit()
+            safe_commit()
             flash("注册成功！现在您可以登录了", "success")
             return redirect(url_for("auth.login"))
         except Exception as e:

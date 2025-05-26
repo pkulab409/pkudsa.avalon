@@ -7,6 +7,7 @@ from flask_login import login_required, current_user
 from functools import wraps
 from sqlalchemy.orm import joinedload
 from database.models import User, Battle, GameStats, AICode, BattlePlayer
+from database.action import safe_commit
 from database.promotion import (
     promote_from_multiple_rankings,
     reset_ranking,
@@ -107,7 +108,7 @@ def delete_user(user_id):
 
         # 4. 删除用户本身
         db.session.delete(target)
-        db.session.commit()
+        safe_commit()
 
         # 5. 触发前端对战列表更新（通过WebSocket或轮询机制）
         # 示例：假设使用Flask-SocketIO广播更新
@@ -159,7 +160,7 @@ def set_elo(user_id):
         else:
             stats.elo_score = new_elo
 
-        db.session.commit()
+        safe_commit()
         return jsonify({"message": f"Elo已更新为{new_elo}"}), 200
 
     except ValueError:
@@ -205,7 +206,7 @@ def terminate_game(game_id):
                 game.ended_at = datetime.now()
                 db.session.add(game)
 
-            db.session.commit()
+            safe_commit()
 
             return (
                 jsonify(
@@ -252,7 +253,7 @@ def delete_game(game_id):
                     db.session.add(stats)
 
         db.session.delete(game)
-        db.session.commit()
+        safe_commit()
         return jsonify({"message": "对局已删除并恢复Elo"}), 200
 
     except Exception as e:
@@ -802,7 +803,7 @@ def toggle_admin(user_id):
             abort(400, description="不能修改自己的管理员状态")
 
         target.is_admin = not target.is_admin
-        db.session.commit()
+        safe_commit()
 
         action = "授予" if target.is_admin else "撤销"
         return (
