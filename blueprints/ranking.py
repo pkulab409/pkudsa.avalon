@@ -162,7 +162,9 @@ def show_ranking():
 
     # 如果是 AJAX 请求，返回 JSON 数据
     if is_ajax:
-        current_app.logger.debug(f"Processing AJAX request for ranking_id={ranking_id}, page={page}")
+        current_app.logger.debug(
+            f"Processing AJAX request for ranking_id={ranking_id}, page={page}"
+        )
         pagination_data = {
             "page": page,
             "pages": pages,

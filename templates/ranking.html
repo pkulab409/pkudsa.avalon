@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}
-  排行榜 - 游戏平台
+    排行榜 - 游戏平台
 {% endblock title %}
 {% block content %}
-  <style>
+    <style>
 /* Main styles */
 .ranking-container {
 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -284,190 +284,194 @@ rgba(255,255,255,0) 100%
 );
 transform: rotate(30deg);
 }
-  </style>
-  <!-- 其余内容保持不变 -->
-  <div class="container mt-4 ranking-container">
-    <div class="page-header d-flex justify-content-between align-items-center">
-      <h2>
-        <i class="fas fa-trophy me-3"></i>玩家排行榜
-      </h2>
-    </div>
-    <!-- 榜单选择导航 - 修改为使用data属性而非直接链接 -->
-    <ul class="nav nav-tabs mb-3 ranking-tabs" id="rankingTabs">
-      {% for rid in all_ranking_ids %}
-        <li class="nav-item">
-          <a class="nav-link {% if rid == current_ranking_id %}active{% endif %}"
-             href="javascript:void(0);"
-             data-ranking-id="{{ rid }}">
-            <i class="bi bi-trophy me-1"></i>
-            {% if rid >=1 and rid <=6 %}
-              初赛赛区{{ rid }}
-            {% elif rid ==0 %}
-              测试赛
-            {% elif rid ==11 %}
-              半决赛
-            {% elif rid ==21 %}
-              决赛
-            {% else %}
-              榜单 {{ rid }}
-            {% endif %}
-          </a>
-        </li>
-      {% endfor %}
-    </ul>
-    <div class="card ranking-card">
-      <div class="card-body p-0">
-        <div class="table-responsive position-relative" id="rankingTableContainer">
-          <!-- 加载中动画，初始隐藏 -->
-          <div class="loading-overlay" id="loadingOverlay" style="display: none;">
-            <div class="spinner"></div>
-          </div>
-          <table class="table ranking-table">
-            <thead>
-              <tr>
-                <th scope="col" width="10%">排名</th>
-                <th scope="col" width="20%">用户名</th>
-                <th scope="col" width="15%">分数 (Elo)</th>
-                <th scope="col" width="10%">胜场</th>
-                <th scope="col" width="10%">负场</th>
-                <th scope="col" width="10%">平局</th>
-                <th scope="col" width="10%">总场次</th>
-                <th scope="col" width="15%">胜率</th>
-              </tr>
-            </thead>
-            <tbody id="rankingTableBody">
-              <!-- 修正: 使用items而非pagination.items -->
-              {% if items %}
-                {% for item in items %}
-                  <tr class="{% if item.rank == 1 %}rank-1{% elif item.rank == 2 %}rank-2{% elif item.rank == 3 %}rank-3{% endif %} {% if item.rank <= 3 %}top3{% endif %}">
-                    <td>
-                      {% if item.rank == 1 %}
-                        <div class="medal medal-gold">
-                          <span class="medal-number">1</span>
-                        </div>
-                      {% elif item.rank == 2 %}
-                        <div class="medal medal-silver">
-                          <span class="medal-number">2</span>
-                        </div>
-                      {% elif item.rank == 3 %}
-                        <div class="medal medal-bronze">
-                          <span class="medal-number">3</span>
-                        </div>
-                      {% else %}
-                        <span class="stat-value">#{{ item.rank }}</span>
-                      {% endif %}
-                    </td>
-                    <!-- 连接主页 -->
-                    <td>
-                      {% if current_user.is_authenticated and item.username == current_user.username %}
-                        <a href="{{ url_for('profile.profile', username=item.username) }}"
-                           class="text-decoration-none">
-                          <span class="username current-user">{{ item.username }}</span>
-                          {% if item.rank <= 3 %}<i class="fas fa-crown rank-crown"></i>{% endif %}
-                        </a>
-                      {% else %}
-                        <a href="{{ url_for('profile.user_profile', user_id=item.user_id) }}"
-                           class="text-decoration-none">
-                          <span class="username">{{ item.username }}</span>
-                          {% if item.rank <= 3 %}<i class="fas fa-crown rank-crown"></i>{% endif %}
-                        </a>
-                      {% endif %}
-                    </td>
-                    <td>
-                      <span class="elo-score">{{ item.score }}</span>
-                    </td>
-                    <td>
-                      <span class="stat-value text-success">{{ item.wins }}</span>
-                    </td>
-                    <td>
-                      <span class="stat-value text-danger">{{ item.losses }}</span>
-                    </td>
-                    <td>
-                      <span class="stat-value text-secondary">{{ item.draws }}</span>
-                    </td>
-                    <td>
-                      <span class="stat-value">{{ item.total }}</span>
-                    </td>
-                    <td>
-                      <div class="d-flex align-items-center">
-                        <span class="stat-value me-2">{{ item.win_rate }}%</span>
-                        {% if item.rank <= 3 %}<i class="fas fa-star text-warning"></i>{% endif %}
-                      </div>
-                      <div class="win-rate-container">
-                        <!-- 绿色胜率 -->
-                        <div class="win-rate-green-bar"
-                          style="width: {{ (item.wins / item.total * 100) if item.total > 0 else 0 }}%; left: 0;"></div>
-                        <!-- 红色败率 -->
-                        <div class="win-rate-red-bar"
-                          style="width: {{ (item.losses / item.total * 100) if item.total > 0 else 0 }}%; left: {{ (item.wins / item.total * 100) if item.total > 0 else 0 }}%;">
-                        </div>
-                        <!-- 灰色平局 -->
-                        <div class="win-rate-gray-bar"
-                          style="width: {{ (item.draws / item.total * 100) if item.total > 0 else 0 }}%; left: {{ ((item.wins + item.losses) / item.total * 100) if item.total > 0 else 0 }}%;">
-                        </div>
-                      </div>               </td>
-                  </tr>
-                {% endfor %}
-              {% else %}
-                <tr>
-                  <td colspan="8" class="empty-state">
-                    <i class="fas fa-chart-bar d-block"></i>
-                    <p>暂无排名数据</p>
-                  </td>
-                </tr>
-              {% endif %}
-            </tbody>
-          </table>
-          <!-- 分页导航 - 修正变量名并添加数据属性 -->
-          <nav aria-label="Page navigation" class="my-4">
-            <ul class="pagination justify-content-center" id="paginationContainer">
-              {% if has_prev %}
-                <li class="page-item">
-                  <a class="page-link pagination-link"
-                     href="javascript:void(0);"
-                     data-page="{{ prev_num }}">上一页</a>
-                </li>
-              {% else %}
-                <li class="page-item disabled">
-                  <span class="page-link">上一页</span>
-                </li>
-              {% endif %}
-              <!-- 这里简化页码生成，使用JS动态生成更多页码 -->
-              {% for page_num in range(1, pages + 1) if page_num == page or page_num == 1 or page_num == pages or (page_num >= page - 1 and page_num <= page + 1) %}
-                <li class="page-item {% if page_num == page %}active{% endif %}">
-                  <a class="page-link pagination-link"
-                     href="javascript:void(0);"
-                     data-page="{{ page_num }}">{{ page_num }}</a>
-                </li>
-                {% if page_num == 1 and page > 3 %}
-                  <li class="page-item disabled">
-                    <span class="page-link">...</span>
-                  </li>
-                {% endif %}
-                {% if page_num == pages - 1 and page < pages - 2 %}
-                  <li class="page-item disabled">
-                    <span class="page-link">...</span>
-                  </li>
-                {% endif %}
-              {% endfor %}
-              {% if has_next %}
-                <li class="page-item">
-                  <a class="page-link pagination-link"
-                     href="javascript:void(0);"
-                     data-page="{{ next_num }}">下一页</a>
-                </li>
-              {% else %}
-                <li class="page-item disabled">
-                  <span class="page-link">下一页</span>
-                </li>
-              {% endif %}
-            </ul>
-          </nav>
+    </style>
+    <!-- 其余内容保持不变 -->
+    <div class="container mt-4 ranking-container">
+        <div class="page-header d-flex justify-content-between align-items-center">
+            <h2>
+                <i class="fas fa-trophy me-3"></i>玩家排行榜
+            </h2>
         </div>
-      </div>
+        <!-- 榜单选择导航 - 修改为使用data属性而非直接链接 -->
+        <ul class="nav nav-tabs mb-3 ranking-tabs" id="rankingTabs">
+            {% for rid in all_ranking_ids %}
+                <li class="nav-item">
+                    <a class="nav-link {% if rid == current_ranking_id %}active{% endif %}"
+                       href="javascript:void(0);"
+                       data-ranking-id="{{ rid }}">
+                        <i class="bi bi-trophy me-1"></i>
+                        {% if rid >=1 and rid <=6 %}
+                            初赛赛区{{ rid }}
+                        {% elif rid ==0 %}
+                            测试赛
+                        {% elif rid ==11 %}
+                            半决赛
+                        {% elif rid ==21 %}
+                            决赛
+                        {% else %}
+                            榜单 {{ rid }}
+                        {% endif %}
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+        <div class="card ranking-card">
+            <div class="card-body p-0">
+                <div class="table-responsive position-relative" id="rankingTableContainer">
+                    <!-- 加载中动画，初始隐藏 -->
+                    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+                        <div class="spinner"></div>
+                    </div>
+                    <table class="table ranking-table">
+                        <thead>
+                            <tr>
+                                <th scope="col" width="10%">排名</th>
+                                <th scope="col" width="20%">用户名</th>
+                                <th scope="col" width="15%">分数 (Elo)</th>
+                                <th scope="col" width="10%">胜场</th>
+                                <th scope="col" width="10%">负场</th>
+                                <th scope="col" width="10%">平局</th>
+                                <th scope="col" width="10%">总场次</th>
+                                <th scope="col" width="15%">胜率</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rankingTableBody">
+                            <!-- 修正: 使用items而非pagination.items -->
+                            {% if items %}
+                                {% for item in items %}
+                                    <tr class="{% if item.rank == 1 %}rank-1{% elif item.rank == 2 %}rank-2{% elif item.rank == 3 %}rank-3{% endif %} {% if item.rank <= 3 %}top3{% endif %}">
+                                        <td>
+                                            {% if item.rank == 1 %}
+                                                <div class="medal medal-gold">
+                                                    <span class="medal-number">1</span>
+                                                </div>
+                                            {% elif item.rank == 2 %}
+                                                <div class="medal medal-silver">
+                                                    <span class="medal-number">2</span>
+                                                </div>
+                                            {% elif item.rank == 3 %}
+                                                <div class="medal medal-bronze">
+                                                    <span class="medal-number">3</span>
+                                                </div>
+                                            {% else %}
+                                                <span class="stat-value">#{{ item.rank }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <!-- 连接主页 -->
+                                        <td>
+                                            {% if current_user.is_authenticated and item.username == current_user.username %}
+                                                <a href="{{ url_for('profile.profile', username=item.username) }}"
+                                                   class="text-decoration-none">
+                                                    <span class="username current-user">{{ item.username }}</span>
+                                                    {% if item.rank <= 3 %}<i class="fas fa-crown rank-crown"></i>{% endif %}
+                                                </a>
+                                            {% else %}
+                                                <a href="{{ url_for('profile.user_profile', user_id=item.user_id) }}"
+                                                   class="text-decoration-none">
+                                                    <span class="username">{{ item.username }}</span>
+                                                    {% if item.rank <= 3 %}<i class="fas fa-crown rank-crown"></i>{% endif %}
+                                                </a>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="elo-score">{{ item.score }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="stat-value text-success">{{ item.wins }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="stat-value text-danger">{{ item.losses }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="stat-value text-secondary">{{ item.draws }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="stat-value">{{ item.total }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <span class="stat-value me-2">{{ item.win_rate }}%</span>
+                                                {% if item.rank <= 3 %}<i class="fas fa-star text-warning"></i>{% endif %}
+                                            </div>
+                                            <div class="win-rate-container">
+                                                <!-- 绿色胜率 -->
+                                                <div class="win-rate-green-bar"
+                                                     style="width: {{ (item.wins / item.total * 100) if item.total > 0 else 0 }}%;
+                                                            left: 0"></div>
+                                                <!-- 红色败率 -->
+                                                <div class="win-rate-red-bar"
+                                                     style="width: {{ (item.losses / item.total * 100) if item.total > 0 else 0 }}%;
+                                                            left: {{ (item.wins / item.total * 100) if item.total > 0 else 0 }}%">
+                                                </div>
+                                                <!-- 灰色平局 -->
+                                                <div class="win-rate-gray-bar"
+                                                     style="width: {{ (item.draws / item.total * 100) if item.total > 0 else 0 }}%;
+                                                            left: {{ ((item.wins + item.losses) / item.total * 100) if item.total > 0 else 0 }}%">
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="8" class="empty-state">
+                                        <i class="fas fa-chart-bar d-block"></i>
+                                        <p>暂无排名数据</p>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                    <!-- 分页导航 - 修正变量名并添加数据属性 -->
+                    <nav aria-label="Page navigation" class="my-4">
+                        <ul class="pagination justify-content-center" id="paginationContainer">
+                            {% if has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link pagination-link"
+                                       href="javascript:void(0);"
+                                       data-page="{{ prev_num }}">上一页</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">上一页</span>
+                                </li>
+                            {% endif %}
+                            <!-- 这里简化页码生成，使用JS动态生成更多页码 -->
+                            {% for page_num in range(1, pages + 1) if page_num == page or page_num == 1 or page_num == pages or (page_num >= page - 1 and page_num <= page + 1) %}
+                                <li class="page-item {% if page_num == page %}active{% endif %}">
+                                    <a class="page-link pagination-link"
+                                       href="javascript:void(0);"
+                                       data-page="{{ page_num }}">{{ page_num }}</a>
+                                </li>
+                                {% if page_num == 1 and page > 3 %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                                {% if page_num == pages - 1 and page < pages - 2 %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            {% if has_next %}
+                                <li class="page-item">
+                                    <a class="page-link pagination-link"
+                                       href="javascript:void(0);"
+                                       data-page="{{ next_num }}">下一页</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">下一页</span>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-  <script>
+    <script>
 document.addEventListener('DOMContentLoaded', function () {
   // 当前榜单和页面状态
   let currentRankingId = {{ current_ranking_id }};
@@ -657,18 +661,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         ${isTop3 ? '<i class="fas fa-star text-warning"></i>' : ''}
                       </div>
                       <div class="win-rate-container">
-                        <div class="win-rate-green-bar" 
-                             data-win-rate="${item.wins}"
-                             data-final-width="${winPercent}"
-                             style="width: 0%; left: 0%;"></div>
-                        <div class="win-rate-red-bar" 
-                             data-loss-rate="${item.losses}"
-                             data-final-width="${lossPercent}"
-                             style="width: 0%; left: 0%;"></div>
-                        <div class="win-rate-gray-bar" 
-                             data-draw-rate="${item.draws}"
-                             data-final-width="${drawPercent}"
-                             style="width: 0%; left: 0%;"></div>
+                        <div class="win-rate-green-bar" data-win-rate="${item.wins}" data-final-width="${winPercent}" style="width: 0%; left: 0%;"></div>
+                        <div class="win-rate-red-bar" data-loss-rate="${item.losses}" data-final-width="${lossPercent}" style="width: 0%; left: 0%;"></div>
+                        <div class="win-rate-gray-bar" data-draw-rate="${item.draws}" data-final-width="${drawPercent}" style="width: 0%; left: 0%;"></div>
                       </div>
                     </td>
                   </tr>
@@ -753,5 +748,5 @@ document.addEventListener('DOMContentLoaded', function () {
           // 初始化进度条
           initProgressBars();
 });
-</script>
+    </script>
 {% endblock content %}
