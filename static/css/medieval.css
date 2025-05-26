@@ -1,7 +1,7 @@
 /* 导入本地字体 */
 @font-face {
     font-family: 'Dianke';
-    src: url('../fonts/dianke.ttf') format('truetype');
+    src: url('../fonts/dianke.woff2') format('woff2');
 }
 
 
