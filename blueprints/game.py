@@ -51,43 +51,7 @@ logger = logging.getLogger(__name__)
 @game_bp.route("/lobby")
 @login_required
 def lobby():
-    """显示游戏大厅页面，列出最近的对战，支持筛选和分页"""
-    page = request.args.get("page", 1, type=int)
-    # 减少默认每页显示数量
-    per_page = request.args.get("per_page", 5, type=int)  # 从10条减少到5条
-    status_filter = request.args.get("status", None, type=str)
-    date_from_str = request.args.get("date_from", None, type=str)
-    date_to_str = request.args.get("date_to", None, type=str)
-    player_filters = request.args.getlist("players")
-
-    filters = {}
-    if status_filter and status_filter != "all":  # 'all' means no status filter
-        filters["status"] = status_filter
-
-    try:
-        if date_from_str:
-            filters["date_from"] = datetime.strptime(date_from_str, "%Y-%m-%d")
-        if date_to_str:
-            # Adjust to include the whole day
-            filters["date_to"] = datetime.strptime(
-                date_to_str + " 23:59:59", "%Y-%m-%d %H:%M:%S"
-            )
-    except ValueError:
-        flash("日期格式无效，请使用 YYYY-MM-DD 格式。", "danger")
-        filters.pop("date_from", None)
-        filters.pop("date_to", None)
-
-    if player_filters:
-        # Pass the list of player filters to the database function
-        filters["players"] = (
-            player_filters  # Now passing a list of players instead of a single player
-        )
-
-    # Fetch battles using the enhanced database function
-    battles_pagination = get_battles_paginated_filtered(
-        filters=filters, page=page, per_page=per_page
-    )
-
+    """显示游戏大厅页面，初始只加载框架，数据通过AJAX获取"""
     # 懒加载用户列表 - 只在需要时才加载
     all_users = []
     if request.args.get("load_users") == "true":
@@ -96,64 +60,19 @@ def lobby():
         # 只加载少量常用用户或不加载
         all_users = User.query.order_by(User.username).limit(20).all()
 
-    # 获取更详细的automatch状态
-    automatch = get_automatch()
-    automatch_is_on = automatch.is_on()
-    automatch_status = {"is_on": automatch_is_on, "active_rankings": []}
-    # 如果正在运行，获取具体哪些榜单在运行
-    if automatch_is_on:
-        all_statuses = automatch.get_all_statuses()
-        for ranking_id, status in all_statuses.items():
-            if status["is_on"]:
-                automatch_status["active_rankings"].append(
-                    {
-                        "ranking_id": ranking_id,
-                        "battle_count": status["battle_count"],
-                        "participants": status["current_participants_count"],
-                    }
-                )
-
-    # 获取不同状态的对战统计
-    from sqlalchemy import func
-    from database.models import Battle
-
-    # 获取各种状态的对战数量
-    battles_stats = (
-        db.session.query(Battle.status, func.count(Battle.id))
-        .group_by(Battle.status)
-        .all()
-    )
-
-    # 将结果转换为字典
-    battles_count = {
-        "playing": 0,
-        "waiting": 0,
-        "completed": 0,
-        "error": 0,
-        "cancelled": 0,
-        "total": 0,
+    # 保留当前筛选条件，用于初始表单值
+    current_filters = {
+        "status": request.args.get("status", None),
+        "date_from": request.args.get("date_from", None),
+        "date_to": request.args.get("date_to", None),
+        "players": request.args.getlist("players"),
     }
 
-    for status, count in battles_stats:
-        if status in battles_count:
-            battles_count[status] = count
-        battles_count["total"] += count
-
-    # 自动对战统计信息已经存在，可以直接使用或扩展
-
+    # 初始加载时只返回页面框架，不包含数据
     return render_template(
         "lobby.html",
-        battles_pagination=battles_pagination,
-        automatch_is_on=automatch_is_on,
-        automatch_status=automatch_status,
         all_users=all_users,
-        current_filters={  # Pass current filters back to the template
-            "status": status_filter,
-            "date_from": date_from_str,
-            "date_to": date_to_str,
-            "players": player_filters,  # Now passing the list of players back to the template
-        },
-        battles_count=battles_count,  # 新增：添加对战数量统计
+        current_filters=current_filters,
     )
 
 
@@ -1239,3 +1158,144 @@ def cancel_battle(battle_id):
                 "battle_id": battle_id,
             }
         )
+
+
+@game_bp.route("/api/battles/stats", methods=["GET"])
+@login_required
+def get_battles_stats():
+    """获取对战统计数据的API"""
+    try:
+        from sqlalchemy import func
+        from database.models import Battle
+
+        # 获取各种状态的对战数量
+        battles_stats = (
+            db.session.query(Battle.status, func.count(Battle.id))
+            .group_by(Battle.status)
+            .all()
+        )
+
+        # 将结果转换为字典
+        battles_count = {
+            "playing": 0,
+            "waiting": 0,
+            "completed": 0,
+            "error": 0,
+            "cancelled": 0,
+            "total": 0,
+        }
+
+        for status, count in battles_stats:
+            if status in battles_count:
+                battles_count[status] = count
+            battles_count["total"] += count
+
+        # 获取自动对战状态
+        automatch = get_automatch()
+        automatch_is_on = automatch.is_on()
+        automatch_status = {"is_on": automatch_is_on, "active_rankings": []}
+
+        if automatch_is_on:
+            all_statuses = automatch.get_all_statuses()
+            for ranking_id, status in all_statuses.items():
+                if status["is_on"]:
+                    automatch_status["active_rankings"].append(
+                        {
+                            "ranking_id": ranking_id,
+                            "battle_count": status["battle_count"],
+                            "participants": status["current_participants_count"],
+                        }
+                    )
+
+        return jsonify(
+            {
+                "success": True,
+                "battles_count": battles_count,
+                "automatch_is_on": automatch_is_on,
+                "automatch_status": automatch_status,
+            }
+        )
+
+    except Exception as e:
+        current_app.logger.error(f"获取对战统计数据失败: {str(e)}", exc_info=True)
+        return jsonify({"success": False, "message": f"获取统计数据失败: {str(e)}"})
+
+
+@game_bp.route("/api/battles/list", methods=["GET"])
+@login_required
+def get_battles_list():
+    """获取分页的对战列表API"""
+    try:
+        page = request.args.get("page", 1, type=int)
+        per_page = request.args.get("per_page", 5, type=int)
+        status_filter = request.args.get("status", None, type=str)
+        date_from_str = request.args.get("date_from", None, type=str)
+        date_to_str = request.args.get("date_to", None, type=str)
+        player_filters = request.args.getlist("players")
+
+        filters = {}
+        if status_filter and status_filter != "all":
+            filters["status"] = status_filter
+
+        try:
+            if date_from_str:
+                filters["date_from"] = datetime.strptime(date_from_str, "%Y-%m-%d")
+            if date_to_str:
+                # Adjust to include the whole day
+                filters["date_to"] = datetime.strptime(
+                    date_to_str + " 23:59:59", "%Y-%m-%d %H:%M:%S"
+                )
+        except ValueError:
+            return jsonify(
+                {"success": False, "message": "日期格式无效，请使用 YYYY-MM-DD 格式"}
+            )
+
+        if player_filters:
+            filters["players"] = player_filters
+
+        battles_pagination = get_battles_paginated_filtered(
+            filters=filters, page=page, per_page=per_page
+        )
+
+        # 格式化分页数据为JSON
+        battles_data = []
+        for battle in battles_pagination.items:
+            battles_data.append(
+                {
+                    "id": battle.id,
+                    "status": battle.status,
+                    "battle_type": battle.battle_type,
+                    "ranking_id": battle.ranking_id,
+                    "is_elo_exempt": battle.is_elo_exempt,
+                    "created_at": (
+                        battle.created_at.strftime("%Y-%m-%d %H:%M")
+                        if battle.created_at
+                        else "-"
+                    ),
+                    "ended_at": (
+                        battle.ended_at.strftime("%Y-%m-%d %H:%M")
+                        if battle.ended_at
+                        else "-"
+                    ),
+                }
+            )
+
+        return jsonify(
+            {
+                "success": True,
+                "battles": battles_data,
+                "pagination": {
+                    "page": battles_pagination.page,
+                    "pages": battles_pagination.pages,
+                    "total": battles_pagination.total,
+                    "has_prev": battles_pagination.has_prev,
+                    "has_next": battles_pagination.has_next,
+                    "prev_num": battles_pagination.prev_num,
+                    "next_num": battles_pagination.next_num,
+                },
+            }
+        )
+
+    except Exception as e:
+        current_app.logger.error(f"获取对战列表数据失败: {str(e)}", exc_info=True)
+        return jsonify({"success": False, "message": f"获取对战列表失败: {str(e)}"})
