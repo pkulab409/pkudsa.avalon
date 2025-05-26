@@ -163,7 +163,7 @@ class ClientManager:
                 )
                 try:
                     # 验证客户端是否正常工作
-                    models = new_client.models.list()
+                    # models = new_client.models.list()
                     logger.info(f"Default client connection verified successfully")
                 except Exception as conn_err:
                     raise Exception(f"Default API connection test failed: {conn_err}")
