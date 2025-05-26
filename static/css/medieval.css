@@ -401,49 +401,49 @@ h3::after {
 }
 
 .card-decoration.left.merlin {
-    background-image: url('../images/merlin.png');
+    background-image: url('../images/merlin.jpg');
     background-size: cover;
     background-position: center;
 }
 
 .card-decoration.left.knight1 {
-    background-image: url('../images/knight1.png');
+    background-image: url('../images/knight1.jpg');
     background-size: cover;
     background-position: center;
 }
 
 .card-decoration.left.knight2 {
-    background-image: url('../images/knight2.png');
+    background-image: url('../images/knight2.jpg');
     background-size: cover;
     background-position: center;
 }
 
 .card-decoration.left.percival {
-    background-image: url('../images/percival.png');
+    background-image: url('../images/percival.jpg');
     background-size: cover;
     background-position: center;
 }
 
 .card-decoration.right.oberon {
-    background-image: url('../images/oberon.png');
+    background-image: url('../images/oberon.jpg');
     background-size: cover;
     background-position: center;
 }
 
 .card-decoration.right.assassin {
-    background-image: url('../images/assassin.png');
+    background-image: url('../images/assassin.jpg');
     background-size: cover;
     background-position: center;
 }
 
 .card-decoration.right.morgana {
-    background-image: url('../images/morgana.png');
+    background-image: url('../images/morgana.jpg');
     background-size: cover;
     background-position: center;
 }
 
 .card-decoration.left.avalon {
-    background-image: url('../images/default_avatar.png');
+    background-image: url('../images/default_avatar.jpg');
     background-size: cover;
     background-position: center;
 }
