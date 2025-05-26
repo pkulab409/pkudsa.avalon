@@ -715,10 +715,26 @@ def view_battle(battle_id):
                         )
                         error_info["error_msg"] = f"读取错误日志失败: {str(e)}"
 
-                        error_info_raw["error_or_NOT"] = "error"
-                        error_info_raw["error_msg"] = (
-                            f"game.py line751 读取公共日志失败: {str(e)}"
-                        )
+                        for record in reversed(data):
+                            # 检查result中是否有traceback
+                            if "result" in record and record["result"]:
+                                # 找到traceback
+                                error_info_raw["error_or_NOT"] = "error"
+                                error_info_raw["error_msg"] = record["result"][
+                                    "traceback"
+                                ]
+                                error_raw_record = True
+                                break
+
+                        if error_raw_record == False:
+                            for record in reversed(data):
+                                # 检查是否有traceback
+                                if "traceback" in record and record["traceback"]:
+                                    # 找到traceback
+                                    error_info_raw["error_or_NOT"] = "error"
+                                    error_info_raw["error_msg"] = record["traceback"]
+                                    error_raw_record = True
+                                    break
 
         except Exception as e:
             logger.error(

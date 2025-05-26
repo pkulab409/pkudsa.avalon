@@ -626,7 +626,16 @@ def get_leaderboard(ranking_id=0, page=1, per_page=15, min_games_played=0):
         draws,
         games_played,
     ) in enumerate(stats_with_users, start=offset + 1):
-        win_rate = round(wins / games_played * 100, 1) if games_played > 0 else 0
+        win_rate = round(wins / (losses + wins) * 100, 1) if (losses + wins) > 0 else 0
+        win_rate_for_container = (
+            round(wins / games_played * 100, 1) if games_played > 0 else 0
+        )
+        loss_rate_for_container = (
+            round(losses / games_played * 100, 1) if games_played > 0 else 0
+        )
+        draw_rate_for_container = (
+            round(draws / games_played * 100, 1) if games_played > 0 else 0
+        )
         result.append(
             {
                 "rank": rank,
@@ -638,6 +647,9 @@ def get_leaderboard(ranking_id=0, page=1, per_page=15, min_games_played=0):
                 "draws": draws,
                 "games_played": games_played,
                 "win_rate": win_rate,
+                "draw_rate_for_container": draw_rate_for_container,
+                "loss_rate_for_container": loss_rate_for_container,
+                "win_rate_for_container": win_rate_for_container,
             }
         )
 
