@@ -29,9 +29,9 @@ def get_top_players_from_ranking(source_ranking_id, percentage=0.5):
         # 从指定榜单中获取所有有效用户的游戏统计数据（按ELO降序排列）
         all_stats = (
             GameStats.query.filter_by(ranking_id=source_ranking_id)
-            .filter(GameStats.games_played > 0)  # 确保只选择至少参与过一场比赛的玩家
+            .filter(GameStats.wins > 0)  # 确保只选择至少参与过一场比赛的玩家
             .order_by(
-                desc(GameStats.elo_score), desc(GameStats.wins / GameStats.games_played)
+                desc(GameStats.elo_score), desc(GameStats.wins / (GameStats.games_played - GameStats.draws))
             )
             .all()
         )
