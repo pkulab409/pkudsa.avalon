@@ -3,6 +3,7 @@ import os
 import tarfile
 import tempfile
 import sys
+import re
 from scp import SCPClient
 from pathlib import Path
 
@@ -49,6 +50,16 @@ def get_remote_home(ssh):
     """获取远程用户的实际home目录"""
     _, stdout, _ = ssh.exec_command("echo ~")
     return stdout.read().decode().strip()
+
+
+def safe_extract(tar, path=".", members=None):
+    """
+    安全解压tar文件，自动修正Windows不支持的目录名（如冒号）
+    """
+    for member in tar.getmembers():
+        # 替换非法字符（如冒号）为下划线
+        member.name = re.sub(r"[:*?\"<>|]", "_", member.name)
+        tar.extract(member, path=path)
 
 
 def main():
@@ -110,13 +121,7 @@ def main():
                 os.makedirs(local_dir, exist_ok=True)
                 print("正在解压文件...")
                 with tarfile.open(local_temp, "r:gz") as tar:
-
-                    def safe_extract(member):
-                        # 防止路径遍历攻击
-                        member.path = os.path.normpath(member.path).lstrip(os.sep)
-                        return member
-
-                    tar.extractall(path=local_dir, filter="data")  # 安全解压
+                    safe_extract(tar, path=local_dir)  # 安全解压
 
                 print(f"✔ 成功下载到: {local_dir}")
 
