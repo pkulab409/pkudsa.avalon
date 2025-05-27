@@ -414,6 +414,26 @@
                     </div>
                 </div>
             </div>
+            <!-- AI管理控制 -->
+            <div class="admin-section">
+                <h2 class="d-flex align-items-center gap-2 mb-4">
+                    <i class="bi bi-cpu"></i>AI管理
+                </h2>
+                <div class="d-flex gap-2 flex-wrap">
+                    <form onsubmit="handleOpenAIEditing(event)">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="bi bi-unlock"></i>开放ai编辑
+                        </button>
+                    </form>
+                    <form onsubmit="handleFreezeCode(event)">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn-warning" type="submit">
+                            <i class="bi bi-lock"></i>冻结代码
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
         <script>
     // 搜索功能（更新样式适配）
@@ -798,6 +818,37 @@
         });
         const data = await handleResponse(res);
         showBootstrapAlert(data.message || '决赛已终止', 'success');
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
+    }
+
+    // AI管理控制
+    async function handleOpenAIEditing(e) {
+      e.preventDefault();
+      const form = e.target;
+      try {
+        const res = await fetch('/admin/open_ai_editing', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': form.csrf_token.value }
+        });
+        const data = await handleResponse(res);
+        showBootstrapAlert(data.message || 'AI编辑已开放', 'success');
+      } catch (error) {
+        showBootstrapAlert(`错误: ${error.message}`, 'danger');
+      }
+    }
+
+    async function handleFreezeCode(e) {
+      e.preventDefault();
+      const form = e.target;
+      try {
+        const res = await fetch('/admin/freeze_code', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': form.csrf_token.value }
+        });
+        const data = await handleResponse(res);
+        showBootstrapAlert(data.message || '代码已冻结', 'success');
       } catch (error) {
         showBootstrapAlert(`错误: ${error.message}`, 'danger');
       }

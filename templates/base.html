@@ -496,18 +496,39 @@
         {% block scripts %}
         {% endblock %}
         <script>
-        console.log('Base template script loaded');
         document.addEventListener('DOMContentLoaded', function () {
-            console.log('DOM fully loaded and parsed');
-            var dropdownToggle = document.querySelector('.dropdown-toggle');
-            if (dropdownToggle) {
-                console.log('Dropdown toggle found');
-                dropdownToggle.addEventListener('click', function (event) {
-                    console.log('Dropdown toggle clicked');
+            // Initialize all dropdowns
+            var dropdowns = document.querySelectorAll('.dropdown-toggle');
+            dropdowns.forEach(function (dropdown) {
+                dropdown.addEventListener('click', function (e) {
+                    // Prevent default to avoid any conflicts
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    // Get the dropdown menu element
+                    var menu = this.nextElementSibling;
+
+                    // Toggle the dropdown
+                    if (menu.classList.contains('show')) {
+                        menu.classList.remove('show');
+                        this.setAttribute('aria-expanded', 'false');
+                    } else {
+                        menu.classList.add('show');
+                        this.setAttribute('aria-expanded', 'true');
+                    }
                 });
-            } else {
-                console.log('Dropdown toggle not found');
-            }
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function (e) {
+                if (!e.target.matches('.dropdown-toggle')) {
+                    var openMenus = document.querySelectorAll('.dropdown-menu.show');
+                    openMenus.forEach(function (menu) {
+                        menu.classList.remove('show');
+                        menu.previousElementSibling.setAttribute('aria-expanded', 'false');
+                    });
+                }
+            });
         });
         </script>
     </body>
