@@ -196,14 +196,6 @@ class BattleManager:
 
     def _battle_worker(self):
         """工作线程：从队列获取对战任务并执行"""
-        # 设置较低的线程优先级
-        try:
-            import os
-
-            os.nice(10)  # 增加nice值，降低优先级（仅限UNIX系统）
-        except:
-            pass
-
         while not self._shutdown_event.is_set():
             try:
                 # 使用超时，以便线程能够定期检查关闭信号
@@ -442,6 +434,9 @@ class BattleManager:
                         self.battle_service.log_info(
                             f"对战 {battle_id} 完成，结果已处理"
                         )
+                        
+                        # 自动触发AI评论生成
+                        self._trigger_ai_comment_generation(battle_id)
                     else:
                         self.battle_service.log_error(
                             f"对战 {battle_id} 完成，但结果处理或数据库更新失败"
@@ -603,6 +598,99 @@ class BattleManager:
             except Exception as e:
                 logger.error(f"监控系统负载时出错: {str(e)}")
                 time.sleep(120)  # 出错时延长休眠时间
+
+    def _trigger_ai_comment_generation(self, battle_id: str):
+        """
+        触发AI评论生成（异步）
+        
+        参数:
+            battle_id: 对局ID
+        """
+        try:
+            # 在后台线程中生成AI评论，避免阻塞主流程
+            def generate_comment_async():
+                try:
+                    from .ai_comment_helper import generate_battle_comment
+                    import os
+                    
+                    # 构建日志文件路径
+                    log_file_path = os.path.join(
+                        self.data_dir, 
+                        battle_id, 
+                        f"archive_game_{battle_id}.json"
+                    )
+                    
+                    # 构建评论文件路径
+                    comment_file_path = os.path.join(
+                        self.data_dir, 
+                        battle_id, 
+                        f"comment_{battle_id}.json"
+                    )
+                    
+                    # 检查日志文件是否存在
+                    if not os.path.exists(log_file_path):
+                        logger.warning(f"对局 {battle_id} 的日志文件不存在，跳过AI评论生成")
+                        return
+                    
+                    # 检查评论文件是否已存在
+                    if os.path.exists(comment_file_path):
+                        logger.info(f"对局 {battle_id} 的AI评论文件已存在，跳过生成")
+                        return
+                    
+                    # 读取日志内容
+                    with open(log_file_path, 'r', encoding='utf-8') as f:
+                        log_content = f.read()
+                    
+                    logger.info(f"开始为对局 {battle_id} 自动生成AI评论")
+                    
+                    # 生成AI评论
+                    comment_data = generate_battle_comment(battle_id, log_content)
+                    
+                    # 转换时间戳格式以保持兼容性
+                    if 'generated_at' in comment_data and isinstance(comment_data['generated_at'], (int, float)):
+                        from datetime import datetime
+                        comment_data['generated_at'] = datetime.fromtimestamp(comment_data['generated_at']).isoformat()
+                    
+                    # 保存评论文件
+                    with open(comment_file_path, 'w', encoding='utf-8') as f:
+                        import json
+                        json.dump(comment_data, f, ensure_ascii=False, indent=4)
+                    
+                    if comment_data.get('error'):
+                        logger.warning(f"对局 {battle_id} AI评论生成失败: {comment_data.get('message', '未知错误')}")
+                    else:
+                        logger.info(f"对局 {battle_id} AI评论自动生成完成")
+                        
+                except Exception as e:
+                    logger.error(f"对局 {battle_id} 自动生成AI评论时出错: {str(e)}", exc_info=True)
+                    
+                    # 尝试写入错误信息到评论文件
+                    try:
+                        from datetime import datetime
+                        import json
+                        error_comment_data = {
+                            "battle_id": battle_id, 
+                            "error": True, 
+                            "message": f"自动生成AI评论时发生错误: {str(e)}", 
+                            "generated_at": datetime.utcnow().isoformat()
+                        }
+                        with open(comment_file_path, 'w', encoding='utf-8') as f:
+                            json.dump(error_comment_data, f, ensure_ascii=False, indent=4)
+                    except Exception as ef:
+                        logger.error(f"写入错误评论文件失败: {str(ef)}")
+            
+            # 启动后台线程
+            comment_thread = threading.Thread(
+                target=generate_comment_async,
+                name=f"AIComment-{battle_id}",
+                daemon=True
+            )
+            comment_thread.start()
+            
+            logger.info(f"已启动对局 {battle_id} 的AI评论生成任务")
+            
+        except Exception as e:
+            logger.error(f"启动对局 {battle_id} AI评论生成任务失败: {str(e)}")
 
     def shutdown(self):
         """优雅关闭对战管理器"""
