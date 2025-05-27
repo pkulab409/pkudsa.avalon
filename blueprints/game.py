@@ -748,25 +748,8 @@ def view_battle(battle_id):
 
             error_raw_record = False
 
-            for record in reversed(data):
-                if (
-                    "event_type" in record
-                    and record["event_type"] == "Bug"
-                    and "traceback" in record["event_data"]
-                ):
-                    # 使用正则表达式提取 traceback 部分
-                    error_message = record["event_data"]
-                    pattern = r"Traceback.*"
-                    match = re.search(pattern, error_message, re.DOTALL)
+            try:
 
-                    if match:
-                        # 找到traceback
-                        error_info_raw["error_or_NOT"] = "error"
-                        error_info_raw["error_msg"] = record["result"]["traceback"]
-                        error_raw_record = True
-                        break
-
-            if error_raw_record == False:
                 for record in reversed(data):
                     # 检查result中是否有traceback
                     if "result" in record and record["result"]:
@@ -776,15 +759,42 @@ def view_battle(battle_id):
                         error_raw_record = True
                         break
 
-            if error_raw_record == False:
-                for record in reversed(data):
-                    # 检查是否有traceback
-                    if "traceback" in record and record["traceback"]:
-                        # 找到traceback
-                        error_info_raw["error_or_NOT"] = "error"
-                        error_info_raw["error_msg"] = record["traceback"]
-                        error_raw_record = True
-                        break
+                if error_raw_record == False:
+                    for record in reversed(data):
+                        # 检查是否有traceback
+                        if "traceback" in record and record["traceback"]:
+                            # 找到traceback
+                            error_info_raw["error_or_NOT"] = "error"
+                            error_info_raw["error_msg"] = record["traceback"]
+                            error_raw_record = True
+                            break
+                if error_raw_record == False:
+                    for record in reversed(data):
+                        if (
+                            "event_type" in record
+                            and record["event_type"] == "Bug"
+                            and "traceback" in record["event_data"]
+                        ):
+                            # 使用正则表达式提取 traceback 部分
+                            error_message = record["event_data"]
+                            pattern = r"Traceback.*"
+                            match = re.search(pattern, error_message, re.DOTALL)
+
+                            if match:
+                                # 找到traceback
+                                error_info_raw["error_or_NOT"] = "error"
+                                error_info_raw["error_msg"] = record["result"][
+                                    "traceback"
+                                ]
+                                error_raw_record = True
+                                break
+
+            except Exception as e:
+                # 未能提取traceback
+                error_info_raw["error_or_NOT"] = "error"
+                error_info_raw["error_msg"] = (
+                    f"game.py line793 三次尝试未能提取traceback\n{str(e)}"
+                )
 
     # 根据状态渲染不同模板或页面部分
     if battle.status in ["waiting", "playing"]:
