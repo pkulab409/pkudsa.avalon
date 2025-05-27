@@ -15,9 +15,10 @@ from database.models import AICode  # User 模型可能不再直接在此使用
 from utils.battle_manager_utils import get_battle_manager
 
 logger = logging.getLogger("AutoMatch")
+max_retry_delay = 60
 
 MAX_AUTOMATCH_PARALLEL_GAMES_PER_RANKING = 10  # 每个榜单的并行对战数
-MIN_PARTICIPANTS_FOR_BATTLE = 7  # 至少需要多少AI才能开始一场对战
+PARTICIPANTS = 7  # 至少需要多少AI才能开始一场对战
 
 
 class AutoMatchInstance:
@@ -30,58 +31,28 @@ class AutoMatchInstance:
         self.battle_count = 0
         self.battle_queue = Queue(parallel_games)
         self.loop_thread: Optional[threading.Thread] = None
-        self.current_participants: List[AICode] = []
-        self.min_participants = MIN_PARTICIPANTS_FOR_BATTLE
-        # 添加实例私有锁，防止该实例内的资源竞争
+        self.min_participants = PARTICIPANTS
         self._instance_lock = threading.RLock()
-        # 添加上次获取参与者的时间戳，用于控制查询频率
-        self._last_fetch_time = 0
-        # 最小获取间隔(秒)
-        self._min_fetch_interval = 5
 
-    def _fetch_participants(self):
-        """获取当前榜单的激活AI代码，添加时间间隔控制避免频繁查询"""
-        current_time = time()
-
-        # 如果距离上次获取时间不足最小间隔，则跳过
-        if current_time - self._last_fetch_time < self._min_fetch_interval:
-            return
-
-        with self._instance_lock:
-            self._last_fetch_time = current_time
-
+        # Load participants once during initialization
         with self.app.app_context():
-            # 确保只获取当前榜单的AI代码
             try:
-                ai_codes = get_active_ai_codes_by_ranking_ids(
+                self.current_participants = get_active_ai_codes_by_ranking_ids(
                     ranking_ids=[self.ranking_id]
                 )
-
-                # 立即提取AICode的所有需要的数据，包括ID，用户ID等
-                # 这样在session关闭后仍可安全访问这些数据
-                self.current_participants = []
-                for ai_code in ai_codes:
-                    # 创建AICode的副本，并确保所有需要的属性都被获取
-                    ai_code_copy = AICode(
-                        id=ai_code.id,
-                        user_id=ai_code.user_id,
-                        name=ai_code.name,
-                        code_path=ai_code.code_path,
-                        description=ai_code.description,
-                        is_active=ai_code.is_active,
-                        created_at=ai_code.created_at,
-                        version=ai_code.version,
-                    )
-                    self.current_participants.append(ai_code_copy)
-
                 logger.info(
-                    f"[Rank-{self.ranking_id}] 加载到 {len(self.current_participants)} 个激活AI代码。"
+                    f"[Rank-{self.ranking_id}] 初始化加载到 {len(self.current_participants)} 个激活AI代码。"
                 )
             except Exception as e:
                 logger.error(
-                    f"[Rank-{self.ranking_id}] 获取AI代码时出错: {str(e)}",
+                    f"[Rank-{self.ranking_id}] 初始化获取AI代码时出错: {str(e)}",
                     exc_info=True,
                 )
+                self.current_participants = []
+
+    def _fetch_participants(self):
+        """No longer needed - participants are loaded once during initialization"""
+        pass
 
     def _loop(self):
         """单个榜单的后台对战循环"""
@@ -92,10 +63,6 @@ class AutoMatchInstance:
             battle_manager = get_battle_manager()
             self._fetch_participants()  # 初始获取
 
-            # 添加指数退避重试逻辑
-            retry_delay = 1  # 初始延迟1秒
-            max_retry_delay = 60  # 最大延迟60秒
-
             while self.is_on:
                 try:
                     # 检查参与者数量
@@ -103,94 +70,50 @@ class AutoMatchInstance:
                         logger.debug(
                             f"[Rank-{self.ranking_id}] 参与者不足 ({len(self.current_participants)}/{self.min_participants})，等待{retry_delay}秒后重新获取..."
                         )
-                        sleep(retry_delay)
-                        retry_delay = min(
-                            retry_delay * 2, max_retry_delay
-                        )  # 指数增加延迟
-                        self._fetch_participants()  # 重新获取参与者
-                        continue
-                    else:
-                        retry_delay = 1  # 重置延迟
+                        break
 
-                    # 确保抽样数量不超过可用参与者数量，且至少为最小数量
-                    num_to_sample = min(
-                        7, len(self.current_participants)
-                    )  # 假设每场最多7人
-                    if num_to_sample < self.min_participants:
-                        logger.warning(
-                            f"[Rank-{self.ranking_id}] 当前可用参与者 {len(self.current_participants)}，不足以抽取 {self.min_participants} 人进行对战，等待后重试。"
-                        )
-                        sleep(retry_delay)
-                        retry_delay = min(retry_delay * 2, max_retry_delay)
-                        self._fetch_participants()  # 尝试重新获取更多参与者
-                        continue
-                    else:
-                        retry_delay = 1  # 重置延迟
-
-                    # 添加随机性和唯一性检查，确保不重复选择相同AI组合
                     try:
-                        # 从当前获取的参与者中随机抽取，同时避免重复组合
-                        selected_combinations = getattr(
-                            self, "_selected_combinations", set()
-                        )
-                        if not hasattr(self, "_selected_combinations"):
-                            self._selected_combinations = selected_combinations
+                        # Create multiple battles in batch when possible
+                        batch_size = 5  # Number of battles to create in each batch
+                        battles_created = 0
 
-                        max_attempts = 10  # 最多尝试10次不同组合
-                        participants_ai_codes = None
-
-                        for _ in range(max_attempts):
+                        while (
+                            battles_created < batch_size
+                            and len(self.current_participants) >= PARTICIPANTS
+                        ):
+                            # Get participants for this battle
                             participants_ai_codes = sample(
-                                self.current_participants, num_to_sample
+                                self.current_participants, PARTICIPANTS
                             )
-                            # 创建组合标识符 - 使用安全的方式获取ID以避免会话问题
-                            try:
-                                combination_id = frozenset(
-                                    ai_code.id for ai_code in participants_ai_codes
+
+                            # Prepare participant data
+                            participant_data = [
+                                {"user_id": ai_code.user_id, "ai_code_id": ai_code.id}
+                                for ai_code in participants_ai_codes
+                            ]
+
+                            # Create battle
+                            with self.app.app_context():
+                                battle = db_create_battle(
+                                    participant_data,
+                                    ranking_id=self.ranking_id,
+                                    status="waiting",
                                 )
-                            except Exception as e:
-                                logger.error(
-                                    f"[Rank-{self.ranking_id}] 创建对战组合ID时出错: {e}",
-                                    exc_info=True,
-                                )
-                                # 重新获取参与者列表并尝试一次
-                                self._fetch_participants()
-                                sleep(1)  # 短暂休眠
-                                continue
 
-                            # 检查是否是近期使用过的组合
-                            if combination_id not in selected_combinations:
-                                # 记录此组合
-                                selected_combinations.add(combination_id)
-                                # 限制记录集大小，防止无限增长
-                                if len(selected_combinations) > 100:
-                                    # 移除最早添加的组合
-                                    selected_combinations.pop()
-                                break
+                                if not battle:
+                                    logger.error(
+                                        f"[Rank-{self.ranking_id}] 创建对战失败，db_create_battle 返回 None。"
+                                    )
+                                    continue
 
-                        participant_data = [
-                            {"user_id": ai_code.user_id, "ai_code_id": ai_code.id}
-                            for ai_code in participants_ai_codes
-                        ]
+                            self.battle_queue.put_nowait(battle.id)
+                            battles_created += 1
+                            self.battle_count += 1
 
-                        # 数据库操作，创建对战时指定 ranking_id
-                        battle = db_create_battle(
-                            participant_data,
-                            ranking_id=self.ranking_id,  # 关键：为对战设置ranking_id
-                            status="waiting",
-                        )
-
-                        if not battle:
-                            logger.error(
-                                f"[Rank-{self.ranking_id}] 创建对战失败，db_create_battle 返回 None。"
+                            logger.info(
+                                f"[Rank-{self.ranking_id}] 启动第 {self.battle_count} 次自动对战 (Battle ID: {battle.id})。"
                             )
-                            sleep(retry_delay)  # 等待一段时间再重试
-                            retry_delay = min(retry_delay * 2, max_retry_delay)
-                            continue
-                        else:
-                            retry_delay = 1  # 重置延迟
-
-                        self.battle_queue.put_nowait(battle.id)
+                            battle_manager.start_battle(battle.id, participant_data)
                         logger.debug(
                             f"[Rank-{self.ranking_id}] 对战 {battle.id} 已加入队列。队列大小: {self.battle_queue.qsize()}"
                         )
@@ -215,14 +138,9 @@ class AutoMatchInstance:
                         if not self.is_on:  # 再次检查停止信号
                             break
 
-                        self.battle_count += 1
-                        logger.info(
-                            f"[Rank-{self.ranking_id}] 启动第 {self.battle_count} 次自动对战 (Battle ID: {battle.id})。"
-                        )
-                        battle_manager.start_battle(battle.id, participant_data)
-
                         # 短暂休眠，避免CPU高占用和过于频繁的对战创建
-                        sleep(1)
+                        if battles_created > 0:  # Only sleep if we created any battles
+                            sleep(1)
 
                     except Exception as e:
                         logger.error(
@@ -487,18 +405,3 @@ class AutoMatchManager:
                 # 如果实例在stop()之后因为某些并发原因被移除了 (理论上不应该，因为stop后仍然是同一个对象)
                 logger.warning(f"Ranking ID {ranking_id} 在终止过程中从管理器中消失。")
                 return False
-
-
-# 如何在 Flask 应用中使用 AutoMatchManager:
-# app.py 或 extensions.py
-# automatch_manager = AutoMatchManager(app)
-# app.extensions['automatch_manager'] = automatch_manager
-
-# 在你的 admin 蓝图或启动脚本中:
-# from flask import current_app
-# manager = current_app.extensions['automatch_manager']
-# manager.manage_ranking_ids({0, 1, 2}) # 定义要管理的榜单
-# manager.start_automatch_for_ranking(0)
-# manager.start_automatch_for_ranking(1)
-# ...
-# status = manager.get_all_statuses()
