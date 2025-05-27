@@ -1,8 +1,9 @@
 # ai_editing_control.py
 
+
 class AIEditingControl:
     _instance = None
-    
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(AIEditingControl, cls).__new__(cls)
@@ -17,6 +18,7 @@ class AIEditingControl:
 
     def is_ai_editing_allowed(self):
         return self.ai_editing_allowed
+
 
 # Global instance
 ai_editing_control = AIEditingControl()

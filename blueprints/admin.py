@@ -914,6 +914,7 @@ def open_ai_editing():
     ai_editing_control.allow_ai_editing()
     return jsonify({"message": "AI编辑已开放"}), 200
 
+
 @admin_bp.route("/admin/freeze_code", methods=["POST"])
 @login_required
 @admin_required
