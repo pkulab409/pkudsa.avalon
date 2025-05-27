@@ -11,7 +11,7 @@ ranking_bp = Blueprint("ranking", __name__)
 _cache = {}
 _cache_last_access = {}  # 新增：记录缓存项的最后访问时间
 CACHE_TIMEOUT = 300  # 缓存过期阈值：5分钟
-RANKING_IDS = [0,1,2,3,4,5,6,11,21]
+RANKING_IDS = [0, 1, 2, 3, 4, 5, 6, 11, 21]
 
 
 def get_cached_data(key, fetch_func, timeout=CACHE_TIMEOUT):
