@@ -17,7 +17,7 @@ from utils.battle_manager_utils import get_battle_manager
 logger = logging.getLogger("AutoMatch")
 max_retry_delay = 60
 
-MAX_AUTOMATCH_PARALLEL_GAMES_PER_RANKING = 10  # 每个榜单的并行对战数
+MAX_AUTOMATCH_PARALLEL_GAMES_PER_RANKING = 20  # 每个榜单的并行对战数
 PARTICIPANTS = 7  # 至少需要多少AI才能开始一场对战
 
 
