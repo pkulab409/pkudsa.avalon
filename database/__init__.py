@@ -70,6 +70,7 @@ from .action import (
     create_battle_instance,
     load_initial_users_from_config,
     safe_delete,
+    db_create_battles_batch,
 )
 
 # 从 promotion.py 导出晋级相关函数

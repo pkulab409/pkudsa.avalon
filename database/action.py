@@ -555,6 +555,94 @@ def create_game_stats(user_id, ranking_id=0):
         return None
 
 
+def db_create_battles_batch(battles_data, ranking_id=0, status="waiting"):
+    """
+    批量创建多场对战及其关联的参与者记录。
+
+    参数:
+        battles_data (list): 多场对战的参与者数据列表，每个元素是一场对战的参与者列表。
+                           例如: [ [{user_id: '...', ai_code_id: '...'}, ...], [...] ]
+        ranking_id (int): 对战所属的排行榜ID。默认为0。
+        status (str): 初始状态 (e.g., 'waiting', 'playing'). 默认为 'waiting'.
+
+    返回:
+        list: 创建成功的对战对象列表，失败则返回空列表。
+    """
+    if not battles_data:
+        logger.error("批量创建对战失败: 对战数据列表为空。")
+        return []
+
+    created_battles = []
+    
+    try:
+        # 批量验证所有参与者数据
+        for i, participant_data_list in enumerate(battles_data):
+            if not participant_data_list:
+                logger.error(f"批量创建对战 #{i+1} 失败: 参与者列表为空。")
+                continue
+                
+            # 验证每个参与者数据
+            valid_participants = True
+            for data in participant_data_list:
+                user = get_user_by_id(data.get("user_id"))
+                ai_code = get_ai_code_by_id(data.get("ai_code_id"))
+                if not user or not ai_code or ai_code.user_id != user.id:
+                    reason = ""
+                    if not user:
+                        reason = "用户不存在"
+                    elif not ai_code:
+                        reason = "AI代码不存在"
+                    elif ai_code.user_id != user.id:
+                        reason = "AI代码不属于该用户"
+                    logger.error(
+                        f"批量创建对战 #{i+1} 失败: 无效的参与者或AI代码数据 {data} (原因: {reason})"
+                    )
+                    valid_participants = False
+                    break
+            
+            if not valid_participants:
+                continue
+                
+            # 创建对战记录
+            battle = Battle(
+                status=status,
+                ranking_id=ranking_id,
+                created_at=datetime.now(),
+            )
+            db.session.add(battle)
+            db.session.flush()  # 确保 battle 获得 ID
+            
+            # 创建参与者记录
+            for j, data in enumerate(participant_data_list):
+                # 获取玩家当前的ELO作为 initial_elo 快照
+                user_stats = get_game_stats_by_user_id(data["user_id"], ranking_id)
+                initial_elo = user_stats.elo_score if user_stats else 1200
+                
+                bp = BattlePlayer(
+                    battle_id=battle.id,
+                    user_id=data["user_id"],
+                    selected_ai_code_id=data["ai_code_id"],
+                    position=j + 1,  # 按列表顺序设置位置
+                    initial_elo=initial_elo,
+                    join_time=datetime.now(),
+                )
+                db.session.add(bp)
+                
+            created_battles.append(battle)
+        
+        # 提交所有更改
+        if created_battles and safe_commit():
+            logger.info(f"批量创建成功: 共创建 {len(created_battles)} 场对战。")
+            return created_battles
+        else:
+            logger.error("批量创建对战失败: 没有创建任何有效对战或提交失败。")
+            return []
+            
+    except Exception as e:
+        logger.error(f"批量创建对战时发生异常: {e}", exc_info=True)
+        db.session.rollback()
+        return []
+
 def update_game_stats(stats, **kwargs):
     """
     更新游戏统计记录。主要用于手动修改 Elo 等，增加胜负场次应通过 battle 结束流程。

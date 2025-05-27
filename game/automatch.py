@@ -1,15 +1,17 @@
 import logging
 from queue import Queue
 from time import sleep, time
-from random import sample, choice  # choice 可能用于从多个 target_ranking_ids 中选择一个
+from random import sample, choice, choices, random  # 添加choices和random
 from typing import Dict, Any, Optional, List, Tuple, Set, FrozenSet
 import threading
+import collections  # 添加collections用于OrderedDict
 
 from flask import Flask
 
 from database import (
     create_battle as db_create_battle,
     get_active_ai_codes_by_ranking_ids,  # 使用 action.py 中的函数
+    db_create_battles_batch,  # 新增：批量创建对战的数据库操作
 )
 from database.models import AICode  # User 模型可能不再直接在此使用
 from utils.battle_manager_utils import get_battle_manager
@@ -38,16 +40,43 @@ class AutoMatchInstance:
         self._last_fetch_time = 0
         # 最小获取间隔(秒)
         self._min_fetch_interval = 5
+        # 添加缓存有效期属性
+        self._cache_validity_period = 60  # 缓存有效期（秒）
+        self._cache_valid = False  # 缓存是否有效的标志
 
-    def _fetch_participants(self):
-        """获取当前榜单的激活AI代码，添加时间间隔控制避免频繁查询"""
+        # 添加组合缓存相关属性
+        self._combination_pool = []  # 预计算的组合池
+        self._used_combinations = collections.OrderedDict()  # 有序字典记录已使用组合
+        self._max_used_combinations = 200  # 增大已使用组合的记录上限
+        self._last_participation_time = {}  # 记录每个AI最后参与时间
+        self._max_pool_size = 50  # 预计算组合池的最大大小
+
+    def _fetch_participants(self, force_refresh=False):
+        """
+        获取当前榜单的激活AI代码，使用缓存策略控制查询频率
+
+        Args:
+            force_refresh: 是否强制刷新缓存
+        """
         current_time = time()
 
-        # 如果距离上次获取时间不足最小间隔，则跳过
-        if current_time - self._last_fetch_time < self._min_fetch_interval:
-            return
-
         with self._instance_lock:
+            # 检查缓存是否有效
+            cache_age = current_time - self._last_fetch_time
+
+            # 如果缓存有效且未强制刷新，直接返回
+            if (
+                self._cache_valid
+                and cache_age < self._cache_validity_period
+                and not force_refresh
+            ):
+                return
+
+            # 如果不强制刷新且距离上次获取时间不足最小间隔，则跳过
+            if not force_refresh and cache_age < self._min_fetch_interval:
+                return
+
+            # 标记获取时间
             self._last_fetch_time = current_time
 
         with self.app.app_context():
@@ -57,31 +86,204 @@ class AutoMatchInstance:
                     ranking_ids=[self.ranking_id]
                 )
 
-                # 立即提取AICode的所有需要的数据，包括ID，用户ID等
-                # 这样在session关闭后仍可安全访问这些数据
-                self.current_participants = []
-                for ai_code in ai_codes:
-                    # 创建AICode的副本，并确保所有需要的属性都被获取
-                    ai_code_copy = AICode(
-                        id=ai_code.id,
-                        user_id=ai_code.user_id,
-                        name=ai_code.name,
-                        code_path=ai_code.code_path,
-                        description=ai_code.description,
-                        is_active=ai_code.is_active,
-                        created_at=ai_code.created_at,
-                        version=ai_code.version,
-                    )
-                    self.current_participants.append(ai_code_copy)
+                with self._instance_lock:
+                    # 立即提取AICode的所有需要的数据，包括ID，用户ID等
+                    # 这样在session关闭后仍可安全访问这些数据
+                    self.current_participants = []
+                    for ai_code in ai_codes:
+                        # 创建AICode的副本，并确保所有需要的属性都被获取
+                        ai_code_copy = AICode(
+                            id=ai_code.id,
+                            user_id=ai_code.user_id,
+                            name=ai_code.name,
+                            code_path=ai_code.code_path,
+                            description=ai_code.description,
+                            is_active=ai_code.is_active,
+                            created_at=ai_code.created_at,
+                            version=ai_code.version,
+                        )
+                        self.current_participants.append(ai_code_copy)
+
+                    # 标记缓存为有效
+                    self._cache_valid = True
 
                 logger.info(
                     f"[Rank-{self.ranking_id}] 加载到 {len(self.current_participants)} 个激活AI代码。"
                 )
             except Exception as e:
+                with self._instance_lock:
+                    self._cache_valid = False  # 发生错误时标记缓存为无效
+
                 logger.error(
                     f"[Rank-{self.ranking_id}] 获取AI代码时出错: {str(e)}",
                     exc_info=True,
                 )
+
+    def _refresh_combination_pool(self):
+        """预先计算并缓存可行的参与者组合"""
+        with self._instance_lock:
+            # 清空现有的组合池
+            self._combination_pool.clear()
+
+            participants_count = len(self.current_participants)
+            num_to_sample = min(7, participants_count)  # 每场对战的参与者数量
+
+            # 如果参与者不足，直接返回
+            if participants_count < self.min_participants:
+                return
+
+            current_time = time()
+
+            # 计算每个AI的参与频率权重 (优先选择长时间未参与的AI)
+            weights = {}
+            for ai_code in self.current_participants:
+                last_time = self._last_participation_time.get(ai_code.id, 0)
+                # 权重与上次参与的时间间隔成正比
+                time_gap = max(1, current_time - last_time)  # 至少为1秒防止除零
+                weights[ai_code.id] = time_gap
+
+            # 预计算策略: 当参与者数量较少时，考虑全部组合，否则随机生成
+            if participants_count <= 15:  # 较小数量时可以考虑更全面的组合
+                self._generate_diverse_combinations(num_to_sample, weights)
+            else:
+                self._generate_random_combinations(num_to_sample, weights)
+
+            logger.debug(
+                f"[Rank-{self.ranking_id}] 已预计算 {len(self._combination_pool)} 个AI组合。"
+            )
+
+    def _generate_diverse_combinations(self, num_to_sample, weights):
+        """生成多样化的组合，确保每个AI都有机会参与"""
+        # 基于参与频率权重生成多样化组合
+        all_ai_ids = [ai_code.id for ai_code in self.current_participants]
+
+        # 尝试生成不同的组合
+        attempts = 0
+        max_attempts = 200  # 最大尝试次数
+
+        while (
+            len(self._combination_pool) < self._max_pool_size
+            and attempts < max_attempts
+        ):
+            attempts += 1
+
+            # 根据权重选择AI
+            selected_ids = []
+            temp_weights = weights.copy()
+            available_ids = all_ai_ids.copy()
+
+            while len(selected_ids) < num_to_sample and available_ids:
+                # 计算当前可用AI的总权重
+                weight_sum = sum(temp_weights[ai_id] for ai_id in available_ids)
+                if weight_sum == 0:
+                    # 防止所有权重为0的情况
+                    ai_id = choice(available_ids)
+                else:
+                    # 按权重随机选择
+                    ai_id = choices(
+                        available_ids,
+                        weights=[temp_weights[ai_id] for ai_id in available_ids],
+                        k=1,
+                    )[0]
+
+                selected_ids.append(ai_id)
+                available_ids.remove(ai_id)
+                # 降低已选AI相邻AI的权重，促进多样性
+                for neighbor_id in available_ids:
+                    temp_weights[neighbor_id] *= 0.9
+
+            # 生成组合对象
+            combination_id = frozenset(selected_ids)
+
+            # 如果这个组合没有被使用过，加入池中
+            if (
+                combination_id not in self._used_combinations
+                and combination_id not in [c[0] for c in self._combination_pool]
+            ):
+                # 存储(组合ID, 参与者ID列表)
+                self._combination_pool.append((combination_id, selected_ids))
+
+    def _generate_random_combinations(self, num_to_sample, weights):
+        """生成随机组合填充组合池"""
+        # 当参与者数量较多时，使用随机方法生成组合
+        participants_by_id = {
+            ai_code.id: ai_code for ai_code in self.current_participants
+        }
+
+        attempts = 0
+        max_attempts = 200
+
+        while (
+            len(self._combination_pool) < self._max_pool_size
+            and attempts < max_attempts
+        ):
+            attempts += 1
+
+            # 使用权重随机抽样
+            all_ids = list(participants_by_id.keys())
+            weights_list = [weights[ai_id] for ai_id in all_ids]
+
+            try:
+                # 根据权重随机选择
+                selected_ids = sample(all_ids, k=num_to_sample)
+
+                # 确保没有重复
+                if len(set(selected_ids)) < num_to_sample:
+                    continue
+
+                combination_id = frozenset(selected_ids)
+
+                # 检查是否已被使用
+                if (
+                    combination_id not in self._used_combinations
+                    and combination_id not in [c[0] for c in self._combination_pool]
+                ):
+                    self._combination_pool.append((combination_id, selected_ids))
+            except Exception as e:
+                logger.error(
+                    f"[Rank-{self.ranking_id}] 生成随机组合时出错: {e}", exc_info=True
+                )
+
+    def _get_next_combination(self):
+        """从组合池中获取下一个组合"""
+        with self._instance_lock:
+            # 如果池为空，尝试刷新
+            if not self._combination_pool:
+                self._refresh_combination_pool()
+
+                # 如果刷新后仍为空，进行最后的随机尝试
+                if not self._combination_pool:
+                    return self._fallback_random_combination()
+
+            # 从池中取出一个组合
+            combination_id, selected_ids = self._combination_pool.pop(0)
+
+            # 记录为已使用
+            self._used_combinations[combination_id] = time()
+
+            # 如果已使用组合太多，移除最早的
+            if len(self._used_combinations) > self._max_used_combinations:
+                self._used_combinations.popitem(
+                    last=False
+                )  # OrderedDict特性，移除最早插入的
+
+            # 更新每个AI的最后参与时间
+            current_time = time()
+            for ai_id in selected_ids:
+                self._last_participation_time[ai_id] = current_time
+
+            # 返回选中的AI ID列表
+            return selected_ids
+
+    def _fallback_random_combination(self):
+        """当组合池为空时的备选方案"""
+        num_to_sample = min(7, len(self.current_participants))
+        if len(self.current_participants) < self.min_participants:
+            return None
+
+        # 简单随机选择
+        selected_ai_codes = sample(self.current_participants, num_to_sample)
+        return [ai_code.id for ai_code in selected_ai_codes]
 
     def _loop(self):
         """单个榜单的后台对战循环"""
@@ -90,14 +292,28 @@ class AutoMatchInstance:
                 f"[Rank-{self.ranking_id}] 自动对战循环线程 '{threading.current_thread().name}' 开始运行。"
             )
             battle_manager = get_battle_manager()
-            self._fetch_participants()  # 初始获取
+            self._fetch_participants(force_refresh=True)  # 初始强制获取
 
             # 添加指数退避重试逻辑
             retry_delay = 1  # 初始延迟1秒
             max_retry_delay = 60  # 最大延迟60秒
 
+            # 记录上次缓存检查时间
+            last_cache_check_time = time()
+
             while self.is_on:
                 try:
+                    current_time = time()
+
+                    # 定期检查缓存是否需要更新（在主循环中进行）
+                    cache_check_interval = min(
+                        30, self._cache_validity_period / 2
+                    )  # 设置一个合理的检查间隔
+                    if current_time - last_cache_check_time >= cache_check_interval:
+                        # 检查并可能更新缓存
+                        self._fetch_participants()
+                        last_cache_check_time = current_time
+
                     # 检查参与者数量
                     if len(self.current_participants) < self.min_participants:
                         logger.debug(
@@ -107,7 +323,7 @@ class AutoMatchInstance:
                         retry_delay = min(
                             retry_delay * 2, max_retry_delay
                         )  # 指数增加延迟
-                        self._fetch_participants()  # 重新获取参与者
+                        self._fetch_participants(force_refresh=True)  # 重新获取参与者
                         continue
                     else:
                         retry_delay = 1  # 重置延迟
@@ -122,52 +338,36 @@ class AutoMatchInstance:
                         )
                         sleep(retry_delay)
                         retry_delay = min(retry_delay * 2, max_retry_delay)
-                        self._fetch_participants()  # 尝试重新获取更多参与者
+                        self._fetch_participants(
+                            force_refresh=True
+                        )  # 尝试重新获取更多参与者
                         continue
                     else:
                         retry_delay = 1  # 重置延迟
 
-                    # 添加随机性和唯一性检查，确保不重复选择相同AI组合
+                    # 替换原有的参与者选择算法
                     try:
-                        # 从当前获取的参与者中随机抽取，同时避免重复组合
-                        selected_combinations = getattr(
-                            self, "_selected_combinations", set()
-                        )
-                        if not hasattr(self, "_selected_combinations"):
-                            self._selected_combinations = selected_combinations
+                        # 使用新的组合选择算法
+                        selected_ai_ids = self._get_next_combination()
 
-                        max_attempts = 10  # 最多尝试10次不同组合
-                        participants_ai_codes = None
-
-                        for _ in range(max_attempts):
-                            participants_ai_codes = sample(
-                                self.current_participants, num_to_sample
+                        if not selected_ai_ids:
+                            logger.warning(
+                                f"[Rank-{self.ranking_id}] 无法获取有效的AI组合，等待后重试。"
                             )
-                            # 创建组合标识符 - 使用安全的方式获取ID以避免会话问题
-                            try:
-                                combination_id = frozenset(
-                                    ai_code.id for ai_code in participants_ai_codes
-                                )
-                            except Exception as e:
-                                logger.error(
-                                    f"[Rank-{self.ranking_id}] 创建对战组合ID时出错: {e}",
-                                    exc_info=True,
-                                )
-                                # 重新获取参与者列表并尝试一次
-                                self._fetch_participants()
-                                sleep(1)  # 短暂休眠
-                                continue
+                            sleep(retry_delay)
+                            retry_delay = min(retry_delay * 2, max_retry_delay)
+                            self._fetch_participants(force_refresh=True)
+                            continue
 
-                            # 检查是否是近期使用过的组合
-                            if combination_id not in selected_combinations:
-                                # 记录此组合
-                                selected_combinations.add(combination_id)
-                                # 限制记录集大小，防止无限增长
-                                if len(selected_combinations) > 100:
-                                    # 移除最早添加的组合
-                                    selected_combinations.pop()
-                                break
+                        # 根据ID查找完整的AI对象信息
+                        participants_by_id = {
+                            ai_code.id: ai_code for ai_code in self.current_participants
+                        }
+                        participants_ai_codes = [
+                            participants_by_id[ai_id] for ai_id in selected_ai_ids
+                        ]
 
+                        # 创建参与者数据
                         participant_data = [
                             {"user_id": ai_code.user_id, "ai_code_id": ai_code.id}
                             for ai_code in participants_ai_codes
@@ -251,6 +451,12 @@ class AutoMatchInstance:
 
         self.is_on = True
         self.battle_count = 0  # 重置计数器
+
+        # 重置缓存状态
+        with self._instance_lock:
+            self._cache_valid = False
+            self._last_fetch_time = 0
+
         logger.info(f"[Rank-{self.ranking_id}] 启动自动对战...")
 
         self.loop_thread = threading.Thread(
@@ -278,6 +484,15 @@ class AutoMatchInstance:
         return True
 
     def get_status(self) -> dict:
+        current_time = time()
+        with self._instance_lock:
+            cache_age = current_time - self._last_fetch_time
+            cache_status = (
+                "valid"
+                if (self._cache_valid and cache_age < self._cache_validity_period)
+                else "invalid"
+            )
+
         return {
             "ranking_id": self.ranking_id,
             "is_on": self.is_on,
@@ -285,7 +500,41 @@ class AutoMatchInstance:
             "queue_size": self.battle_queue.qsize(),
             "thread_alive": self.loop_thread.is_alive() if self.loop_thread else False,
             "current_participants_count": len(self.current_participants),
+            "cache_status": cache_status,
+            "cache_age_seconds": int(cache_age) if self._last_fetch_time > 0 else 0,
         }
+
+    def _batch_create_battles(self, size=5):
+        """
+        批量创建对战
+
+        Args:
+            size: 批量大小，默认5
+
+        Returns:
+            创建的对战列表
+        """
+        battles = []
+        for _ in range(size):
+            # 准备参与者数据
+            if len(self.current_participants) < self.min_participants:
+                logger.warning(
+                    f"[Rank-{self.ranking_id}] 当前可用参与者不足 ({len(self.current_participants)})，无法批量创建对战。"
+                )
+                return []  # 参与者不足，返回空列表
+
+            # 随机抽取参与者
+            participants_ai_codes = sample(
+                self.current_participants, min(size, len(self.current_participants))
+            )
+            participant_data = [
+                {"user_id": ai_code.user_id, "ai_code_id": ai_code.id}
+                for ai_code in participants_ai_codes
+            ]
+            battles.append(participant_data)
+
+        # 一次性创建多场对战
+        return db_create_battles_batch(battles, ranking_id=self.ranking_id)
 
 
 class AutoMatchManager:
