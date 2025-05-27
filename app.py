@@ -10,6 +10,7 @@ import os
 import shutil
 from utils.battle_manager_utils import init_battle_manager_utils
 from utils.automatch_utils import init_automatch_utils, get_automatch
+from blueprints.ai_editing_control import ai_editing_control
 
 from database.base import db, login_manager
 from database import initialize_database
@@ -381,6 +382,9 @@ def create_app(config_object=Config):
 
     # 初始化 CSRF 保护
     csrf.init_app(app)
+
+    # 初始化 AI 编辑控制
+    ai_editing_control.allow_ai_editing()  # 默认允许 AI 编辑
 
     @app.template_filter("color_hash")
     def color_hash(username):

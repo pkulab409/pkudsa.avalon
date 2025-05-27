@@ -7,6 +7,7 @@ from flask_login import login_required, current_user
 from functools import wraps
 from sqlalchemy.orm import joinedload
 from database.models import User, Battle, GameStats, AICode, BattlePlayer
+from blueprints.ai_editing_control import ai_editing_control
 from database.promotion import (
     promote_from_multiple_rankings,
     reset_ranking,
@@ -904,6 +905,21 @@ def search_user():
     except Exception as e:
         logging.error(f"搜索用户失败: {str(e)}")
         abort(500, description="搜索用户失败")
+
+
+@admin_bp.route("/admin/open_ai_editing", methods=["POST"])
+@login_required
+@admin_required
+def open_ai_editing():
+    ai_editing_control.allow_ai_editing()
+    return jsonify({"message": "AI编辑已开放"}), 200
+
+@admin_bp.route("/admin/freeze_code", methods=["POST"])
+@login_required
+@admin_required
+def freeze_code():
+    ai_editing_control.freeze_ai_editing()
+    return jsonify({"message": "代码已冻结"}), 200
 
 
 # 启动指定ranking_id范围的榜单，当前未被使用

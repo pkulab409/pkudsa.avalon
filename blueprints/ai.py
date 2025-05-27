@@ -45,6 +45,7 @@ from database import (
     safe_delete,
 )
 from database.models import AICode, BattlePlayer  # 仍然需要模型用于类型提示或特定查询
+from blueprints.ai_editing_control import ai_editing_control
 from datetime import datetime
 import importlib.util
 import sys
@@ -84,6 +85,11 @@ def allowed_file(filename):
     """检查文件是否为允许的类型"""
     ALLOWED_EXTENSIONS = {"py"}
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def is_ai_editing_allowed():
+    """检查是否允许AI编辑"""
+    return ai_editing_control.is_ai_editing_allowed()
 
 
 def check_rate_limit(user_id):
@@ -137,6 +143,10 @@ def list_ai():
 @login_required
 def upload_ai():
     """上传AI代码"""
+    if not is_ai_editing_allowed():
+        flash("AI编辑功能当前已关闭", "warning")
+        return redirect(url_for("ai.list_ai"))
+
     if request.method == "POST":
         if "ai_code" not in request.files:
             flash("没有选择文件", "danger")
@@ -212,6 +222,10 @@ def upload_ai():
 @login_required
 def activate_ai(ai_id):
     """激活指定的AI代码"""
+    if not is_ai_editing_allowed():
+        flash("AI编辑功能当前已关闭", "warning")
+        return redirect(url_for("ai.list_ai"))
+
     # 使用数据库操作函数设置激活状态
     success = db_set_active_ai_code(current_user.id, ai_id)
 
@@ -231,6 +245,10 @@ def activate_ai(ai_id):
 @login_required
 def delete_ai(ai_id):
     """删除AI代码"""
+    if not is_ai_editing_allowed():
+        flash("AI编辑功能当前已关闭", "warning")
+        return redirect(url_for("ai.list_ai"))
+
     ai_code = db_get_ai_code_by_id(ai_id)
 
     # 检查权限
@@ -262,6 +280,10 @@ def delete_ai(ai_id):
 @login_required
 def edit_ai(ai_id):
     """编辑AI代码信息"""
+    if not is_ai_editing_allowed():
+        flash("AI编辑功能当前已关闭", "warning")
+        return redirect(url_for("ai.list_ai"))
+
     ai_code = db_get_ai_code_by_id(ai_id)
 
     # 检查权限
