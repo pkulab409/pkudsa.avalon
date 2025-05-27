@@ -1946,7 +1946,7 @@ class AvalonReferee:
 
             # 检查执行时间
             # This check is just a warning
-            if execution_time > MAX_EXECUTION_TIME:  # Lowered threshold for warning
+            if method_name != "say" and execution_time > MAX_EXECUTION_TIME:  # Lowered threshold for warning
                 time_exceed_msg = f"Player {player_id} ({self.roles.get(player_id)}) method {method_name} took {execution_time:.2f} seconds (timeout), exceeding the limit of {MAX_EXECUTION_TIME} seconds. This may be caused by a deadlock ,infinite loop or our llm service error."
                 logger.error(time_exceed_msg)
                 self.suspend_game(
