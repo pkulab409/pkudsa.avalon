@@ -1,4 +1,6 @@
 # 游戏对战平台主程序入口
+import cProfile
+import pstats
 from app import create_app
 from flask import render_template, jsonify  # 添加这一行导入render_template函数
 
@@ -39,5 +41,23 @@ def commit_info():
         return "Cannot get the latest commit info"
 
 
-if __name__ == "__main__":
+def run_app_with_profiling():
     app.run(debug=False, host="0.0.0.0", port=5000)
+
+
+if __name__ == "__main__":
+    # 使用性能分析器运行应用
+    profiler = cProfile.Profile()
+    profiler.enable()
+
+    try:
+        run_app_with_profiling()
+    finally:
+        profiler.disable()
+        # 保存分析结果
+        stats_file = "app_profile.stats"
+        profiler.dump_stats(stats_file)
+
+        # 打印分析结果摘要
+        p = pstats.Stats(stats_file)
+        p.strip_dirs().sort_stats("cumulative").print_stats(30)
