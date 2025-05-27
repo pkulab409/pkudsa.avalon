@@ -115,7 +115,7 @@ def check_rate_limit(user_id):
 
 
 # api接口定义
-@ai_bp.route("/list_ai",methods = ["GET", "POST"])
+@ai_bp.route("/list_ai", methods=["GET", "POST"])
 @login_required
 def list_ai():
     """显示用户的AI代码列表"""
