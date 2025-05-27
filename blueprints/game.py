@@ -1355,3 +1355,148 @@ def get_battles_list():
     except Exception as e:
         current_app.logger.error(f"获取对战列表数据失败: {str(e)}", exc_info=True)
         return jsonify({"success": False, "message": f"获取对战列表失败: {str(e)}"})
+
+
+# =================== AI Comment Helper Functions ===================
+def get_data_dir():
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
+
+def get_battle_data_path(battle_id):
+    return os.path.join(get_data_dir(), battle_id)
+
+def get_comment_file_path(battle_id):
+    return os.path.join(get_battle_data_path(battle_id), f"comment_{battle_id}.json")
+
+def get_comment_generating_flag_path(battle_id):
+    return os.path.join(get_battle_data_path(battle_id), "comment.generating")
+
+def get_battle_log_path(battle_id):
+    return os.path.join(get_battle_data_path(battle_id), f"archive_game_{battle_id}.json")
+
+# =================== API 路由 (AI Comment) ===================
+@game_bp.route("/check_comment_status/<string:battle_id>", methods=["GET"])
+@login_required
+def check_comment_status_route(battle_id):
+    comment_file = get_comment_file_path(battle_id)
+    generating_flag = get_comment_generating_flag_path(battle_id)
+
+    if os.path.exists(comment_file):
+        # 检查 comment.json 内容是否表示错误
+        try:
+            with open(comment_file, 'r', encoding='utf-8') as f:
+                content = json.load(f)
+                if isinstance(content, dict) and content.get("error"): 
+                    return jsonify({"status": "error", "message": content.get("message", "AI点评生成失败，请重试或查看日志。")})
+        except Exception:
+             # 如果文件损坏或不是预期的json，也认为是error
+            return jsonify({"status": "error", "message": "AI点评文件损坏，请尝试重新生成。"})
+        return jsonify({"status": "ready"})
+    elif os.path.exists(generating_flag):
+        return jsonify({"status": "generating"})
+    else:
+        return jsonify({"status": "not_started"})
+
+@game_bp.route("/generate_comment/<string:battle_id>", methods=["POST"])
+@login_required
+def generate_comment_route(battle_id):
+    battle = db_get_battle_by_id(battle_id)
+    if not battle:
+        return jsonify({"status": "error", "message": "对战不存在"}), 404
+    if battle.status != 'completed':
+        return jsonify({"status": "error", "message": "只有已完成的对战才能生成AI点评"}), 400
+
+    comment_file = get_comment_file_path(battle_id)
+    generating_flag = get_comment_generating_flag_path(battle_id)
+    log_file = get_battle_log_path(battle_id)
+
+    if os.path.exists(generating_flag):
+        return jsonify({"status": "generating", "message": "AI点评已经在生成中"})
+    
+    # 如果存在旧的错误点评文件，先删除，允许重新生成
+    if os.path.exists(comment_file):
+        try:
+            with open(comment_file, 'r', encoding='utf-8') as f:
+                content = json.load(f)
+                if isinstance(content, dict) and content.get("error"):
+                    os.remove(comment_file)
+                    current_app.logger.info(f"Removed previous error comment file for battle {battle_id}")
+                else:
+                    # 如果是正常的点评文件，则不重复生成
+                    return jsonify({"status": "ready", "message": "AI点评已存在"})
+        except Exception as e:
+            current_app.logger.warning(f"Could not check or remove existing comment file {comment_file}: {e}")
+            # 如果无法检查或删除，也允许尝试覆盖
+            pass # proceed to generation
+
+    if not os.path.exists(log_file):
+        return jsonify({"status": "error", "message": "对战日志文件不存在，无法生成点评"}), 404
+
+    # 创建 generating 标记
+    os.makedirs(get_battle_data_path(battle_id), exist_ok=True)
+    with open(generating_flag, 'w') as f:
+        f.write("generating")
+
+    # 在后台线程中生成点评
+    thread = threading.Thread(target=generate_comment_background, args=(current_app._get_current_object(), battle_id, log_file, comment_file, generating_flag))
+    thread.start()
+
+    return jsonify({"status": "generating", "message": "AI点评生成任务已启动"})
+
+def generate_comment_background(app, battle_id, log_file_path, comment_file_path, generating_flag_path):
+    with app.app_context(): # 确保在线程中有应用上下文
+        current_app.logger.info(f"Starting AI comment generation for battle {battle_id}")
+        try:
+            with open(log_file_path, 'r', encoding='utf-8') as f:
+                log_content = f.read()
+            
+            # 使用新的AI评论助手生成点评
+            comment_data = generate_battle_comment(battle_id, log_content)
+            
+            # 转换时间戳格式以保持兼容性
+            if 'generated_at' in comment_data and isinstance(comment_data['generated_at'], (int, float)):
+                comment_data['generated_at'] = datetime.fromtimestamp(comment_data['generated_at']).isoformat()
+
+            with open(comment_file_path, 'w', encoding='utf-8') as f:
+                json.dump(comment_data, f, ensure_ascii=False, indent=4)
+            current_app.logger.info(f"AI comment file saved to {comment_file_path}")
+
+        except Exception as e:
+            current_app.logger.error(f"Error in generate_comment_background for battle {battle_id}: {e}\n{traceback.format_exc()}")
+            # 即使线程内发生错误，也尝试写入错误信息到comment.json
+            try:
+                error_comment_data = {"battle_id": battle_id, "error": True, "message": f"生成AI点评时发生内部错误: {str(e)}", "generated_at": datetime.utcnow().isoformat()}
+                with open(comment_file_path, 'w', encoding='utf-8') as f:
+                    json.dump(error_comment_data, f, ensure_ascii=False, indent=4)
+            except Exception as ef:
+                current_app.logger.error(f"Failed to write error comment file for {battle_id}: {ef}")
+        finally:
+            if os.path.exists(generating_flag_path):
+                try:
+                    os.remove(generating_flag_path)
+                    current_app.logger.info(f"Removed generating flag for battle {battle_id}")
+                except OSError as e:
+                    current_app.logger.error(f"Error removing generating flag for battle {battle_id}: {e}")
+
+@game_bp.route("/download_comment/<string:battle_id>", methods=["GET"])
+@login_required
+def download_comment_route(battle_id):
+    comment_file = get_comment_file_path(battle_id)
+    if not os.path.exists(comment_file):
+        flash(f"对战 {battle_id} 的AI点评文件不存在", "danger")
+        return redirect(url_for("game.view_battle", battle_id=battle_id))
+    
+    # 确保不是一个错误标记文件
+    try:
+        with open(comment_file, 'r', encoding='utf-8') as f:
+            content = json.load(f)
+            if isinstance(content, dict) and content.get("error"):
+                flash(f"AI点评生成失败: {content.get('message', '未知错误')}", "danger")
+                return redirect(url_for("game.view_battle", battle_id=battle_id))
+    except Exception:
+        flash(f"AI点评文件格式错误或已损坏", "danger")
+        return redirect(url_for("game.view_battle", battle_id=battle_id))
+
+    return send_file(comment_file, as_attachment=True, download_name=f"ai_comment_{battle_id}.json")
+
+
+
