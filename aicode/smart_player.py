@@ -274,7 +274,12 @@ class Player:
         return team[:team_size]
 
     def walk(self) -> tuple:
-
+        """Generate movement directions for the player.
+        
+        Returns:
+            tuple: A tuple of direction strings ('Up', 'Down', 'Left', 'Right')
+                  representing the player's movement path.
+        """
         origin_pos = self.player_positions[self.index]  # tuple
         x, y = origin_pos
         others_pos = [self.player_positions[i] for i in range(1, 8) if i != self.index]
@@ -287,7 +292,7 @@ class Player:
             and ((x, y - 1) in others_pos or y == 0)
             and ((x, y + 1) in others_pos or y == MAP_SIZE - 1)
         ):
-            total_step = 0
+            return tuple()
 
         valid_moves = []
         step = 0
@@ -298,11 +303,7 @@ class Player:
                 x, y = x - 1, y
                 valid_moves.append("Up")
                 step += 1
-            elif (
-                direction == "Down"
-                and x < MAP_SIZE - 1
-                and (x + 1, y) not in others_pos
-            ):
+            elif direction == "Down" and x < MAP_SIZE - 1 and (x + 1, y) not in others_pos:
                 x, y = x + 1, y
                 valid_moves.append("Down")
                 step += 1
@@ -310,19 +311,14 @@ class Player:
                 x, y = x, y - 1
                 valid_moves.append("Left")
                 step += 1
-            elif (
-                direction == "Right"
-                and y < MAP_SIZE - 1
-                and (x, y + 1) not in others_pos
-            ):
+            elif direction == "Right" and y < MAP_SIZE - 1 and (x, y + 1) not in others_pos:
                 x, y = x, y + 1
                 valid_moves.append("Right")
                 step += 1
 
-        for i in range(len(valid_moves)):
-            # 处理每个方向
-            if not isinstance(valid_moves[i], str):
-                return tuple()
+        # Validate all moves are strings
+        if any(not isinstance(move, str) for move in valid_moves):
+            return tuple()
 
         return tuple(valid_moves)
 
