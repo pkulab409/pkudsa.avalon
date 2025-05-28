@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% block title %}
-    对局重放 - {{ game_id }}
+对局重放 - {{ game_id }}
 {% endblock title %}
 {% block styles %}
-    <!-- 中世纪风格CSS -->
-    <link rel="stylesheet" href="../../static/css/medieval.css">
-    {{ super() }}
-    <style>
+<!-- 中世纪风格CSS -->
+<link rel="stylesheet" href="../../static/css/medieval.css">
+{{ super() }}
+<style>
     /* 基础响应式设置 */
     :root {
         --sidebar-width: 300px;
@@ -22,7 +22,7 @@
         }
     }
 
-    .navbar { 
+    .navbar {
         background: none !important;
         background-image: url('../../static/images/wood-texture.png') !important;
         background-size: cover !important;
@@ -36,7 +36,7 @@
         .navbar {
             padding: 0.5rem;
         }
-        
+
         .navbar-brand {
             font-size: 1.2rem;
         }
@@ -107,6 +107,7 @@
             opacity: 0;
             transform: translateY(20px);
         }
+
         to {
             opacity: 1;
             transform: translateY(0);
@@ -117,6 +118,7 @@
         from {
             opacity: 0;
         }
+
         to {
             opacity: 1;
         }
@@ -126,6 +128,7 @@
         from {
             width: 0%;
         }
+
         to {
             width: 100%;
         }
@@ -151,7 +154,8 @@
     .round-divider {
         clear: both;
         text-align: center;
-        margin: 25px 0 15px 0; /* More space above */
+        margin: 25px 0 15px 0;
+        /* More space above */
         position: relative;
     }
 
@@ -172,8 +176,9 @@
         z-index: 1;
         font-weight: bold;
         border-radius: 15px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        border: 1px solid #dee2e6; /* Add border to badge */
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid #dee2e6;
+        /* Add border to badge */
     }
 
     /* 消息气泡基础样式 */
@@ -183,9 +188,11 @@
         border-radius: 15px;
         position: relative;
         word-break: break-word;
-        margin-bottom: 5px; /* Space below bubble */
-        display: inline-block; /* Fit content */
-        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        margin-bottom: 5px;
+        /* Space below bubble */
+        display: inline-block;
+        /* Fit content */
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     }
 
     @media (max-width: 768px) {
@@ -195,18 +202,87 @@
         }
     }
 
+    /* TTS播放按钮样式 */
+    .tts-play-btn {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: none;
+        background: #007bff;
+        color: white;
+        font-size: 10px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        transition: all 0.2s ease;
+        z-index: 10;
+    }
+
+    .tts-play-btn:hover {
+        background: #0056b3;
+        transform: scale(1.1);
+    }
+
+    .tts-play-btn:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .tts-play-btn.loading {
+        background: #ffc107;
+        animation: pulse 1.5s infinite;
+    }
+
+    .tts-play-btn.playing {
+        background: #28a745;
+        animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.5;
+        }
+
+        100% {
+            opacity: 1;
+        }
+    }
+
+    /* 消息包装器需要相对定位以支持绝对定位的按钮 */
+    .message-wrapper {
+        position: relative;
+        max-width: 80%;
+        /* Limit width */
+        margin-bottom: 15px;
+        /* Space between message blocks */
+        clear: both;
+        /* Ensure wrappers don't overlap floats */
+    }
+
     /* 蓝方消息 */
     .message-blue {
-        background-color:rgb(190, 208, 235);
+        background-color: rgb(190, 208, 235);
         border: 1px solid #9ec5fe;
-        color: #052c65; /* Darker blue text */
+        color: #052c65;
+        /* Darker blue text */
     }
 
     /* 红方消息 */
     .message-red {
-        background-color:rgb(236, 207, 210);
+        background-color: rgb(236, 207, 210);
         border: 1px solid #f5c2c7;
-        color: #58151c; /* Darker red text */
+        color: #58151c;
+        /* Darker red text */
     }
 
     /* 系统/中立消息 */
@@ -217,27 +293,24 @@
         text-align: center;
         padding: 6px 10px;
         font-size: 0.9em;
-        margin: 10px auto; /* Center align */
-        display: block; /* Full width */
+        margin: 10px auto;
+        /* Center align */
+        display: block;
+        /* Full width */
         clear: both;
     }
 
     /* 玩家标签样式 */
     .player-tag {
-        font-size: 0.8rem; /* Smaller tag */
+        font-size: 0.8rem;
+        /* Smaller tag */
         margin-bottom: 2px;
         font-weight: bold;
         padding: 0 5px;
-        display: block; /* Ensure it takes its own line */
+        display: block;
+        /* Ensure it takes its own line */
     }
 
-    /* 消息包装器样式 */
-    .message-wrapper {
-        max-width: 80%; /* Limit width */
-        margin-bottom: 15px; /* Space between message blocks */
-        position: relative;
-        clear: both; /* Ensure wrappers don't overlap floats */
-    }
     .message-wrapper-blue {
         float: none;
         margin: 0 auto;
@@ -248,8 +321,14 @@
         float: right;
         margin-right: 5px;
     }
-    .message-wrapper-blue .player-tag { text-align: left; }
-    .message-wrapper-red .player-tag { text-align: right; }
+
+    .message-wrapper-blue .player-tag {
+        text-align: left;
+    }
+
+    .message-wrapper-red .player-tag {
+        text-align: right;
+    }
 
     /* 清除浮动 */
     .clearfix::after {
@@ -268,6 +347,7 @@
         border: 1px dashed #ced4da;
         border-radius: 5px;
     }
+
     .vote-badge {
         margin: 2px;
     }
@@ -282,7 +362,8 @@
     /* 侧边栏样式 */
     .sidebar {
         overflow-y: auto;
-        max-height: calc(100vh - 100px); /* Limit sidebar height */
+        max-height: calc(100vh - 100px);
+        /* Limit sidebar height */
     }
 
     /* 游戏地图样式 */
@@ -323,11 +404,13 @@
         justify-content: center;
         position: relative;
         font-weight: bold;
-        font-size: 0.7rem; /* Smaller font in cells */
+        font-size: 0.7rem;
+        /* Smaller font in cells */
     }
 
     .player-token {
-        width: 85%; /* Slightly larger token */
+        width: 85%;
+        /* Slightly larger token */
         height: 85%;
         border-radius: 50%;
         display: flex;
@@ -335,42 +418,78 @@
         justify-content: center;
         color: white;
         font-weight: bold;
-        font-size: 0.8rem; /* Adjust token font size */
-        box-shadow: 0 0 3px rgba(0,0,0,0.5);
-        cursor: help; /* Indicate tooltip */
+        font-size: 0.8rem;
+        /* Adjust token font size */
+        box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+        cursor: help;
+        /* Indicate tooltip */
     }
 
-    .player-blue { background-color: #4A6B8A; } /* Bootstrap blue */
-    .player-red { background-color: #8B0000; } /* Bootstrap red */
-    .player-unknown { background-color: #6c757d; } /* Bootstrap secondary */
+    .player-blue {
+        background-color: #4A6B8A;
+    }
+
+    /* Bootstrap blue */
+    .player-red {
+        background-color: #8B0000;
+    }
+
+    /* Bootstrap red */
+    .player-unknown {
+        background-color: #6c757d;
+    }
+
+    /* Bootstrap secondary */
 
     /* 其他样式保持不变 */
-    .bg-success-light { background-color: #d1e7dd; }
-    .bg-danger-light { background-color: #f8d7da; }
-    .tooltip-icon { margin-left: 5px; cursor: help; }
-    .role-icon { width: 24px; height: 24px; margin-right: 5px; }
+    .bg-success-light {
+        background-color: #d1e7dd;
+    }
+
+    .bg-danger-light {
+        background-color: #f8d7da;
+    }
+
+    .tooltip-icon {
+        margin-left: 5px;
+        cursor: help;
+    }
+
+    .role-icon {
+        width: 24px;
+        height: 24px;
+        margin-right: 5px;
+    }
 
     /* 私有发言样式 */
     .message-bubble.private-speech {
-        border-style: dashed; /* 使用虚线边框标识私有发言 */
-        background-color: rgba(200, 200, 200, 0.3); /* 稍微透明背景 */
+        border-style: dashed;
+        /* 使用虚线边框标识私有发言 */
+        background-color: rgba(200, 200, 200, 0.3);
+        /* 稍微透明背景 */
     }
 
     /* 确保标签在同一行显示 */
     .player-tag {
-        display: flex; /* 让子元素使用 flex 布局 */
-        align-items: center; /* 垂直居中 */
+        display: flex;
+        /* 让子元素使用 flex 布局 */
+        align-items: center;
+        /* 垂直居中 */
     }
 
-    .speech-badge, .hearers-tags {
-        display: inline-block; /* 保证它们在同一行 */
-        margin-right: 2px; /* 给它们加点间距 */
+    .speech-badge,
+    .hearers-tags {
+        display: inline-block;
+        /* 保证它们在同一行 */
+        margin-right: 2px;
+        /* 给它们加点间距 */
         font-size: 0.65rem;
         margin-left: 5px;
         vertical-align: middle;
     }
 
-    h4, h5 {
+    h4,
+    h5 {
         color: #ffffff;
         font-weight: bold;
     }
@@ -402,7 +521,10 @@
             margin: 0;
         }
 
-        .col-lg-3, .col-lg-6, .col-md-4, .col-md-8 {
+        .col-lg-3,
+        .col-lg-6,
+        .col-md-4,
+        .col-md-8 {
             padding: 0.5rem;
         }
 
@@ -463,7 +585,8 @@
             font-size: 0.7rem;
         }
 
-        .speech-badge, .hearers-tags {
+        .speech-badge,
+        .hearers-tags {
             font-size: 0.6rem;
         }
     }
@@ -479,158 +602,152 @@
             font-size: 0.8rem;
         }
     }
-
-    </style>
+</style>
 {% endblock styles %}
 {% block content %}
-    <!-- 开场动画 -->
-    <div class="intro-animation" id="introAnimation">
-        <div class="intro-content">
-            <h1 class="intro-title">阿瓦隆</h1>
-            <p class="intro-subtitle">对局重放</p>
-            <div class="loading-bar">
-                <div class="loading-progress"></div>
-            </div>
+<!-- 开场动画 -->
+<div class="intro-animation" id="introAnimation">
+    <div class="intro-content">
+        <h1 class="intro-title">阿瓦隆</h1>
+        <p class="intro-subtitle">对局重放</p>
+        <div class="loading-bar">
+            <div class="loading-progress"></div>
         </div>
     </div>
-    <!-- 移动端导航切换按钮 -->
-    <div class="d-lg-none mb-2">
-        <div class="btn-group w-100" role="group">
-            <button type="button" class="btn btn-outline-primary active" data-view="main">游戏进程</button>
-            <button type="button" class="btn btn-outline-primary" data-view="info">游戏信息</button>
-        </div>
+</div>
+<!-- 移动端导航切换按钮 -->
+<div class="d-lg-none mb-2">
+    <div class="btn-group w-100" role="group">
+        <button type="button" class="btn btn-outline-primary active" data-view="main">游戏进程</button>
+        <button type="button" class="btn btn-outline-primary" data-view="info">游戏信息</button>
     </div>
-    <div class="container-fluid mt-3">
-        <div class="row">
-            <!-- 左侧边栏：游戏信息和角色列表 -->
-            <div class="col-lg-3 col-md-4 mobile-view" id="infoView">
-                <div class="sidebar">
-                    <!-- 游戏信息卡片 -->
-                    <div class="card shadow-sm mb-3">
-                        <div class="card-header bg-primary text-white py-2">
-                            <h5 class="mb-0 fs-6">对局信息</h5>
-                        </div>
-                        <div class="card-body p-2">
-                            <ul class="list-group list-group-flush">
-                                <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-0">
-                                    <small>游戏ID</small>
-                                    <span class="badge bg-secondary rounded-pill">{{ game_id }}</span>
-                                </li>
-                            </ul>
+</div>
+<div class="container-fluid mt-3">
+    <div class="row">
+        <!-- 左侧边栏：游戏信息和角色列表 -->
+        <div class="col-lg-3 col-md-4 mobile-view" id="infoView">
+            <div class="sidebar">
+                <!-- 游戏信息卡片 -->
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header bg-primary text-white py-2">
+                        <h5 class="mb-0 fs-6">对局信息</h5>
+                    </div>
+                    <div class="card-body p-2">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-0">
+                                <small>游戏ID</small>
+                                <span class="badge bg-secondary rounded-pill">{{ game_id }}</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 玩家列表 -->
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header bg-primary text-white py-2">
+                        <h5 class="mb-0 fs-6">玩家列表 ({{ game_info.player_count }}人)</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped table-bordered mb-0 small">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>玩家</th>
+                                        <th>用户名</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for player_id, role in game_info.roles.items() | sort %}
+                                    {% set player_id_str = player_id | string %}
+                                    <tr>
+                                        <td class="text-center">{{ player_id_str }}</td>
+                                        {% if player_usernames %}
+                                        <td>{{ player_usernames[player_id|int - 1] }}</td>
+                                        {% else %}
+                                        <td>未知</td>
+                                        {% endif %}
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">角色信息不可用</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                    <!-- 玩家列表 -->
-                    <div class="card shadow-sm mb-3">
-                        <div class="card-header bg-primary text-white py-2">
-                            <h5 class="mb-0 fs-6">玩家列表 ({{ game_info.player_count }}人)</h5>
+                </div>
+            </div>
+        </div>
+        <!-- 中央：聊天记录主体和地图 -->
+        <div class="col-lg-9 col-md-8 mobile-view" id="mainView">
+            <div class="row">
+                <!-- 聊天记录 -->
+                <div class="col-lg-8">
+                    <div class="card shadow-sm">
+                        <div
+                            class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h4 class="mb-0 fs-6">对局流程</h4>
+                                <div class="btn-group btn-group-sm mt-1">
+                                    <button class="btn btn-outline-light" id="prevStepBtn" title="上一步">
+                                        <i class="bi bi-chevron-left"></i>
+                                    </button>
+                                    <button class="btn btn-outline-light" id="nextStepBtn" title="下一步">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <span class="badge bg-light text-dark" id="currentRoundBadge">初始状态</span>
                         </div>
                         <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-sm table-striped table-bordered mb-0 small">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>玩家</th>
-                                            <th>用户名</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for player_id, role in game_info.roles.items() | sort %}
-                                            {% set player_id_str = player_id | string %}
-                                            <tr>
-                                                <td class="text-center">{{ player_id_str }}</td>
-                                                {% if player_usernames %}
-                                                    <td>{{ player_usernames[player_id|int - 1] }}</td>
-                                                {% else %}
-                                                    <td>未知</td>
-                                                {% endif %}
-                                            </tr>
-                                        {% else %}
-                                            <tr>
-                                                <td colspan="3" class="text-center text-muted">角色信息不可用</td>
-                                            </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
+                            <div class="chat-container" id="chatContainer">
+                                <!-- 初始化提示 -->
+                                <div class="text-center my-5 text-muted">
+                                    <i class="bi bi-hourglass-split" style="font-size: 2rem;"></i>
+                                    <p>加载对局流程中...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer py-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">滚动查看完整流程</small>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-secondary" id="scrollToBottomBtn"
+                                        title="滚动到底部">
+                                        <i class="bi bi-arrow-down-circle"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary ms-2"
+                                        id="autoplayBtnFlow">
+                                        <i class="bi bi-play-fill"></i> 自动播放
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <!-- 中央：聊天记录主体和地图 -->
-            <div class="col-lg-9 col-md-8 mobile-view" id="mainView">
-                <div class="row">
-                    <!-- 聊天记录 -->
-                    <div class="col-lg-8">
-                        <div class="card shadow-sm">
-                            <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h4 class="mb-0 fs-6">对局流程</h4>
-                                    <div class="btn-group btn-group-sm mt-1">
-                                        <button class="btn btn-outline-light" id="prevStepBtn" title="上一步">
-                                            <i class="bi bi-chevron-left"></i>
-                                        </button>
-                                        <button class="btn btn-outline-light" id="nextStepBtn" title="下一步">
-                                            <i class="bi bi-chevron-right"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                <span class="badge bg-light text-dark" id="currentRoundBadge">初始状态</span>
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="chat-container" id="chatContainer">
-                                    <!-- 初始化提示 -->
-                                    <div class="text-center my-5 text-muted">
-                                        <i class="bi bi-hourglass-split" style="font-size: 2rem;"></i>
-                                        <p>加载对局流程中...</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-footer py-2">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <small class="text-muted">滚动查看完整流程</small>
-                                    <div>
-                                        <button class="btn btn-sm btn-outline-secondary"
-                                                id="scrollToBottomBtn"
-                                                title="滚动到底部">
-                                            <i class="bi bi-arrow-down-circle"></i>
-                                        </button>
-                                        <button type="button"
-                                                class="btn btn-sm btn-outline-primary ms-2"
-                                                id="autoplayBtnFlow">
-                                            <i class="bi bi-play-fill"></i> 自动播放
-                                        </button>
-                                    </div>
-                                </div>
+                <!-- 游戏地图 -->
+                <div class="col-lg-4">
+                    <div class="card shadow-sm">
+                        <div
+                            class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 fs-6">游戏地图</h5>
+                            <span class="badge bg-light text-dark" id="mapCurrentRoundDisplay">初始状态</span>
+                        </div>
+                        <div class="card-body p-2">
+                            <div class="game-map" id="gameMap">
+                                <!-- 地图将由JS动态生成 -->
+                                <div class="text-center text-muted p-3 small">地图加载中...</div>
                             </div>
                         </div>
-                    </div>
-                    <!-- 游戏地图 -->
-                    <div class="col-lg-4">
-                        <div class="card shadow-sm">
-                            <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0 fs-6">游戏地图</h5>
-                                <span class="badge bg-light text-dark" id="mapCurrentRoundDisplay">初始状态</span>
-                            </div>
-                            <div class="card-body p-2">
-                                <div class="game-map" id="gameMap">
-                                    <!-- 地图将由JS动态生成 -->
-                                    <div class="text-center text-muted p-3 small">地图加载中...</div>
-                                </div>
-                            </div>
-                            <div class="card-footer text-center p-2">
-                                <div class="btn-group w-100" role="group">
-                                    <button type="button"
-                                            class="btn btn-sm btn-outline-secondary"
-                                            id="mapPrevRoundBtn"
-                                            disabled>
-                                        <i class="bi bi-chevron-left"></i> 上一轮
-                                    </button>
-                                    <button type="button"
-                                            class="btn btn-sm btn-outline-secondary"
-                                            id="mapNextRoundBtn">
-                                        下一轮 <i class="bi bi-chevron-right"></i>
-                                    </button>
-                                </div>
+                        <div class="card-footer text-center p-2">
+                            <div class="btn-group w-100" role="group">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="mapPrevRoundBtn"
+                                    disabled>
+                                    <i class="bi bi-chevron-left"></i> 上一轮
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="mapNextRoundBtn">
+                                    下一轮 <i class="bi bi-chevron-right"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -638,11 +755,12 @@
             </div>
         </div>
     </div>
+</div>
 {% endblock content %}
 {% block scripts %}
-    {{ super() }}
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
         // 设置地图大小变量
         document.documentElement.style.setProperty('--map-size', '{{ map_size }}');
 
@@ -660,7 +778,7 @@
         // 移动端视图切换
         const viewButtons = document.querySelectorAll('[data-view]');
         const views = document.querySelectorAll('.mobile-view');
-        
+
         function switchView(viewName) {
             currentView = viewName; // 更新当前视图状态
             views.forEach(view => {
@@ -670,7 +788,7 @@
                     view.style.display = 'none';
                 }
             });
-            
+
             viewButtons.forEach(btn => {
                 if (btn.dataset.view === viewName) {
                     btn.classList.add('active');
@@ -749,10 +867,10 @@
         // --- 新增：监听聊天滚动，联动地图 ---
         let scrollTimeout;
         let lastProcessedMoveIndex = -1; // 记录上次处理的移动索引
-        
+
         chatContainer.addEventListener('scroll', () => {
             if (isSmoothScrolling) return; // 如果正在自动滚动，不处理
-            
+
             // 使用防抖，避免频繁触发
             clearTimeout(scrollTimeout);
             scrollTimeout = setTimeout(() => {
@@ -767,13 +885,13 @@
                 // 找到最接近容器中心的移动消息
                 let closestMsg = null;
                 let minDist = Infinity;
-                
+
                 moveMsgs.forEach(msg => {
                     const msgRect = msg.getBoundingClientRect();
                     const containerRect = chatContainer.getBoundingClientRect();
                     const msgCenter = msgRect.top + msgRect.height / 2 - containerRect.top;
                     const dist = Math.abs(msgCenter - containerHeight / 2);
-                    
+
                     /* if (msgRect.top >= containerRect.top && msgRect.bottom <= containerRect.bottom)  */
                     if (dist < minDist) {
                         minDist = dist;
@@ -788,7 +906,7 @@
                         lastProcessedMoveIndex = moveIdx;
                         renderMapByMoveIndex(moveIdx);
                     }
-                } 
+                }
                 if (containerTop < 50) { // 如果滚动到顶部附近，显示初始状态
                     lastProcessedMoveIndex = -1;
                     renderMapByMoveIndex(-1);
@@ -814,7 +932,7 @@
 
                 if (currentScroll < maxScroll) {
                     chatContainer.scrollTop += scrollSpeed;
-                    
+
                     // 在自动滚动时也检查并更新地图
                     const moveMsgs = Array.from(chatContainer.querySelectorAll('.move-message'));
                     const containerTop = chatContainer.scrollTop;
@@ -823,13 +941,13 @@
 
                     let closestMsg = null;
                     let minDist = Infinity;
-                    
+
                     moveMsgs.forEach(msg => {
                         const msgRect = msg.getBoundingClientRect();
                         const containerRect = chatContainer.getBoundingClientRect();
                         const msgCenter = msgRect.top + msgRect.height / 2 - containerRect.top;
                         const dist = Math.abs(msgCenter - containerHeight / 2);
-                        
+
                         // 只有当消息在视口范围内时才考虑
                         if (msgRect.top >= containerRect.top && msgRect.bottom <= containerRect.bottom) {
                             if (dist < minDist) {
@@ -948,7 +1066,7 @@
                 .filter(([_, role]) => role === 'Knight')
                 .map(([id, _]) => parseInt(id))
                 .sort((a, b) => a - b);
-            
+
             // 按顺序分配骑士1和骑士2
             knightIds.forEach((id, index) => {
                 knightAssignments.set(id.toString(), index + 1);
@@ -982,7 +1100,7 @@
                                 moveIndex,
                                 round: event.round,
                                 playerId: eventItem.data.player_id,
-                                move: eventItem.data.valid_moves[eventItem.data.valid_moves.length-1],
+                                move: eventItem.data.valid_moves[eventItem.data.valid_moves.length - 1],
                                 newPos: eventItem.data.new_pos,
                                 msgId
                             });
@@ -1005,7 +1123,7 @@
             gameMapContainer.innerHTML = '';
             // 计算到当前moveIdx为止所有玩家的最新位置
             let playerPos = {};
-            
+
             // 如果是初始状态（moveIdx < 0），使用playerMovements中的初始位置
             if (true) {
                 Object.entries(playerMovements).forEach(([playerId, moves]) => {
@@ -1029,7 +1147,7 @@
             // 获取当前轮次
             let currentRound = moveIdx >= 0 && moveIdx < moveSteps.length ? moveSteps[moveIdx].round : 0;
             currentMapRound = currentRound; // 更新当前轮次
-            
+
             // 更新按钮状态
             mapPrevRoundBtn.disabled = currentRound <= 0;
             mapNextRoundBtn.disabled = currentRound >= maxRound;
@@ -1067,7 +1185,7 @@
             // 更新地图批次显示
             if (moveIdx >= 0) {
                 const step = moveSteps[moveIdx];
-                mapCurrentRoundDisplay.textContent = `第${step.round}轮-第${moveIdx+1}步`;
+                mapCurrentRoundDisplay.textContent = `第${step.round}轮-第${moveIdx + 1}步`;
             } else {
                 mapCurrentRoundDisplay.textContent = '初始状态';
             }
@@ -1078,12 +1196,12 @@
         function updateRevealDisplay() {
             // 获取所有reveal元素
             const allRevealElements = document.querySelectorAll('[class*="reveal-"]');
-            
+
             allRevealElements.forEach(element => {
                 const classes = element.className.split(' ');
                 const revealClass = classes.find(c => c.startsWith('reveal-'));
                 const index = parseInt(revealClass.split('-')[1]);
-                
+
                 // 显示/隐藏逻辑
                 element.style.display = index <= revealIndex ? 'block' : 'none';
             });
@@ -1091,7 +1209,7 @@
             // 更新按钮状态
             document.getElementById('prevStepBtn').disabled = revealIndex <= 0;
             document.getElementById('nextStepBtn').disabled = revealIndex >= maxRevealIndex;
-            
+
             // 自动滚动到最新可见元素
             const lastVisible = document.querySelector(`.reveal-${revealIndex}`);
             if (lastVisible) {
@@ -1177,8 +1295,8 @@
                             <i class="bi bi-person-badge"></i> <strong>队长:</strong> ${leaderInfo.id}号 (${leaderInfo.name})<br>
                             <i class="bi bi-people-fill"></i> <strong>提议队伍:</strong>
                             ${event.team_members && event.team_members.length > 0
-                                ? event.team_members.map(memberId => `<span class="badge bg-secondary mx-1">${getPlayerInfo(memberId).id}号</span>`).join('')
-                                : '无'}
+                            ? event.team_members.map(memberId => `<span class="badge bg-secondary mx-1">${getPlayerInfo(memberId).id}号</span>`).join('')
+                            : '无'}
                         </div>
                     `;
                     currentRevealIndex++;
@@ -1200,8 +1318,8 @@
                                         <i class="bi bi-person-badge"></i> <strong>队长:</strong> ${leaderInfo.id}号 (${leaderInfo.name})<br>
                                         <i class="bi bi-people-fill"></i> <strong>提议队伍:</strong>
                                         ${team_members && team_members.length > 0
-                                            ? team_members.map(memberId => `<span class="badge bg-secondary mx-1">${getPlayerInfo(memberId).id}号</span>`).join('')
-                                            : '无'}
+                                        ? team_members.map(memberId => `<span class="badge bg-secondary mx-1">${getPlayerInfo(memberId).id}号</span>`).join('')
+                                        : '无'}
                                     </div>
                                 `;
                                 currentRevealIndex++;
@@ -1244,13 +1362,17 @@
                             const tagColorClass = 'text-primary';
                             const bubbleClass = `message-blue ${speechType === "private" ? "private-speech" : ""}`;
 
-                            const speechBadge = speechType === "private" 
+                            const speechBadge = speechType === "private"
                                 ? '<span class="badge bg-secondary speech-badge">有限范围</span>'
                                 : '<span class="badge bg-info text-dark speech-badge">公开</span>';
-                            
+
                             const hearersTags = speechType === "private" && hearers
                                 ? `<span class="badge bg-secondary speech-badge">${hearers}</span>`
                                 : '';
+
+                            // 生成TTS播放按钮的唯一ID
+                            const ttsButtonId = `tts-btn-${currentRevealIndex}`;
+                            const speechId = `speech-${currentRevealIndex}`;
 
                             chatHtml += `
                                 <div class="reveal-${currentRevealIndex} md-4">
@@ -1260,8 +1382,16 @@
                                             <div class="player-tag">
                                                 ${playerInfo.id}号 ${speechBadge} ${hearersTags ? `<div class="hearers-tags">${hearersTags}</div>` : ""}                     
                                             </div>
-                                            <div class="message-bubble ${bubbleClass}">
+                                            <div class="message-bubble ${bubbleClass}" id="${speechId}" 
+                                                 data-player-id="${playerId}" 
+                                                 data-text="${message.replace(/"/g, '&quot;')}"
+                                                 data-battle-id="${gameId}">
                                                 ${message}
+                                                <button class="tts-play-btn" id="${ttsButtonId}" 
+                                                        onclick="playTTS('${speechId}')" 
+                                                        title="播放语音">
+                                                    <i class="bi bi-volume-up"></i>
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -1420,7 +1550,7 @@
                     break;
                 }
             }
-            
+
             // 更新地图显示
             renderMapByMoveIndex(lastMoveIdx);
 
@@ -1466,6 +1596,253 @@
             updateDisplayForRound(0); // Set initial state for map and chat scroll (Round 0)
         }
 
+        // === TTS 功能 ===
+        let currentAudio = null; // 当前播放的音频对象
+        let currentPlayingButton = null; // 当前播放中的按钮
+
+        // 播放TTS语音的主函数
+        window.playTTS = async function (speechId) {
+            const speechElement = document.getElementById(speechId);
+            if (!speechElement) {
+                console.error('找不到发言元素:', speechId);
+                return;
+            }
+
+            const button = speechElement.querySelector('.tts-play-btn');
+            if (!button) {
+                console.error('找不到播放按钮:', speechId);
+                return;
+            }
+
+            // 如果当前有音频在播放，先停止
+            if (currentAudio && !currentAudio.paused) {
+                stopCurrentAudio();
+            }
+
+            // 获取发言数据
+            const playerId = speechElement.dataset.playerId;
+            const text = speechElement.dataset.text;
+            const battleId = speechElement.dataset.battleId;
+
+            if (!playerId || !text || !battleId) {
+                console.error('缺少必要的数据属性:', { playerId, text, battleId });
+                return;
+            }
+
+            // 设置按钮为加载状态
+            setButtonState(button, 'loading');
+
+            try {
+                // 首先检查文件是否已存在
+                const filename = await getVoiceFilename(text, playerId);
+                const checkResponse = await fetch(`/visualizer/api/tts/check/${battleId}/${filename}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (checkResponse.ok) {
+                    const checkData = await checkResponse.json();
+                    if (checkData.success && checkData.exists) {
+                        // 文件已存在，直接播放
+                        await playAudioFromUrl(checkData.audio_url, button);
+                        return;
+                    }
+                }
+
+                // 文件不存在，需要生成
+                const generateResponse = await fetch('/visualizer/api/tts/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || ''
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        player_id: playerId,
+                        battle_id: battleId,
+                        roles: gameInfo.roles || {}
+                    })
+                });
+
+                if (!generateResponse.ok) {
+                    throw new Error(`HTTP ${generateResponse.status}: ${generateResponse.statusText}`);
+                }
+
+                const generateData = await generateResponse.json();
+
+                if (generateData.success) {
+                    if (generateData.cached && generateData.audio_url) {
+                        // 文件已缓存，直接播放
+                        await playAudioFromUrl(generateData.audio_url, button);
+                    } else if (generateData.generating) {
+                        // 正在生成，轮询检查
+                        await pollForAudio(battleId, filename, button, 30); // 最多等待30秒
+                    } else {
+                        throw new Error('未知的响应状态');
+                    }
+                } else {
+                    throw new Error(generateData.error || '生成语音失败');
+                }
+
+            } catch (error) {
+                console.error('TTS播放失败:', error);
+                setButtonState(button, 'error');
+                // 3秒后恢复正常状态
+                setTimeout(() => setButtonState(button, 'normal'), 3000);
+            }
+        };
+
+        // 轮询检查音频文件是否生成完成
+        async function pollForAudio(battleId, filename, button, maxAttempts = 30) {
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                await new Promise(resolve => setTimeout(resolve, 1000)); // 等待1秒
+
+                try {
+                    const response = await fetch(`/visualizer/api/tts/check/${battleId}/${filename}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success && data.exists) {
+                            await playAudioFromUrl(data.audio_url, button);
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.error('轮询检查音频文件时出错:', error);
+                }
+            }
+
+            // 超时
+            setButtonState(button, 'error');
+            setTimeout(() => setButtonState(button, 'normal'), 3000);
+            throw new Error('语音生成超时');
+        }
+
+        // 从URL播放音频
+        async function playAudioFromUrl(audioUrl, button) {
+            return new Promise((resolve, reject) => {
+                const audio = new Audio(audioUrl);
+
+                audio.addEventListener('loadstart', () => {
+                    setButtonState(button, 'loading');
+                });
+
+                audio.addEventListener('canplay', () => {
+                    setButtonState(button, 'playing');
+                    currentAudio = audio;
+                    currentPlayingButton = button;
+                });
+
+                audio.addEventListener('ended', () => {
+                    setButtonState(button, 'normal');
+                    currentAudio = null;
+                    currentPlayingButton = null;
+                    resolve();
+                });
+
+                audio.addEventListener('error', (e) => {
+                    console.error('音频播放错误:', e);
+                    setButtonState(button, 'error');
+                    setTimeout(() => setButtonState(button, 'normal'), 3000);
+                    currentAudio = null;
+                    currentPlayingButton = null;
+                    reject(new Error('音频播放失败'));
+                });
+
+                audio.play().catch(error => {
+                    console.error('播放音频失败:', error);
+                    setButtonState(button, 'error');
+                    setTimeout(() => setButtonState(button, 'normal'), 3000);
+                    reject(error);
+                });
+            });
+        }
+
+        // 停止当前播放的音频
+        function stopCurrentAudio() {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+                currentAudio = null;
+            }
+            if (currentPlayingButton) {
+                setButtonState(currentPlayingButton, 'normal');
+                currentPlayingButton = null;
+            }
+        }
+
+        // 设置按钮状态
+        function setButtonState(button, state) {
+            if (!button) return;
+
+            // 清除所有状态类
+            button.classList.remove('loading', 'playing', 'error');
+            button.disabled = false;
+
+            const icon = button.querySelector('i');
+            if (!icon) return;
+
+            switch (state) {
+                case 'loading':
+                    button.classList.add('loading');
+                    button.disabled = true;
+                    icon.className = 'bi bi-hourglass-split';
+                    button.title = '正在生成语音...';
+                    break;
+                case 'playing':
+                    button.classList.add('playing');
+                    icon.className = 'bi bi-pause-fill';
+                    button.title = '正在播放';
+                    button.onclick = () => stopCurrentAudio();
+                    break;
+                case 'error':
+                    button.classList.add('error');
+                    button.disabled = true;
+                    icon.className = 'bi bi-exclamation-triangle';
+                    button.title = '语音生成失败';
+                    break;
+                case 'normal':
+                default:
+                    icon.className = 'bi bi-volume-up';
+                    button.title = '播放语音';
+                    // 恢复原始的onclick
+                    const speechId = button.closest('.message-bubble').id;
+                    button.onclick = () => window.playTTS(speechId);
+                    break;
+            }
+        }
+
+        // 生成语音文件名（与后端保持一致）
+        async function getVoiceFilename(text, playerId) {
+            const textToHash = `${text}_${playerId}`;
+
+            // 使用Web Crypto API的SHA-256作为替代（因为MD5不被支持）
+            try {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(textToHash);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                const shortHash = hashHex.substring(0, 12);
+                return `player_${playerId}_${shortHash}.mp3`;
+            } catch (error) {
+                // 如果Web Crypto API不可用，使用简单的哈希函数
+                let hash = 0;
+                for (let i = 0; i < textToHash.length; i++) {
+                    const char = textToHash.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash; // 转换为32位整数
+                }
+
+                // 转换为16进制并取前12位
+                const hashHex = Math.abs(hash).toString(16).padStart(8, '0');
+                const shortHash = hashHex.substring(0, 12);
+
+                return `player_${playerId}_${shortHash}.mp3`;
+            }
+        }
+
     });
-    </script>
+</script>
 {% endblock scripts %}
