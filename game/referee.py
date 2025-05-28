@@ -393,8 +393,32 @@ class AvalonReferee:
                         f"Successfully created Player instance for player {player_pos} from {module_path}"
                     )
 
+                    # 验证Player类是否包含必要方法
+                    required_methods = ['set_player_index', 'walk', 'say', 
+                                      'mission_vote1', 'mission_vote2']
+                    for method in required_methods:
+                        if not hasattr(player_instance, method):
+                            error_msg = f"Player {player_pos} missing required method: {method}"
+                            logger.error(error_msg)
+                            self.suspend_game(
+                                "critical_player_ERROR",
+                                player_pos,
+                                module_path,
+                                error_msg
+                            )
+
                     # 调用玩家初始化方法
-                    self.safe_execute(player_pos, "set_player_index", player_pos)
+                    try:
+                        player_instance.set_player_index(player_pos)
+                    except Exception as e:
+                        error_msg = f"Error initializing Player {player_pos}: {str(e)}"
+                        logger.error(error_msg)
+                        self.suspend_game(
+                            "critical_player_ERROR",
+                            player_pos,
+                            "set_player_index",
+                            error_msg
+                        )
                 else:
                     logger.error(
                         f"Module {module_path} for player {player_pos} is missing the 'Player' class."
