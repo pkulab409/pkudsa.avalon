@@ -394,17 +394,24 @@ class AvalonReferee:
                     )
 
                     # 验证Player类是否包含必要方法
-                    required_methods = ['set_player_index', 'walk', 'say', 
-                                      'mission_vote1', 'mission_vote2']
+                    required_methods = [
+                        "set_player_index",
+                        "walk",
+                        "say",
+                        "mission_vote1",
+                        "mission_vote2",
+                    ]
                     for method in required_methods:
                         if not hasattr(player_instance, method):
-                            error_msg = f"Player {player_pos} missing required method: {method}"
+                            error_msg = (
+                                f"Player {player_pos} missing required method: {method}"
+                            )
                             logger.error(error_msg)
                             self.suspend_game(
                                 "critical_player_ERROR",
                                 player_pos,
                                 module_path,
-                                error_msg
+                                error_msg,
                             )
 
                     # 调用玩家初始化方法
@@ -417,7 +424,7 @@ class AvalonReferee:
                             "critical_player_ERROR",
                             player_pos,
                             "set_player_index",
-                            error_msg
+                            error_msg,
                         )
                 else:
                     logger.error(
