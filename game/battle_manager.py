@@ -420,14 +420,14 @@ class BattleManager:
                 dec = DebugDecorator(battle_id)
                 referee = dec.decorate_instance(referee)
 
-                # 4. 运行游戏
-                result_data = referee.run_game()
+            # 4. 运行游戏
+            result_data = referee.run_game()
 
-                # 5. 记录内存结果
-                self.battle_results[battle_id] = result_data
+            # 5. 记录内存结果
+            self.battle_results[battle_id] = result_data
 
-                # 检查结果是否正常完成
-                if "error" not in result_data and result_data.get("winner") is not None:
+            # 检查结果是否正常完成
+            if "error" not in result_data and result_data.get("winner") is not None:
                     # 正常完成
                     self.battle_status[battle_id] = "completed"
                     self.get_snapshots_archive(battle_id)  # 保存快照
@@ -446,7 +446,7 @@ class BattleManager:
                         self.battle_service.log_error(
                             f"对战 {battle_id} 完成，但结果处理或数据库更新失败"
                         )
-                else:
+            else:
                     # 非正常完成
                     self.battle_service.log_info(
                         f"对战 {battle_id} 非正常结束，保持原状态，结果已记录"
