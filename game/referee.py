@@ -417,8 +417,8 @@ class AvalonReferee:
                     # 调用玩家初始化方法
                     try:
                         player_instance.set_player_index(player_pos)
-                        if player_instance._index != player_pos:
-                            error_msg = f"Player {player_pos} set_player_index did not match expected index: {player_instance._index}"
+                        if player_instance.index != player_pos:
+                            error_msg = f"Player {player_pos} set_player_index did not match expected index. Expected: {player_pos}, Actual: {player_instance.index}"
                             logger.error(error_msg)
                             self.suspend_game(
                                 "critical_player_ERROR",
