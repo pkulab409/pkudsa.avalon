@@ -230,15 +230,7 @@ class AvalonReferee:
             self.game_helper = dec.decorate_instance(self.game_helper)
 
         self.game_helper.game_session_id = self.game_id  # 直接设置game_id
-        from .avalon_game_helper import (
-            set_thread_helper,
-            set_current_context,
-            set_current_round,
-        )
 
-        self.set_thread_helper = set_thread_helper
-        self.set_current_context = set_current_context
-        self.set_current_round = set_current_round
         # 创建数据目录
         os.makedirs(os.path.join(self.data_dir), exist_ok=True)
 
@@ -393,39 +385,8 @@ class AvalonReferee:
                         f"Successfully created Player instance for player {player_pos} from {module_path}"
                     )
 
-                    # 验证Player类是否包含必要方法
-                    required_methods = [
-                        "set_player_index",
-                        "walk",
-                        "say",
-                        "mission_vote1",
-                        "mission_vote2",
-                    ]
-                    for method in required_methods:
-                        if not hasattr(player_instance, method):
-                            error_msg = (
-                                f"Player {player_pos} missing required method: {method}"
-                            )
-                            logger.error(error_msg)
-                            self.suspend_game(
-                                "critical_player_ERROR",
-                                player_pos,
-                                module_path,
-                                error_msg,
-                            )
-
                     # 调用玩家初始化方法
-                    try:
-                        player_instance.set_player_index(player_pos)
-                    except Exception as e:
-                        error_msg = f"Error initializing Player {player_pos}: {str(e)}"
-                        logger.error(error_msg)
-                        self.suspend_game(
-                            "critical_player_ERROR",
-                            player_pos,
-                            "set_player_index",
-                            error_msg,
-                        )
+                    self.safe_execute(player_pos, "set_player_index", player_pos)
                 else:
                     logger.error(
                         f"Module {module_path} for player {player_pos} is missing the 'Player' class."
@@ -1912,59 +1873,56 @@ class AvalonReferee:
         """
         安全执行玩家代码，处理可能的异常
         """
-
         player = self.players.get(player_id)
-
         if not player:
-            error_msg = f"Attempted to execute method '{method_name}' for non-existent player {player_id}"
-            logger.error(error_msg)
-            # 当玩家不存在时应该挂起游戏，这是严重错误
-            self.suspend_game(
-                "critical_player_ERROR", player_id, method_name, error_msg
+            logger.error(
+                f"Attempted to execute method '{method_name}' for non-existent player {player_id}"
             )
-            return None  # 这行代码实际上不会被执行，因为suspend_game会抛出异常
 
         method = getattr(player, method_name, None)
-
         if not method or not callable(method):
-            error_msg = f"Player {player_id} has no callable method '{method_name}'. This may indicate a missing implementation or an error in the player code. We recommend checking the player code for the method '{method_name}'."
-            logger.error(error_msg)
-            self.log_public_event(
-                {
-                    "type": "player_method_missing",
-                    "player_id": player_id,
-                    "method": method_name,
-                    "message": error_msg,
-                }
+            logger.error(
+                f"Player {player_id} has no callable method '{method_name}'. Using default behavior."
             )
-            self.battle_observer.make_snapshot(
-                "Warning",
-                f"Player {player_id} missing method: {method_name}, this may indicate a missing implementation or an error in the player code. We recommend checking the player code for the method '{method_name}'.",
-            )
-            self.suspend_game(
-                "critical_player_ERROR", player_id, method_name, error_msg
-            )
+            if method_name == "decide_mission_member":
+                return self.random_select_members(
+                    args[0]
+                )  # args[0] should be member_count
+            if method_name == "assass":
+                return random.choice(
+                    [i for i in range(1, PLAYER_COUNT + 1) if i != player_id]
+                )
+            if method_name == "say":
+                return "..."
+            if method_name == "walk":
+                return ()
+            if method_name == "pass_message":
+                return None
+            if method_name == "pass_map":
+                return None
+            if method_name == "pass_position_data":
+                return None
+            return None
 
         try:
             # 设置当前上下文
             # 1. 设置referee实例的上下文
             self.game_helper.set_current_context(player_id, self.game_id)
 
+            # 2. 同时设置全局默认实例的上下文 - 确保线程安全
+            from .avalon_game_helper import (
+                set_thread_helper,
+                set_current_context,
+                set_current_round,
+            )
+
             # 将当前线程的helper设为referee的专属实例
-            self.set_thread_helper(self.game_helper)
+            set_thread_helper(self.game_helper)
 
             # 3. 设置当前轮次信息
             if self.current_round is not None:
-                self.set_current_round(self.current_round)
+                set_current_round(self.current_round)
 
-            current_context_player_id = self.game_helper.get_current_player_id()
-            if current_context_player_id != player_id:
-                error_msg = f"Context player ID mismatch before execution: expected {player_id}, got {current_context_player_id}"
-                logger.error(error_msg)
-                self.suspend_game(
-                    "critical_context_ERROR", player_id, method_name, error_msg
-                )
-                return None
             logger.debug(
                 f"Executing Player {player_id}.{method_name} with args: {args}, kwargs: {kwargs}"
             )
@@ -1976,13 +1934,7 @@ class AvalonReferee:
             # with redirect_stdout(stdout_capture), redirect_stderr(stderr_capture):
             result = method(*args, **kwargs)
             execution_time = time.time() - start_time
-            post_context_player_id = self.game_helper.get_current_player_id()
-            if post_context_player_id != player_id:
-                error_msg = f"Context player ID changed during execution: expected {player_id}, got {post_context_player_id}"
-                logger.error(error_msg)
-                self.suspend_game(
-                    "critical_context_ERROR", player_id, method_name, error_msg
-                )
+
             # player_stdout = stdout_capture.getvalue()
             # player_stderr = stderr_capture.getvalue()
             # if player_stdout: logger.debug(f"Player {player_id} stdout: {player_stdout.strip()}")
@@ -1994,9 +1946,7 @@ class AvalonReferee:
 
             # 检查执行时间
             # This check is just a warning
-            if (
-                method_name != "say" and execution_time > MAX_EXECUTION_TIME
-            ):  # Lowered threshold for warning
+            if execution_time > MAX_EXECUTION_TIME:  # Lowered threshold for warning
                 time_exceed_msg = f"Player {player_id} ({self.roles.get(player_id)}) method {method_name} took {execution_time:.2f} seconds (timeout), exceeding the limit of {MAX_EXECUTION_TIME} seconds. This may be caused by a deadlock ,infinite loop or our llm service error."
                 logger.error(time_exceed_msg)
                 self.suspend_game(
@@ -2046,8 +1996,6 @@ class AvalonReferee:
         traceback_str: str = None,  # 新增参数
     ):
         """一键中止游戏，提供详细的错误信息和 traceback"""
-        # 标记游戏已挂起
-        self.game_suspended = True
 
         SUSPEND_BROADCAST_MSG = (
             (

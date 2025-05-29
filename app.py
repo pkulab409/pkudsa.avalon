@@ -25,9 +25,6 @@ from database import (
 )
 from werkzeug.middleware.profiler import ProfilerMiddleware
 
-# 导入TTS服务
-from game.tts_service import tts_service
-
 # 初始化csrf保护
 csrf = CSRFProtect()
 
@@ -397,9 +394,6 @@ def create_app(config_object=Config):
 
     # 初始化数据库
     initialize_database(app)
-
-    # 初始化TTS服务
-    tts_service.init_app(app)
 
     # 初始化登录管理器
     login_manager.init_app(app)

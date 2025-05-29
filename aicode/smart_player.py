@@ -274,12 +274,7 @@ class Player:
         return team[:team_size]
 
     def walk(self) -> tuple:
-        """Generate movement directions for the player.
 
-        Returns:
-            tuple: A tuple of direction strings ('Up', 'Down', 'Left', 'Right')
-                  representing the player's movement path.
-        """
         origin_pos = self.player_positions[self.index]  # tuple
         x, y = origin_pos
         others_pos = [self.player_positions[i] for i in range(1, 8) if i != self.index]
@@ -292,7 +287,7 @@ class Player:
             and ((x, y - 1) in others_pos or y == 0)
             and ((x, y + 1) in others_pos or y == MAP_SIZE - 1)
         ):
-            return tuple()
+            total_step = 0
 
         valid_moves = []
         step = 0
@@ -324,9 +319,10 @@ class Player:
                 valid_moves.append("Right")
                 step += 1
 
-        # Validate all moves are strings
-        if any(not isinstance(move, str) for move in valid_moves):
-            return tuple()
+        for i in range(len(valid_moves)):
+            # 处理每个方向
+            if not isinstance(valid_moves[i], str):
+                return tuple()
 
         return tuple(valid_moves)
 

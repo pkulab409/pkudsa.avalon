@@ -40,6 +40,7 @@ def calculate_optimal_threads():
     # I/O密集型任务通常设为CPU核心数的2倍较合适
     # 但设置上限避免线程过多
     return min(cpu_count * 16, 192)
+    return min(cpu_count * 2, 32)
 
 
 MAX_CONCURRENT_BATTLES = calculate_optimal_threads()  # 默认最大并发对战数

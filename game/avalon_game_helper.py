@@ -439,15 +439,6 @@ class GameHelper:
     def get_tokens(self) -> List[Dict[str, int]]:
         return self.tokens
 
-    def get_current_player_id(self) -> int:
-        """
-        获取当前上下文中的玩家ID
-
-        返回值:
-            当前玩家ID
-        """
-        return self.current_player_id
-
 
 _thread_local = threading.local()
 
