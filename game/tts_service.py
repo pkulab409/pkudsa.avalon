@@ -15,12 +15,12 @@ try:
 except ImportError:
     # 如果新API不可用，回退到legacy API
     from websockets.legacy.client import connect as legacy_connect
-    
+
     # 创建一个包装器来统一API
     async def connect(uri, **kwargs):
         # 将additional_headers转换为extra_headers用于legacy API
-        if 'additional_headers' in kwargs:
-            kwargs['extra_headers'] = kwargs.pop('additional_headers')
+        if "additional_headers" in kwargs:
+            kwargs["extra_headers"] = kwargs.pop("additional_headers")
         return await legacy_connect(uri, **kwargs)
 
 
@@ -95,9 +95,11 @@ class TTSService:
         """获取语音文件路径，使用文本和玩家ID的哈希值作为文件名"""
         game_voice_dir = self.voice_dir / str(battle_id)
         game_voice_dir.mkdir(exist_ok=True)
-        
+
         # 使用文本内容和玩家ID生成唯一的文件名
-        text_hash = hashlib.sha256(f"{text}_{player_id}".encode('utf-8')).hexdigest()[:12]
+        text_hash = hashlib.sha256(f"{text}_{player_id}".encode("utf-8")).hexdigest()[
+            :12
+        ]
         filename = f"player_{player_id}_{text_hash}.mp3"
         return game_voice_dir / filename
 
@@ -109,7 +111,9 @@ class TTSService:
         """根据玩家ID获取角色"""
         return self.game_roles.get(str(player_id), "Knight")  # 默认使用骑士语音
 
-    def generate_voice_sync(self, text: str, player_id: str, battle_id: str, app_context=None) -> Optional[str]:
+    def generate_voice_sync(
+        self, text: str, player_id: str, battle_id: str, app_context=None
+    ) -> Optional[str]:
         """同步生成语音文件的包装器"""
         try:
             # 在新的事件循环中运行异步方法
@@ -174,13 +178,17 @@ class TTSService:
             payload_bytes = str.encode(json.dumps(request_json))
             payload_bytes = gzip.compress(payload_bytes)  # 压缩payload
             full_client_request = bytearray(self.default_header)
-            full_client_request.extend((len(payload_bytes)).to_bytes(4, "big"))  # payload size
+            full_client_request.extend(
+                (len(payload_bytes)).to_bytes(4, "big")
+            )  # payload size
             full_client_request.extend(payload_bytes)  # payload
 
             # 构建请求头（严格按照官方文档格式）
             # 官方文档明确要求：headers["Authorization"] = "Bearer;${token}"
-            header = {"Authorization": f"Bearer;{self.token}"}  # 注意：Bearer后面直接跟分号，没有空格
-            
+            header = {
+                "Authorization": f"Bearer;{self.token}"
+            }  # 注意：Bearer后面直接跟分号，没有空格
+
             # 使用新的asyncio API和additional_headers参数
             async with connect(
                 self.api_url, additional_headers=header, ping_interval=None
@@ -227,7 +235,7 @@ class TTSService:
             serialization_method = res[2] >> 4
             message_compression = res[2] & 0x0F
             reserved = res[3]
-            header_extensions = res[4:header_size*4]
+            header_extensions = res[4 : header_size * 4]
             payload = res[header_size * 4 :]
 
             if message_type == 0xB:  # audio-only server response
@@ -246,7 +254,7 @@ class TTSService:
                 if message_compression == 1:
                     error_msg = gzip.decompress(error_msg)
                 error_msg = str(error_msg, "utf-8")
-                
+
                 error_log = f"TTS服务器错误 (代码: {code}): {error_msg}"
                 if app_context:
                     app_context.logger.error(error_log)
@@ -260,7 +268,7 @@ class TTSService:
                 payload = payload[4:]
                 if message_compression == 1:
                     payload = gzip.decompress(payload)
-                
+
                 info_log = f"TTS前端消息: {payload}"
                 if app_context:
                     app_context.logger.info(info_log)
