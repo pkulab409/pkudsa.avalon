@@ -5,21 +5,21 @@ from inspect import getfile
 
 
 settings = {
-    "referee.AvalonReferee": 1,
-    "observer.Observer": 1,
-    "avalon_game_helper.GameHelper": 1,
-    "1": 1,
-    "2": 1,
-    "3": 1,
-    "4": 1,
-    "5": 1,
-    "6": 1,
-    "7": 1,
-    "8": 1,
-    "9": 1,
-    "10": 1,
-    "11": 1,
-    "12": 1,
+    "referee.AvalonReferee": 0,
+    "observer.Observer": 0,
+    "avalon_game_helper.GameHelper": 0,
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0,
+    "5": 0,
+    "6": 0,
+    "7": 0,
+    "8": 0,
+    "9": 0,
+    "10": 0,
+    "11": 0,
+    "12": 0,
 }
 
 
