@@ -5,26 +5,28 @@ from inspect import getfile
 
 
 settings = {
-    "referee.AvalonReferee": 1,
-    "observer.Observer": 1,
-    "avalon_game_helper.GameHelper": 1,
-    "1": 1,
-    "2": 1,
-    "3": 1,
-    "4": 1,
-    "5": 1,
-    "6": 1,
-    "7": 1,
-    "8": 1,
-    "9": 1,
-    "10": 1,
-    "11": 1,
-    "12": 1,
+    "referee.AvalonReferee": 0,
+    "observer.Observer": 0,
+    "avalon_game_helper.GameHelper": 0,
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0,
+    "5": 0,
+    "6": 0,
+    "7": 0,
+    "8": 0,
+    "9": 0,
+    "10": 0,
+    "11": 0,
+    "12": 0,
 }
 
 
 class DebugDecorator:
     def __init__(self, battle_id):
+        # 所有初始化逻辑已注释掉
+        """
         # 获取当前脚本的绝对路径
         current_file = os.path.abspath(__file__)
         filename = f"_decorator_out_{battle_id}.log"  # 日志文件名
@@ -46,9 +48,12 @@ class DebugDecorator:
 
         self.local_data = threading.local()
         self.lock = threading.RLock()
+        """
+        pass
 
     def _log(self, event_type, func_name, stack, args, result=None):
-        """日志处理方法"""
+        """日志处理方法（已禁用）"""
+        """
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
         thread_id = threading.get_ident()
 
@@ -74,8 +79,12 @@ class DebugDecorator:
         with self.lock:
             with open(self.filename, "a", encoding="utf-8") as f:
                 f.write(file_msg)
+        """
+        pass
 
     def __call__(self, func):
+        # 直接返回原始函数，不做任何装饰
+        """
         def wrapper(*args):
 
             # 初始化result，设置未initial，与None区分开，同时避免未定义
@@ -98,22 +107,28 @@ class DebugDecorator:
             return result
 
         return wrapper
+        """
+        return func
 
     def decorate_instance(self, instance):
-        """动态装饰一个实例的所有非私有方法"""
+        """动态装饰一个实例的所有非私有方法（已禁用）"""
+        """
         for name in dir(instance):
             if not name.startswith("_"):  # 跳过私有方法
                 attr = getattr(instance, name)
                 if callable(attr):
                     setattr(instance, name, self(attr))  # 用__call__装饰方法
+        """
         return instance
 
     # 会报错目前
     def _decorate_instance(self, instance):
-        """动态装饰一个实例的所有私有方法"""
+        """动态装饰一个实例的所有私有方法（已禁用）"""
+        """
         for name in dir(instance):
             if name.startswith("_"):  # 跳过非私有方法
                 attr = getattr(instance, name)
                 if callable(attr):
                     setattr(instance, name, self(attr))  # 用__call__装饰方法
+        """
         return instance
