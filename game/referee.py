@@ -418,9 +418,7 @@ class AvalonReferee:
                     try:
                         player_instance.set_player_index(player_pos)
                         if player_instance._index != player_pos:
-                            error_msg = (
-                                f"Player {player_pos} set_player_index did not match expected index: {player_instance._index}"
-                            )
+                            error_msg = f"Player {player_pos} set_player_index did not match expected index: {player_instance._index}"
                             logger.error(error_msg)
                             self.suspend_game(
                                 "critical_player_ERROR",

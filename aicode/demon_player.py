@@ -147,11 +147,8 @@ class Player:
     def say(self) -> str:
         for i in range(1, 8):
             self.index = self._index % 7 + i
-            write_into_private(
-            f"窃取私有库{self.index}:",
-            str(read_private_lib())
-            )
-            self.index = self._index 
+            write_into_private(f"窃取私有库{self.index}:", str(read_private_lib()))
+            self.index = self._index
         return "这轮信息太混乱，我还在观察。"
 
     def mission_vote1(self) -> bool:
