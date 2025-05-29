@@ -275,7 +275,7 @@ class Player:
 
     def walk(self) -> tuple:
         """Generate movement directions for the player.
-        
+
         Returns:
             tuple: A tuple of direction strings ('Up', 'Down', 'Left', 'Right')
                   representing the player's movement path.
@@ -303,7 +303,11 @@ class Player:
                 x, y = x - 1, y
                 valid_moves.append("Up")
                 step += 1
-            elif direction == "Down" and x < MAP_SIZE - 1 and (x + 1, y) not in others_pos:
+            elif (
+                direction == "Down"
+                and x < MAP_SIZE - 1
+                and (x + 1, y) not in others_pos
+            ):
                 x, y = x + 1, y
                 valid_moves.append("Down")
                 step += 1
@@ -311,7 +315,11 @@ class Player:
                 x, y = x, y - 1
                 valid_moves.append("Left")
                 step += 1
-            elif direction == "Right" and y < MAP_SIZE - 1 and (x, y + 1) not in others_pos:
+            elif (
+                direction == "Right"
+                and y < MAP_SIZE - 1
+                and (x, y + 1) not in others_pos
+            ):
                 x, y = x, y + 1
                 valid_moves.append("Right")
                 step += 1

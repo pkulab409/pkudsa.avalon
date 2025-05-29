@@ -438,6 +438,7 @@ def view_battle(battle_id):
                                     error_info_raw["error_msg"] = record["result"][
                                         "traceback"
                                     ]
+                                    error_raw_record = True
                                     break
 
                                 # 检查是否有traceback
@@ -445,6 +446,8 @@ def view_battle(battle_id):
                                     # 找到traceback
                                     error_info_raw["error_or_NOT"] = "error"
                                     error_info_raw["error_msg"] = record["traceback"]
+
+                                    error_raw_record = True
                                     break
 
                             if error_raw_record == False:
