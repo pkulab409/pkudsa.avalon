@@ -804,75 +804,84 @@ def generate_tts():
         data = request.get_json()
         if not data:
             return jsonify({"success": False, "error": "无效的请求数据"}), 400
-        
+
         text = data.get("text", "").strip()
         player_id = data.get("player_id", "").strip()
         battle_id = data.get("battle_id", "").strip()
         roles = data.get("roles", {})
-        
+
         if not text or not player_id or not battle_id:
             return jsonify({"success": False, "error": "缺少必需参数"}), 400
-        
+
         # 在主线程中更新角色映射（安全）
         if roles:
             tts_service.update_game_roles(roles)
-        
+
         # 检查文件是否已存在
         voice_file_path = tts_service.get_voice_file_path(battle_id, text, player_id)
         if voice_file_path.exists():
-            relative_path = f"/visualizer/api/tts/audio/{battle_id}/{voice_file_path.name}"
-            return jsonify({
-                "success": True, 
-                "audio_url": relative_path,
-                "cached": True
-            })
-        
+            relative_path = (
+                f"/visualizer/api/tts/audio/{battle_id}/{voice_file_path.name}"
+            )
+            return jsonify(
+                {"success": True, "audio_url": relative_path, "cached": True}
+            )
+
         # 后台线程函数 - 完全独立，不依赖Flask上下文
         def generate_in_background(current_text, current_player_id, current_battle_id):
             try:
                 # 直接调用TTS服务，不传递Flask应用实例
                 # TTS服务会使用Python标准日志或print输出
                 result = tts_service.generate_voice_sync(
-                    current_text, 
-                    current_player_id, 
-                    current_battle_id, 
-                    app_context=None  # 不传递Flask应用上下文
+                    current_text,
+                    current_player_id,
+                    current_battle_id,
+                    app_context=None,  # 不传递Flask应用上下文
                 )
-                
+
                 # 使用Python标准日志记录结果
                 import logging
+
                 logger = logging.getLogger(__name__)
-                
+
                 if result:
                     logger.info(f"TTS语音生成成功: {result}")
                     print(f"TTS语音生成成功: {result}")  # 备用输出
                 else:
-                    logger.error(f"TTS语音生成失败: text={current_text}, player_id={current_player_id}")
-                    print(f"TTS语音生成失败: text={current_text}, player_id={current_player_id}")
-                    
+                    logger.error(
+                        f"TTS语音生成失败: text={current_text}, player_id={current_player_id}"
+                    )
+                    print(
+                        f"TTS语音生成失败: text={current_text}, player_id={current_player_id}"
+                    )
+
             except Exception as e:
                 import logging
+
                 logger = logging.getLogger(__name__)
                 logger.error(f"后台TTS生成出错: {str(e)}")
                 print(f"后台TTS生成出错: {str(e)}")
-        
+
         # 启动后台线程 - 只传递基本参数，不传递Flask对象
         thread = threading.Thread(
-            target=generate_in_background,
-            args=(text, player_id, battle_id)
+            target=generate_in_background, args=(text, player_id, battle_id)
         )
         thread.daemon = True
         thread.start()
-        
+
         # 在主线程中记录启动信息
-        current_app.logger.info(f"启动TTS后台生成任务: text={text[:20]}..., player_id={player_id}, battle_id={battle_id}")
-        
-        return jsonify({
-            "success": True, 
-            "generating": True,
-            "message": "语音正在生成中，请稍后重试"
-        })
-        
+        current_app.logger.info(
+            f"启动TTS后台生成任务: text={text[:20]}..., player_id={player_id}, battle_id={battle_id}"
+        )
+
+        return jsonify(
+            {
+                "success": True,
+                "generating": True,
+                "message": "语音正在生成中，请稍后重试",
+            }
+        )
+
     except Exception as e:
         current_app.logger.error(f"TTS API错误: {str(e)}")
         return jsonify({"success": False, "error": "服务器内部错误"}), 500
@@ -887,23 +896,23 @@ def serve_tts_audio(battle_id, filename):
         data_dir = current_app.config.get("DATA_DIR", "./data")
         voice_dir = Path(data_dir) / "voice" / str(battle_id)
         file_path = voice_dir / filename
-        
+
         # 检查文件是否存在
         if not file_path.exists():
             return jsonify({"error": "音频文件不存在"}), 404
-        
+
         # 检查文件扩展名
-        if not filename.lower().endswith('.mp3'):
+        if not filename.lower().endswith(".mp3"):
             return jsonify({"error": "不支持的音频格式"}), 400
-        
+
         # 返回音频文件
         return send_file(
             file_path,
-            mimetype='audio/mpeg',
+            mimetype="audio/mpeg",
             as_attachment=False,
-            download_name=filename
+            download_name=filename,
         )
-        
+
     except Exception as e:
         current_app.logger.error(f"提供TTS音频文件时出错: {str(e)}")
         return jsonify({"error": "服务器内部错误"}), 500
@@ -918,22 +927,17 @@ def check_tts_audio(battle_id, filename):
         data_dir = current_app.config.get("DATA_DIR", "./data")
         voice_dir = Path(data_dir) / "voice" / str(battle_id)
         file_path = voice_dir / filename
-        
+
         exists = file_path.exists() and file_path.stat().st_size > 0
-        
+
         if exists:
             relative_path = f"/visualizer/api/tts/audio/{battle_id}/{filename}"
-            return jsonify({
-                "success": True,
-                "exists": True,
-                "audio_url": relative_path
-            })
+            return jsonify(
+                {"success": True, "exists": True, "audio_url": relative_path}
+            )
         else:
-            return jsonify({
-                "success": True,
-                "exists": False
-            })
-        
+            return jsonify({"success": True, "exists": False})
+
     except Exception as e:
         current_app.logger.error(f"检查TTS音频文件时出错: {str(e)}")
         return jsonify({"success": False, "error": "服务器内部错误"}), 500
