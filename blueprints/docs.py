@@ -29,6 +29,6 @@ def index4():
     return render_template("/docs/docs.html", docname="server_func")
 
 
-@docs_bp.route('/note')
+@docs_bp.route("/note")
 def note():
-    return render_template('note.html')
+    return render_template("note.html")
