@@ -49,7 +49,6 @@ logger = logging.getLogger(__name__)
 
 
 @game_bp.route("/lobby")
-@login_required
 def lobby():
     """显示游戏大厅页面，初始只加载框架，数据通过AJAX获取"""
     # 懒加载用户列表 - 只在需要时才加载
@@ -343,7 +342,6 @@ def setup_uniform_ai_opponents(game_id, player_position, opponent_type):
 
 
 @game_bp.route("/api/battle/<int:battle_id>/status")
-@login_required
 def check_battle_status(battle_id):
     battle = db_get_battle_by_id(battle_id)
     if not battle:
@@ -352,7 +350,6 @@ def check_battle_status(battle_id):
 
 
 @game_bp.route("/battle/<string:battle_id>")
-@login_required
 def view_battle(battle_id):
     """显示对战详情页面（进行中或已完成）"""
     battle = db_get_battle_by_id(battle_id)
@@ -970,7 +967,6 @@ def create_battle_action():
 
 
 @game_bp.route("/get_game_status/<string:battle_id>", methods=["GET"])
-@login_required
 def get_game_status(battle_id):
     """获取游戏状态、快照和结果"""
     try:
@@ -1025,7 +1021,6 @@ def get_game_status(battle_id):
 
 # 可能需要添加获取对战列表的API
 @game_bp.route("/get_battles", methods=["GET"])
-@login_required
 def get_battles():
     """获取对战列表（例如，最近的、进行中的）"""
     # 可以根据需要组合不同状态的对战
@@ -1223,7 +1218,6 @@ def cancel_battle(battle_id):
 
 
 @game_bp.route("/api/battles/stats", methods=["GET"])
-@login_required
 def get_battles_stats():
     """获取对战统计数据的API"""
     try:
@@ -1284,7 +1278,6 @@ def get_battles_stats():
 
 
 @game_bp.route("/api/battles/list", methods=["GET"])
-@login_required
 def get_battles_list():
     """获取分页的对战列表API"""
     try:
