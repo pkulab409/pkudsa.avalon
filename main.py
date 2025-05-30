@@ -72,7 +72,7 @@ if __name__ == "__main__":
         # 准备Gunicorn参数
         sys.argv = [
             "gunicorn",
-            "--workers=1",  # 单线程模式
+            "--workers=4",  # 使用4个工作进程
             "--timeout=300",  # 增加超时时间到5分钟，避免长时间操作被终止
             "--graceful-timeout=120",  # 优雅停止的超时时间
             "--max-requests=1000",  # 工作进程处理多少请求后自动重启，避免内存泄漏
