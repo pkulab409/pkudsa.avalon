@@ -113,7 +113,8 @@ class ClientManager:
             logger.info(
                 f"Initialization complete with {len(self._clients_map)} clients in pool"
             )
-
+            # 在初始化其他内容之前添加
+            self._shutdown_flag = threading.Event()
             # 启动监控线程，定期检查未释放会话
             self._monitor_thread = threading.Thread(
                 target=self._monitor_unreleased_sessions, daemon=True
@@ -444,44 +445,51 @@ class ClientManager:
 
     def _monitor_unreleased_sessions(self):
         """监控未释放的会话，定期清理"""
-        current_time = time.time()
-        timeout_threshold = 300  # 5分钟超时
+        while not self._shutdown_flag.is_set():
+            try:
+                current_time = time.time()
+                timeout_threshold = 300  # 5分钟超时
 
-        with self._lock:
-            expired_sessions = []
-            for session_id, session_data in self._usage_sessions.items():
-                if current_time - session_data["start_time"] > timeout_threshold:
-                    expired_sessions.append(session_id)
+                with self._lock:
+                    expired_sessions = []
+                    for session_id, session_data in self._usage_sessions.items():
+                        if (
+                            current_time - session_data["start_time"]
+                            > timeout_threshold
+                        ):
+                            expired_sessions.append(session_id)
 
-            # 清理过期会话
-            for session_id in expired_sessions:
-                logger.warning(f"Force releasing expired session: {session_id}")
-                session_data = self._usage_sessions.pop(session_id)
+                    # 清理过期会话
+                    for session_id in expired_sessions:
+                        logger.warning(f"Force releasing expired session: {session_id}")
+                        session_data = self._usage_sessions.pop(session_id)
 
-                # 记录强制释放的使用时间
-                usage_time = current_time - session_data["start_time"]
-                log_entry = {
-                    "client_id": session_data["client_id"],
-                    "session_id": session_id,
-                    "model": session_data["model"],
-                    "start_time": session_data["start_time"],
-                    "end_time": current_time,
-                    "usage_time": usage_time,
-                    "completed": False,  # 标记为强制结束
-                    "reason": "timeout",
-                }
-                self._usage_time_log.append(log_entry)
+                        # 记录强制释放的使用时间
+                        usage_time = current_time - session_data["start_time"]
+                        log_entry = {
+                            "client_id": session_data["client_id"],
+                            "session_id": session_id,
+                            "model": session_data["model"],
+                            "start_time": session_data["start_time"],
+                            "end_time": current_time,
+                            "usage_time": usage_time,
+                            "completed": False,  # 标记为强制结束
+                            "reason": "timeout",
+                        }
+                        self._usage_time_log.append(log_entry)
 
-                # 减少客户端活跃计数
-                client_id = session_data["client_id"]
-                if client_id in self._clients_map:
-                    client_item = self._clients_map[client_id]
-                    if client_item.active_count > 0:
-                        client_item.active_count -= 1
+                        # 减少客户端活跃计数
+                        client_id = session_data["client_id"]
+                        if client_id in self._clients_map:
+                            client_item = self._clients_map[client_id]
+                            if client_item.active_count > 0:
+                                client_item.active_count -= 1
 
-            # 如果有清理的会话，立即写入日志
-            if expired_sessions:
-                self._write_logs_to_file()
+                # 休眠一段时间，但可中断
+                self._shutdown_flag.wait(60)  # 每分钟检查一次
+            except Exception as e:
+                logger.error(f"监控会话时出错: {e}")
+                time.sleep(120)  # 出错时延长休眠时间
 
     def get_client_stats(self):
         """获取所有client的统计信息"""
@@ -530,6 +538,45 @@ class ClientManager:
                     f"Active={client.active_count}, Total={client.total_count}"
                 )
             logger.info("======================================")
+
+    def shutdown(self):
+        """优雅关闭ClientManager，确保资源正确释放"""
+        logger.info("正在关闭ClientManager...")
+
+        # 设置关闭标志，通知监控线程终止
+        self._shutdown_flag.set()
+
+        # 等待监控线程结束
+        if hasattr(self, "_monitor_thread") and self._monitor_thread.is_alive():
+            self._monitor_thread.join(timeout=2)  # 最多等待2秒
+
+        # 首先移除 atexit 注册的处理函数，避免重复调用
+        try:
+            atexit.unregister(self._write_logs_on_exit)
+            logger.info("已移除退出时的日志写入处理函数")
+        except Exception as e:
+            logger.warning(f"移除退出处理函数失败: {str(e)}")
+
+        # 处理所有未完成的会话并写入日志
+        try:
+            self._write_logs_on_exit()
+        except Exception as e:
+            logger.error(f"写入退出日志时出错: {str(e)}")
+
+        # 清空所有客户端会话
+        with self._lock:
+            self._usage_sessions.clear()
+            self._client_sessions.clear()
+
+            # 重置所有客户端的活跃计数
+            for client_id, client_item in self._clients_map.items():
+                if client_item.active_count > 0:
+                    logger.warning(
+                        f"重置客户端 {client_id} 的活跃计数从 {client_item.active_count} 到 0"
+                    )
+                    client_item.active_count = 0
+
+        logger.info("ClientManager已关闭")
 
 
 def get_client_manager():
