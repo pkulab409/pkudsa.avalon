@@ -213,6 +213,7 @@ class GameHelper:
                 logger.info(f"Player {self.current_player_id} using client {client_id}")
 
                 import time
+                import sys
 
                 start_time = time.time()
 
@@ -233,42 +234,52 @@ class GameHelper:
                     )
                     response_content = completion.choices[0].message.content
 
+                # 检查解释器是否正在关闭
+                is_shutting_down = hasattr(sys, 'is_finalizing') and sys.is_finalizing()
+                
+                if is_shutting_down:
+                    logger.warning("Python解释器正在关闭，不再创建新的线程任务")
+                    if client_id is not None:
+                        try:
+                            self.client_manager.release_client(client_id)
+                            logger.info(f"Released client {client_id} during shutdown")
+                        except Exception as e:
+                            logger.error(f"Error releasing client during shutdown: {str(e)}")
+                    return "LLM调用错误: 程序正在关闭"
+
                 # 创建线程执行API调用
-                with ThreadPoolExecutor() as executor:
-                    future = executor.submit(call_api)
+                try:
+                    with ThreadPoolExecutor(max_workers=1) as executor:
+                        future = executor.submit(call_api)
 
-                    # 等待执行，最多20秒
-                    timeout_seconds = 20
-                    timeout = False
+                        # 等待执行，最多20秒
+                        timeout_seconds = 20
+                        timeout = False
 
-                    for _ in range(timeout_seconds):
-                        if future.done():
-                            break
-                        time.sleep(1)
-                        elapsed = time.time() - start_time
-                        if elapsed > timeout_seconds:
-                            timeout = True
-                            break
-
-                    if timeout:
-                        # 超时，准备重试
-                        logger.warning(
-                            f"Player {self.current_player_id} LLM request timed out after {timeout_seconds}s. Retry {retry_count+1}/{max_retries}"
-                        )
-                        # 释放客户端后重试
+                        for _ in range(timeout_seconds):
+                            # 再次检查解释器是否正在关闭
+                            if hasattr(sys, 'is_finalizing') and sys.is_finalizing():
+                                logger.warning("在等待API响应期间检测到Python解释器关闭")
+                                timeout = True
+                                break
+                                
+                            if future.done():
+                                break
+                            time.sleep(1)
+                            elapsed = time.time() - start_time
+                            if elapsed > timeout_seconds:
+                                timeout = True
+                                break
+                except RuntimeError as e:
+                    if "after interpreter shutdown" in str(e):
+                        logger.warning(f"解释器关闭后无法创建线程: {str(e)}")
                         if client_id is not None:
                             try:
                                 self.client_manager.release_client(client_id)
-                                logger.info(
-                                    f"Released client {client_id} after timeout"
-                                )
-                            except Exception as e:
-                                logger.error(
-                                    f"Error releasing client {client_id}: {str(e)}"
-                                )
-
-                        retry_count += 1
-                        continue
+                            except Exception:
+                                pass
+                        return "LLM调用错误: 程序正在关闭"
+                    raise
 
                     # 如果没有超时但出现其他问题
                     if not future.done():
@@ -448,6 +459,17 @@ class GameHelper:
         """
         return self.current_player_id
 
+    def shutdown(self):
+        """优雅地关闭GameHelper实例，确保资源正确释放"""
+        logger.info("正在关闭GameHelper实例...")
+        # 释放任何可能持有的资源
+        self.current_player_id = None
+        self.game_session_id = None
+        # 清空其他状态
+        self.tokens = [{"input": 0, "output": 0} for i in range(7)]
+        self.call_count_added = 0
+        logger.info("GameHelper实例已关闭")
+
 
 _thread_local = threading.local()
 
@@ -492,6 +514,19 @@ def write_into_private(content: str) -> None:
 def read_public_lib() -> Dict[str, Any]:
     return get_current_helper().read_public_lib()
 
+
+# 在模块级别添加shutdown函数
+def shutdown_helpers():
+    """关闭所有线程本地的Helper实例"""
+    if hasattr(_thread_local, "helper"):
+        try:
+            _thread_local.helper.shutdown()
+        except Exception as e:
+            logger.error(f"关闭helper时出错: {str(e)}")
+
+# 注册退出处理程序（简化版）
+import atexit
+atexit.register(shutdown_helpers)
 
 if __name__ == "__main__":
     helper = GameHelper()
