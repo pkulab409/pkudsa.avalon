@@ -5,7 +5,15 @@
 # 该蓝图使用 Flask-WTF 表单处理库来处理用户输入，并使用 Flask-Login 来管理用户会话。
 
 
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import (
+    Blueprint,
+    render_template,
+    redirect,
+    url_for,
+    flash,
+    request,
+    current_app,
+)
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectField
@@ -64,6 +72,9 @@ def login():
     # 创建表单实例
     form = LoginForm()
 
+    # 检查是否只允许管理员登录（从配置中获取）
+    admin_only_login = current_app.config.get("ADMIN_ONLY_LOGIN", False)
+
     # 处理表单提交
     if form.validate_on_submit():
         # 查找用户
@@ -71,6 +82,11 @@ def login():
 
         # 验证用户和密码
         if user and user.check_password(form.password.data):
+            # 检查是否只允许管理员登录且当前用户不是管理员
+            if admin_only_login and not user.is_admin:
+                flash("系统当前设置为仅允许管理员登录，请联系管理员", "danger")
+                return render_template("auth/login.html", form=form)
+
             # 登录用户
             login_user(user, remember=form.remember_me.data)
             # 获取next参数，如果存在则重定向到该URL
@@ -90,6 +106,14 @@ def register():
     # 如果用户已登录，重定向到首页
     if current_user.is_authenticated:
         return redirect(url_for("main.home"))
+
+    # 检查是否只允许管理员登录（从配置中获取）
+    admin_only_login = current_app.config.get("ADMIN_ONLY_LOGIN", False)
+
+    # 如果开启了管理员专属模式，禁止注册
+    if admin_only_login:
+        flash("系统当前设置为仅允许管理员使用，注册功能已关闭", "danger")
+        return redirect(url_for("auth.login"))
 
     # 创建注册表单实例
     form = RegisterForm()

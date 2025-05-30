@@ -67,7 +67,7 @@ def get_all_ranking_ids():
         return [0]
 
 
-@ranking_bp.route("/ranking")
+@ranking_bp.route("/")
 def show_ranking():
     """显示排行榜页面"""
     current_app.logger.debug("--- Entering show_ranking ---")
