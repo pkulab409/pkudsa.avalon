@@ -1325,10 +1325,7 @@
                                 moveCount++;
                                 let moveIndex = msgIdToMoveIndex[msgId];
                                 chatHtml += `
-                                    <div class="message-system move-message" 
-                                         data-move-index="${moveIndex}"
-                                         style="cursor: pointer;" 
-                                         onclick="showMoveOnMap(${moveIndex})">
+                                    <div class="message-system move-message" data-move-index="${moveIndex}" style="cursor: pointer;" onclick="showMoveOnMap(${moveIndex})">
                                         <i class="bi bi-person-badge"></i> <strong>${playerId}号 玩家</strong> 进行了移动
                                         <span class="badge bg-secondary ms-2">第${moveCount}步</span><br>
                                         <strong>有效移动:</strong> ${lastMoveDisplay}<br>
