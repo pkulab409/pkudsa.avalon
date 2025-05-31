@@ -600,7 +600,7 @@
         text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000, 0 0 60px #ff0000;
         margin-bottom: 2rem;
         opacity: 0;
-        transform: scale(0.5) rotateY(180deg);
+        transform: scale(0.3) translateY(50px);
         animation: assassinationTitleAppear 2s ease 0.5s forwards;
     }
 
@@ -691,15 +691,15 @@
     @keyframes assassinationTitleAppear {
         0% {
             opacity: 0;
-            transform: scale(0.5) rotateY(180deg);
+            transform: scale(0.3) translateY(50px);
         }
         50% {
-            opacity: 0.8;
-            transform: scale(1.1) rotateY(90deg);
+            opacity: 0.7;
+            transform: scale(1.1) translateY(-10px);
         }
         100% {
             opacity: 1;
-            transform: scale(1) rotateY(0deg);
+            transform: scale(1) translateY(0);
         }
     }
 
@@ -1219,12 +1219,14 @@
             return true;
         }
 
-        // 修复 checkForAssassinationSuccess 函数
+        // 修复 checkForAssassinationSuccess 函数 - 保留自动播放时的动画触发
         function checkForAssassinationSuccess(msgElement) {
             const text = msgElement.textContent || msgElement.innerText || '';
             
             // 检查是否包含刺杀成功的信息
             if (text.includes('刺杀') && text.includes('成功')) {
+                console.log('检测到刺杀成功消息，准备播放动画');
+                
                 // 延迟播放动画，让用户先看到刺杀结果
                 setTimeout(() => {
                     // 从全局游戏数据中找到刺杀信息
@@ -1581,12 +1583,12 @@
                                 结果: <span class="badge ${isSuccess ? 'bg-danger' : 'bg-success'}">${isSuccess ? '成功' : '失败'}</span>
                             </div>`;
                         
-                        // 如果刺杀成功，触发动画
-                        if (isSuccess) {
-                            setTimeout(() => {
-                                showAssassinationSuccessAnimation(assassinInfo, targetInfo, event.assassination.target_role);
-                            }, 1000); // 延迟1秒显示动画，让用户先看到刺杀结果
-                        }
+                        // 注释掉初始化时的刺杀动画
+                        // if (isSuccess) {
+                        //     setTimeout(() => {
+                        //         showAssassinationSuccessAnimation(assassinInfo, targetInfo, event.assassination.target_role);
+                        //     }, 1000); // 延迟1秒显示动画，让用户先看到刺杀结果
+                        // }
                     }
                     return;
                 }
