@@ -7,7 +7,7 @@
     <style>
     /* 聊天容器样式 */
     .chat-container {
-      height: calc(100vh - 250px); /* Adjust height as needed */
+      height: calc(100vh - 250px);
       overflow-y: auto;
       padding: 1rem;
       background-color: #f8f9fa;
@@ -19,7 +19,7 @@
     .round-divider {
       clear: both;
       text-align: center;
-      margin: 25px 0 15px 0; /* More space above */
+      margin: 25px 0 15px 0;
       position: relative;
     }
 
@@ -37,13 +37,13 @@
     .round-divider span {
       display: inline-block;
       padding: 5px 15px;
-      background-color: #fff; /* Background to overlay the line */
+      background-color: #fff;
       position: relative;
       z-index: 1;
       font-weight: bold;
       border-radius: 15px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      border: 1px solid #dee2e6; /* Add border to badge */
+      border: 1px solid #dee2e6;
     }
 
     /* 消息气泡基础样式 */
@@ -53,8 +53,8 @@
       border-radius: 15px;
       position: relative;
       word-break: break-word;
-      margin-bottom: 5px; /* Space below bubble */
-      display: inline-block; /* Fit content */
+      margin-bottom: 5px;
+      display: inline-block;
       box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
 
@@ -62,14 +62,14 @@
     .message-blue {
       background-color: #cfe2ff;
       border: 1px solid #9ec5fe;
-      color: #052c65; /* Darker blue text */
+      color: #052c65;
     }
 
     /* 红方消息 */
     .message-red {
       background-color: #f8d7da;
       border: 1px solid #f5c2c7;
-      color: #58151c; /* Darker red text */
+      color: #58151c;
     }
 
     /* 系统/中立消息 */
@@ -80,26 +80,26 @@
         text-align: center;
         padding: 6px 10px;
         font-size: 0.9em;
-        margin: 10px auto; /* Center align */
-        display: block; /* Full width */
+        margin: 10px auto;
+        display: block;
         clear: both;
     }
 
-     /* 玩家标签样式 */
+    /* 玩家标签样式 */
     .player-tag {
-      font-size: 0.8rem; /* Smaller tag */
+      font-size: 0.8rem;
       margin-bottom: 2px;
       font-weight: bold;
       padding: 0 5px;
-      display: block; /* Ensure it takes its own line */
+      display: block;
     }
 
     /* 消息包装器样式 */
     .message-wrapper {
-      max-width: 80%; /* Limit width */
-      margin-bottom: 15px; /* Space between message blocks */
+      max-width: 80%;
+      margin-bottom: 15px;
       position: relative;
-      clear: both; /* Ensure wrappers don't overlap floats */
+      clear: both;
     }
     .message-wrapper-blue {
       float: left;
@@ -143,7 +143,7 @@
     /* 侧边栏样式 */
     .sidebar {
       overflow-y: auto;
-      max-height: calc(100vh - 100px); /* Limit sidebar height */
+      max-height: calc(100vh - 100px);
     }
 
     /* 地图样式 */
@@ -151,8 +151,8 @@
       display: grid;
       grid-template-columns: repeat({{ map_size }}, 1fr);
       grid-template-rows: repeat({{ map_size }}, 1fr);
-      gap: 1px; /* Smaller gap */
-      background-color: #e9ecef; /* Lighter background */
+      gap: 1px;
+      background-color: #e9ecef;
       padding: 5px;
       border-radius: 4px;
       max-width: 100%;
@@ -163,17 +163,16 @@
     .map-cell {
       aspect-ratio: 1;
       background-color: #fff;
-      /* border: 1px solid #ddd; */ /* Remove cell border for cleaner look */
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
       font-weight: bold;
-      font-size: 0.7rem; /* Smaller font in cells */
+      font-size: 0.7rem;
     }
 
     .player-token {
-      width: 85%; /* Slightly larger token */
+      width: 85%;
       height: 85%;
       border-radius: 50%;
       display: flex;
@@ -181,16 +180,15 @@
       justify-content: center;
       color: white;
       font-weight: bold;
-      font-size: 0.8rem; /* Adjust token font size */
+      font-size: 0.8rem;
       box-shadow: 0 0 3px rgba(0,0,0,0.5);
-      cursor: help; /* Indicate tooltip */
+      cursor: help;
     }
 
-    .player-blue { background-color: #0d6efd; } /* Bootstrap blue */
-    .player-red { background-color: #dc3545; } /* Bootstrap red */
-    .player-unknown { background-color: #6c757d; } /* Bootstrap secondary */
+    .player-blue { background-color: #0d6efd; }
+    .player-red { background-color: #dc3545; }
+    .player-unknown { background-color: #6c757d; }
 
-    /* 其他样式保持不变 */
     .bg-success-light { background-color: #d1e7dd; }
     .bg-danger-light { background-color: #f8d7da; }
     .tooltip-icon { margin-left: 5px; cursor: help; }
@@ -198,47 +196,47 @@
 
     /* 私有发言样式 */
     .message-bubble.private-speech {
-      border-style: dashed; /* 使用虚线边框标识私有发言 */
-      background-color: rgba(200, 200, 200, 0.3); /* 稍微透明背景 */
+      border-style: dashed;
+      background-color: rgba(200, 200, 200, 0.3);
     }
-
 
     /* 确保标签在同一行显示 */
     .player-tag {
-      display: flex; /* 让子元素使用 flex 布局 */
-      align-items: center; /* 垂直居中 */
+      display: flex;
+      align-items: center;
     }
 
     .speech-badge, .hearers-tags {
-      display: inline-block; /* 保证它们在同一行 */
-      margin-right: 2px; /* 给它们加点间距 */
+      display: inline-block;
+      margin-right: 2px;
       font-size: 0.65rem;
       margin-left: 5px;
       vertical-align: middle;
     }
 
+    /* 自动回放高亮样式 */
+    .auto-replay-active {
+        background: #ffe082 !important;
+        transition: background 0.3s;
+        transform: scale(1.02);
+        box-shadow: 0 2px 8px rgba(255, 224, 130, 0.5) !important;
+    }
     </style>
 {% endblock styles %}
 {% block content %}
     <div class="container-fluid mt-3">
-        {# Reduced top margin #}
         <div class="row">
             <!-- 左侧边栏：游戏信息和角色列表 -->
             <div class="col-lg-3 col-md-4">
-                {# Adjusted grid for responsiveness #}
                 <div class="sidebar">
                     <!-- 游戏信息卡片 -->
                     <div class="card shadow-sm mb-3">
                         <div class="card-header bg-primary text-white py-2">
-                            {# Reduced padding #}
                             <h5 class="mb-0 fs-6">对局信息</h5>
-                            {# Smaller heading #}
                         </div>
                         <div class="card-body p-2">
-                            {# Reduced padding #}
                             <ul class="list-group list-group-flush">
                                 <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-0">
-                                    {# Reduced padding #}
                                     <small>游戏ID</small>
                                     <span class="badge bg-secondary rounded-pill">{{ game_id }}</span>
                                 </li>
@@ -282,7 +280,6 @@
                         <div class="card-body p-0">
                             <div class="table-responsive">
                                 <table class="table table-sm table-striped table-bordered mb-0 small">
-                                    {# Striped table #}
                                     <thead class="table-light">
                                         <tr>
                                             <th>玩家</th>
@@ -292,7 +289,6 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {# Ensure roles is iterable and player_id is string #}
                                         {% for player_id, role in game_info.roles.items() | sort %}
                                             {% set player_id_str = player_id | string %}
                                             <tr>
@@ -320,7 +316,7 @@
                                                     {% elif role == "Oberon" %}
                                                         奥伯伦
                                                     {% else %}
-                                                        {{ role }} {# Fallback #}
+                                                        {{ role }}
                                                     {% endif %}
                                                 </td>
                                                 <td class="text-center">
@@ -345,7 +341,6 @@
             </div>
             <!-- 中央：聊天记录主体 -->
             <div class="col-lg-6 col-md-8">
-                {# Adjusted grid #}
                 <div class="card shadow-sm">
                     <div class="card-header bg-secondary text-white py-2 d-flex justify-content-between align-items-center">
                         <h4 class="mb-0 fs-6">对局流程</h4>
@@ -358,12 +353,11 @@
                                 <i class="bi bi-hourglass-split" style="font-size: 2rem;"></i>
                                 <p>加载对局流程中...</p>
                             </div>
-                            <!-- 内容将由JS动态生成 -->
                         </div>
                     </div>
                     <div class="card-footer py-2">
                         <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">滚动查看完整流程</small>
+                            <small class="text-muted">自动跳动回放</small>
                             <div>
                                 <button class="btn btn-sm btn-outline-secondary"
                                         id="scrollToBottomBtn"
@@ -382,7 +376,6 @@
             </div>
             <!-- 右侧：游戏地图 -->
             <div class="col-lg-3 d-none d-lg-block">
-                {# Hide map on smaller screens initially #}
                 <div class="sidebar">
                     <!-- 地图卡片 -->
                     <div class="card shadow-sm mb-3">
@@ -392,7 +385,6 @@
                         </div>
                         <div class="card-body p-2">
                             <div class="game-map" id="gameMap">
-                                <!-- 地图将由JS动态生成 -->
                                 <div class="text-center text-muted p-3 small">地图加载中...</div>
                             </div>
                         </div>
@@ -412,7 +404,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Add Legend or other info here if needed -->
                 </div>
             </div>
         </div>
@@ -422,35 +413,21 @@
     {{ super() }}
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // 开场动画控制
-      const introAnimation = document.getElementById('introAnimation');
-      
-      // 等待所有内容加载完成后，淡出开场动画
-      window.addEventListener('load', function() {
-        setTimeout(() => {
-          introAnimation.classList.add('fade-out');
-          setTimeout(() => {
-            introAnimation.style.display = 'none';
-          }, 500);
-        }, 3000); // 3秒后开始淡出
-      });
-
       // --- Data from Flask ---
       const gameEvents = {{ game_events|tojson }};
-      const playerMovements = {{ player_movements|tojson }}; // {playerId: [{round: r, position: [y,x]}, ...]}
+      const playerMovements = {{ player_movements|tojson }};
       const gameInfo = {{ game_info|tojson }};
-      const roles = gameInfo.roles || {}; // Ensure roles is an object
+      const roles = gameInfo.roles || {};
       const mapSize = {{ map_size }};
       const gameId = "{{ game_id }}";
 
       // Determine max round from events or score
       const maxRoundFromEvents = gameEvents.length > 0
           ? (gameEvents[gameEvents.length - 1].round === 'assassination'
-              ? (gameEvents.length > 1 ? gameEvents[gameEvents.length - 2].round : 0) // Get round before assassination
+              ? (gameEvents.length > 1 ? gameEvents[gameEvents.length - 2].round : 0)
               : gameEvents[gameEvents.length - 1].round)
           : 0;
       const maxRound = Math.max(maxRoundFromEvents, gameInfo.rounds_played || 0);
-
 
       // --- Role Info ---
       const roleNames = {
@@ -476,189 +453,12 @@
       const mapNextRoundBtn = document.getElementById('mapNextRoundBtn');
       const mapCurrentRoundDisplay = document.getElementById('mapCurrentRoundDisplay');
 
-      let currentMapRound = 0; // Track the round displayed on the map/chat badge
-      let scrollAnimationId = null; // 用于存储 requestAnimationFrame 返回的 ID
-      let isSmoothScrolling = false; // 标记是否正在平滑滚动
-      const scrollSpeed = 1; // 滚动速度（像素/帧），可以调整这个值
-
-      // --- 新增：监听聊天滚动，联动地图 ---
-      let scrollTimeout;
-      let lastProcessedMoveIndex = -1; // 记录上次处理的移动索引
-      
-      chatContainer.addEventListener('scroll', () => {
-        if (isSmoothScrolling) return; // 如果正在自动滚动，不处理
-        
-        // 使用防抖，避免频繁触发
-        clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(() => {
-          // 获取所有移动消息
-          const moveMsgs = Array.from(chatContainer.querySelectorAll('.move-message'));
-          if (moveMsgs.length === 0) return;
-
-          const containerTop = chatContainer.scrollTop;
-          const containerHeight = chatContainer.clientHeight;
-          const containerCenter = containerTop + containerHeight / 2;
-
-          // 找到最接近容器中心的移动消息
-          let closestMsg = null;
-          let minDist = Infinity;
-          
-          moveMsgs.forEach(msg => {
-            const msgRect = msg.getBoundingClientRect();
-            const containerRect = chatContainer.getBoundingClientRect();
-            const msgCenter = msgRect.top + msgRect.height / 2 - containerRect.top;
-            const dist = Math.abs(msgCenter - containerHeight / 2);
-            
-            /* if (msgRect.top >= containerRect.top && msgRect.bottom <= containerRect.bottom)  */
-              if (dist < minDist) {
-                minDist = dist;
-                closestMsg = msg;
-              }
-          });
-
-          // 如果找到了最近的移动消息，更新地图
-          if (closestMsg) {
-            const moveIdx = parseInt(closestMsg.getAttribute('data-move-index'));
-            if (!isNaN(moveIdx) && moveIdx !== lastProcessedMoveIndex) {
-              lastProcessedMoveIndex = moveIdx;
-              renderMapByMoveIndex(moveIdx);
-            }
-          } 
-          if (containerTop < 50) { // 如果滚动到顶部附近，显示初始状态
-            lastProcessedMoveIndex = -1;
-            renderMapByMoveIndex(-1);
-          }
-        }, 200); // 增加防抖延迟到200ms
-      });
-
-      // --- 修改自动滚动功能，确保在自动滚动时也更新地图 ---
-      function startSmoothScroll() {
-        if (isSmoothScrolling || chatContainer.scrollHeight <= chatContainer.clientHeight) {
-          return;
-        }
-
-        isSmoothScrolling = true;
-        autoplayBtnFlow.innerHTML = '<i class="bi bi-pause-fill"></i> 暂停滚动';
-        autoplayBtnFlow.classList.remove('btn-outline-primary');
-        autoplayBtnFlow.classList.add('btn-outline-warning');
-
-        let lastMoveIndex = -1;
-        function step() {
-          const currentScroll = chatContainer.scrollTop;
-          const maxScroll = chatContainer.scrollHeight - chatContainer.clientHeight;
-
-          if (currentScroll < maxScroll) {
-            chatContainer.scrollTop += scrollSpeed;
-            
-            // 在自动滚动时也检查并更新地图
-            const moveMsgs = Array.from(chatContainer.querySelectorAll('.move-message'));
-            const containerTop = chatContainer.scrollTop;
-            const containerHeight = chatContainer.clientHeight;
-            const containerCenter = containerTop + containerHeight / 2;
-
-            let closestMsg = null;
-            let minDist = Infinity;
-            
-            moveMsgs.forEach(msg => {
-              const msgRect = msg.getBoundingClientRect();
-              const containerRect = chatContainer.getBoundingClientRect();
-              const msgCenter = msgRect.top + msgRect.height / 2 - containerRect.top;
-              const dist = Math.abs(msgCenter - containerHeight / 2);
-              
-              // 只有当消息在视口范围内时才考虑
-              if (msgRect.top >= containerRect.top && msgRect.bottom <= containerRect.bottom) {
-                if (dist < minDist) {
-                  minDist = dist;
-                  closestMsg = msg;
-                }
-              }
-            });
-
-            if (closestMsg) {
-              const moveIdx = parseInt(closestMsg.getAttribute('data-move-index'));
-              if (!isNaN(moveIdx) && moveIdx !== lastMoveIndex) {
-                lastMoveIndex = moveIdx;
-                renderMapByMoveIndex(moveIdx);
-              }
-            } else if (containerTop < 50) { // 如果滚动到顶部附近，显示初始状态
-              lastMoveIndex = -1;
-              renderMapByMoveIndex(-1);
-            }
-
-            scrollAnimationId = requestAnimationFrame(step);
-          } else {
-            stopSmoothScroll();
-            chatContainer.scrollTop = maxScroll;
-          }
-        }
-
-        scrollAnimationId = requestAnimationFrame(step);
-      }
-
-      function stopSmoothScroll() {
-        if (!isSmoothScrolling) return;
-
-        cancelAnimationFrame(scrollAnimationId); // 取消动画帧请求
-        scrollAnimationId = null;
-        isSmoothScrolling = false;
-        autoplayBtnFlow.innerHTML = '<i class="bi bi-play-fill"></i> 自动播放';
-        autoplayBtnFlow.classList.remove('btn-outline-warning');
-        autoplayBtnFlow.classList.add('btn-outline-primary');
-      }
-
-      // --- Event Listeners ---
-      if (autoplayBtnFlow) {
-          autoplayBtnFlow.addEventListener('click', () => {
-              if (isSmoothScrolling) {
-                  stopSmoothScroll();
-              } else {
-                  startSmoothScroll();
-              }
-          });
-      }
-
-      // 当用户手动滚动时，停止自动滚动
-      if (chatContainer) {
-          chatContainer.addEventListener('scroll', () => {
-              // 检查是否是用户手动触发的滚动（这是一个简化判断，可能不够完美）
-              // 如果正在自动滚动，并且 scrollAnimationId 存在，说明可能是程序触发的
-              // 但如果用户快速滚动，也可能触发此事件，所以简单处理：只要用户滚动就停止自动播放
-              if (isSmoothScrolling && !scrollAnimationId) {
-                  // A more robust check might be needed if scrollSpeed is high
-                  // or if other programmatic scrolls happen.
-                  // For now, any scroll event while isSmoothScrolling is true
-                  // but *after* the animation frame has potentially finished
-                  // could indicate user interaction. A simpler approach:
-                  // stopSmoothScroll(); // Uncomment this line if you want *any* scroll event to stop autoplay
-              }
-              // 更简单的逻辑：如果用户手动滚动（非程序触发），则停止自动滚动
-              // 这个判断比较困难，一个常用策略是设置一个标记，在程序滚动前后设置/取消
-              // 或者简单地：如果用户点击了滚动条或使用了滚轮，就停止。
-              // 最简单的方式：只要滚动事件发生且不是由 requestAnimationFrame 触发的瞬间，就停止
-              // (这个实现有点复杂，暂时省略，先实现基础功能)
-
-              // 替代方案：如果用户点击了"滚动到底部"按钮，也停止自动滚动
-              if (scrollToBottomBtn) {
-                  scrollToBottomBtn.addEventListener('click', () => {
-                      stopSmoothScroll();
-                      // 执行原有的滚动到底部逻辑
-                      chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
-                  });
-              }
-              // 如果用户点击了聊天区域内部（可能意图是选中文字或暂停），也停止
-              chatContainer.addEventListener('mousedown', stopSmoothScroll); // 鼠标按下时停止
-              chatContainer.addEventListener('wheel', stopSmoothScroll);    // 滚轮滚动时停止
-              chatContainer.addEventListener('touchstart', stopSmoothScroll); // 触摸开始时停止
-
-          }, { passive: true }); // Use passive listener for better scroll performance
-      }
-
+      let currentMapRound = 0;
 
       // --- Helper Functions ---
       function getPlayerInfo(playerId) {
-          const idStr = String(playerId); // Ensure string key
+          const idStr = String(playerId);
           let role = roles[idStr] || '未知角色';
-          // 如果是骑士，根据玩家ID的大小顺序分配不同的骑士角色
           if (role === 'Knight') {
               if (!knightAssignments.has(idStr)) {
                   knightCount++;
@@ -679,23 +479,19 @@
       function initializeKnightAssignments() {
           knightCount = 0;
           knightAssignments.clear();
-          // 获取所有骑士的ID并按数字大小排序
           const knightIds = Object.entries(roles)
               .filter(([_, role]) => role === 'Knight')
               .map(([id, _]) => parseInt(id))
               .sort((a, b) => a - b);
           
-          // 按顺序分配骑士1和骑士2
           knightIds.forEach((id, index) => {
               knightAssignments.set(id.toString(), index + 1);
           });
       }
 
-      // 在生成聊天历史之前调用初始化
       initializeKnightAssignments();
 
-      // --- 新增：批次移动数据结构 ---
-      // moveSteps: [{moveIndex, round, playerId, move, newPos, chatMsgId}]
+      // --- 批次移动数据结构 ---
       let moveSteps = [];
       let moveIndexToRound = [];
       let moveIndexToMsgId = [];
@@ -736,17 +532,14 @@
       }
       preprocessMoveSteps();
 
-      // --- 修改地图渲染函数，支持moveIndex ---
+      // --- 地图渲染函数 ---
       function renderMapByMoveIndex(moveIdx) {
         gameMapContainer.innerHTML = '';
-        // 计算到当前moveIdx为止所有玩家的最新位置
         let playerPos = {};
         
-        // 如果是初始状态（moveIdx < 0），使用playerMovements中的初始位置
         if (true) {
           Object.entries(playerMovements).forEach(([playerId, moves]) => {
             if (moves && moves.length > 0) {
-              // 找到第一轮的第一个移动
               const initialMove = moves.find(move => move.round === 0);
               if (initialMove) {
                 playerPos[playerId] = initialMove.position;
@@ -755,22 +548,18 @@
           });
         }
         if (moveIdx >= 0) {
-          // 正常情况：计算到当前moveIdx为止所有玩家的最新位置
           for (let i = 0; i <= moveIdx && i < moveSteps.length; i++) {
             const step = moveSteps[i];
             playerPos[step.playerId] = step.newPos;
           }
         }
 
-        // 获取当前轮次
         let currentRound = moveIdx >= 0 && moveIdx < moveSteps.length ? moveSteps[moveIdx].round : 0;
-        currentMapRound = currentRound; // 更新当前轮次
+        currentMapRound = currentRound;
         
-        // 更新按钮状态
         mapPrevRoundBtn.disabled = currentRound <= 0;
         mapNextRoundBtn.disabled = currentRound >= maxRound;
 
-        // 创建地图格子
         for (let r = 0; r < mapSize; r++) {
           for (let c = 0; c < mapSize; c++) {
             const cell = document.createElement('div');
@@ -781,7 +570,6 @@
           }
         }
 
-        // 渲染玩家
         Object.keys(playerPos).forEach(playerId => {
           const pos = playerPos[playerId];
           if (pos && Array.isArray(pos) && pos.length === 2) {
@@ -800,7 +588,6 @@
           }
         });
 
-        // 更新地图批次显示
         if (moveIdx >= 0) {
           const step = moveSteps[moveIdx];
           mapCurrentRoundDisplay.textContent = `第${step.round}轮-第${moveIdx+1}步`;
@@ -810,13 +597,12 @@
         currentRoundBadge.textContent = mapCurrentRoundDisplay.textContent;
       }
 
-      // --- 修改聊天历史生成，插入data-move-index ---
+      // --- 聊天历史生成 ---
       function generateChatHistory() {
         let chatHtml = '';
         let msgId = 0;
-        let moveCount = 0; // 添加移动计数器
+        let moveCount = 0;
 
-        // 1. Game Start Info
         chatHtml += `
           <div class="round-divider" id="round-0">
             <span class="badge bg-secondary">游戏开始</span>
@@ -826,9 +612,7 @@
           </div>
         `;
 
-        // 2. Iterate through each round's events
         gameEvents.forEach((event) => {
-          // Handle Assassination separately if it's the event
           if (event.round === 'assassination') {
              chatHtml += `
                <div class="round-divider" id="round-assassination">
@@ -846,13 +630,11 @@
              return;
           }
 
-          // --- Regular Round Processing ---
           const roundNum = event.round;
           const missionSuccess = event.mission_result ? event.mission_result.success : null;
           const roundBadgeClass = missionSuccess === true ? 'bg-info text-dark' : (missionSuccess === false ? 'bg-danger' : 'bg-secondary');
           const roundResultText = missionSuccess === true ? '成功' : (missionSuccess === false ? '失败' : '进行中');
 
-          // Round Divider
           chatHtml += `
             <div class="round-divider" id="round-${roundNum}">
               <span class="badge ${roundBadgeClass}">
@@ -861,7 +643,6 @@
             </div>
           `;
 
-          // Leader and Team Info
           if (event.leader) {
             const leaderInfo = getPlayerInfo(event.leader);
             chatHtml += `
@@ -877,7 +658,6 @@
              chatHtml += `<div class="message-system">等待队长 ${event.leader || '?'}号 选择队伍...</div>`;
           }
 
-          // Process all events in chronological order
           if (event.events && event.events.length > 0) {
             event.events.forEach(eventItem => {
               if (eventItem.type === "team_propose") {
@@ -913,8 +693,7 @@
 
                 const newPos = eventItem.data.new_pos;
                 if (playerId) {
-                  moveCount++; // 增加移动计数
-                  // 查找moveIndex
+                  moveCount++;
                   let moveIndex = msgIdToMoveIndex[msgId];
                   chatHtml += `
                     <div class="message-system move-message" data-move-index="${moveIndex}">
@@ -942,10 +721,6 @@
 
                 chatHtml += `
                   <div class="message-wrapper ${wrapperClass}">
-                    ${playerInfo.role === 'Merlin' ? '<div class="card-decoration left merlin"></div>' : ''}
-                    ${playerInfo.role === 'Percival' ? '<div class="card-decoration left percival"></div>' : ''}
-                    ${playerInfo.role === 'Knight1' ? '<div class="card-decoration left knight1"></div>' : ''}
-                    ${playerInfo.role === 'Knight2' ? '<div class="card-decoration left knight2"></div>' : ''}
                     <div class="message-content">
                       <div class="player-tag ${tagColorClass}">
                          ${playerInfo.id}号 (${playerInfo.name}) ${speechBadge} ${hearersTags ? `<div class="hearers-tags">${hearersTags}</div>` : ""}                     
@@ -954,9 +729,6 @@
                         ${message}
                       </div>
                     </div>
-                    ${playerInfo.role === 'Assassin' ? '<div class="card-decoration right assassin"></div>' : ''}
-                    ${playerInfo.role === 'Morgana' ? '<div class="card-decoration right morgana"></div>' : ''}
-                    ${playerInfo.role === 'Oberon' ? '<div class="card-decoration right oberon"></div>' : ''}
                   </div>
                   <div class="clearfix"></div>
                 `;
@@ -992,7 +764,6 @@
             });
           }
 
-          // Mission Execution Results
           if (event.mission_execution) {
              const execution = event.mission_execution;
              const success = execution.success;
@@ -1009,7 +780,6 @@
            chatHtml += `<div class="clearfix"></div>`;
         });
 
-        // 3. Game End Info
         chatHtml += `
           <div class="round-divider">
             <span class="badge bg-dark">游戏结束</span>
@@ -1029,7 +799,6 @@
 
       // --- Update Display for Round ---
       function updateDisplayForRound(round, shouldScroll = true) {
-        // 找到该轮D一个moveIndex
         let lastMoveIdx = -1;
         for (let i = 0; i <= moveSteps.length - 1; i++) {
           if (moveSteps[i].round == round) {
@@ -1038,10 +807,8 @@
           }
         }
         
-        // 更新地图显示
         renderMapByMoveIndex(lastMoveIdx);
 
-        // 只有在shouldScroll为true时才滚动聊天容器
         if (shouldScroll) {
           const roundElement = document.getElementById(`round-${round}`);
           if (roundElement) {
@@ -1074,21 +841,90 @@
 
       scrollToBottomBtn.addEventListener('click', scrollToBottom);
 
+      // --- 自动逐条跳动回放 ---
+      let isAutoReplay = false;
+      let autoReplayTimeout = null;
+      let currentReplayMsgIndex = 0;
+
+      function getAllReplayMessages() {
+          return Array.from(chatContainer.querySelectorAll('.message-bubble, .message-system, .move-message'));
+      }
+
+      function getMessageDelay(msgElem) {
+          let text = '';
+          if (msgElem.classList.contains('message-bubble')) {
+              text = msgElem.innerText || '';
+          } else if (msgElem.classList.contains('message-system') || msgElem.classList.contains('move-message')) {
+              text = msgElem.innerText || '';
+          }
+          const base = 800;
+          const perChar = 80;
+          const minDelay = 1000, maxDelay = 4000;
+          let delay = base + text.length * perChar;
+          return Math.max(minDelay, Math.min(maxDelay, delay));
+      }
+
+      function startAutoReplay() {
+          if (isAutoReplay) return;
+          isAutoReplay = true;
+          autoplayBtnFlow.innerHTML = '<i class="bi bi-pause-fill"></i> 暂停回放';
+          autoplayBtnFlow.classList.remove('btn-outline-primary');
+          autoplayBtnFlow.classList.add('btn-outline-warning');
+
+          const messages = getAllReplayMessages();
+          if (!messages.length) return;
+
+          currentReplayMsgIndex = 0;
+          autoReplayStep(messages);
+      }
+
+      function autoReplayStep(messages) {
+          if (!isAutoReplay || currentReplayMsgIndex >= messages.length) {
+              stopAutoReplay();
+              return;
+          }
+          const msg = messages[currentReplayMsgIndex];
+          msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          messages.forEach(m => m.classList.remove('auto-replay-active'));
+          msg.classList.add('auto-replay-active');
+
+          autoReplayTimeout = setTimeout(() => {
+              currentReplayMsgIndex++;
+              autoReplayStep(messages);
+          }, getMessageDelay(msg));
+      }
+
+      function stopAutoReplay() {
+          isAutoReplay = false;
+          clearTimeout(autoReplayTimeout);
+          autoplayBtnFlow.innerHTML = '<i class="bi bi-play-fill"></i> 自动播放';
+          autoplayBtnFlow.classList.remove('btn-outline-warning');
+          autoplayBtnFlow.classList.add('btn-outline-primary');
+          getAllReplayMessages().forEach(m => m.classList.remove('auto-replay-active'));
+      }
+
+      if (autoplayBtnFlow) {
+          autoplayBtnFlow.addEventListener('click', () => {
+              if (isAutoReplay) {
+                  stopAutoReplay();
+              } else {
+                  startAutoReplay();
+              }
+          });
+      }
+
+      chatContainer.addEventListener('mousedown', stopAutoReplay);
+      chatContainer.addEventListener('wheel', stopAutoReplay);
+      chatContainer.addEventListener('touchstart', stopAutoReplay);
+
       // --- Initialization ---
       if (!gameInfo || !gameEvents || !playerMovements || mapSize <= 0) {
           chatContainer.innerHTML = `<div class="alert alert-danger m-3">错误：加载对局数据失败，部分信息缺失。请检查日志文件。</div>`;
           console.error("Game data missing:", { gameInfo, gameEvents, playerMovements, mapSize });
       } else {
           generateChatHistory();
-          updateDisplayForRound(0); // Set initial state for map and chat scroll (Round 0)
+          updateDisplayForRound(0);
       }
-
-      // Optional: Enable Bootstrap tooltips if you added them
-      // const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-      // tooltipTriggerList.map(function (tooltipTriggerEl) {
-      //   return new bootstrap.Tooltip(tooltipTriggerEl);
-      // });
-
     });
     </script>
 {% endblock scripts %}
