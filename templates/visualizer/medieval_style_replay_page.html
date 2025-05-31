@@ -558,6 +558,25 @@
         box-shadow: 0 2px 8px rgba(255, 224, 130, 0.5) !important;
     }
 
+    /* 移动消息交互样式 */
+    .move-message {
+        transition: all 0.3s ease;
+    }
+
+    .move-message:hover {
+        background-color: #f8f9fa !important;
+        transform: scale(1.02);
+        cursor: pointer;
+        border: 1px solid #007bff;
+    }
+
+    .highlighted-move {
+        background-color: #fff3cd !important;
+        border: 2px solid #ffc107 !important;
+        transform: scale(1.02);
+        box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);
+    }
+
     /* 响应式布局调整 */
     @media (max-width: 768px) {
         .container-fluid {
@@ -949,6 +968,14 @@
             messages.forEach(m => m.classList.remove('auto-replay-active'));
             msg.classList.add('auto-replay-active');
 
+            // 如果是移动消息，更新地图
+            if (msg.classList.contains('move-message')) {
+                const moveIndex = parseInt(msg.dataset.moveIndex);
+                if (!isNaN(moveIndex)) {
+                    renderMapByMoveIndex(moveIndex);
+                }
+            }
+
             autoReplayTimeout = setTimeout(() => {
                 currentReplayMsgIndex++;
                 autoReplayStep(messages);
@@ -1298,11 +1325,15 @@
                                 moveCount++;
                                 let moveIndex = msgIdToMoveIndex[msgId];
                                 chatHtml += `
-                                    <div class="message-system move-message" data-move-index="${moveIndex}">
+                                    <div class="message-system move-message" 
+                                         data-move-index="${moveIndex}"
+                                         style="cursor: pointer;" 
+                                         onclick="showMoveOnMap(${moveIndex})">
                                         <i class="bi bi-person-badge"></i> <strong>${playerId}号 玩家</strong> 进行了移动
                                         <span class="badge bg-secondary ms-2">第${moveCount}步</span><br>
                                         <strong>有效移动:</strong> ${lastMoveDisplay}<br>
                                         <strong>新位置:</strong> ${newPos}
+                                        <small class="text-muted d-block mt-1">💡 点击查看地图状态</small>
                                     </div>
                                 `;
                             }
@@ -1581,36 +1612,57 @@
             });
         }
 
-        function setButtonState(button, state) {
-            if (!button) return;
+        // 删除文件末尾所有重复的代码，替换为以下干净的结尾：
 
-            button.classList.remove('loading', 'playing', 'error');
-            button.disabled = false;
+            function setButtonState(button, state) {
+                if (!button) return;
 
-            const icon = button.querySelector('i');
-            if (!icon) return;
+                button.classList.remove('loading', 'playing', 'error');
+                button.disabled = false;
 
-            switch (state) {
-                case 'loading':
-                    button.classList.add('loading');
-                    button.disabled = true;
-                    icon.className = 'bi bi-hourglass-split';
-                    break;
-                case 'playing':
-                    button.classList.add('playing');
-                    icon.className = 'bi bi-pause-fill';
-                    break;
-                case 'error':
-                    button.classList.add('error');
-                    button.disabled = true;
-                    icon.className = 'bi bi-exclamation-triangle';
-                    break;
-                case 'normal':
-                default:
-                    icon.className = 'bi bi-volume-up';
-                    break;
+                const icon = button.querySelector('i');
+                if (!icon) return;
+
+                switch (state) {
+                    case 'loading':
+                        button.classList.add('loading');
+                        button.disabled = true;
+                        icon.className = 'bi bi-hourglass-split';
+                        break;
+                    case 'playing':
+                        button.classList.add('playing');
+                        icon.className = 'bi bi-pause-fill';
+                        break;
+                    case 'error':
+                        button.classList.add('error');
+                        button.disabled = true;
+                        icon.className = 'bi bi-exclamation-triangle';
+                        break;
+                    default:
+                    case 'normal':
+                        icon.className = 'bi bi-volume-up';
+                        break;
+                }
             }
-        }
+
+            // 添加移动消息点击处理函数
+            window.showMoveOnMap = function (moveIndex) {
+                renderMapByMoveIndex(moveIndex);
+
+                // 高亮对应的移动消息
+                document.querySelectorAll('.move-message').forEach(msg => {
+                    msg.classList.remove('highlighted-move');
+                });
+
+                const clickedMsg = document.querySelector(`[data-move-index="${moveIndex}"]`);
+                if (clickedMsg) {
+                    clickedMsg.classList.add('highlighted-move');
+                    setTimeout(() => {
+                        clickedMsg.classList.remove('highlighted-move');
+                    }, 2000);
+                }
+            };
+
     });
     </script>
 {% endblock scripts %}
