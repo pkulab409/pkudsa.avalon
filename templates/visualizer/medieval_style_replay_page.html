@@ -678,24 +678,188 @@
         box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
     }
 
-    /* 动画关键帧 */
-    @keyframes assassinationFadeIn {
-        from {
-            opacity: 0;
+    /* 胜利横幅动画样式 */
+    .victory-banner {
+        position: fixed;
+        top: 50%;
+        left: -100%;
+        width: 100%;
+        height: 120px;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transform: translateY(-50%) rotate(-8deg);
+        animation: victorySlideIn 1.5s ease-out forwards;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+    }
+
+    .victory-banner.blue {
+        background: linear-gradient(45deg, #4A6B8A, #6A9BD2, #4A6B8A);
+        background-size: 200% 200%;
+        animation: victorySlideIn 1.5s ease-out forwards, blueShimmer 3s ease-in-out infinite;
+    }
+
+    .victory-banner.red {
+        background: linear-gradient(45deg, #8B0000, #DC143C, #8B0000);
+        background-size: 200% 200%;
+        animation: victorySlideIn 1.5s ease-out forwards, redShimmer 3s ease-in-out infinite;
+    }
+
+    .victory-particles {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        pointer-events: none;
+    }
+
+    .victory-particle {
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 50%;
+        animation: particleFall 3s linear infinite;
+    }
+
+    .victory-banner.blue .victory-particle {
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 0 6px rgba(106, 155, 210, 0.8);
+    }
+
+    .victory-banner.red .victory-particle {
+        background: rgba(255, 215, 0, 0.9);
+        box-shadow: 0 0 6px rgba(220, 20, 60, 0.8);
+    }
+
+    .victory-content {
+        text-align: center;
+        z-index: 2;
+        position: relative;
+    }
+
+    .victory-title {
+        font-size: clamp(2.5rem, 6vw, 4rem);
+        font-weight: bold;
+        margin: 0;
+        text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
+        color: #ffffff;
+        opacity: 0;
+        transform: scale(0.5);
+        animation: victoryTitleAppear 1s ease 0.5s forwards;
+    }
+
+    .victory-subtitle {
+        font-size: clamp(1rem, 2.5vw, 1.5rem);
+        margin: 0.5rem 0 0 0;
+        color: rgba(255, 255, 255, 0.9);
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
+        opacity: 0;
+        transform: translateY(20px);
+        animation: victorySubtitleAppear 0.8s ease 1s forwards;
+    }
+
+    .victory-reason {
+        font-size: clamp(0.8rem, 1.5vw, 1rem);
+        margin: 0.5rem 0 0 0;
+        color: rgba(255, 255, 255, 0.8);
+        font-style: italic;
+        opacity: 0;
+        transform: translateY(15px);
+        animation: victoryReasonAppear 0.6s ease 1.5s forwards;
+    }
+
+    .victory-icon {
+        position: absolute;
+        font-size: 3rem;
+        opacity: 0;
+        animation: victoryIconSpin 1.5s ease 2s forwards;
+    }
+
+    .victory-icon.left {
+        left: 15%;
+        top: 50%;
+        transform: translateY(-50%) rotate(-180deg) scale(0);
+    }
+
+    .victory-icon.right {
+        right: 15%;
+        top: 50%;
+        transform: translateY(-50%) rotate(180deg) scale(0);
+    }
+
+    .victory-close-btn {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 2px solid rgba(255, 255, 255, 0.7);
+        color: rgba(255, 255, 255, 0.9);
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 1.2rem;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        opacity: 0;
+        animation: victoryCloseAppear 0.5s ease 2.5s forwards;
+    }
+
+    .victory-close-btn:hover {
+        background: rgba(0, 0, 0, 0.6);
+        border-color: #ffffff;
+        color: #ffffff;
+        transform: scale(1.1);
+    }
+
+    /* 胜利动画关键帧 */
+    @keyframes victorySlideIn {
+        0% {
+            left: -100%;
+            transform: translateY(-50%) rotate(-8deg) scale(0.8);
         }
-        to {
-            opacity: 1;
+        70% {
+            left: 5%;
+            transform: translateY(-50%) rotate(-3deg) scale(1.05);
+        }
+        100% {
+            left: 0%;
+            transform: translateY(-50%) rotate(-5deg) scale(1);
         }
     }
 
-    @keyframes assassinationTitleAppear {
-        0% {
-            opacity: 0;
-            transform: scale(0.3) translateY(50px);
+    @keyframes blueShimmer {
+        0%, 100% {
+            background-position: 0% 50%;
         }
         50% {
-            opacity: 0.7;
-            transform: scale(1.1) translateY(-10px);
+            background-position: 100% 50%;
+        }
+    }
+
+    @keyframes redShimmer {
+        0%, 100% {
+            background-position: 0% 50%;
+        }
+        50% {
+            background-position: 100% 50%;
+        }
+    }
+
+    @keyframes victoryTitleAppear {
+        0% {
+            opacity: 0;
+            transform: scale(0.5) translateY(20px);
+        }
+        60% {
+            opacity: 0.9;
+            transform: scale(1.1) translateY(-5px);
         }
         100% {
             opacity: 1;
@@ -703,74 +867,7 @@
         }
     }
 
-    @keyframes assassinationSubtitleAppear {
-        from {
-            opacity: 0;
-            transform: translateY(50px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    @keyframes assassinationDetailsAppear {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    @keyframes bloodPulse {
-        0%, 100% {
-            opacity: 0.3;
-            transform: scale(1);
-        }
-        50% {
-            opacity: 0.6;
-            transform: scale(1.1);
-        }
-    }
-
-    @keyframes daggerStrike {
-        0% {
-            transform: rotate(45deg) scale(0) translateX(100px);
-            opacity: 0;
-        }
-        30% {
-            transform: rotate(45deg) scale(1.2) translateX(0);
-            opacity: 1;
-        }
-        70% {
-            transform: rotate(45deg) scale(1) translateX(-10px);
-            opacity: 1;
-        }
-        100% {
-            transform: rotate(45deg) scale(1) translateX(0);
-            opacity: 1;
-        }
-    }
-
-    @keyframes crownAppear {
-        0% {
-            transform: scale(0) rotate(-180deg);
-            opacity: 0;
-        }
-        50% {
-            transform: scale(1.2) rotate(-90deg);
-            opacity: 0.8;
-        }
-        100% {
-            transform: scale(1) rotate(0deg);
-            opacity: 1;
-        }
-    }
-
-    @keyframes closeButtonAppear {
+    @keyframes victorySubtitleAppear {
         from {
             opacity: 0;
             transform: translateY(20px);
@@ -778,6 +875,43 @@
         to {
             opacity: 1;
             transform: translateY(0);
+        }
+    }
+
+    @keyframes victoryReasonAppear {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes victoryIconSpin {
+        0% {
+            opacity: 0;
+            transform: translateY(-50%) rotate(-180deg) scale(0);
+        }
+        50% {
+            opacity: 0.8;
+            transform: translateY(-50%) rotate(0deg) scale(1.3);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(-50%) rotate(0deg) scale(1);
+        }
+    }
+
+    @keyframes closeButtonAppear {
+        from {
+            opacity: 0;
+            transform: translateY(-10px) scale(0.5);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
         }
     }
 
@@ -1216,6 +1350,9 @@
             // 检查是否是刺杀成功消息
             checkForAssassinationSuccess(msg);
             
+            // 检查是否是胜利消息
+            checkForVictory(msg);
+            
             return true;
         }
 
@@ -1243,78 +1380,270 @@
             }
         }
 
-        // 更新手动按钮状态
-        function updateManualButtons(totalMessages) {
-            const manualNextBtn = document.getElementById('manualNextBtn');
-            if (manualNextBtn) {
-                manualNextBtn.disabled = currentReplayMsgIndex >= totalMessages;
-                
-                // 更新按钮文本显示当前进度
-                const icon = manualNextBtn.querySelector('i');
-                if (icon) {
-                    const progress = Math.min(currentReplayMsgIndex + 1, totalMessages);
-                    manualNextBtn.title = `手动下一步 (${progress}/${totalMessages})`;
-                }
+        // 在 checkForAssassinationSuccess 函数后添加胜利检测
+        function checkForVictory(msgElement) {
+            const text = msgElement.textContent || msgElement.innerText || '';
+            
+            if (text.includes('胜利')) {
+                setTimeout(function() {
+                    if (text.includes('蓝方胜利')) {
+                        showVictoryBanner('blue', '🔵 蓝方胜利', '正义与智慧的胜利', gameInfo.win_reason);
+                    } else if (text.includes('红方胜利')) {
+                        showVictoryBanner('red', '🔴 红方胜利', '阴谋与背叛的胜利', gameInfo.win_reason);
+                    }
+                }, 800);
             }
         }
 
-        // 修改自动播放开始函数
-        function startAutoReplay() {
-            if (isAutoReplay) return;
-            isAutoReplay = true;
-            autoplayBtnFlow.innerHTML = '<i class="bi bi-pause-fill"></i> 暂停回放';
-            autoplayBtnFlow.classList.remove('btn-outline-primary');
-            autoplayBtnFlow.classList.add('btn-outline-warning');
-
-            const messages = getAllReplayMessages();
-            if (!messages.length) return;
-
-            // 不重置currentReplayMsgIndex，从当前位置继续
-            if (currentReplayMsgIndex >= messages.length) {
-                currentReplayMsgIndex = 0; // 只有在结束后才重新开始
+        // 显示胜利横幅
+        function showVictoryBanner(faction, title, subtitle, reason) {
+            // 移除已存在的横幅
+            const existingBanner = document.querySelector('.victory-banner');
+            if (existingBanner) {
+                existingBanner.remove();
             }
             
-            autoReplayStep(messages);
+            const victoryBanner = document.createElement('div');
+            victoryBanner.className = 'victory-banner ' + faction;
+            
+            // 生成粒子效果
+            let particlesHtml = '';
+            for (let i = 0; i < 15; i++) {
+                const left = Math.random() * 100;
+                const delay = Math.random() * 2;
+                particlesHtml += '<div class="victory-particle" style="left: ' + left + '%; animation-delay: ' + delay + 's;"></div>';
+            }
+            
+            // 构建横幅内容
+            let html = '<div class="victory-particles">' + particlesHtml + '</div>';
+            html += '<div class="victory-icon left">⚔️</div>';
+            html += '<div class="victory-icon right">🏆</div>';
+            html += '<div class="victory-content">';
+            html += '<h1 class="victory-title">' + title + '</h1>';
+            html += '<p class="victory-subtitle">' + subtitle + '</p>';
+            html += '<p class="victory-reason">' + (reason || '游戏结束') + '</p>';
+            html += '</div>';
+            html += '<button class="victory-close-btn" onclick="closeVictoryBanner()" title="关闭">✕</button>';
+            
+            victoryBanner.innerHTML = html;
+            document.body.appendChild(victoryBanner);
+            
+            // 播放胜利音效
+            playVictorySound(faction);
+            
+            // 8秒后自动关闭
+            setTimeout(function() {
+                if (document.querySelector('.victory-banner')) {
+                    closeVictoryBanner();
+                }
+            }, 8000);
         }
 
-        function autoReplayStep(messages) {
+        // 播放胜利音效
+        function playVictorySound(faction) {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                if (faction === 'blue') {
+                    // 蓝方：明亮上升的音调
+                    playTone(audioContext, 523.25, 0.3, 0);    // C5
+                    playTone(audioContext, 659.25, 0.3, 0.2);  // E5
+                    playTone(audioContext, 783.99, 0.4, 0.4);  // G5
+                } else {
+                    // 红方：低沉有力的音调
+                    playTone(audioContext, 293.66, 0.4, 0);    // D4
+                    playTone(audioContext, 369.99, 0.4, 0.2);  // F#4
+                    playTone(audioContext, 440.00, 0.5, 0.4);  // A4
+                }
+            } catch (error) {
+                console.log('胜利音效播放失败:', error);
+            }
+        }
+
+        function playTone(audioContext, frequency, duration, delay) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime + delay);
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime + delay);
+            gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + delay + 0.1);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + delay + duration);
+            
+            oscillator.start(audioContext.currentTime + delay);
+            oscillator.stop(audioContext.currentTime + delay + duration);
+        }
+
+        // 添加缺失的自动播放相关函数
+        function startAutoReplay() {
+            if (isAutoReplay) return;
+            
+            isAutoReplay = true;
+            autoplayBtnFlow.innerHTML = '<i class="bi bi-pause-fill"></i> 暂停播放';
+            autoplayBtnFlow.classList.remove('btn-outline-primary');
+            autoplayBtnFlow.classList.add('btn-primary');
+            
+            console.log('开始自动播放，当前索引:', currentReplayMsgIndex);
+            
+            const messages = getAllReplayMessages();
+            if (currentReplayMsgIndex >= messages.length) {
+                currentReplayMsgIndex = 0; // 重新开始
+            }
+            
+            // 开始播放循环
+            playNextMessage(messages);
+        }
+
+        function stopAutoReplay() {
+            if (!isAutoReplay) return;
+            
+            isAutoReplay = false;
+            if (autoReplayTimeout) {
+                clearTimeout(autoReplayTimeout);
+                autoReplayTimeout = null;
+            }
+            
+            autoplayBtnFlow.innerHTML = '<i class="bi bi-play-fill"></i> 自动播放';
+            autoplayBtnFlow.classList.remove('btn-primary');
+            autoplayBtnFlow.classList.add('btn-outline-primary');
+            
+            console.log('停止自动播放，当前索引:', currentReplayMsgIndex);
+        }
+
+        function playNextMessage(messages) {
             if (!isAutoReplay || currentReplayMsgIndex >= messages.length) {
+                if (currentReplayMsgIndex >= messages.length) {
+                    console.log('自动播放完成');
+                }
                 stopAutoReplay();
                 return;
             }
             
-            // 执行播放步骤
-            executeReplayStep(messages);
+            const success = executeReplayStep(messages);
+            if (!success) {
+                stopAutoReplay();
+                return;
+            }
             
+            const currentMsg = messages[currentReplayMsgIndex];
+            const delay = getMessageDelay(currentMsg);
+            
+            currentReplayMsgIndex++;
+            updateManualButtons(messages.length);
+            
+            // 设置下一条消息的播放定时器
             autoReplayTimeout = setTimeout(() => {
-                currentReplayMsgIndex++;
-                updateManualButtons(messages.length);
-                autoReplayStep(messages);
-            }, getMessageDelay(messages[currentReplayMsgIndex]));
+                playNextMessage(messages);
+            }, delay);
         }
 
-        function stopAutoReplay() {
-            isAutoReplay = false;
-            clearTimeout(autoReplayTimeout);
-            autoplayBtnFlow.innerHTML = '<i class="bi bi-play-fill"></i> 自动播放';
-            autoplayBtnFlow.classList.remove('btn-outline-warning');
-            autoplayBtnFlow.classList.add('btn-outline-primary');
-            
-            const messages = getAllReplayMessages();
-            updateManualButtons(messages.length);
+        // 添加更新手动按钮状态的函数
+        function updateManualButtons(totalMessages) {
+            if (manualNextBtn) {
+                if (currentReplayMsgIndex >= totalMessages) {
+                    manualNextBtn.disabled = true;
+                    manualNextBtn.innerHTML = '<i class="bi bi-check-circle"></i> 已完成';
+                } else {
+                    manualNextBtn.disabled = false;
+                    manualNextBtn.innerHTML = '<i class="bi bi-skip-end-fill"></i> 下一步';
+                }
+            }
         }
 
-        // 重置播放位置功能
-        function resetReplayPosition() {
-            stopAutoReplay();
-            currentReplayMsgIndex = 0;
-            const messages = getAllReplayMessages();
-            messages.forEach(m => m.classList.remove('auto-replay-active'));
-            updateManualButtons(messages.length);
-            
-            // 滚动到顶部
-            chatContainer.scrollTo({ top: 0, behavior: 'smooth' });
+        // 添加缺失的动画关键帧CSS
+        const animationCSS = `
+        @keyframes assassinationFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
+        
+        @keyframes assassinationFadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        
+        @keyframes assassinationTitleAppear {
+            0% {
+                opacity: 0;
+                transform: scale(0.3) translateY(50px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        
+        @keyframes assassinationSubtitleAppear {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes assassinationDetailsAppear {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes bloodPulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+        }
+        
+        @keyframes daggerStrike {
+            0% {
+                transform: rotate(45deg) scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: rotate(45deg) scale(1.2);
+                opacity: 0.8;
+            }
+            100% {
+                transform: rotate(45deg) scale(1);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes crownAppear {
+            0% {
+                transform: scale(0) rotate(-180deg);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes closeButtonAppear {
+            from {
+                opacity: 0;
+                transform: translateY(-10px) scale(0.5);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        `;
+        
+        // 将动画CSS添加到页面
+        const styleSheet = document.createElement('style');
+        styleSheet.textContent = animationCSS;
+        document.head.appendChild(styleSheet);
 
         // 移动端视图切换
         const viewButtons = document.querySelectorAll('[data-view]');
@@ -1746,6 +2075,7 @@
                                         <span class="vote-badge badge ${vote ? 'bg-success-light' : 'bg-danger-light'} border ${vote ? 'border-success' : 'border-danger'} text-dark">
                                             ${playerInfo.id}号: ${vote ? '<i class="bi bi-check-circle"></i> 赞成' : '<i class="bi bi-x-circle"></i> 反对'}
                                         </span>
+
                                     `;
                                 });
                             } else {
@@ -2064,7 +2394,7 @@
             return roleDisplayNames[role] || role;
         }
 
-        // 播放刺杀音效（可选）
+        // 播放胜利音效（可选）
         function playAssassinationSound() {
             try {
                 // 创建音频上下文播放音效
