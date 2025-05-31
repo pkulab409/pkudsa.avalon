@@ -577,6 +577,237 @@
         box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);
     }
 
+    /* 刺杀成功动画样式 */
+    .assassination-success-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, rgba(139, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.95) 100%);
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        animation: assassinationFadeIn 1s ease forwards;
+    }
+
+    .assassination-title {
+        font-size: clamp(3rem, 8vw, 6rem);
+        color: #ff0000;
+        text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000, 0 0 60px #ff0000;
+        margin-bottom: 2rem;
+        opacity: 0;
+        transform: scale(0.5) rotateY(180deg);
+        animation: assassinationTitleAppear 2s ease 0.5s forwards;
+    }
+
+    .assassination-subtitle {
+        font-size: clamp(1.5rem, 4vw, 2.5rem);
+        color: #ffffff;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        margin-bottom: 1rem;
+        opacity: 0;
+        transform: translateY(50px);
+        animation: assassinationSubtitleAppear 1.5s ease 1.5s forwards;
+    }
+
+    .assassination-details {
+        font-size: clamp(1rem, 2vw, 1.2rem);
+        color: #cccccc;
+        text-align: center;
+        max-width: 600px;
+        line-height: 1.6;
+        opacity: 0;
+        transform: translateY(30px);
+        animation: assassinationDetailsAppear 1s ease 2.5s forwards;
+    }
+
+    .blood-effect {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background: 
+            radial-gradient(circle at 20% 30%, rgba(139, 0, 0, 0.3) 0%, transparent 50%),
+            radial-gradient(circle at 80% 70%, rgba(139, 0, 0, 0.2) 0%, transparent 40%),
+            radial-gradient(circle at 60% 20%, rgba(139, 0, 0, 0.4) 0%, transparent 30%);
+        animation: bloodPulse 3s ease-in-out infinite;
+    }
+
+    .dagger-icon {
+        position: absolute;
+        top: 20%;
+        right: 15%;
+        font-size: 4rem;
+        color: #c0c0c0;
+        transform: rotate(45deg) scale(0);
+        animation: daggerStrike 2s ease 1s forwards;
+    }
+
+    .victory-crown {
+        position: absolute;
+        top: 15%;
+        left: 15%;
+        font-size: 3rem;
+        color: #ffd700;
+        transform: scale(0) rotate(-180deg);
+        animation: crownAppear 1.5s ease 2s forwards;
+    }
+
+    .close-animation-btn {
+        position: absolute;
+        bottom: 5%;
+        right: 5%;
+        background: rgba(255, 255, 255, 0.2);
+        border: 2px solid #ffffff;
+        color: #ffffff;
+        padding: 0.8rem 1.5rem;
+        border-radius: 25px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        opacity: 0;
+        animation: closeButtonAppear 0.5s ease 3.5s forwards;
+    }
+
+    .close-animation-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(1.05);
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+    }
+
+    /* 动画关键帧 */
+    @keyframes assassinationFadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes assassinationTitleAppear {
+        0% {
+            opacity: 0;
+            transform: scale(0.5) rotateY(180deg);
+        }
+        50% {
+            opacity: 0.8;
+            transform: scale(1.1) rotateY(90deg);
+        }
+        100% {
+            opacity: 1;
+            transform: scale(1) rotateY(0deg);
+        }
+    }
+
+    @keyframes assassinationSubtitleAppear {
+        from {
+            opacity: 0;
+            transform: translateY(50px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes assassinationDetailsAppear {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes bloodPulse {
+        0%, 100% {
+            opacity: 0.3;
+            transform: scale(1);
+        }
+        50% {
+            opacity: 0.6;
+            transform: scale(1.1);
+        }
+    }
+
+    @keyframes daggerStrike {
+        0% {
+            transform: rotate(45deg) scale(0) translateX(100px);
+            opacity: 0;
+        }
+        30% {
+            transform: rotate(45deg) scale(1.2) translateX(0);
+            opacity: 1;
+        }
+        70% {
+            transform: rotate(45deg) scale(1) translateX(-10px);
+            opacity: 1;
+        }
+        100% {
+            transform: rotate(45deg) scale(1) translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes crownAppear {
+        0% {
+            transform: scale(0) rotate(-180deg);
+            opacity: 0;
+        }
+        50% {
+            transform: scale(1.2) rotate(-90deg);
+            opacity: 0.8;
+        }
+        100% {
+            transform: scale(1) rotate(0deg);
+            opacity: 1;
+        }
+    }
+
+    @keyframes closeButtonAppear {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* 添加缺失的淡出动画 */
+    @keyframes assassinationFadeOut {
+        from {
+            opacity: 1;
+            transform: scale(1);
+        }
+        to {
+            opacity: 0;
+            transform: scale(0.8);
+        }
+    }
+
+    /* 聊天记录滚动条样式 */
+    .chat-container::-webkit-scrollbar {
+        width: 8px;
+        background-color: #f1f1f1;
+    }
+
+    .chat-container::-webkit-scrollbar-thumb {
+        border-radius: 10px;
+        background-color: #007bff;
+    }
+
+    .chat-container::-webkit-scrollbar-thumb:hover {
+        background-color: #0056b3;
+    }
+
     /* 响应式布局调整 */
     @media (max-width: 768px) {
         .container-fluid {
@@ -836,6 +1067,11 @@
                                                 title="滚动到底部">
                                             <i class="bi bi-arrow-down-circle"></i>
                                         </button>
+                                        <button class="btn btn-sm btn-outline-info ms-1"
+                                                id="manualNextBtn"
+                                                title="手动下一步">
+                                            <i class="bi bi-skip-end-fill"></i>
+                                        </button>
                                         <button type="button"
                                                 class="btn btn-sm btn-outline-primary ms-2"
                                                 id="autoplayBtnFlow">
@@ -887,7 +1123,7 @@
         // --- 自动逐条跳动回放 ---
         let isAutoReplay = false;
         let autoReplayTimeout = null;
-        let currentReplayMsgIndex = 0;
+        let currentReplayMsgIndex = 0; // 当前播放位置，不再重置为0
 
         function getAllReplayMessages() {
             return Array.from(chatContainer.querySelectorAll('.message-bubble, .message-system, .move-message'));
@@ -899,16 +1135,13 @@
             
             if (msgElem.classList.contains('message-bubble')) {
                 text = msgElem.innerText || msgElem.textContent || '';
-                // 聊天消息基础时间更长，因为需要阅读
                 baseDelay = 1500;
             } else if (msgElem.classList.contains('message-system')) {
                 text = msgElem.innerText || msgElem.textContent || '';
-                // 系统消息基础时间稍短
-                baseDelay = 0;
+                baseDelay = 800;
             } else if (msgElem.classList.contains('move-message')) {
                 text = msgElem.innerText || msgElem.textContent || '';
-                // 移动消息基础时间最短
-                baseDelay = -3000;
+                baseDelay = 600;
             }
             
             // 计算文本长度（中文字符和英文字符分别计算）
@@ -916,55 +1149,59 @@
             const otherChars = text.length - chineseChars;
             
             // 中文字符阅读时间更长
-            const chineseReadTime = chineseChars * 150; // 每个中文字符150ms
-            const otherReadTime = otherChars * 50;      // 每个其他字符50ms
+            const chineseReadTime = chineseChars * 120; // 每个中文字符120ms
+            const otherReadTime = otherChars * 40;      // 每个其他字符40ms
             
             // 计算总延迟时间
             let totalDelay = baseDelay + chineseReadTime + otherReadTime;
             
-            // 设置最小和最大延迟时间
-            const minDelay = 500;
-            const maxDelay = 8000;
-            
             // 根据消息类型调整范围
             if (msgElem.classList.contains('message-bubble')) {
-                // 聊天消息允许更长的停留时间
-                totalDelay = Math.max(1500, Math.min(8000, totalDelay));
+                totalDelay = Math.max(1500, Math.min(6000, totalDelay));
             } else if (msgElem.classList.contains('message-system')) {
-                // 系统消息适中
-                totalDelay = Math.max(1000, Math.min(5000, totalDelay));
+                totalDelay = Math.max(800, Math.min(4000, totalDelay));
             } else if (msgElem.classList.contains('move-message')) {
-                // 移动消息较短
-                totalDelay = Math.max(800, Math.min(3000, totalDelay));
+                totalDelay = Math.max(600, Math.min(2000, totalDelay));
             } else {
-                // 其他消息使用通用范围
-                totalDelay = Math.max(minDelay, Math.min(maxDelay, totalDelay));
+                totalDelay = Math.max(500, Math.min(5000, totalDelay));
             }
             
             return totalDelay;
         }
 
-        function startAutoReplay() {
-            if (isAutoReplay) return;
-            isAutoReplay = true;
-            autoplayBtnFlow.innerHTML = '<i class="bi bi-pause-fill"></i> 暂停回放';
-            autoplayBtnFlow.classList.remove('btn-outline-primary');
-            autoplayBtnFlow.classList.add('btn-outline-warning');
-
+        // 手动下一步功能
+        function manualNextStep() {
             const messages = getAllReplayMessages();
-            if (!messages.length) return;
-
-            currentReplayMsgIndex = 0;
-            autoReplayStep(messages);
-        }
-
-        function autoReplayStep(messages) {
-            if (!isAutoReplay || currentReplayMsgIndex >= messages.length) {
-                stopAutoReplay();
+            if (currentReplayMsgIndex >= messages.length) {
+                currentReplayMsgIndex = messages.length - 1;
                 return;
             }
+            
+            // 停止自动播放
+            if (isAutoReplay) {
+                stopAutoReplay();
+            }
+            
+            // 执行下一步
+            executeReplayStep(messages);
+            currentReplayMsgIndex++;
+            
+            // 更新按钮状态
+            updateManualButtons(messages.length);
+        }
+
+        // 执行播放步骤（分离出来供自动和手动共用）
+        function executeReplayStep(messages) {
+            if (currentReplayMsgIndex >= messages.length) {
+                return false;
+            }
+            
             const msg = messages[currentReplayMsgIndex];
+            
+            // 滚动到当前消息
             msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // 移除之前的高亮
             messages.forEach(m => m.classList.remove('auto-replay-active'));
             msg.classList.add('auto-replay-active');
 
@@ -975,11 +1212,83 @@
                     renderMapByMoveIndex(moveIndex);
                 }
             }
+            
+            // 检查是否是刺杀成功消息
+            checkForAssassinationSuccess(msg);
+            
+            return true;
+        }
 
+        // 修复 checkForAssassinationSuccess 函数
+        function checkForAssassinationSuccess(msgElement) {
+            const text = msgElement.textContent || msgElement.innerText || '';
+            
+            // 检查是否包含刺杀成功的信息
+            if (text.includes('刺杀') && text.includes('成功')) {
+                // 延迟播放动画，让用户先看到刺杀结果
+                setTimeout(() => {
+                    // 从全局游戏数据中找到刺杀信息
+                    const assassinationEvent = gameEvents.find(event => 
+                        event.round === 'assassination' && event.assassination && event.assassination.success
+                    );
+                    
+                    if (assassinationEvent) {
+                        const assassinInfo = getPlayerInfo(assassinationEvent.assassination.assassin);
+                        const targetInfo = getPlayerInfo(assassinationEvent.assassination.target);
+                        showAssassinationSuccessAnimation(assassinInfo, targetInfo, assassinationEvent.assassination.target_role);
+                    }
+                }, 1000);
+            }
+        }
+
+        // 更新手动按钮状态
+        function updateManualButtons(totalMessages) {
+            const manualNextBtn = document.getElementById('manualNextBtn');
+            if (manualNextBtn) {
+                manualNextBtn.disabled = currentReplayMsgIndex >= totalMessages;
+                
+                // 更新按钮文本显示当前进度
+                const icon = manualNextBtn.querySelector('i');
+                if (icon) {
+                    const progress = Math.min(currentReplayMsgIndex + 1, totalMessages);
+                    manualNextBtn.title = `手动下一步 (${progress}/${totalMessages})`;
+                }
+            }
+        }
+
+        // 修改自动播放开始函数
+        function startAutoReplay() {
+            if (isAutoReplay) return;
+            isAutoReplay = true;
+            autoplayBtnFlow.innerHTML = '<i class="bi bi-pause-fill"></i> 暂停回放';
+            autoplayBtnFlow.classList.remove('btn-outline-primary');
+            autoplayBtnFlow.classList.add('btn-outline-warning');
+
+            const messages = getAllReplayMessages();
+            if (!messages.length) return;
+
+            // 不重置currentReplayMsgIndex，从当前位置继续
+            if (currentReplayMsgIndex >= messages.length) {
+                currentReplayMsgIndex = 0; // 只有在结束后才重新开始
+            }
+            
+            autoReplayStep(messages);
+        }
+
+        function autoReplayStep(messages) {
+            if (!isAutoReplay || currentReplayMsgIndex >= messages.length) {
+                stopAutoReplay();
+                return;
+            }
+            
+            // 执行播放步骤
+            executeReplayStep(messages);
+            
             autoReplayTimeout = setTimeout(() => {
                 currentReplayMsgIndex++;
+                updateManualButtons(messages.length);
                 autoReplayStep(messages);
-            }, getMessageDelay(msg));
+            }, getMessageDelay(messages[currentReplayMsgIndex]));
         }
 
         function stopAutoReplay() {
@@ -988,7 +1297,21 @@
             autoplayBtnFlow.innerHTML = '<i class="bi bi-play-fill"></i> 自动播放';
             autoplayBtnFlow.classList.remove('btn-outline-warning');
             autoplayBtnFlow.classList.add('btn-outline-primary');
-            getAllReplayMessages().forEach(m => m.classList.remove('auto-replay-active'));
+            
+            const messages = getAllReplayMessages();
+            updateManualButtons(messages.length);
+        }
+
+        // 重置播放位置功能
+        function resetReplayPosition() {
+            stopAutoReplay();
+            currentReplayMsgIndex = 0;
+            const messages = getAllReplayMessages();
+            messages.forEach(m => m.classList.remove('auto-replay-active'));
+            updateManualButtons(messages.length);
+            
+            // 滚动到顶部
+            chatContainer.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         // 移动端视图切换
@@ -1250,11 +1573,20 @@
                     if (event.assassination) {
                         const assassinInfo = getPlayerInfo(event.assassination.assassin);
                         const targetInfo = getPlayerInfo(event.assassination.target);
+                        const isSuccess = event.assassination.success;
+                        
                         chatHtml += `
                             <div class="message-system">
                                 刺客 ${assassinInfo.id}号 (${assassinInfo.name}) 选择刺杀 ${targetInfo.id}号 (${targetInfo.name} - ${event.assassination.target_role}).<br>
-                                结果: <span class="badge ${event.assassination.success ? 'bg-danger' : 'bg-success'}">${event.assassination.success ? '成功' : '失败'}</span>
+                                结果: <span class="badge ${isSuccess ? 'bg-danger' : 'bg-success'}">${isSuccess ? '成功' : '失败'}</span>
                             </div>`;
+                        
+                        // 如果刺杀成功，触发动画
+                        if (isSuccess) {
+                            setTimeout(() => {
+                                showAssassinationSuccessAnimation(assassinInfo, targetInfo, event.assassination.target_role);
+                            }, 1000); // 延迟1秒显示动画，让用户先看到刺杀结果
+                        }
                     }
                     return;
                 }
@@ -1500,6 +1832,13 @@
 
         scrollToBottomBtn.addEventListener('click', scrollToBottom);
 
+        // 在事件监听器部分添加
+        const manualNextBtn = document.getElementById('manualNextBtn');
+
+        if (manualNextBtn) {
+            manualNextBtn.addEventListener('click', manualNextStep);
+        }
+
         if (autoplayBtnFlow) {
             autoplayBtnFlow.addEventListener('click', () => {
                 if (isAutoReplay) {
@@ -1510,10 +1849,6 @@
             });
         }
 
-        chatContainer.addEventListener('mousedown', stopAutoReplay);
-        chatContainer.addEventListener('wheel', stopAutoReplay);
-        chatContainer.addEventListener('touchstart', stopAutoReplay);
-
         // 初始化内容
         if (!gameInfo || !gameEvents || !playerMovements || mapSize <= 0) {
             chatContainer.innerHTML = `<div class="alert alert-danger m-3">错误：加载对局数据失败，部分信息缺失。请检查日志文件。</div>`;
@@ -1521,6 +1856,10 @@
         } else {
             generateChatHistory();
             updateDisplayForRound(0);
+            
+            // 初始化手动按钮状态
+            const messages = getAllReplayMessages();
+            updateManualButtons(messages.length);
         }
 
         // TTS功能（简化版）
@@ -1609,57 +1948,162 @@
             });
         }
 
-        // 删除文件末尾所有重复的代码，替换为以下干净的结尾：
+        function setButtonState(button, state) {
+            if (!button) return;
 
-            function setButtonState(button, state) {
-                if (!button) return;
+            button.classList.remove('loading', 'playing', 'error');
+            button.disabled = false;
 
-                button.classList.remove('loading', 'playing', 'error');
-                button.disabled = false;
+            const icon = button.querySelector('i');
+            if (!icon) return;
 
-                const icon = button.querySelector('i');
-                if (!icon) return;
+            switch (state) {
+                case 'loading':
+                    button.classList.add('loading');
+                    button.disabled = true;
+                    icon.className = 'bi bi-hourglass-split';
+                    break;
+                case 'playing':
+                    button.classList.add('playing');
+                    icon.className = 'bi bi-pause-fill';
+                    break;
+                case 'error':
+                    button.classList.add('error');
+                    button.disabled = true;
+                    icon.className = 'bi bi-exclamation-triangle';
+                    break;
+                default:
+                case 'normal':
+                    icon.className = 'bi bi-volume-up';
+                    break;
+            }
+        }
 
-                switch (state) {
-                    case 'loading':
-                        button.classList.add('loading');
-                        button.disabled = true;
-                        icon.className = 'bi bi-hourglass-split';
-                        break;
-                    case 'playing':
-                        button.classList.add('playing');
-                        icon.className = 'bi bi-pause-fill';
-                        break;
-                    case 'error':
-                        button.classList.add('error');
-                        button.disabled = true;
-                        icon.className = 'bi bi-exclamation-triangle';
-                        break;
-                    default:
-                    case 'normal':
-                        icon.className = 'bi bi-volume-up';
-                        break;
+        // 添加移动消息点击处理函数
+        window.showMoveOnMap = function (moveIndex) {
+            renderMapByMoveIndex(moveIndex);
+
+            // 高亮对应的移动消息
+            document.querySelectorAll('.move-message').forEach(msg => {
+                msg.classList.remove('highlighted-move');
+            });
+
+            const clickedMsg = document.querySelector(`[data-move-index="${moveIndex}"]`);
+            if (clickedMsg) {
+                clickedMsg.classList.add('highlighted-move');
+                setTimeout(() => {
+                    clickedMsg.classList.remove('highlighted-move');
+                }, 2000);
+            }
+        };
+
+        // 添加刺杀成功动画函数
+        function showAssassinationSuccessAnimation(assassinInfo, targetInfo, targetRole) {
+            // 创建动画覆盖层
+            const animationOverlay = document.createElement('div');
+            animationOverlay.className = 'assassination-success-overlay';
+            animationOverlay.innerHTML = `
+                <div class="blood-effect"></div>
+                <div class="dagger-icon">⚔️</div>
+                <div class="victory-crown">👑</div>
+                
+                <h1 class="assassination-title">刺杀成功</h1>
+                <h2 class="assassination-subtitle">红方胜利</h2>
+                <div class="assassination-details">
+                    <p><strong>刺客:</strong> ${assassinInfo.id}号 (${assassinInfo.name})</p>
+                    <p><strong>目标:</strong> ${targetInfo.id}号 (${targetInfo.name})</p>
+                    <p><strong>用户名:</strong> ${getPlayerUsername(targetInfo.id)}</p>
+                    <br>
+                    <p style="font-style: italic; color: #ff6b6b;">
+                        "在黑暗中，真相被利刃揭露，<br>
+                        梅林的智慧也无法逃脱命运的审判..."
+                    </p>
+                </div>
+                
+                <button class="close-animation-btn" onclick="closeAssassinationAnimation()">
+                    <i class="bi bi-x-circle me-2"></i>关闭动画
+                </button>
+            `;
+            
+            document.body.appendChild(animationOverlay);
+            
+            // 添加音效
+            playAssassinationSound();
+            
+            // 10秒后自动关闭
+            setTimeout(() => {
+                if (document.querySelector('.assassination-success-overlay')) {
+                    closeAssassinationAnimation();
+                }
+            }, 10000);
+        }
+
+        // 关闭刺杀动画
+        window.closeAssassinationAnimation = function() {
+            const overlay = document.querySelector('.assassination-success-overlay');
+            if (overlay) {
+                overlay.style.animation = 'assassinationFadeOut 0.5s ease forwards';
+                setTimeout(() => {
+                    overlay.remove();
+                }, 500);
+            }
+        };
+
+        // 获取角色显示名称
+        function getRoleDisplayName(role) {
+            const roleDisplayNames = {
+                'Merlin': '梅林',
+                'Percival': '派西维尔',
+                'Knight': '骑士',
+                'Assassin': '刺客',
+                'Morgana': '莫甘娜',
+                'Oberon': '奥伯伦'
+            };
+            return roleDisplayNames[role] || role;
+        }
+
+        // 播放刺杀音效（可选）
+        function playAssassinationSound() {
+            try {
+                // 创建音频上下文播放音效
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // 创建一个简单的音效
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                // 设置音效参数 - 低沉的警告音
+                oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.5);
+                
+                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 1);
+            } catch (error) {
+                console.log('音效播放失败:', error);
+            }
+        }
+
+        // 添加获取玩家用户名的函数
+        function getPlayerUsername(playerId) {
+            // 从模板变量中获取用户名数组
+            const playerUsernames = {{ player_usernames|tojson if player_usernames else 'null' }};
+            
+            if (playerUsernames && Array.isArray(playerUsernames)) {
+                // playerId 是从1开始的，数组索引从0开始
+                const index = parseInt(playerId) - 1;
+                if (index >= 0 && index < playerUsernames.length) {
+                    return playerUsernames[index] || '未知用户';
                 }
             }
-
-            // 添加移动消息点击处理函数
-            window.showMoveOnMap = function (moveIndex) {
-                renderMapByMoveIndex(moveIndex);
-
-                // 高亮对应的移动消息
-                document.querySelectorAll('.move-message').forEach(msg => {
-                    msg.classList.remove('highlighted-move');
-                });
-
-                const clickedMsg = document.querySelector(`[data-move-index="${moveIndex}"]`);
-                if (clickedMsg) {
-                    clickedMsg.classList.add('highlighted-move');
-                    setTimeout(() => {
-                        clickedMsg.classList.remove('highlighted-move');
-                    }, 2000);
-                }
-            };
-
+            
+            return '未知用户';
+        }
     });
     </script>
 {% endblock scripts %}
