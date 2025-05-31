@@ -685,29 +685,90 @@
         left: -100%;
         width: 100%;
         height: auto;
-        min-height: 120px;
-        max-height: 90vh;
+        min-height: 100px;
+        max-height: 80vh;
+        padding: 20px 40px;
         z-index: 9999;
         display: flex;
         align-items: center;
         justify-content: center;
-        transform: translateY(-50%) rotate(-5deg); /* 减小旋转角度 */
+        transform: translateY(-50%) rotate(-3deg);
         animation: victorySlideIn 1.5s ease-out forwards;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        overflow: visible;
-        padding: 20px 40px; /* 增加左右内边距 */
+        overflow: hidden;
+        border: 4px solid #ffd700;
+        border-radius: 15px;
     }
 
     .victory-banner.blue {
         background: linear-gradient(45deg, #4A6B8A, #6A9BD2, #4A6B8A);
         background-size: 200% 200%;
         animation: victorySlideIn 1.5s ease-out forwards, blueShimmer 3s ease-in-out infinite;
+        border-color: #4A6B8A;
+        box-shadow: 0 0 20px rgba(74, 107, 138, 0.7), inset 0 0 20px rgba(135, 206, 235, 0.4);
     }
 
     .victory-banner.red {
         background: linear-gradient(45deg, #8B0000, #DC143C, #8B0000);
         background-size: 200% 200%;
         animation: victorySlideIn 1.5s ease-out forwards, redShimmer 3s ease-in-out infinite;
+        border-color: #8B0000;
+        box-shadow: 0 0 20px rgba(139, 0, 0, 0.7), inset 0 0 20px rgba(220, 20, 60, 0.4);
+    }
+
+    .victory-content {
+        text-align: center;
+        z-index: 2;
+        position: relative;
+        width: 100%;
+        max-width: 80%;
+        margin: 0 auto;
+        padding: 0 1rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    }
+
+    .victory-title {
+        font-size: clamp(1.5rem, 4vw, 2.5rem);
+        font-weight: bold;
+        margin: 0 0 0.5rem 0;
+        text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
+        color: #ffffff;
+        opacity: 0;
+        transform: scale(0.5);
+        animation: victoryTitleAppear 1s ease 0.5s forwards;
+        white-space: nowrap;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .victory-subtitle {
+        font-size: clamp(0.9rem, 2vw, 1.2rem);
+        margin: 0.3rem 0;
+        color: rgba(255, 255, 255, 0.9);
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
+        opacity: 0;
+        transform: translateY(20px);
+        animation: victorySubtitleAppear 0.8s ease 1s forwards;
+        white-space: nowrap;
+    }
+
+    .victory-reason {
+        font-size: clamp(0.7rem, 1.5vw, 0.9rem);
+        margin: 0.2rem 0 0 0;
+        color: rgba(255, 255, 255, 0.8);
+        font-style: italic;
+        opacity: 0;
+        transform: translateY(15px);
+        animation: victoryReasonAppear 0.6s ease 1.5s forwards;
+        max-width: 90%;
+        text-align: center;
+        line-height: 1.3;
+        word-wrap: break-word;
     }
 
     .victory-particles {
@@ -722,8 +783,8 @@
 
     .victory-particle {
         position: absolute;
-        width: 8px;
-        height: 8px;
+        width: 6px;
+        height: 6px;
         background: rgba(255, 255, 255, 0.8);
         border-radius: 50%;
         animation: particleFall 3s linear infinite;
@@ -731,108 +792,46 @@
 
     .victory-banner.blue .victory-particle {
         background: rgba(255, 255, 255, 0.9);
-        box-shadow: 0 0 6px rgba(106, 155, 210, 0.8);
+        box-shadow: 0 0 4px rgba(106, 155, 210, 0.8);
     }
 
     .victory-banner.red .victory-particle {
         background: rgba(255, 215, 0, 0.9);
-        box-shadow: 0 0 6px rgba(220, 20, 60, 0.8);
-    }
-
-    .victory-content {
-        text-align: center;
-        z-index: 2;
-        position: relative;
-        width: 100%;
-        max-width: 90%; /* 减小最大宽度确保在屏幕内 */
-        margin: 0 auto;
-        padding: 0 1rem; /* 减小内边距 */
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        overflow: visible;
-        word-wrap: break-word;
-        hyphens: auto;
-    }
-
-    .victory-title {
-        font-size: clamp(1.8rem, 4.5vw, 3rem); /* 进一步减小字体大小 */
-        font-weight: bold;
-        margin: 0 0 0.5rem 0;
-        text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
-        color: #ffffff;
-        opacity: 0;
-        transform: scale(0.5);
-        animation: victoryTitleAppear 1s ease 0.5s forwards;
-        white-space: nowrap;
-        overflow: visible;
-        line-height: 1.2;
-    }
-
-    .victory-subtitle {
-        font-size: clamp(0.8rem, 2vw, 1.2rem); /* 减小字体大小 */
-        margin: 0.3rem 0;
-        color: rgba(255, 255, 255, 0.9);
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
-        opacity: 0;
-        transform: translateY(20px);
-        animation: victorySubtitleAppear 0.8s ease 1s forwards;
-        white-space: nowrap;
-        overflow: visible;
-        line-height: 1.3;
-    }
-
-    .victory-reason {
-        font-size: clamp(0.7rem, 1.6vw, 0.9rem); /* 减小字体大小 */
-        margin: 0.3rem 0 0 0;
-        color: rgba(255, 255, 255, 0.8);
-        font-style: italic;
-        opacity: 0;
-        transform: translateY(15px);
-        animation: victoryReasonAppear 0.6s ease 1.5s forwards;
-        max-width: 85%; /* 减小最大宽度 */
-        margin-left: auto;
-        margin-right: auto;
-        text-align: center;
-        overflow: visible;
-        word-wrap: break-word;
-        hyphens: auto;
-        line-height: 1.4;
-        white-space: normal;
+        box-shadow: 0 0 4px rgba(220, 20, 60, 0.8);
     }
 
     .victory-icon {
         position: absolute;
-        font-size: clamp(1.8rem, 3.5vw, 2.2rem); /* 减小图标大小 */
+        font-size: clamp(1.5rem, 3vw, 2rem);
         opacity: 0;
         animation: victoryIconSpin 1.5s ease 2s forwards;
+        color: rgba(255, 255, 255, 0.9);
     }
 
     .victory-icon.left {
-        left: 8%; /* 增加距离边缘的距离 */
+        left: 10%;
         top: 50%;
         transform: translateY(-50%) rotate(-180deg) scale(0);
     }
 
     .victory-icon.right {
-        right: 8%; /* 增加距离边缘的距离 */
+        right: 10%;
         top: 50%;
         transform: translateY(-50%) rotate(180deg) scale(0);
     }
 
     .victory-close-btn {
         position: absolute;
-        top: 15px;
+        top: 10px;
         right: 15px;
         background: rgba(0, 0, 0, 0.3);
         border: 2px solid rgba(255, 255, 255, 0.7);
         color: rgba(255, 255, 255, 0.9);
-        width: 35px;
-        height: 35px;
+        width: 32px;
+        height: 32px;
         border-radius: 50%;
         cursor: pointer;
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         font-weight: bold;
         display: flex;
         align-items: center;
@@ -854,35 +853,89 @@
     @media (max-width: 768px) {
         .victory-banner {
             height: auto;
-            min-height: 100px;
-            max-height: 80vh;
-            padding: 15px 20px; /* 减小内边距 */
-            transform: translateY(-50%) rotate(-2deg); /* 进一步减少旋转角度 */
+            min-height: 80px;
+            max-height: 70vh;
+            padding: 15px 20px;
+            transform: translateY(-50%) rotate(-2deg);
+            border-radius: 10px;
         }
 
         .victory-content {
             padding: 0 0.5rem;
-            max-width: 95%;
+            max-width: 90%;
         }
 
         .victory-title {
-            font-size: clamp(1.3rem, 5.5vw, 2.2rem);
+            font-size: clamp(1.2rem, 5vw, 1.8rem);
             margin-bottom: 0.3rem;
+            letter-spacing: 0.5px;
         }
 
         .victory-subtitle {
-            font-size: clamp(0.7rem, 2.8vw, 1rem);
+            font-size: clamp(0.8rem, 2.5vw, 1rem);
             margin: 0.2rem 0;
         }
 
         .victory-reason {
-            font-size: clamp(0.6rem, 2.2vw, 0.8rem);
+            font-size: clamp(0.65rem, 2vw, 0.8rem);
             margin: 0.2rem 0 0 0;
-            max-width: 92%;
+            max-width: 95%;
+            line-height: 1.2;
         }
 
         .victory-icon {
-            font-size: clamp(1.3rem, 4.5vw, 1.8rem);
+            font-size: clamp(1.2rem, 4vw, 1.6rem);
+        }
+
+        .victory-icon.left {
+            left: 8%;
+        }
+
+        .victory-icon.right {
+            right: 8%;
+        }
+
+        .victory-close-btn {
+            top: 8px;
+            right: 12px;
+            width: 28px;
+            height: 28px;
+            font-size: 1rem;
+        }
+    }
+
+    /* 超小屏幕优化 */
+    @media (max-width: 480px) {
+        .victory-banner {
+            min-height: 70px;
+            padding: 10px 15px;
+            transform: translateY(-50%) rotate(-1deg);
+            border-radius: 8px;
+        }
+
+        .victory-content {
+            padding: 0 0.3rem;
+            max-width: 95%;
+        }
+
+        .victory-title {
+            font-size: clamp(1rem, 6vw, 1.5rem);
+            line-height: 1.1;
+            letter-spacing: 0px;
+        }
+
+        .victory-subtitle {
+            font-size: clamp(0.7rem, 3vw, 0.9rem);
+        }
+
+        .victory-reason {
+            font-size: clamp(0.6rem, 2.5vw, 0.7rem);
+            line-height: 1.2;
+            max-width: 98%;
+        }
+
+        .victory-icon {
+            font-size: clamp(1rem, 4.5vw, 1.3rem);
         }
 
         .victory-icon.left {
@@ -894,40 +947,11 @@
         }
 
         .victory-close-btn {
-            top: 10px;
-            right: 10px;
-            width: 30px;
-            height: 30px;
-            font-size: 1rem;
-        }
-    }
-
-    /* 超小屏幕优化 */
-    @media (max-width: 480px) {
-        .victory-banner {
-            min-height: 80px;
-            padding: 10px 15px;
-            transform: translateY(-50%) rotate(-1deg); /* 几乎不旋转 */
-        }
-
-        .victory-content {
-            padding: 0 0.3rem;
-            max-width: 98%;
-        }
-
-        .victory-title {
-            font-size: clamp(1.1rem, 6.5vw, 1.8rem);
-            line-height: 1.1;
-        }
-
-        .victory-subtitle {
-            font-size: clamp(0.6rem, 3.5vw, 0.9rem);
-        }
-
-        .victory-reason {
-            font-size: clamp(0.5rem, 2.8vw, 0.7rem);
-            line-height: 1.3;
-            max-width: 95%;
+            top: 5px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            font-size: 0.9rem;
         }
     }
 
@@ -943,7 +967,17 @@
         }
     }
 
-    /* 添加其他缺失的动画关键帧 */
+    @keyframes victorySlideOut {
+        0% {
+            left: 0;
+            opacity: 1;
+        }
+        100% {
+            left: 100%;
+            opacity: 0;
+        }
+    }
+
     @keyframes victoryTitleAppear {
         0% {
             opacity: 0;
@@ -996,6 +1030,23 @@
         100% {
             opacity: 1;
             transform: scale(1);
+        }
+    }
+
+    @keyframes particleFall {
+        0% {
+            opacity: 0;
+            top: -10px;
+        }
+        10% {
+            opacity: 1;
+        }
+        90% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 0;
+            top: 110%;
         }
     }
 
