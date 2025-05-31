@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% block title %}
-对局重放 - {{ game_id }}
+    对局重放 - {{ game_id }}
 {% endblock title %}
 {% block styles %}
-<link rel="stylesheet" href="../../static/css/medieval.css">
-{{ super() }}
-<style>
+    <link rel="stylesheet" href="../../static/css/medieval.css">
+    {{ super() }}
+    <style>
     /* 基础响应式设置 */
     :root {
         --sidebar-width: 300px;
@@ -650,199 +650,209 @@
             margin-bottom: 0.5rem;
         }
     }
-</style>
+    </style>
 {% endblock styles %}
 {% block content %}
-<!-- 开场动画 -->
-<div class="intro-animation" id="introAnimation">
-    <div class="intro-content">
-        <h1 class="intro-title">阿瓦隆</h1>
-        <p class="intro-subtitle">对局重放</p>
-        <div class="loading-bar">
-            <div class="loading-progress"></div>
+    <!-- 开场动画 -->
+    <div class="intro-animation" id="introAnimation">
+        <div class="intro-content">
+            <h1 class="intro-title">阿瓦隆</h1>
+            <p class="intro-subtitle">对局重放</p>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
         </div>
     </div>
-</div>
-<!-- 移动端导航切换按钮 -->
-<div class="d-lg-none mb-2">
-    <div class="btn-group w-100" role="group">
-        <button type="button" class="btn btn-outline-primary active" data-view="main">游戏进程</button>
-        <button type="button" class="btn btn-outline-primary" data-view="info">游戏信息</button>
+    <!-- 移动端导航切换按钮 -->
+    <div class="d-lg-none mb-2">
+        <div class="btn-group w-100" role="group">
+            <button type="button" class="btn btn-outline-primary active" data-view="main">游戏进程</button>
+            <button type="button" class="btn btn-outline-primary" data-view="info">游戏信息</button>
+        </div>
     </div>
-</div>
-<div class="container-fluid mt-3">
-    <div class="row">
-        <!-- 左侧边栏：游戏信息和角色列表 -->
-        <div class="col-lg-3 col-md-4 mobile-view" id="infoView">
-            <div class="sidebar">
-                <!-- 游戏信息卡片 -->
-                <div class="decorative-border">
-                    <div class="card shadow-sm mb-0">
-                        <div class="card-header bg-primary text-white py-2">
-                            <h5 class="mb-0 fs-6">对局信息</h5>
-                        </div>
-                        <div class="card-body p-2">
-                            <ul class="list-group list-group-flush">
-                                <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-0">
-                                    <small>游戏ID</small>
-                                    <span class="badge bg-secondary rounded-pill">{{ game_id }}</span>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-0">
-                                    <small>状态</small>
-                                    <span class="badge rounded-pill {% if game_info.winner == 'blue' %}bg-info text-dark{% elif game_info.winner == 'red' %}bg-danger{% else %}bg-secondary{% endif %}">
-                                        {{ "蓝方胜利" if game_info.winner == "blue" else ("红方胜利" if game_info.winner == "red" else "未结束") }}
-                                    </span>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-0">
-                                    <small>原因</small>
-                                    <small class="text-muted text-end">{{ game_info.win_reason | truncate(30) }}</small>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-0">
-                                    <small>开始时间</small>
-                                    <small class="text-muted">{{ game_info.start_time_formatted }}</small>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-0">
-                                    <small>结束时间</small>
-                                    <small class="text-muted">{{ game_info.end_time_formatted }}</small>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-0">
-                                    <small>时长</small>
-                                    <small class="text-muted">{{ game_info.duration }}</small>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-0">
-                                    <small>最终得分</small>
-                                    <div>
-                                        <span class="badge bg-info text-dark me-1">{{ game_info.blue_wins }}</span>
-                                        <span class="badge bg-danger">{{ game_info.red_wins }}</span>
-                                    </div>
-                                </li>
-                            </ul>
+    <div class="container-fluid mt-3">
+        <div class="row">
+            <!-- 左侧边栏：游戏信息和角色列表 -->
+            <div class="col-lg-3 col-md-4 mobile-view" id="infoView">
+                <div class="sidebar">
+                    <!-- 游戏信息卡片 -->
+                    <div class="decorative-border">
+                        <div class="card shadow-sm mb-0">
+                            <div class="card-header bg-primary text-white py-2">
+                                <h5 class="mb-0 fs-6">对局信息</h5>
+                            </div>
+                            <div class="card-body p-2">
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-0">
+                                        <small>游戏ID</small>
+                                        <span class="badge bg-secondary rounded-pill">{{ game_id }}</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-0">
+                                        <small>状态</small>
+                                        <span class="badge rounded-pill {% if game_info.winner == 'blue' %}bg-info text-dark{% elif game_info.winner == 'red' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                            {{ "蓝方胜利" if game_info.winner == "blue" else ("红方胜利" if game_info.winner == "red" else "未结束") }}
+                                        </span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-0">
+                                        <small>原因</small>
+                                        <small class="text-muted text-end">{{ game_info.win_reason | truncate(30) }}</small>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-0">
+                                        <small>开始时间</small>
+                                        <small class="text-muted">{{ game_info.start_time_formatted }}</small>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-0">
+                                        <small>结束时间</small>
+                                        <small class="text-muted">{{ game_info.end_time_formatted }}</small>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-0">
+                                        <small>时长</small>
+                                        <small class="text-muted">{{ game_info.duration }}</small>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-0">
+                                        <small>最终得分</small>
+                                        <div>
+                                            <span class="badge bg-info text-dark me-1">{{ game_info.blue_wins }}</span>
+                                            <span class="badge bg-danger">{{ game_info.red_wins }}</span>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <!-- 角色列表 -->
-                <div class="decorative-border">
-                    <div class="card shadow-sm mb-0">
-                        <div class="card-header bg-primary text-white py-2">
-                            <h5 class="mb-0 fs-6">角色列表 ({{ game_info.player_count }}人)</h5>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-sm table-striped table-bordered mb-0 small">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>玩家</th>
-                                            <th>用户名</th>
-                                            <th>角色</th>
-                                            <th>阵营</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for player_id, role in game_info.roles.items() | sort %}
-                                        {% set player_id_str = player_id | string %}
-                                        <tr>
-                                            <td class="text-center">{{ player_id_str }}</td>
-                                            {% if player_usernames %}
-                                            <td>{{ player_usernames[player_id|int - 1] }}</td>
+                    <!-- 角色列表 -->
+                    <div class="decorative-border">
+                        <div class="card shadow-sm mb-0">
+                            <div class="card-header bg-primary text-white py-2">
+                                <h5 class="mb-0 fs-6">角色列表 ({{ game_info.player_count }}人)</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-striped table-bordered mb-0 small">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>玩家</th>
+                                                <th>用户名</th>
+                                                <th>角色</th>
+                                                <th>阵营</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for player_id, role in game_info.roles.items() | sort %}
+                                                {% set player_id_str = player_id | string %}
+                                                <tr>
+                                                    <td class="text-center">{{ player_id_str }}</td>
+                                                    {% if player_usernames %}
+                                                        <td>{{ player_usernames[player_id|int - 1] }}</td>
+                                                    {% else %}
+                                                        <td>未知</td>
+                                                    {% endif %}
+                                                    <td>
+                                                        {% set role_name = role %}
+                                                        {% set is_blue = role in ["Merlin", "Percival", "Knight"] %}
+                                                        {% if role == "Merlin" %}
+                                                            梅林
+                                                        {% elif role == "Percival" %}
+                                                            派西维尔
+                                                        {% elif role == "Knight" %}
+                                                            骑士
+                                                        {% elif role == "Assassin" %}
+                                                            刺客
+                                                        {% elif role == "Morgana" %}
+                                                            莫甘娜
+                                                        {% elif role == "Mordred" %}
+                                                            莫德雷德
+                                                        {% elif role == "Oberon" %}
+                                                            奥伯伦
+                                                        {% else %}
+                                                            {{ role }}
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="text-center">
+                                                        {% if is_blue %}
+                                                            <span class="badge bg-info text-dark">蓝方</span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger">红方</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
                                             {% else %}
-                                            <td>未知</td>
-                                            {% endif %}
-                                            <td>
-                                                {% set role_name = role %}
-                                                {% set is_blue = role in ["Merlin", "Percival", "Knight"] %}
-                                                {% if role == "Merlin" %}
-                                                梅林
-                                                {% elif role == "Percival" %}
-                                                派西维尔
-                                                {% elif role == "Knight" %}
-                                                骑士
-                                                {% elif role == "Assassin" %}
-                                                刺客
-                                                {% elif role == "Morgana" %}
-                                                莫甘娜
-                                                {% elif role == "Mordred" %}
-                                                莫德雷德
-                                                {% elif role == "Oberon" %}
-                                                奥伯伦
-                                                {% else %}
-                                                {{ role }}
-                                                {% endif %}
-                                            </td>
-                                            <td class="text-center">
-                                                {% if is_blue %}
-                                                <span class="badge bg-info text-dark">蓝方</span>
-                                                {% else %}
-                                                <span class="badge bg-danger">红方</span>
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                        {% else %}
-                                        <tr>
-                                            <td colspan="4" class="text-center text-muted">角色信息不可用</td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
+                                                <tr>
+                                                    <td colspan="4" class="text-center text-muted">角色信息不可用</td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <!-- 中央：聊天记录主体和地图 -->
-        <div class="col-lg-9 col-md-8 mobile-view" id="mainView">
-            <div class="row">
-                <!-- 聊天记录 -->
-                <div class="col-lg-8">
-                    <div class="card shadow-sm">
-                        <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
-                            <h4 class="mb-0 fs-6">对局流程</h4>
-                            <span class="badge bg-light text-dark" id="currentRoundBadge">初始状态</span>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="chat-container" id="chatContainer">
-                                <!-- 初始化提示 -->
-                                <div class="text-center my-5 text-muted">
-                                    <i class="bi bi-hourglass-split" style="font-size: 2rem;"></i>
-                                    <p>加载对局流程中...</p>
+            <!-- 中央：聊天记录主体和地图 -->
+            <div class="col-lg-9 col-md-8 mobile-view" id="mainView">
+                <div class="row">
+                    <!-- 聊天记录 -->
+                    <div class="col-lg-8">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
+                                <h4 class="mb-0 fs-6">对局流程</h4>
+                                <span class="badge bg-light text-dark" id="currentRoundBadge">初始状态</span>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="chat-container" id="chatContainer">
+                                    <!-- 初始化提示 -->
+                                    <div class="text-center my-5 text-muted">
+                                        <i class="bi bi-hourglass-split" style="font-size: 2rem;"></i>
+                                        <p>加载对局流程中...</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="card-footer py-2">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <small class="text-muted">自动跳动回放</small>
-                                <div>
-                                    <button class="btn btn-sm btn-outline-secondary" id="scrollToBottomBtn" title="滚动到底部">
-                                        <i class="bi bi-arrow-down-circle"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-primary ms-2" id="autoplayBtnFlow">
-                                        <i class="bi bi-play-fill"></i> 自动播放
-                                    </button>
+                            <div class="card-footer py-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">自动跳动回放</small>
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-secondary"
+                                                id="scrollToBottomBtn"
+                                                title="滚动到底部">
+                                            <i class="bi bi-arrow-down-circle"></i>
+                                        </button>
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-primary ms-2"
+                                                id="autoplayBtnFlow">
+                                            <i class="bi bi-play-fill"></i> 自动播放
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <!-- 游戏地图 -->
-                <div class="col-lg-4">
-                    <div class="card shadow-sm">
-                        <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0 fs-6">游戏地图</h5>
-                            <span class="badge bg-light text-dark" id="mapCurrentRoundDisplay">初始状态</span>
-                        </div>
-                        <div class="card-body p-2">
-                            <div class="game-map" id="gameMap">
-                                <div class="text-center text-muted p-3 small">地图加载中...</div>
+                    <!-- 游戏地图 -->
+                    <div class="col-lg-4">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0 fs-6">游戏地图</h5>
+                                <span class="badge bg-light text-dark" id="mapCurrentRoundDisplay">初始状态</span>
                             </div>
-                        </div>
-                        <div class="card-footer text-center p-2">
-                            <div class="btn-group w-100" role="group">
-                                <button type="button" class="btn btn-sm btn-outline-secondary" id="mapPrevRoundBtn" disabled>
-                                    <i class="bi bi-chevron-left"></i> 上一轮
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" id="mapNextRoundBtn">
-                                    下一轮 <i class="bi bi-chevron-right"></i>
-                                </button>
+                            <div class="card-body p-2">
+                                <div class="game-map" id="gameMap">
+                                    <div class="text-center text-muted p-3 small">地图加载中...</div>
+                                </div>
+                            </div>
+                            <div class="card-footer text-center p-2">
+                                <div class="btn-group w-100" role="group">
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-secondary"
+                                            id="mapPrevRoundBtn"
+                                            disabled>
+                                        <i class="bi bi-chevron-left"></i> 上一轮
+                                    </button>
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-secondary"
+                                            id="mapNextRoundBtn">
+                                        下一轮 <i class="bi bi-chevron-right"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -850,11 +860,10 @@
             </div>
         </div>
     </div>
-</div>
 {% endblock content %}
 {% block scripts %}
-{{ super() }}
-<script>
+    {{ super() }}
+    <script>
     document.addEventListener('DOMContentLoaded', function () {
         // --- 自动逐条跳动回放 ---
         let isAutoReplay = false;
@@ -1334,8 +1343,7 @@
 
                             chatHtml += `
                                 <div class="message-wrapper ${wrapperClass}">
-                                    <div class="${avatarClasses}" 
-                                         title="${playerInfo.id}号 - ${playerInfo.name}">
+                                    <div class="${avatarClasses}" title="${playerInfo.id}号 - ${playerInfo.name}">
                                         ${roleClass ? '' : playerInfo.id}
                                     </div>
                                     <div class="message-content">
@@ -1604,5 +1612,5 @@
             }
         }
     });
-</script>
+    </script>
 {% endblock scripts %}

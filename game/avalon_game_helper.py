@@ -235,8 +235,8 @@ class GameHelper:
                     response_content = completion.choices[0].message.content
 
                 # 检查解释器是否正在关闭
-                is_shutting_down = hasattr(sys, 'is_finalizing') and sys.is_finalizing()
-                
+                is_shutting_down = hasattr(sys, "is_finalizing") and sys.is_finalizing()
+
                 if is_shutting_down:
                     logger.warning("Python解释器正在关闭，不再创建新的线程任务")
                     if client_id is not None:
@@ -244,7 +244,9 @@ class GameHelper:
                             self.client_manager.release_client(client_id)
                             logger.info(f"Released client {client_id} during shutdown")
                         except Exception as e:
-                            logger.error(f"Error releasing client during shutdown: {str(e)}")
+                            logger.error(
+                                f"Error releasing client during shutdown: {str(e)}"
+                            )
                     return "LLM调用错误: 程序正在关闭"
 
                 # 创建线程执行API调用
@@ -258,11 +260,13 @@ class GameHelper:
 
                         for _ in range(timeout_seconds):
                             # 再次检查解释器是否正在关闭
-                            if hasattr(sys, 'is_finalizing') and sys.is_finalizing():
-                                logger.warning("在等待API响应期间检测到Python解释器关闭")
+                            if hasattr(sys, "is_finalizing") and sys.is_finalizing():
+                                logger.warning(
+                                    "在等待API响应期间检测到Python解释器关闭"
+                                )
                                 timeout = True
                                 break
-                                
+
                             if future.done():
                                 break
                             time.sleep(1)
@@ -524,8 +528,10 @@ def shutdown_helpers():
         except Exception as e:
             logger.error(f"关闭helper时出错: {str(e)}")
 
+
 # 注册退出处理程序（简化版）
 import atexit
+
 atexit.register(shutdown_helpers)
 
 if __name__ == "__main__":
