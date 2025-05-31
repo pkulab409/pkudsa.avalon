@@ -1,7 +1,7 @@
 import logging
-from queue import Queue
+from queue import Queue, Empty, Full # Import Empty and Full for specific exception handling
 from time import sleep, time
-from random import sample, choice  # choice 可能用于从多个 target_ranking_ids 中选择一个
+from random import sample
 from typing import Dict, Any, Optional, List, Tuple, Set, FrozenSet
 import threading
 
@@ -9,203 +9,260 @@ from flask import Flask
 
 from database import (
     create_battle as db_create_battle,
-    get_active_ai_codes_by_ranking_ids,  # 使用 action.py 中的函数
+    get_active_ai_codes_by_ranking_ids,
 )
-from database.models import AICode  # User 模型可能不再直接在此使用
+from database.models import AICode
 from utils.battle_manager_utils import get_battle_manager
 
 logger = logging.getLogger("AutoMatch")
-max_retry_delay = 60
 
-MAX_AUTOMATCH_PARALLEL_GAMES_PER_RANKING = 20  # 每个榜单的并行对战数
-PARTICIPANTS = 7  # 至少需要多少AI才能开始一场对战
+# --- Constants ---
+MAX_RETRY_DELAY_SECONDS = 60
+INITIAL_RETRY_DELAY_SECONDS = 1
+PARTICIPANT_REFRESH_INTERVAL_BATTLES = 10  # Refresh participants every N battles
+LOOP_SHORT_SLEEP_SECONDS = 0.1  # Short sleep to prevent tight loops when no work
+LOOP_POST_BATCH_SLEEP_SECONDS = 1 # Sleep after creating a batch of battles
+QUEUE_WAIT_TIMEOUT_SECONDS = 5 # Timeout for getting from queue if we expect it to unblock
+BATTLE_STATUS_POLL_INTERVAL_SECONDS = 0.5 # How often to check battle status when waiting
 
+MAX_AUTOMATCH_PARALLEL_GAMES_PER_RANKING = 20
+PARTICIPANTS = 7
 
 class AutoMatchInstance:
-    """管理单个榜单的自动对战实例"""
-
     def __init__(self, app: Flask, ranking_id: int, parallel_games: int):
         self.app = app
         self.ranking_id = ranking_id
         self.is_on = False
-        self.battle_count = 0
-        self.battle_queue = Queue(parallel_games)
+        self.battle_count = 0 # Total battles created by this instance since start
+        self.battle_queue = Queue(parallel_games) # Stores IDs of battles that are supposed to be running
         self.loop_thread: Optional[threading.Thread] = None
         self.min_participants = PARTICIPANTS
         self._instance_lock = threading.RLock()
+        self.current_participants: List[AICode] = []
+        self._battles_since_last_refresh = 0
 
-        # Load participants once during initialization
+        # Load participants once during initialization (initial load)
+        self._refresh_participants() # Call the new refresh method
+
+    def _refresh_participants(self):
+        """Fetches active AI codes for the ranking_id and updates self.current_participants."""
         with self.app.app_context():
             try:
-                self.current_participants = get_active_ai_codes_by_ranking_ids(
+                logger.info(f"[Rank-{self.ranking_id}] Refreshing participant list...")
+                fresh_participants = get_active_ai_codes_by_ranking_ids(
                     ranking_ids=[self.ranking_id]
                 )
+                with self._instance_lock: # Protect assignment
+                    self.current_participants = fresh_participants
+                    self._battles_since_last_refresh = 0 # Reset counter
                 logger.info(
-                    f"[Rank-{self.ranking_id}] 初始化加载到 {len(self.current_participants)} 个激活AI代码。"
+                    f"[Rank-{self.ranking_id}] Refreshed participants. Loaded {len(self.current_participants)} active AI codes."
                 )
             except Exception as e:
                 logger.error(
-                    f"[Rank-{self.ranking_id}] 初始化获取AI代码时出错: {str(e)}",
+                    f"[Rank-{self.ranking_id}] Error fetching AI codes during refresh: {str(e)}",
                     exc_info=True,
                 )
-                self.current_participants = []
+                # Optionally, decide if current_participants should be cleared or kept stale
+                # with self._instance_lock:
+                #     self.current_participants = [] # Example: clear on error
 
-    def _fetch_participants(self):
-        """No longer needed - participants are loaded once during initialization"""
-        pass
+    def _should_refresh_participants(self) -> bool:
+        """Determines if participants should be refreshed."""
+        with self._instance_lock: # Access shared counter
+            if not self.current_participants: # Always refresh if list is empty
+                return True
+            if self._battles_since_last_refresh >= PARTICIPANT_REFRESH_INTERVAL_BATTLES:
+                return True
+        return False
 
     def _loop(self):
-        """单个榜单的后台对战循环"""
-        with self.app.app_context():
+        """Single ranking's background battle loop."""
+        with self.app.app_context(): # Ensure app context for the whole loop if db calls are frequent
             logger.info(
-                f"[Rank-{self.ranking_id}] 自动对战循环线程 '{threading.current_thread().name}' 开始运行。"
+                f"[Rank-{self.ranking_id}] Auto-match loop thread '{threading.current_thread().name}' started."
             )
             battle_manager = get_battle_manager()
-            self._fetch_participants()  # 初始获取
+            retry_delay = INITIAL_RETRY_DELAY_SECONDS
 
             while self.is_on:
                 try:
-                    # 检查参与者数量
-                    if len(self.current_participants) < self.min_participants:
-                        logger.debug(
-                            f"[Rank-{self.ranking_id}] 参与者不足 ({len(self.current_participants)}/{self.min_participants})，等待{retry_delay}秒后重新获取..."
+                    # 1. Refresh participants if needed
+                    if self._should_refresh_participants():
+                        self._refresh_participants()
+
+                    # 2. Check participant count
+                    with self._instance_lock: # Access current_participants safely
+                        num_current_participants = len(self.current_participants)
+                    
+                    if num_current_participants < self.min_participants:
+                        logger.info(
+                            f"[Rank-{self.ranking_id}] Insufficient participants ({num_current_participants}/{self.min_participants}). "
+                            f"Waiting {retry_delay}s before retrying participant check."
                         )
-                        break
+                        sleep(retry_delay)
+                        retry_delay = min(retry_delay * 2, MAX_RETRY_DELAY_SECONDS)
+                        continue # Go to next iteration to re-check/refresh
 
-                    try:
-                        # Create multiple battles in batch when possible
-                        batch_size = 5  # Number of battles to create in each batch
-                        battles_created = 0
+                    # Reset retry_delay if participant check was successful
+                    retry_delay = INITIAL_RETRY_DELAY_SECONDS
 
-                        while (
-                            battles_created < batch_size
-                            and len(self.current_participants) >= PARTICIPANTS
-                        ):
-                            # Get participants for this battle
+                    # 3. Create battles in batch if queue has space
+                    batch_size = 5
+                    battles_created_in_batch = 0
+                    
+                    # We can only create battles if the queue is not full.
+                    # qsize() is approximate, so loop while !full() is safer for adding.
+                    while battles_created_in_batch < batch_size and not self.battle_queue.full():
+                        with self._instance_lock: # For reading current_participants
+                            if len(self.current_participants) < self.min_participants:
+                                break # Not enough participants for another battle in this batch
+                            # Sample from a copy to avoid issues if list changes during sampling (though lock helps)
                             participants_ai_codes = sample(
-                                self.current_participants, PARTICIPANTS
+                                list(self.current_participants), self.min_participants 
                             )
+                        
+                        participant_data = [
+                            {"user_id": ai_code.user_id, "ai_code_id": ai_code.id}
+                            for ai_code in participants_ai_codes
+                        ]
 
-                            # Prepare participant data
-                            participant_data = [
-                                {"user_id": ai_code.user_id, "ai_code_id": ai_code.id}
-                                for ai_code in participants_ai_codes
-                            ]
+                        battle = db_create_battle(
+                            participant_data,
+                            ranking_id=self.ranking_id,
+                            status="waiting",
+                        )
 
-                            # Create battle
-                            with self.app.app_context():
-                                battle = db_create_battle(
-                                    participant_data,
-                                    ranking_id=self.ranking_id,
-                                    status="waiting",
-                                )
+                        if not battle:
+                            logger.error(
+                                f"[Rank-{self.ranking_id}] Failed to create battle, db_create_battle returned None."
+                            )
+                            continue # Try next battle creation in batch
 
-                                if not battle:
-                                    logger.error(
-                                        f"[Rank-{self.ranking_id}] 创建对战失败，db_create_battle 返回 None。"
-                                    )
-                                    continue
-
-                            self.battle_queue.put_nowait(battle.id)
-                            battles_created += 1
-                            self.battle_count += 1
-
+                        try:
+                            self.battle_queue.put_nowait(battle.id) # Add to queue
+                            battles_created_in_batch += 1
+                            with self._instance_lock:
+                                self.battle_count += 1
+                                self._battles_since_last_refresh += 1
+                            
                             logger.info(
-                                f"[Rank-{self.ranking_id}] 启动第 {self.battle_count} 次自动对战 (Battle ID: {battle.id})。"
+                                f"[Rank-{self.ranking_id}] Started auto-match battle {self.battle_count} (ID: {battle.id}). "
+                                f"Queue size: {self.battle_queue.qsize()}"
                             )
                             battle_manager.start_battle(battle.id, participant_data)
+                        except Full:
+                            logger.warning(f"[Rank-{self.ranking_id}] Queue became full while trying to add battle {battle.id}. Batch interrupted.")
+                            # If db_create_battle created a battle but we can't queue it, it's an orphan.
+                            # This scenario should be rare if `not self.battle_queue.full()` check is effective.
+                            # Consider how to handle such an orphaned battle (e.g., try to cancel it).
+                            break # Exit batch creation loop
+
+                    # 4. If queue is full, wait for a slot to free up.
+                    if self.battle_queue.full():
                         logger.debug(
-                            f"[Rank-{self.ranking_id}] 对战 {battle.id} 已加入队列。队列大小: {self.battle_queue.qsize()}"
+                            f"[Rank-{self.ranking_id}] Battle queue is full ({self.battle_queue.qsize()}). Waiting for a slot..."
                         )
+                        try:
+                            # Get a battle ID from the queue. This blocks until an item is available.
+                            # This ID represents a battle that *was* considered active.
+                            finished_battle_id = self.battle_queue.get(block=True, timeout=QUEUE_WAIT_TIMEOUT_SECONDS)
+                            
+                            # Now, explicitly wait for this specific battle to finish if it's still running.
+                            # The slot in the queue is already "freed" by the .get() call.
+                            status = battle_manager.get_battle_status(finished_battle_id)
+                            logger.debug(f"[Rank-{self.ranking_id}] Polled battle {finished_battle_id} from queue (status: {status}).")
 
-                        if self.battle_queue.full():
-                            head_battle_id = self.battle_queue.get_nowait()
-                            logger.debug(
-                                f"[Rank-{self.ranking_id}] 对战队列已满，等待队头对战 {head_battle_id} 结束..."
-                            )
-                            while (
-                                self.is_on
-                                and battle_manager.get_battle_status(head_battle_id)
-                                == "playing"
-                            ):
-                                sleep(0.5)
-                            if not self.is_on:
-                                logger.info(
-                                    f"[Rank-{self.ranking_id}] 在等待队头对战时收到停止信号。"
-                                )
-                                break
+                            while self.is_on and status in ["playing", "waiting"]:
+                                sleep(BATTLE_STATUS_POLL_INTERVAL_SECONDS)
+                                status = battle_manager.get_battle_status(finished_battle_id)
+                            logger.debug(f"[Rank-{self.ranking_id}] Battle {finished_battle_id} (final status: {status}) finished processing. Slot available.")
+                        except Empty:
+                            logger.warning(f"[Rank-{self.ranking_id}] Timed out waiting for item from supposedly full queue. Inconsistency?")
+                            # This case implies the queue became not-full while we were waiting, or qsize/full is tricky.
+                        # No need to put the ID back. .get() removes it.
+                    
+                    # 5. Brief sleep
+                    if not self.is_on: break # Check before sleep
 
-                        if not self.is_on:  # 再次检查停止信号
-                            break
-
-                        # 短暂休眠，避免CPU高占用和过于频繁的对战创建
-                        if battles_created > 0:  # Only sleep if we created any battles
-                            sleep(1)
-
-                    except Exception as e:
-                        logger.error(
-                            f"[Rank-{self.ranking_id}] 创建对战循环中发生错误: {e}",
-                            exc_info=True,
-                        )
-                        sleep(retry_delay)  # 发生错误后等待一段时间
-                        retry_delay = min(retry_delay * 2, max_retry_delay)
+                    if battles_created_in_batch > 0:
+                        sleep(LOOP_POST_BATCH_SLEEP_SECONDS)
+                    else:
+                        # If no battles were created (e.g. queue was full, or not enough participants for a full batch but more than min)
+                        # Sleep a very short time to prevent tight spinning if conditions don't change immediately.
+                        sleep(LOOP_SHORT_SLEEP_SECONDS) 
 
                 except Exception as e:
                     logger.error(
-                        f"[Rank-{self.ranking_id}] 自动对战循环中发生错误: {e}",
+                        f"[Rank-{self.ranking_id}] Error in auto-match loop: {e}",
                         exc_info=True,
                     )
-                    sleep(retry_delay)  # 发生错误后等待一段时间
-                    retry_delay = min(retry_delay * 2, max_retry_delay)
-
+                    if not self.is_on: break # Check before sleep
+                    sleep(retry_delay)
+                    retry_delay = min(retry_delay * 2, MAX_RETRY_DELAY_SECONDS)
+            
             logger.info(
-                f"[Rank-{self.ranking_id}] 自动对战循环线程 '{threading.current_thread().name}' 正常结束。"
+                f"[Rank-{self.ranking_id}] Auto-match loop thread '{threading.current_thread().name}' normally ended."
             )
 
     def start(self) -> bool:
+        # ... (rest of the class methods are mostly fine, ensure locks if they access shared state) ...
         if self.is_on:
-            logger.warning(f"[Rank-{self.ranking_id}] 自动对战已在运行，无法重复启动。")
+            logger.warning(f"[Rank-{self.ranking_id}] Auto-match already running.")
             return False
 
         self.is_on = True
-        self.battle_count = 0  # 重置计数器
-        logger.info(f"[Rank-{self.ranking_id}] 启动自动对战...")
+        with self._instance_lock: # Protect shared state
+            self.battle_count = 0
+            self._battles_since_last_refresh = 0
+        
+        # Initial participant load on start, in case __init__ was long ago
+        self._refresh_participants() 
 
+        logger.info(f"[Rank-{self.ranking_id}] Starting auto-match...")
         self.loop_thread = threading.Thread(
             target=self._loop, name=f"Thread-AutoMatch-Rank-{self.ranking_id}"
         )
-        self.loop_thread.daemon = True  # 设置为守护线程，主程序退出时会自动结束
+        self.loop_thread.daemon = True
         self.loop_thread.start()
         logger.info(
-            f"[Rank-{self.ranking_id}] 自动对战线程 '{self.loop_thread.name}' 已启动。"
+            f"[Rank-{self.ranking_id}] Auto-match thread '{self.loop_thread.name}' started."
         )
         return True
 
     def stop(self) -> bool:
         if not self.is_on:
-            logger.warning(f"[Rank-{self.ranking_id}] 自动对战未运行。")
+            logger.warning(f"[Rank-{self.ranking_id}] Auto-match not running.")
             return False
 
-        self.is_on = False
-        logger.info(f"[Rank-{self.ranking_id}] 正在停止自动对战...")
+        self.is_on = False # Signal the loop to stop
+        logger.info(f"[Rank-{self.ranking_id}] Stopping auto-match...")
         if self.loop_thread and self.loop_thread.is_alive():
-            self.loop_thread.join(timeout=10)  # 等待线程结束，设置超时
+            self.loop_thread.join(timeout=10) # Wait for the thread to finish
             if self.loop_thread.is_alive():
-                logger.warning(f"[Rank-{self.ranking_id}] 自动对战线程未能及时停止。")
-        logger.info(f"[Rank-{self.ranking_id}] 自动对战已停止。")
+                logger.warning(f"[Rank-{self.ranking_id}] Auto-match thread did not stop in time.")
+        logger.info(f"[Rank-{self.ranking_id}] Auto-match stopped.")
         return True
 
     def get_status(self) -> dict:
+        with self._instance_lock: # Ensure consistent read of shared data
+            participants_count = len(self.current_participants)
+            battle_c = self.battle_count
+        
         return {
             "ranking_id": self.ranking_id,
             "is_on": self.is_on,
-            "battle_count": self.battle_count,
-            "queue_size": self.battle_queue.qsize(),
+            "battle_count": battle_c,
+            "queue_size": self.battle_queue.qsize(), # qsize is approximate but ok for status
+            "queue_max_size": self.battle_queue.maxsize,
             "thread_alive": self.loop_thread.is_alive() if self.loop_thread else False,
-            "current_participants_count": len(self.current_participants),
+            "current_participants_count": participants_count,
+            "battles_since_last_refresh": self._battles_since_last_refresh # May need lock if read/write are not atomic
         }
 
-
+# ... (AutoMatchManager class remains largely the same, as its locking was generally okay) ...
+# Ensure AutoMatchManager methods that call instance.start() or instance.get_status()
+# are aware that these methods now have more internal locking.
 class AutoMatchManager:
     def __init__(self, app: Flask):
         self.app = app
