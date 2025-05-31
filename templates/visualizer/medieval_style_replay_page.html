@@ -684,15 +684,18 @@
         top: 50%;
         left: -100%;
         width: 100%;
-        height: 120px;
+        height: auto;
+        min-height: 120px;
+        max-height: 90vh;
         z-index: 9999;
         display: flex;
         align-items: center;
         justify-content: center;
-        transform: translateY(-50%) rotate(-8deg);
+        transform: translateY(-50%) rotate(-5deg); /* 减小旋转角度 */
         animation: victorySlideIn 1.5s ease-out forwards;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        overflow: hidden;
+        overflow: visible;
+        padding: 20px 40px; /* 增加左右内边距 */
     }
 
     .victory-banner.blue {
@@ -713,6 +716,8 @@
         height: 100%;
         overflow: hidden;
         pointer-events: none;
+        top: 0;
+        left: 0;
     }
 
     .victory-particle {
@@ -738,61 +743,87 @@
         text-align: center;
         z-index: 2;
         position: relative;
+        width: 100%;
+        max-width: 90%; /* 减小最大宽度确保在屏幕内 */
+        margin: 0 auto;
+        padding: 0 1rem; /* 减小内边距 */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow: visible;
+        word-wrap: break-word;
+        hyphens: auto;
     }
 
     .victory-title {
-        font-size: clamp(2.5rem, 6vw, 4rem);
+        font-size: clamp(1.8rem, 4.5vw, 3rem); /* 进一步减小字体大小 */
         font-weight: bold;
-        margin: 0;
+        margin: 0 0 0.5rem 0;
         text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
         color: #ffffff;
         opacity: 0;
         transform: scale(0.5);
         animation: victoryTitleAppear 1s ease 0.5s forwards;
+        white-space: nowrap;
+        overflow: visible;
+        line-height: 1.2;
     }
 
     .victory-subtitle {
-        font-size: clamp(1rem, 2.5vw, 1.5rem);
-        margin: 0.5rem 0 0 0;
+        font-size: clamp(0.8rem, 2vw, 1.2rem); /* 减小字体大小 */
+        margin: 0.3rem 0;
         color: rgba(255, 255, 255, 0.9);
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
         opacity: 0;
         transform: translateY(20px);
         animation: victorySubtitleAppear 0.8s ease 1s forwards;
+        white-space: nowrap;
+        overflow: visible;
+        line-height: 1.3;
     }
 
     .victory-reason {
-        font-size: clamp(0.8rem, 1.5vw, 1rem);
-        margin: 0.5rem 0 0 0;
+        font-size: clamp(0.7rem, 1.6vw, 0.9rem); /* 减小字体大小 */
+        margin: 0.3rem 0 0 0;
         color: rgba(255, 255, 255, 0.8);
         font-style: italic;
         opacity: 0;
         transform: translateY(15px);
         animation: victoryReasonAppear 0.6s ease 1.5s forwards;
+        max-width: 85%; /* 减小最大宽度 */
+        margin-left: auto;
+        margin-right: auto;
+        text-align: center;
+        overflow: visible;
+        word-wrap: break-word;
+        hyphens: auto;
+        line-height: 1.4;
+        white-space: normal;
     }
 
     .victory-icon {
         position: absolute;
-        font-size: 3rem;
+        font-size: clamp(1.8rem, 3.5vw, 2.2rem); /* 减小图标大小 */
         opacity: 0;
         animation: victoryIconSpin 1.5s ease 2s forwards;
     }
 
     .victory-icon.left {
-        left: 15%;
+        left: 8%; /* 增加距离边缘的距离 */
         top: 50%;
         transform: translateY(-50%) rotate(-180deg) scale(0);
     }
 
     .victory-icon.right {
-        right: 15%;
+        right: 8%; /* 增加距离边缘的距离 */
         top: 50%;
         transform: translateY(-50%) rotate(180deg) scale(0);
     }
 
     .victory-close-btn {
         position: absolute;
-        top: 10px;
+        top: 15px;
         right: 15px;
         background: rgba(0, 0, 0, 0.3);
         border: 2px solid rgba(255, 255, 255, 0.7);
@@ -809,6 +840,7 @@
         transition: all 0.3s ease;
         opacity: 0;
         animation: victoryCloseAppear 0.5s ease 2.5s forwards;
+        z-index: 10;
     }
 
     .victory-close-btn:hover {
@@ -818,48 +850,104 @@
         transform: scale(1.1);
     }
 
-    /* 胜利动画关键帧 */
+    /* 移动端优化 */
+    @media (max-width: 768px) {
+        .victory-banner {
+            height: auto;
+            min-height: 100px;
+            max-height: 80vh;
+            padding: 15px 20px; /* 减小内边距 */
+            transform: translateY(-50%) rotate(-2deg); /* 进一步减少旋转角度 */
+        }
+
+        .victory-content {
+            padding: 0 0.5rem;
+            max-width: 95%;
+        }
+
+        .victory-title {
+            font-size: clamp(1.3rem, 5.5vw, 2.2rem);
+            margin-bottom: 0.3rem;
+        }
+
+        .victory-subtitle {
+            font-size: clamp(0.7rem, 2.8vw, 1rem);
+            margin: 0.2rem 0;
+        }
+
+        .victory-reason {
+            font-size: clamp(0.6rem, 2.2vw, 0.8rem);
+            margin: 0.2rem 0 0 0;
+            max-width: 92%;
+        }
+
+        .victory-icon {
+            font-size: clamp(1.3rem, 4.5vw, 1.8rem);
+        }
+
+        .victory-icon.left {
+            left: 5%;
+        }
+
+        .victory-icon.right {
+            right: 5%;
+        }
+
+        .victory-close-btn {
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            font-size: 1rem;
+        }
+    }
+
+    /* 超小屏幕优化 */
+    @media (max-width: 480px) {
+        .victory-banner {
+            min-height: 80px;
+            padding: 10px 15px;
+            transform: translateY(-50%) rotate(-1deg); /* 几乎不旋转 */
+        }
+
+        .victory-content {
+            padding: 0 0.3rem;
+            max-width: 98%;
+        }
+
+        .victory-title {
+            font-size: clamp(1.1rem, 6.5vw, 1.8rem);
+            line-height: 1.1;
+        }
+
+        .victory-subtitle {
+            font-size: clamp(0.6rem, 3.5vw, 0.9rem);
+        }
+
+        .victory-reason {
+            font-size: clamp(0.5rem, 2.8vw, 0.7rem);
+            line-height: 1.3;
+            max-width: 95%;
+        }
+    }
+
+    /* 添加动画关键帧 - 确保滑入动画正确 */
     @keyframes victorySlideIn {
         0% {
             left: -100%;
-            transform: translateY(-50%) rotate(-8deg) scale(0.8);
-        }
-        70% {
-            left: 5%;
-            transform: translateY(-50%) rotate(-3deg) scale(1.05);
+            opacity: 0;
         }
         100% {
-            left: 0%;
-            transform: translateY(-50%) rotate(-5deg) scale(1);
+            left: 0;
+            opacity: 1;
         }
     }
 
-    @keyframes blueShimmer {
-        0%, 100% {
-            background-position: 0% 50%;
-        }
-        50% {
-            background-position: 100% 50%;
-        }
-    }
-
-    @keyframes redShimmer {
-        0%, 100% {
-            background-position: 0% 50%;
-        }
-        50% {
-            background-position: 100% 50%;
-        }
-    }
-
+    /* 添加其他缺失的动画关键帧 */
     @keyframes victoryTitleAppear {
         0% {
             opacity: 0;
             transform: scale(0.5) translateY(20px);
-        }
-        60% {
-            opacity: 0.9;
-            transform: scale(1.1) translateY(-5px);
         }
         100% {
             opacity: 1;
@@ -868,22 +956,22 @@
     }
 
     @keyframes victorySubtitleAppear {
-        from {
+        0% {
             opacity: 0;
             transform: translateY(20px);
         }
-        to {
+        100% {
             opacity: 1;
             transform: translateY(0);
         }
     }
 
     @keyframes victoryReasonAppear {
-        from {
+        0% {
             opacity: 0;
             transform: translateY(15px);
         }
-        to {
+        100% {
             opacity: 1;
             transform: translateY(0);
         }
@@ -894,37 +982,31 @@
             opacity: 0;
             transform: translateY(-50%) rotate(-180deg) scale(0);
         }
-        50% {
-            opacity: 0.8;
-            transform: translateY(-50%) rotate(0deg) scale(1.3);
-        }
         100% {
             opacity: 1;
             transform: translateY(-50%) rotate(0deg) scale(1);
         }
     }
 
-    @keyframes closeButtonAppear {
-        from {
+    @keyframes victoryCloseAppear {
+        0% {
             opacity: 0;
-            transform: translateY(-10px) scale(0.5);
+            transform: scale(0.5);
         }
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-    }
-
-    /* 添加缺失的淡出动画 */
-    @keyframes assassinationFadeOut {
-        from {
+        100% {
             opacity: 1;
             transform: scale(1);
         }
-        to {
-            opacity: 0;
-            transform: scale(0.8);
-        }
+    }
+
+    @keyframes blueShimmer {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+    }
+
+    @keyframes redShimmer {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
     }
 
     /* 聊天记录滚动条样式 */
@@ -2060,6 +2142,7 @@
                             chatHtml += `
                                 <div class="vote-info">
                                     <strong>队伍投票结果:</strong>
+
                                     <span class="badge fs-6 ${approved ? 'bg-success' : 'bg-warning text-dark'}">
                                         ${approved ? '通过' : '拒绝'}
                                     </span>
