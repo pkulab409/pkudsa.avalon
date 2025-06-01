@@ -30,6 +30,17 @@
         position: relative;
     }
 
+    /* 移动端导航栏样式 */
+    @media (max-width: 768px) {
+        .navbar {
+            padding: 0.5rem;
+        }
+
+        .navbar-brand {
+            font-size: 1.2rem;
+        }
+    }
+
     /* 开场动画样式 */
     .intro-animation {
         position: fixed;
@@ -80,7 +91,7 @@
         border-radius: 2px;
         overflow: hidden;
         opacity: 0;
-        animation: fadeIn 0.5s ease 1s forwards;
+        animation: fadeIn 0.5s ease 0.5s forwards;
     }
 
     .loading-progress {
@@ -95,7 +106,6 @@
             opacity: 0;
             transform: translateY(20px);
         }
-
         to {
             opacity: 1;
             transform: translateY(0);
@@ -106,7 +116,6 @@
         from {
             opacity: 0;
         }
-
         to {
             opacity: 1;
         }
@@ -116,7 +125,6 @@
         from {
             width: 0%;
         }
-
         to {
             width: 100%;
         }
@@ -129,6 +137,10 @@
         padding: 1rem;
         border-radius: 8px;
         border: 1px solid #dee2e6;
+        background-image: url('../../static/images/parchment-bg.png');
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: center;
     }
 
     @media (max-width: 768px) {
@@ -136,68 +148,6 @@
             height: calc(100vh - 200px);
             padding: 0.5rem;
         }
-    }
-
-    /* 消息样式 */
-    .message-bubble {
-        max-width: 100%;
-        padding: 8px 12px;
-        border-radius: 15px;
-        position: relative;
-        word-break: break-word;
-        margin-bottom: 5px;
-        display: inline-block;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    }
-
-    .message-blue {
-        background-color: rgb(190, 208, 235);
-        border: 1px solid #9ec5fe;
-        color: #052c65;
-    }
-
-    .message-red {
-        background-color: rgb(236, 207, 210);
-        border: 1px solid #f5c2c7;
-        color: #58151c;
-    }
-
-    .message-system {
-        background-color: #e9ecef;
-        border: 1px solid #ced4da;
-        color: #495057;
-        text-align: center;
-        padding: 6px 10px;
-        font-size: 0.9em;
-        margin: 10px auto;
-        display: block;
-        clear: both;
-    }
-
-    .message-wrapper {
-        position: relative;
-        max-width: 80%;
-        margin-bottom: 15px;
-        clear: both;
-    }
-
-    .message-wrapper-blue {
-        float: none;
-        margin: 0 auto;
-        margin-bottom: 15px;
-    }
-
-    .message-wrapper-red {
-        float: right;
-        margin-right: 5px;
-    }
-
-    .player-tag {
-        font-size: 0.8rem;
-        margin-bottom: 2px;
-        font-weight: bold;
-        padding: 0 5px;
-        display: block;
     }
 
     /* 回合分隔线 */
@@ -215,12 +165,14 @@
         top: 50%;
         width: 100%;
         height: 1px;
+        background-color: #dee2e6;
         z-index: 0;
     }
 
     .round-divider span {
         display: inline-block;
         padding: 5px 15px;
+        background-color: #fff;
         position: relative;
         z-index: 1;
         font-weight: bold;
@@ -229,65 +181,102 @@
         border: 1px solid #dee2e6;
     }
 
-    /* 地图样式 */
-    .game-map {
-        display: grid;
-        grid-template-columns: repeat(var(--map-size), 1fr);
-        grid-template-rows: repeat(var(--map-size), 1fr);
-        gap: 0px;
-        padding: 5px;
-        border-radius: 4px;
+    /* 消息气泡基础样式 */
+    .message-bubble {
         max-width: 100%;
-        margin: 0 auto;
-        border: 3px solid #9e8a5d;
-    }
-
-    .map-cell {
-        aspect-ratio: 1;
-        border: 1.3px solid #9e8a5d;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        padding: 8px 12px;
+        border-radius: 15px;
         position: relative;
-        font-weight: bold;
-        font-size: 0.7rem;
+        word-break: break-word;
+        margin-bottom: 5px;
+        display: inline-block;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     }
 
-    .player-token {
-        width: 85%;
-        height: 85%;
+    @media (max-width: 768px) {
+        .message-bubble {
+            padding: 6px 10px;
+            font-size: 0.9rem;
+        }
+    }
+
+    /* 玩家头像样式 */
+    .player-avatar {
+        width: 72px;
+        height: 96px;
         border-radius: 50%;
+        margin-right: 8px;
+        margin-left: 8px;
+        flex-shrink: 0;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
         font-weight: bold;
-        font-size: 0.8rem;
-        box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
-        cursor: help;
+        color: white;
+        font-size: 0.9rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        border: 2px solid #fff;
+        background-size: 300%;
+        background-position: center 20%;
+        background-repeat: no-repeat;
+        overflow: hidden;
     }
 
-    .player-blue {
+    .player-avatar.role-merlin {
+        background-image: url('../../static/images/merlin.jpg');
+    }
+
+    .player-avatar.role-percival {
+        background-image: url('../../static/images/percival.jpg');
+    }
+
+    .player-avatar.role-knight1 {
+        background-image: url('../../static/images/knight1.jpg');
+    }
+
+    .player-avatar.role-knight2 {
+        background-image: url('../../static/images/knight2.jpg');
+    }
+
+    .player-avatar.role-assassin {
+        background-image: url('../../static/images/assassin.jpg');
+    }
+
+    .player-avatar.role-morgana {
+        background-image: url('../../static/images/morgana.jpg');
+    }
+
+    .player-avatar.role-oberon {
+        background-image: url('../../static/images/oberon.jpg');
+    }
+
+    /* 如果没有找到对应角色图片，使用默认的彩色背景 */
+    .player-avatar.blue {
         background-color: #4A6B8A;
     }
 
-    .player-red {
+    .player-avatar.red {
         background-color: #8B0000;
     }
 
-    .player-unknown {
+    .player-avatar.unknown {
         background-color: #6c757d;
     }
 
-    /* 自动跳动回放高亮样式 */
-    .auto-replay-active {
-        background: #ffe082 !important;
-        transition: background 0.3s;
-        transform: scale(1.02);
-        box-shadow: 0 2px 8px rgba(255, 224, 130, 0.5) !important;
+    @media (max-width: 768px) {
+        .player-avatar {
+            width: 40px;
+            height: 28px;
+            margin-right: 6px;
+            margin-left: 6px;
+            font-size: 0.8rem;
+            border-radius: 50%;
+            background-size: 200%;
+            background-position: center 30%;
+        }
     }
 
-    /* TTS按钮样式 */
+    /* TTS播放按钮样式 */
     .tts-play-btn {
         position: absolute;
         top: -8px;
@@ -333,23 +322,94 @@
         0% {
             opacity: 1;
         }
-
         50% {
             opacity: 0.5;
         }
-
         100% {
             opacity: 1;
         }
     }
 
-    /* 其他必要样式 */
+    /* 蓝方消息 */
+    .message-blue {
+        background-color: rgb(190, 208, 235);
+        border: 1px solid #9ec5fe;
+        color: #052c65;
+    }
+
+    /* 红方消息 */
+    .message-red {
+        background-color: rgb(236, 207, 210);
+        border: 1px solid #f5c2c7;
+        color: #58151c;
+    }
+
+    /* 系统/中立消息 */
+    .message-system {
+        background-color: #e9ecef;
+        border: 1px solid #ced4da;
+        color: #495057;
+        text-align: center;
+        padding: 6px 10px;
+        font-size: 0.9em;
+        margin: 10px auto;
+        display: block;
+        clear: both;
+    }
+
+    /* 玩家标签样式 */
+    .player-tag {
+        font-size: 0.8rem;
+        margin-bottom: 2px;
+        font-weight: bold;
+        padding: 0 5px;
+        display: flex;
+        align-items: center;
+    }
+
+    /* 消息包装器样式 */
+    .message-wrapper {
+        max-width: 80%;
+        margin-bottom: 15px;
+        position: relative;
+        clear: both;
+        display: flex;
+        align-items: flex-end;
+    }
+
+    .message-wrapper-blue {
+        float: left;
+        margin-left: 5px;
+        flex-direction: row;
+    }
+
+    .message-wrapper-red {
+        float: right;
+        margin-right: 5px;
+        flex-direction: row-reverse;
+    }
+
+    .message-wrapper-blue .player-tag {
+        text-align: left;
+    }
+
+    .message-wrapper-red .player-tag {
+        text-align: right;
+    }
+
+    .message-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    /* 清除浮动 */
     .clearfix::after {
         content: "";
         clear: both;
         display: table;
     }
 
+    /* 投票信息样式 */
     .vote-info {
         clear: both;
         text-align: center;
@@ -360,15 +420,119 @@
         border-radius: 5px;
     }
 
+    .vote-badge {
+        margin: 2px;
+    }
+
+    /* 任务结果样式 */
     .mission-result-info {
         clear: both;
         text-align: center;
         margin: 15px 0;
     }
 
+    /* 侧边栏样式 */
     .sidebar {
         overflow-y: auto;
         max-height: calc(100vh - 100px);
+    }
+
+    /* 地图样式 */
+    .game-map {
+        display: grid;
+        grid-template-columns: repeat({{ map_size }}, 1fr);
+        grid-template-rows: repeat({{ map_size }}, 1fr);
+        gap: 0px;
+        padding: 5px;
+        border-radius: 4px;
+        max-width: 100%;
+        margin: 0 auto;
+        border: 3px solid #9e8a5d;
+        background-image: url('../../static/images/map-background.png');
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: center;
+    }
+
+    @media (max-width: 768px) {
+        .game-map {
+            max-width: 100%;
+            margin: 0.5rem auto;
+        }
+
+        .map-cell {
+            font-size: 0.6rem;
+        }
+
+        .player-token {
+            width: 90%;
+            height: 90%;
+            font-size: 0.7rem;
+        }
+    }
+
+    .map-cell {
+        aspect-ratio: 1;
+        border: 1.3px solid #9e8a5d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        font-weight: bold;
+        font-size: 0.7rem;
+        background-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .player-token {
+        width: 85%;
+        height: 85%;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 0.8rem;
+        box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+        cursor: help;
+    }
+
+    .player-blue {
+        background-color: #4A6B8A;
+    }
+
+    .player-red {
+        background-color: #8B0000;
+    }
+
+    .player-unknown {
+        background-color: #6c757d;
+    }
+
+    /* 其他样式保持不变 */
+    .bg-success-light {
+        background-color: #d1e7dd;
+    }
+
+    .bg-danger-light {
+        background-color: #f8d7da;
+    }
+
+    .tooltip-icon {
+        margin-left: 5px;
+        cursor: help;
+    }
+
+    .role-icon {
+        width: 24px;
+        height: 24px;
+        margin-right: 5px;
+    }
+
+    /* 私有发言样式 */
+    .message-bubble.private-speech {
+        border-style: dashed;
+        background-color: rgba(200, 200, 200, 0.3);
     }
 
     .speech-badge,
@@ -380,9 +544,527 @@
         vertical-align: middle;
     }
 
-    .private-speech {
-        border-style: dashed;
-        background-color: rgba(200, 200, 200, 0.3);
+    h4,
+    h5 {
+        color: #ffffff;
+        font-weight: bold;
+    }
+
+    /* 自动跳动回放高亮样式 */
+    .auto-replay-active {
+        background: #ffe082 !important;
+        transition: background 0.3s;
+        transform: scale(1.02);
+        box-shadow: 0 2px 8px rgba(255, 224, 130, 0.5) !important;
+    }
+
+    /* 移动消息交互样式 */
+    .move-message {
+        transition: all 0.3s ease;
+    }
+
+    .move-message:hover {
+        background-color: #f8f9fa !important;
+        transform: scale(1.02);
+        cursor: pointer;
+        border: 1px solid #007bff;
+    }
+
+    .highlighted-move {
+        background-color: #fff3cd !important;
+        border: 2px solid #ffc107 !important;
+        transform: scale(1.02);
+        box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);
+    }
+
+    /* 胜利横幅动画样式 */
+    .victory-banner {
+        position: fixed;
+        top: 50%;
+        left: -100%;
+        width: 100%;
+        height: auto;
+        min-height: 100px;
+        max-height: 80vh;
+        padding: 20px 40px;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transform: translateY(-50%) rotate(-3deg);
+        animation: victorySlideIn 1.5s ease-out forwards;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+        border: 4px solid #ffd700;
+        border-radius: 15px;
+    }
+
+    .victory-banner.blue {
+        background: linear-gradient(45deg, #4A6B8A, #6A9BD2, #4A6B8A);
+        background-size: 200% 200%;
+        animation: victorySlideIn 1.5s ease-out forwards, blueShimmer 3s ease-in-out infinite;
+        border-color: #4A6B8A;
+        box-shadow: 0 0 20px rgba(74, 107, 138, 0.7), inset 0 0 20px rgba(135, 206, 235, 0.4);
+    }
+
+    .victory-banner.red {
+        background: linear-gradient(45deg, #8B0000, #DC143C, #8B0000);
+        background-size: 200% 200%;
+        animation: victorySlideIn 1.5s ease-out forwards, redShimmer 3s ease-in-out infinite;
+        border-color: #8B0000;
+        box-shadow: 0 0 20px rgba(139, 0, 0, 0.7), inset 0 0 20px rgba(220, 20, 60, 0.4);
+    }
+
+    .victory-content {
+        text-align: center;
+        z-index: 2;
+        position: relative;
+        width: 100%;
+        max-width: 80%;
+        margin: 0 auto;
+        padding: 0 1rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    }
+
+    .victory-title {
+        font-size: clamp(1.5rem, 4vw, 2.5rem);
+        font-weight: bold;
+        margin: 0 0 0.5rem 0;
+        text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
+        color: #ffffff;
+        opacity: 0;
+        transform: scale(0.5);
+        animation: victoryTitleAppear 1s ease 0.5s forwards;
+        white-space: nowrap;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .victory-subtitle {
+        font-size: clamp(0.9rem, 2vw, 1.2rem);
+        margin: 0.3rem 0;
+        color: rgba(255, 255, 255, 0.9);
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
+        opacity: 0;
+        transform: translateY(20px);
+        animation: victorySubtitleAppear 0.8s ease 1s forwards;
+        white-space: nowrap;
+    }
+
+    .victory-reason {
+        font-size: clamp(0.7rem, 1.5vw, 0.9rem);
+        margin: 0.2rem 0 0 0;
+        color: rgba(255, 255, 255, 0.8);
+        font-style: italic;
+        opacity: 0;
+        transform: translateY(15px);
+        animation: victoryReasonAppear 0.6s ease 1.5s forwards;
+        max-width: 90%;
+        text-align: center;
+        line-height: 1.3;
+        word-wrap: break-word;
+    }
+
+    .victory-particles {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        pointer-events: none;
+        top: 0;
+        left: 0;
+    }
+
+    .victory-particle {
+        position: absolute;
+        width: 6px;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 50%;
+        animation: particleFall 3s linear infinite;
+    }
+
+    .victory-banner.blue .victory-particle {
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 0 4px rgba(106, 155, 210, 0.8);
+    }
+
+    .victory-banner.red .victory-particle {
+        background: rgba(255, 215, 0, 0.9);
+        box-shadow: 0 0 4px rgba(220, 20, 60, 0.8);
+    }
+
+    .victory-icon {
+        position: absolute;
+        font-size: clamp(1.5rem, 3vw, 2rem);
+        opacity: 0;
+        animation: victoryIconSpin 1.5s ease 2s forwards;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .victory-icon.left {
+        left: 10%;
+        top: 50%;
+        transform: translateY(-50%) rotate(-180deg) scale(0);
+    }
+
+    .victory-icon.right {
+        right: 10%;
+        top: 50%;
+        transform: translateY(-50%) rotate(180deg) scale(0);
+    }
+
+    .victory-close-btn {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 2px solid rgba(255, 255, 255, 0.7);
+        color: rgba(255, 255, 255, 0.9);
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 1.1rem;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        opacity: 0;
+        animation: victoryCloseAppear 0.5s ease 2.5s forwards;
+        z-index: 10;
+    }
+
+    .victory-close-btn:hover {
+        background: rgba(0, 0, 0, 0.6);
+        border-color: #ffffff;
+        color: #ffffff;
+        transform: scale(1.1);
+    }
+
+    /* 移动端优化 */
+    @media (max-width: 768px) {
+        .victory-banner {
+            height: auto;
+            min-height: 80px;
+            max-height: 70vh;
+            padding: 15px 20px;
+            transform: translateY(-50%) rotate(-2deg);
+            border-radius: 10px;
+        }
+
+        .victory-content {
+            padding: 0 0.5rem;
+            max-width: 90%;
+        }
+
+        .victory-title {
+            font-size: clamp(1.2rem, 5vw, 1.8rem);
+            margin-bottom: 0.3rem;
+            letter-spacing: 0.5px;
+        }
+
+        .victory-subtitle {
+            font-size: clamp(0.8rem, 2.5vw, 1rem);
+            margin: 0.2rem 0;
+        }
+
+        .victory-reason {
+            font-size: clamp(0.65rem, 2vw, 0.8rem);
+            margin: 0.2rem 0 0 0;
+            max-width: 95%;
+            line-height: 1.2;
+        }
+
+        .victory-icon {
+            font-size: clamp(1.2rem, 4vw, 1.6rem);
+        }
+
+        .victory-icon.left {
+            left: 8%;
+        }
+
+        .victory-icon.right {
+            right: 8%;
+        }
+
+        .victory-close-btn {
+            top: 8px;
+            right: 12px;
+            width: 28px;
+            height: 28px;
+            font-size: 1rem;
+        }
+    }
+
+    /* 超小屏幕优化 */
+    @media (max-width: 480px) {
+        .victory-banner {
+            min-height: 70px;
+            padding: 10px 15px;
+            transform: translateY(-50%) rotate(-1deg);
+            border-radius: 8px;
+        }
+
+        .victory-content {
+            padding: 0 0.3rem;
+            max-width: 95%;
+        }
+
+        .victory-title {
+            font-size: clamp(1rem, 6vw, 1.5rem);
+            line-height: 1.1;
+            letter-spacing: 0px;
+        }
+
+        .victory-subtitle {
+            font-size: clamp(0.7rem, 3vw, 0.9rem);
+        }
+
+        .victory-reason {
+            font-size: clamp(0.6rem, 2.5vw, 0.7rem);
+            line-height: 1.2;
+            max-width: 98%;
+        }
+
+        .victory-icon {
+            font-size: clamp(1rem, 4.5vw, 1.3rem);
+        }
+
+        .victory-icon.left {
+            left: 5%;
+        }
+
+        .victory-icon.right {
+            right: 5%;
+        }
+
+        .victory-close-btn {
+            top: 5px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            font-size: 0.9rem;
+        }
+    }
+
+    /* 添加动画关键帧 */
+    @keyframes victorySlideIn {
+        0% {
+            left: -100%;
+            opacity: 0;
+        }
+        100% {
+            left: 0;
+            opacity: 1;
+        }
+    }
+
+    @keyframes victorySlideOut {
+        0% {
+            left: 0;
+            opacity: 1;
+        }
+        100% {
+            left: 100%;
+            opacity: 0;
+        }
+    }
+
+    @keyframes victoryTitleAppear {
+        0% {
+            opacity: 0;
+            transform: scale(0.5) translateY(20px);
+        }
+        100% {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+    }
+
+    @keyframes victorySubtitleAppear {
+        0% {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes victoryReasonAppear {
+        0% {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes victoryIconSpin {
+        0% {
+            opacity: 0;
+            transform: translateY(-50%) rotate(-180deg) scale(0);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(-50%) rotate(0deg) scale(1);
+        }
+    }
+
+    @keyframes victoryCloseAppear {
+        0% {
+            opacity: 0;
+            transform: scale(0.5);
+        }
+        100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    @keyframes particleFall {
+        0% {
+            opacity: 0;
+            top: -10px;
+        }
+        10% {
+            opacity: 1;
+        }
+        90% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 0;
+            top: 110%;
+        }
+    }
+
+    @keyframes blueShimmer {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+    }
+
+    @keyframes redShimmer {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+    }
+
+    /* 聊天记录滚动条样式 */
+    .chat-container::-webkit-scrollbar {
+        width: 8px;
+        background-color: #f1f1f1;
+    }
+
+    .chat-container::-webkit-scrollbar-thumb {
+        border-radius: 10px;
+        background-color: #007bff;
+    }
+
+    .chat-container::-webkit-scrollbar-thumb:hover {
+        background-color: #0056b3;
+    }
+
+    /* 响应式布局调整 */
+    @media (max-width: 768px) {
+        .container-fluid {
+            padding: 0.5rem;
+        }
+
+        .row {
+            margin: 0;
+        }
+
+        .col-lg-3,
+        .col-lg-6,
+        .col-md-4,
+        .col-md-8 {
+            padding: 0.5rem;
+        }
+
+        .card {
+            margin-bottom: 0.5rem;
+        }
+
+        .card-body {
+            padding: 0.5rem;
+        }
+
+        .table {
+            font-size: 0.8rem;
+        }
+
+        .btn-group {
+            width: 100%;
+        }
+
+        .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .sidebar {
+            max-height: none;
+            overflow-y: visible;
+        }
+
+        .decorative-border {
+            margin-bottom: 0.5rem;
+        }
+
+        .vote-info {
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+        }
+
+        .vote-badge {
+            font-size: 0.7rem;
+            margin: 1px;
+        }
+
+        .message-wrapper {
+            max-width: 90%;
+        }
+
+        .player-tag {
+            font-size: 0.7rem;
+        }
+
+        .speech-badge,
+        .hearers-tags {
+            font-size: 0.6rem;
+        }
+
+        .card-footer {
+            padding: 0.5rem;
+        }
+
+        .card-footer .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        #mainView .row {
+            margin: 0;
+        }
+
+        #mainView .col-lg-8,
+        #mainView .col-lg-4 {
+            padding: 0.5rem;
+        }
+
+        #mainView .card {
+            margin-bottom: 0.5rem;
+        }
     }
     </style>
 {% endblock styles %}
@@ -475,12 +1157,17 @@
                             </div>
                             <div class="card-footer py-2">
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <small class="text-muted">逐条跳动回放</small>
+                                    <small class="text-muted">自动跳动回放</small>
                                     <div>
                                         <button class="btn btn-sm btn-outline-secondary"
                                                 id="scrollToBottomBtn"
                                                 title="滚动到底部">
                                             <i class="bi bi-arrow-down-circle"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-info ms-1"
+                                                id="manualNextBtn"
+                                                title="手动下一步">
+                                            <i class="bi bi-skip-end-fill"></i>
                                         </button>
                                         <button type="button"
                                                 class="btn btn-sm btn-outline-primary ms-2"
@@ -530,18 +1217,353 @@
     {{ super() }}
     <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // 设置地图大小变量
-        document.documentElement.style.setProperty('--map-size', '{{ map_size }}');
+        // --- 自动逐条跳动回放 ---
+        let isAutoReplay = false;
+        let autoReplayTimeout = null;
+        let currentReplayMsgIndex = 0;
 
-        // --- 数据初始化 ---
-        const gameEvents = JSON.parse('{{ game_events|tojson|safe }}');
-        const playerMovements = JSON.parse('{{ player_movements|tojson|safe }}');
-        const gameInfo = JSON.parse('{{ game_info|tojson|safe }}');
+        function getAllReplayMessages() {
+            return Array.from(chatContainer.querySelectorAll('.message-bubble, .message-system, .move-message'));
+        }
+
+        function getMessageDelay(msgElem) {
+            let text = '';
+            let baseDelay = 1000;
+            
+            if (msgElem.classList.contains('message-bubble')) {
+                text = msgElem.innerText || msgElem.textContent || '';
+                baseDelay = 1500;
+            } else if (msgElem.classList.contains('message-system')) {
+                text = msgElem.innerText || msgElem.textContent || '';
+                baseDelay = 800;
+            } else if (msgElem.classList.contains('move-message')) {
+                text = msgElem.innerText || msgElem.textContent || '';
+                baseDelay = 600;
+            }
+            
+            const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
+            const otherChars = text.length - chineseChars;
+            
+            const chineseReadTime = chineseChars * 120;
+            const otherReadTime = otherChars * 40;
+            
+            let totalDelay = baseDelay + chineseReadTime + otherReadTime;
+            
+            if (msgElem.classList.contains('message-bubble')) {
+                totalDelay = Math.max(1500, Math.min(6000, totalDelay));
+            } else if (msgElem.classList.contains('message-system')) {
+                totalDelay = Math.max(800, Math.min(4000, totalDelay));
+            } else if (msgElem.classList.contains('move-message')) {
+                totalDelay = Math.max(600, Math.min(2000, totalDelay));
+            } else {
+                totalDelay = Math.max(500, Math.min(5000, totalDelay));
+            }
+            
+            return totalDelay;
+        }
+
+        function manualNextStep() {
+            const messages = getAllReplayMessages();
+            if (currentReplayMsgIndex >= messages.length) {
+                currentReplayMsgIndex = messages.length - 1;
+                return;
+            }
+            
+            if (isAutoReplay) {
+                stopAutoReplay();
+            }
+            
+            executeReplayStep(messages);
+            currentReplayMsgIndex++;
+            
+            updateManualButtons(messages.length);
+        }
+
+        function executeReplayStep(messages) {
+            if (currentReplayMsgIndex >= messages.length) {
+                return false;
+            }
+            
+            const msg = messages[currentReplayMsgIndex];
+            
+            msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            messages.forEach(m => m.classList.remove('auto-replay-active'));
+            msg.classList.add('auto-replay-active');
+
+            if (msg.classList.contains('move-message')) {
+                const moveIndex = parseInt(msg.dataset.moveIndex);
+                if (!isNaN(moveIndex)) {
+                    renderMapByMoveIndex(moveIndex);
+                }
+            }
+            
+            checkForVictory(msg);
+            
+            return true;
+        }
+
+        function checkForVictory(msgElement) {
+            const text = msgElement.textContent || msgElement.innerText || '';
+            
+            if (text.includes('胜利')) {
+                setTimeout(function() {
+                    if (text.includes('蓝方胜利')) {
+                        showVictoryBanner('blue', '🔵 蓝方胜利', '正义与智慧的胜利', gameInfo.win_reason);
+                    } else if (text.includes('红方胜利')) {
+                        showVictoryBanner('red', '🔴 红方胜利', '阴谋与背叛的胜利', gameInfo.win_reason);
+                    }
+                }, 800);
+            }
+        }
+
+        function showVictoryBanner(faction, title, subtitle, reason) {
+            const existingBanner = document.querySelector('.victory-banner');
+            if (existingBanner) {
+                existingBanner.remove();
+            }
+            
+            const victoryBanner = document.createElement('div');
+            victoryBanner.className = 'victory-banner ' + faction;
+            
+            let particlesHtml = '';
+            for (let i = 0; i < 15; i++) {
+                const left = Math.random() * 100;
+                const delay = Math.random() * 2;
+                particlesHtml += '<div class="victory-particle" style="left: ' + left + '%; animation-delay: ' + delay + 's;"></div>';
+            }
+            
+            let html = '<div class="victory-particles">' + particlesHtml + '</div>';
+            html += '<div class="victory-icon left">⚔️</div>';
+            html += '<div class="victory-icon right">🏆</div>';
+            html += '<div class="victory-content">';
+            html += '<h1 class="victory-title">' + title + '</h1>';
+            html += '<p class="victory-subtitle">' + subtitle + '</p>';
+            html += '<p class="victory-reason">' + (reason || '游戏结束') + '</p>';
+            html += '</div>';
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'victory-close-btn';
+            closeBtn.innerHTML = '✕';
+            closeBtn.title = '关闭';
+            closeBtn.style.opacity = '0';
+            closeBtn.style.animation = 'victoryCloseAppear 0.5s ease 2.5s forwards';
+            
+            closeBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeVictoryBanner();
+            });
+            
+            victoryBanner.innerHTML = html;
+            victoryBanner.appendChild(closeBtn);
+            
+            victoryBanner.addEventListener('click', function(e) {
+                if (e.target === victoryBanner) {
+                    closeVictoryBanner();
+                }
+            });
+            
+            document.body.appendChild(victoryBanner);
+            
+            playVictorySound(faction);
+            
+            setTimeout(function() {
+                if (document.querySelector('.victory-banner')) {
+                    closeVictoryBanner();
+                }
+            }, 8000);
+        }
+
+        function closeVictoryBanner() {
+            const banner = document.querySelector('.victory-banner');
+            if (banner) {
+                banner.style.animation = 'victorySlideOut 0.8s ease forwards';
+                setTimeout(() => {
+                    banner.remove();
+                }, 800);
+            }
+        }
+
+        window.closeVictoryBanner = closeVictoryBanner;
+
+        function playVictorySound(faction) {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                if (faction === 'blue') {
+                    playTone(audioContext, 523.25, 0.3, 0);
+                    playTone(audioContext, 659.25, 0.3, 0.2);
+                    playTone(audioContext, 783.99, 0.4, 0.4);
+                } else {
+                    playTone(audioContext, 293.66, 0.4, 0);
+                    playTone(audioContext, 369.99, 0.4, 0.2);
+                    playTone(audioContext, 440.00, 0.5, 0.4);
+                }
+            } catch (error) {
+                console.log('胜利音效播放失败:', error);
+            }
+        }
+
+        function playTone(audioContext, frequency, duration, delay) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime + delay);
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime + delay);
+            gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + delay + 0.1);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + delay + duration);
+            
+            oscillator.start(audioContext.currentTime + delay);
+            oscillator.stop(audioContext.currentTime + delay + duration);
+        }
+
+        function startAutoReplay() {
+            if (isAutoReplay) return;
+            
+            isAutoReplay = true;
+            autoplayBtnFlow.innerHTML = '<i class="bi bi-pause-fill"></i> 暂停播放';
+            autoplayBtnFlow.classList.remove('btn-outline-primary');
+            autoplayBtnFlow.classList.add('btn-primary');
+            
+            const messages = getAllReplayMessages();
+            if (currentReplayMsgIndex >= messages.length) {
+                currentReplayMsgIndex = 0;
+            }
+            
+            playNextMessage(messages);
+        }
+
+        function stopAutoReplay() {
+            if (!isAutoReplay) return;
+            
+            isAutoReplay = false;
+            if (autoReplayTimeout) {
+                clearTimeout(autoReplayTimeout);
+                autoReplayTimeout = null;
+            }
+            
+            autoplayBtnFlow.innerHTML = '<i class="bi bi-play-fill"></i> 自动播放';
+            autoplayBtnFlow.classList.remove('btn-primary');
+            autoplayBtnFlow.classList.add('btn-outline-primary');
+        }
+
+        function playNextMessage(messages) {
+            if (!isAutoReplay || currentReplayMsgIndex >= messages.length) {
+                stopAutoReplay();
+                return;
+            }
+            
+            const success = executeReplayStep(messages);
+            if (!success) {
+                stopAutoReplay();
+                return;
+            }
+            
+            const currentMsg = messages[currentReplayMsgIndex];
+            const delay = getMessageDelay(currentMsg);
+            
+            currentReplayMsgIndex++;
+            updateManualButtons(messages.length);
+            
+            autoReplayTimeout = setTimeout(() => {
+                playNextMessage(messages);
+            }, delay);
+        }
+
+        function updateManualButtons(totalMessages) {
+            if (manualNextBtn) {
+                if (currentReplayMsgIndex >= totalMessages) {
+                    manualNextBtn.disabled = true;
+                    manualNextBtn.innerHTML = '<i class="bi bi-check-circle"></i> 已完成';
+                } else {
+                    manualNextBtn.disabled = false;
+                    manualNextBtn.innerHTML = '<i class="bi bi-skip-end-fill"></i> 下一步';
+                }
+            }
+        }
+
+        // 移动端视图切换
+        const viewButtons = document.querySelectorAll('[data-view]');
+        const views = document.querySelectorAll('.mobile-view');
+
+        function switchView(viewName) {
+            views.forEach(view => {
+                if (view.id === viewName + 'View') {
+                    view.style.display = 'block';
+                } else {
+                    view.style.display = 'none';
+                }
+            });
+
+            viewButtons.forEach(btn => {
+                if (btn.dataset.view === viewName) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        viewButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                switchView(btn.dataset.view);
+            });
+        });
+
+        if (window.innerWidth <= 768) {
+            switchView('main');
+        }
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                views.forEach(view => {
+                    view.style.display = '';
+                });
+            }
+        });
+
+        // 开场动画
+        setTimeout(() => {
+            const introAnimation = document.getElementById('introAnimation');
+            if (introAnimation) {
+                introAnimation.classList.add('fade-out');
+                setTimeout(() => {
+                    introAnimation.style.display = 'none';
+                }, 500);
+            }
+        }, 3000);
+
+        // --- Data from Flask ---
+        const gameEvents = {{ game_events|tojson }};
+        const playerMovements = {{ player_movements|tojson }};
+        const gameInfo = {{ game_info|tojson }};
         const roles = gameInfo.roles || {};
-        const mapSize = parseInt('{{ map_size }}');
+        const mapSize = {{ map_size }};
         const gameId = "{{ game_id }}";
 
-        // DOM元素
+        const maxRoundFromEvents = gameEvents.length > 0
+            ? (gameEvents[gameEvents.length - 1].round === 'assassination'
+                ? (gameEvents.length > 1 ? gameEvents[gameEvents.length - 2].round : 0)
+                : gameEvents[gameEvents.length - 1].round)
+            : 0;
+        const maxRound = Math.max(maxRoundFromEvents, gameInfo.rounds_played || 0);
+
+        const roleNames = {
+            "Merlin": "梅林", "Percival": "派西维尔", "Knight1": "骑士", "Knight2": "骑士",
+            "Assassin": "刺客", "Morgana": "莫甘娜", "Oberon": "奥伯伦"
+        };
+        const roleFactions = {
+            "Merlin": "blue", "Percival": "blue", "Knight1": "blue", "Knight2": "blue",
+            "Assassin": "red", "Morgana": "red", "Oberon": "red"
+        };
+
+        let knightCount = 0;
+        const knightAssignments = new Map();
+
         const chatContainer = document.getElementById('chatContainer');
         const gameMapContainer = document.getElementById('gameMap');
         const currentRoundBadge = document.getElementById('currentRoundBadge');
@@ -552,26 +1574,6 @@
         const mapCurrentRoundDisplay = document.getElementById('mapCurrentRoundDisplay');
 
         let currentMapRound = 0;
-        const maxRound = Math.max(
-            gameEvents.length > 0 ?
-                (gameEvents[gameEvents.length - 1].round === 'assassination' ?
-                    (gameEvents.length > 1 ? gameEvents[gameEvents.length - 2].round : 0) :
-                    gameEvents[gameEvents.length - 1].round) : 0,
-            gameInfo.rounds_played || 0
-        );
-
-        // 角色信息
-        const roleNames = {
-            "Merlin": "梅林", "Percival": "派西维尔", "Knight1": "骑士", "Knight2": "骑士",
-            "Assassin": "刺客", "Morgana": "莫甘娜", "Mordred": "莫德雷德", "Oberon": "奥伯伦"
-        };
-        const roleFactions = {
-            "Merlin": "blue", "Percival": "blue", "Knight1": "blue", "Knight2": "blue",
-            "Assassin": "red", "Morgana": "red", "Mordred": "red", "Oberon": "red"
-        };
-
-        let knightCount = 0;
-        const knightAssignments = new Map();
 
         function getPlayerInfo(playerId) {
             const idStr = String(playerId);
@@ -592,88 +1594,127 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        // --- 自动逐条跳动回放功能 ---
-        let isAutoReplay = false;
-        let autoReplayTimeout = null;
-        let currentReplayMsgIndex = 0;
+        function initializeKnightAssignments() {
+            knightCount = 0;
+            knightAssignments.clear();
+            const knightIds = Object.entries(roles)
+                .filter(([_, role]) => role === 'Knight')
+                .map(([id, _]) => parseInt(id))
+                .sort((a, b) => a - b);
 
-        function getAllReplayMessages() {
-            return Array.from(chatContainer.querySelectorAll('.message-bubble, .message-system, .move-message'));
-        }
-
-        function getMessageDelay(msgElem) {
-            let text = '';
-            if (msgElem.classList.contains('message-bubble')) {
-                text = msgElem.innerText || '';
-            } else if (msgElem.classList.contains('message-system') || msgElem.classList.contains('move-message')) {
-                text = msgElem.innerText || '';
-            }
-            const base = 800;
-            const perChar = 80;
-            const minDelay = 1000, maxDelay = 4000;
-            let delay = base + text.length * perChar;
-            return Math.max(minDelay, Math.min(maxDelay, delay));
-        }
-
-        function startAutoReplay() {
-            if (isAutoReplay) return;
-            isAutoReplay = true;
-            autoplayBtnFlow.innerHTML = '<i class="bi bi-pause-fill"></i> 暂停回放';
-            autoplayBtnFlow.classList.remove('btn-outline-primary');
-            autoplayBtnFlow.classList.add('btn-outline-warning');
-
-            const messages = getAllReplayMessages();
-            if (!messages.length) return;
-
-            currentReplayMsgIndex = 0;
-            autoReplayStep(messages);
-        }
-
-        function autoReplayStep(messages) {
-            if (!isAutoReplay || currentReplayMsgIndex >= messages.length) {
-                stopAutoReplay();
-                return;
-            }
-            const msg = messages[currentReplayMsgIndex];
-            msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            messages.forEach(m => m.classList.remove('auto-replay-active'));
-            msg.classList.add('auto-replay-active');
-
-            autoReplayTimeout = setTimeout(() => {
-                currentReplayMsgIndex++;
-                autoReplayStep(messages);
-            }, getMessageDelay(msg));
-        }
-
-        function stopAutoReplay() {
-            isAutoReplay = false;
-            clearTimeout(autoReplayTimeout);
-            autoplayBtnFlow.innerHTML = '<i class="bi bi-play-fill"></i> 自动播放';
-            autoplayBtnFlow.classList.remove('btn-outline-warning');
-            autoplayBtnFlow.classList.add('btn-outline-primary');
-            getAllReplayMessages().forEach(m => m.classList.remove('auto-replay-active'));
-        }
-
-        // 事件绑定
-        if (autoplayBtnFlow) {
-            autoplayBtnFlow.addEventListener('click', () => {
-                if (isAutoReplay) {
-                    stopAutoReplay();
-                } else {
-                    startAutoReplay();
-                }
+            knightIds.forEach((id, index) => {
+                knightAssignments.set(id.toString(), index + 1);
             });
         }
 
-        chatContainer.addEventListener('mousedown', stopAutoReplay);
-        chatContainer.addEventListener('wheel', stopAutoReplay);
-        chatContainer.addEventListener('touchstart', stopAutoReplay);
-        scrollToBottomBtn.addEventListener('click', scrollToBottom);
+        initializeKnightAssignments();
 
-        // --- 生成聊天历史 ---
+        let moveSteps = [];
+        let moveIndexToRound = [];
+        let moveIndexToMsgId = [];
+        let msgIdToMoveIndex = {};
+
+        function preprocessMoveSteps() {
+            moveSteps = [];
+            moveIndexToRound = [];
+            moveIndexToMsgId = [];
+            msgIdToMoveIndex = {};
+            let moveIndex = 0;
+            let msgId = 0;
+            gameEvents.forEach((event) => {
+                if (event.round === 'assassination') return;
+                if (event.events && event.events.length > 0) {
+                    event.events.forEach(eventItem => {
+                        if (eventItem.type === "move") {
+                            moveSteps.push({
+                                moveIndex,
+                                round: event.round,
+                                playerId: eventItem.data.player_id,
+                                move: eventItem.data.valid_moves[eventItem.data.valid_moves.length - 1],
+                                newPos: eventItem.data.new_pos,
+                                msgId
+                            });
+                            moveIndexToRound.push(event.round);
+                            moveIndexToMsgId.push(msgId);
+                            msgIdToMoveIndex[msgId] = moveIndex;
+                            moveIndex++;
+                        }
+                        msgId++;
+                    });
+                } else {
+                    if (event.events) msgId += event.events.length;
+                }
+            });
+        }
+        preprocessMoveSteps();
+
+        function renderMapByMoveIndex(moveIdx) {
+            gameMapContainer.innerHTML = '';
+            let playerPos = {};
+
+            Object.entries(playerMovements).forEach(([playerId, moves]) => {
+                if (moves && moves.length > 0) {
+                    const initialMove = moves.find(move => move.round === 0);
+                    if (initialMove) {
+                        playerPos[playerId] = initialMove.position;
+                    }
+                }
+            });
+            
+            if (moveIdx >= 0) {
+                for (let i = 0; i <= moveIdx && i < moveSteps.length; i++) {
+                    const step = moveSteps[i];
+                    playerPos[step.playerId] = step.newPos;
+                }
+            }
+
+            let currentRound = moveIdx >= 0 && moveIdx < moveSteps.length ? moveSteps[moveIdx].round : 0;
+            currentMapRound = currentRound;
+
+            mapPrevRoundBtn.disabled = currentRound <= 0;
+            mapNextRoundBtn.disabled = currentRound >= maxRound;
+
+            for (let r = 0; r < mapSize; r++) {
+                for (let c = 0; c < mapSize; c++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('map-cell');
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    gameMapContainer.appendChild(cell);
+                }
+            }
+
+            Object.keys(playerPos).forEach(playerId => {
+                const pos = playerPos[playerId];
+                if (pos && Array.isArray(pos) && pos.length === 2) {
+                    const [row, col] = pos;
+                    if (row >= 0 && row < mapSize && col >= 0 && col < mapSize) {
+                        const cell = gameMapContainer.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+                        if (cell) {
+                            const playerInfo = getPlayerInfo(playerId);
+                            const playerToken = document.createElement('div');
+                            playerToken.classList.add('player-token', `player-${playerInfo.faction}`);
+                            playerToken.textContent = playerInfo.id;
+                            playerToken.title = `${playerInfo.id}号 - ${playerInfo.name}`;
+                            cell.appendChild(playerToken);
+                        }
+                    }
+                }
+            });
+
+            if (moveIdx >= 0) {
+                const step = moveSteps[moveIdx];
+                mapCurrentRoundDisplay.textContent = `第${step.round}轮-第${moveIdx + 1}步`;
+            } else {
+                mapCurrentRoundDisplay.textContent = '初始状态';
+            }
+            currentRoundBadge.textContent = mapCurrentRoundDisplay.textContent;
+        }
+
         function generateChatHistory() {
             let chatHtml = '';
             let msgId = 0;
+            let moveCount = 0;
 
             chatHtml += `
                 <div class="round-divider" id="round-0">
