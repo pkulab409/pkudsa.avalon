@@ -1528,6 +1528,17 @@
             }
         }
 
+        // 添加全局关闭胜利横幅函数
+        window.closeVictoryBanner = function() {
+            const banner = document.querySelector('.victory-banner');
+            if (banner) {
+                banner.style.animation = 'victorySlideOut 0.8s ease forwards';
+                setTimeout(() => {
+                    banner.remove();
+                }, 800);
+            }
+        };
+
         // 显示胜利横幅
         function showVictoryBanner(faction, title, subtitle, reason) {
             // 移除已存在的横幅
@@ -1556,9 +1567,32 @@
             html += '<p class="victory-subtitle">' + subtitle + '</p>';
             html += '<p class="victory-reason">' + (reason || '游戏结束') + '</p>';
             html += '</div>';
-            html += '<button class="victory-close-btn" onclick="closeVictoryBanner()" title="关闭">✕</button>';
+            
+            // 创建关闭按钮 - 修复事件监听器
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'victory-close-btn';
+            closeBtn.innerHTML = '✕';
+            closeBtn.title = '关闭';
+            closeBtn.style.opacity = '0';
+            closeBtn.style.animation = 'victoryCloseAppear 0.5s ease 2.5s forwards';
+            
+            // 添加点击事件监听器
+            closeBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeVictoryBanner();
+            });
             
             victoryBanner.innerHTML = html;
+            victoryBanner.appendChild(closeBtn);
+            
+            // 添加点击横幅外部也能关闭的功能
+            victoryBanner.addEventListener('click', function(e) {
+                if (e.target === victoryBanner) {
+                    closeVictoryBanner();
+                }
+            });
+            
             document.body.appendChild(victoryBanner);
             
             // 播放胜利音效
@@ -1571,6 +1605,20 @@
                 }
             }, 8000);
         }
+
+        // 定义全局关闭函数
+        function closeVictoryBanner() {
+            const banner = document.querySelector('.victory-banner');
+            if (banner) {
+                banner.style.animation = 'victorySlideOut 0.8s ease forwards';
+                setTimeout(() => {
+                    banner.remove();
+                }, 800);
+            }
+        }
+
+        // 将函数挂载到window对象以便全局访问
+        window.closeVictoryBanner = closeVictoryBanner;
 
         // 播放胜利音效
         function playVictorySound(faction) {
