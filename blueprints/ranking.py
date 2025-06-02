@@ -4,6 +4,7 @@ from database.action import get_leaderboard, get_game_stats_by_user_id, get_user
 from database.models import User, GameStats
 from functools import lru_cache
 import time  # 确保导入time模块
+from flask_login import login_required
 
 ranking_bp = Blueprint("ranking", __name__)
 
@@ -68,6 +69,7 @@ def get_all_ranking_ids():
 
 
 @ranking_bp.route("/")
+@login_required
 def show_ranking():
     """显示排行榜页面"""
     current_app.logger.debug("--- Entering show_ranking ---")
