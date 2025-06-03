@@ -11,7 +11,7 @@ ranking_bp = Blueprint("ranking", __name__)
 # 添加缓存字典和访问时间管理
 _cache = {}
 _cache_last_access = {}  # 新增：记录缓存项的最后访问时间
-CACHE_TIMEOUT = 300  # 缓存过期阈值：5分钟
+CACHE_TIMEOUT = 10  # 缓存过期阈值：10秒
 RANKING_IDS = [0, 1, 2, 3, 4, 5, 6, 11, 21]
 
 
@@ -265,8 +265,8 @@ def get_ranking_data():
             }
 
     result = get_cached_data(
-        cache_key, fetch_ranking_data, timeout=120
-    )  # 排行榜数据缓存2分钟
+        cache_key, fetch_ranking_data, timeout=10
+    )  # 排行榜数据缓存10秒
     return jsonify(result)
 
 
