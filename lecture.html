@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN" class="scroll-smooth">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tuvalon</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Sans SC', sans-serif;
+      background-color: #F8FAFC;
+      color: #1E293B;
+      font-size: 18px;
+      letter-spacing: 0.02em;
+    }
+
+    .nav-link {
+      transition: color 0.3s ease, border-color 0.3s ease;
+      font-size: 1.1rem;
+      letter-spacing: 0.03em;
+    }
+
+    .feature-card,
+    .role-card,
+    .tech-card,
+    .accordion-item {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .feature-card:hover,
+    .role-card:hover,
+    .tech-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .chart-container {
+      position: relative;
+      width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+      height: 500px;
+      max-height: 60vh;
+    }
+
+    .flow-arrow {
+      font-size: 2.5rem;
+      color: #94A3B8;
+    }
+
+    .accordion-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.5s ease-in-out;
+    }
+
+    h1 {
+      font-size: 4.5rem !important;
+      letter-spacing: 0.01em !important;
+    }
+
+    h2 {
+      font-size: 3.5rem !important;
+      margin-bottom: 1.5rem !important;
+      letter-spacing: 0.01em !important;
+    }
+
+    h3 {
+      font-size: 2.2rem !important;
+      margin-bottom: 1rem !important;
+      letter-spacing: 0.01em !important;
+    }
+
+    h4 {
+      font-size: 1.8rem !important;
+      letter-spacing: 0.01em !important;
+    }
+
+    p,
+    li {
+      font-size: 1.4rem !important;
+      line-height: 2 !important;
+      letter-spacing: 0.03em !important;
+      word-spacing: 0.05em !important;
+    }
+
+    .text-sm {
+      font-size: 1.2rem !important;
+      letter-spacing: 0.025em !important;
+    }
+
+    .feature-card p,
+    .role-card p,
+    .tech-card p {
+      font-size: 1.3rem !important;
+      line-height: 1.9 !important;
+    }
+
+    .accordion-button {
+      font-size: 1.8rem !important;
+      padding: 1rem 1.5rem !important;
+      letter-spacing: 0.02em !important;
+    }
+
+    .accordion-content p {
+      font-size: 1.3rem !important;
+      line-height: 1.9 !important;
+    }
+
+    footer p {
+      font-size: 1.2rem !important;
+      letter-spacing: 0.02em !important;
+    }
+
+    section {
+      padding-top: 5rem !important;
+      padding-bottom: 5rem !important;
+    }
+
+    .container {
+      max-width: 90% !important;
+    }
+
+    .mb-12 {
+      margin-bottom: 3rem !important;
+    }
+
+    table td,
+    table th {
+      padding: 0.75rem 1rem !important;
+      letter-spacing: 0.02em !important;
+    }
+
+    ul,
+    ol {
+      padding-left: 1.5rem !important;
+    }
+
+    li {
+      margin-bottom: 0.5rem !important;
+    }
+  </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800">
+
+  <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+    <nav class="container mx-auto px-4">
+      <div class="flex items-center justify-between h-16">
+        <a href="#home" class="text-2xl font-bold text-indigo-700">Tuvalon</a>
+        <div class="hidden md:flex space-x-6 text-sm font-medium">
+          <a href="#features"
+            class="nav-link text-slate-600 hover:text-indigo-700 border-b-2 border-transparent pb-1">核心特色</a>
+          <a href="#architecture"
+            class="nav-link text-slate-600 hover:text-indigo-700 border-b-2 border-transparent pb-1">系统架构</a>
+          <a href="#ai-in-action"
+            class="nav-link text-slate-600 hover:text-indigo-700 border-b-2 border-transparent pb-1">AI核心实现</a>
+          <a href="#performance"
+            class="nav-link text-slate-600 hover:text-indigo-700 border-b-2 border-transparent pb-1">性能优化</a>
+          <a href="#code-stats"
+            class="nav-link text-slate-600 hover:text-indigo-700 border-b-2 border-transparent pb-1">代码统计</a>
+          <a href="#future"
+            class="nav-link text-slate-600 hover:text-indigo-700 border-b-2 border-transparent pb-1">未来展望</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section id="home" class="min-h-screen flex items-center bg-white">
+      <div class="container mx-auto px-4 text-center">
+        <h1 class="text-4xl md:text-6xl font-bold text-slate-900 leading-tight">
+          Tuvalon <span class="text-indigo-700">(@pkudsa.avalon)</span>
+        </h1>
+        <p class="mt-4 text-lg md:text-xl text-slate-600 max-w-3xl mx-auto">
+          新一代在线阿瓦隆游戏与 <span class="font-semibold text-indigo-600">AI编程竞技平台</span>
+        </p>
+        <p class="mt-6 text-base text-slate-500 max-w-2xl mx-auto">
+          这不仅仅是一个游戏平台，更是AI编程学习、策略验证、算法竞技与创新孵化的实验场。在这里，您可以编写、测试并与其他玩家的AI程序一较高下。
+        </p>
+        <div class="mt-10">
+          <a href="#features"
+            class="bg-indigo-700 text-white font-bold py-3 px-8 rounded-full hover:bg-indigo-800 transition-colors duration-300">
+            探索平台特色
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section id="game-rules" class="py-20 bg-slate-100">
+      <div class="container mx-auto px-4">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl font-bold">阿瓦隆游戏简介</h2>
+          <p class="mt-2 text-slate-500 max-w-2xl mx-auto">一款经典的社交推理游戏，为AI编程提供了丰富的策略场景。Tuvalon采用七人局设定。</p>
+        </div>
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div class="role-card bg-white p-6 rounded-lg shadow-md border-t-4 border-blue-500">
+            <h3 class="font-bold text-xl text-blue-800">蓝方 (好人阵营)</h3>
+            <p class="text-sm text-slate-500 mb-3">4人</p>
+            <ul class="space-y-2 text-slate-700">
+              <li><span class="font-semibold">梅林:</span> 知晓邪恶玩家 (除奥伯伦)。</li>
+              <li><span class="font-semibold">派西维尔:</span> 知晓梅林与莫甘娜，但不知谁是谁。</li>
+              <li><span class="font-semibold">普通骑士 (x2):</span> 无特殊信息。</li>
+            </ul>
+          </div>
+          <div class="role-card bg-white p-6 rounded-lg shadow-md border-t-4 border-red-500">
+            <h3 class="font-bold text-xl text-red-800">红方 (坏人阵营)</h3>
+            <p class="text-sm text-slate-500 mb-3">3人</p>
+            <ul class="space-y-2 text-slate-700">
+              <li><span class="font-semibold">莫甘娜:</span> 在派西维尔眼中显示为梅林。</li>
+              <li><span class="font-semibold">刺客:</span> 在蓝方获胜后，有机会刺杀梅林。</li>
+              <li><span class="font-semibold">奥伯伦:</span> 不被梅林所见，也不知晓其他红方。</li>
+            </ul>
+          </div>
+          <div class="role-card bg-white p-6 rounded-lg shadow-md border-t-4 border-gray-500">
+            <h3 class="font-bold text-xl text-gray-800">核心机制</h3>
+            <p class="text-sm text-slate-500 mb-3">考验AI的博弈与合作能力</p>
+            <ul class="space-y-2 text-slate-700">
+              <li><span class="font-semibold">任务流程:</span> 多轮任务，队长委派，全体投票。</li>
+              <li><span class="font-semibold">地图移动:</span> 在9x9地图上移动，影响交流。</li>
+              <li><span class="font-semibold">受限交流:</span> 只能听到一定范围内玩家的发言。</li>
+            </ul>
+          </div>
+          <div class="role-card bg-white p-6 rounded-lg shadow-md border-t-4 border-yellow-500">
+            <h3 class="font-bold text-xl text-yellow-800">胜负条件</h3>
+            <p class="text-sm text-slate-500 mb-3">AI需理解复杂胜负条件</p>
+            <ul class="space-y-2 text-slate-700">
+              <li><span class="font-semibold">任务胜利:</span> 任一阵营先赢得3轮任务。</li>
+              <li><span class="font-semibold">刺杀阶段:</span> 若蓝方任务胜利，刺客有一次机会刺杀梅林，成功则红方反败为胜。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="py-20 bg-white">
+      <div class="container mx-auto px-4">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl font-bold">平台核心特色</h2>
+          <p class="mt-2 text-slate-500 max-w-2xl mx-auto">以AI编程为核心，我们提供了一系列强大功能来支持您的创作与竞技。</p>
+        </div>
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div class="feature-card p-6 rounded-lg bg-slate-50 border border-slate-200">
+            <div class="text-3xl mb-4"><span role="img" aria-label="笔记本电脑图标">💻</span></div>
+            <h3 class="font-bold text-lg mb-2">AI代码创作与对战</h3>
+            <p class="text-slate-600 text-sm">用户可使用Python编写自定义AI逻辑，与平台内置AI或其他用户的AI进行多样化的编程对战。</p>
+          </div>
+          <div class="feature-card p-6 rounded-lg bg-slate-50 border border-slate-200">
+            <div class="text-3xl mb-4"><span role="img" aria-label="大脑图标">🧠</span></div>
+            <h3 class="font-bold text-lg mb-2">LLM辅助决策的AI编程</h3>
+            <p class="text-slate-600 text-sm">通过API调用大型语言模型，赋予AI程序更高级的语言理解与策略生成能力，探索人机协同智能的前沿。</p>
+          </div>
+          <div class="feature-card p-6 rounded-lg bg-slate-50 border border-slate-200">
+            <div class="text-3xl mb-4"><span role="img" aria-label="奖杯图标">🏆</span></div>
+            <h3 class="font-bold text-lg mb-2">多层级ELO排行榜</h3>
+            <p class="text-slate-600 text-sm">采用科学的ELO评分系统评估用户AI程序的真实实力，并通过晋级机制激励AI编程水平的持续提升。</p>
+          </div>
+          <div class="feature-card p-6 rounded-lg bg-slate-50 border border-slate-200">
+            <div class="text-3xl mb-4"><span role="img" aria-label="齿轮图标">⚙️</span></div>
+            <h3 class="font-bold text-lg mb-2">全自动AI对战匹配系统</h3>
+            <p class="text-slate-600 text-sm">系统自动选择合适的AI进行对战并更新排名，为您的AI程序提供一个持续、公正的竞技与试炼环境。</p>
+          </div>
+          <div class="feature-card p-6 rounded-lg bg-slate-50 border border-slate-200">
+            <div class="text-3xl mb-4"><span role="img" aria-label="电视图标">📺</span></div>
+            <h3 class="font-bold text-lg mb-2">对战可视化与AI行为回放</h3>
+            <p class="text-slate-600 text-sm">方便用户分析AI行为、调试AI逻辑、学习优秀AI策略，是AI调试和优化的关键工具。</p>
+          </div>
+          <div class="feature-card p-6 rounded-lg bg-slate-50 border border-slate-200">
+            <div class="text-3xl mb-4"><span role="img" aria-label="盾牌图标">🛡️</span></div>
+            <h3 class="font-bold text-lg mb-2">安全可靠的AI代码执行环境</h3>
+            <p class="text-slate-600 text-sm">通过沙箱环境、模块限制和运行时监控，保障用户上传AI代码的执行安全，让用户专注于AI策略本身。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="architecture" class="py-20 bg-slate-100">
+      <div class="container mx-auto px-4">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl font-bold">系统架构与技术栈</h2>
+          <p class="mt-2 text-slate-500 max-w-2xl mx-auto">清晰的模块化与分层架构，为AI编程和高并发对战提供稳定支撑。</p>
+        </div>
+        <div class="flex flex-col lg:flex-row gap-8 items-start">
+          <div class="w-full lg:w-2/3 bg-white p-8 rounded-lg shadow-md">
+            <h3 class="font-bold text-xl mb-4">分层架构</h3>
+            <div class="space-y-4">
+              <div class="tech-card p-4 rounded-lg bg-indigo-50 border-l-4 border-indigo-500">
+                <h4 class="font-semibold">表现层 (Presentation)</h4>
+                <p class="text-sm text-slate-600">Jinja2, Tailwind CSS, ECharts, jQuery</p>
+              </div>
+              <div class="tech-card p-4 rounded-lg bg-blue-50 border-l-4 border-blue-500">
+                <h4 class="font-semibold">应用/业务逻辑层 (Application)</h4>
+                <p class="text-sm text-slate-600">Flask Blueprints, Services</p>
+              </div>
+              <div class="tech-card p-4 rounded-lg bg-sky-50 border-l-4 border-sky-500">
+                <h4 class="font-semibold">核心AI对战逻辑层 (Core AI Logic)</h4>
+                <p class="text-sm text-slate-600">Referee, Battle Manager, AutoMatch</p>
+              </div>
+              <div class="tech-card p-4 rounded-lg bg-emerald-50 border-l-4 border-emerald-500">
+                <h4 class="font-semibold">数据访问层 (Data Access)</h4>
+                <p class="text-sm text-slate-600">SQLAlchemy ORM</p>
+              </div>
+            </div>
+          </div>
+          <div class="w-full lg:w-1/3">
+            <div class="bg-white p-8 rounded-lg shadow-md">
+              <h3 class="font-bold text-xl mb-4">后端核心技术</h3>
+              <ul class="space-y-3 text-slate-700">
+                <li><span class="font-semibold text-indigo-700">框架:</span> Python Flask</li>
+                <li><span class="font-semibold text-indigo-700">数据库:</span> SQLAlchemy</li>
+                <li><span class="font-semibold text-indigo-700">模块化:</span> Flask Blueprints</li>
+              </ul>
+            </div>
+            <div class="bg-white p-8 rounded-lg shadow-md mt-8">
+              <h3 class="font-bold text-xl mb-4">前端核心技术</h3>
+              <ul class="space-y-3 text-slate-700">
+                <li><span class="font-semibold text-indigo-700">UI框架:</span> Tailwind CSS</li>
+                <li><span class="font-semibold text-indigo-700">模板引擎:</span> Jinja2</li>
+                <li><span class="font-semibold text-indigo-700">可视化:</span> ECharts.js</li>
+                <li><span class="font-semibold text-indigo-700">交互:</span> JavaScript, jQuery</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="ai-in-action" class="py-20 bg-white">
+      <div class="container mx-auto px-4">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl font-bold">AI核心实现：安全、智能与公平</h2>
+          <p class="mt-2 text-slate-500 max-w-2xl mx-auto">深入了解我们如何通过精巧的设计，为AI的创作与竞技保驾护航。</p>
+        </div>
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div class="bg-slate-50 p-6 rounded-lg border border-slate-200">
+            <h3 class="font-bold text-lg mb-4 text-center"><span role="img" aria-label="盾牌图标">🛡️</span> 安全的AI代码执行</h3>
+            <div class="flex flex-col items-center space-y-2 text-sm text-center">
+              <div class="bg-white p-3 rounded-lg w-full shadow-sm">用户提交Python AI代码</div>
+              <div class="flow-arrow">↓</div>
+              <div class="bg-white p-3 rounded-lg w-full shadow-sm font-semibold text-indigo-700">沙箱环境 (`restrictor.py`)
+              </div>
+              <div class="flow-arrow">↓</div>
+              <div class="bg-white p-3 rounded-lg w-full shadow-sm">
+                <p>限制`__builtins__`</p>
+                <p>白名单模块导入</p>
+                <p>超时与资源监控</p>
+              </div>
+              <div class="flow-arrow">↓</div>
+              <div class="bg-white p-3 rounded-lg w-full shadow-sm">安全执行</div>
+            </div>
+          </div>
+          <div class="bg-slate-50 p-6 rounded-lg border border-slate-200">
+            <h3 class="font-bold text-lg mb-4 text-center"><span role="img" aria-label="大脑图标">🧠</span> LLM赋能的AI编程</h3>
+            <div class="flex flex-col items-center space-y-2 text-sm text-center">
+              <div class="bg-white p-3 rounded-lg w-full shadow-sm">AI玩家代码</div>
+              <div class="flow-arrow">↓</div>
+              <div class="bg-white p-3 rounded-lg w-full shadow-sm font-semibold text-indigo-700">调用 `askLLM()` 接口</div>
+              <div class="flow-arrow">↓</div>
+              <div class="bg-white p-3 rounded-lg w-full shadow-sm">
+                <p>上下文管理</p>
+                <p>API限时与重试</p>
+                <p>线程安全</p>
+              </div>
+              <div class="flow-arrow">↓</div>
+              <div class="bg-white p-3 rounded-lg w-full shadow-sm">获取LLM策略建议</div>
+            </div>
+          </div>
+          <div class="bg-slate-50 p-6 rounded-lg border border-slate-200 md:col-span-2 lg:col-span-1">
+            <h3 class="font-bold text-lg mb-4 text-center"><span role="img" aria-label="奖杯图标">🏆</span> AI ELO评分系统</h3>
+            <p class="text-sm text-center text-slate-500 mb-4">
+              通过自动匹配对战，持续更新AI的ELO分数，反映其真实水平。
+            </p>
+            <div class="chart-container">
+              <canvas id="eloChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="performance" class="py-20 bg-slate-100">
+      <div class="container mx-auto px-4">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl font-bold">全方位性能优化策略</h2>
+          <p class="mt-2 text-slate-500 max-w-2xl mx-auto">我们实施了全方位的性能优化，以保障AI对战平台的高效稳定运行。</p>
+        </div>
+        <div class="max-w-4xl mx-auto">
+          <div class="accordion-item bg-white rounded-lg shadow-md mb-4">
+            <button
+              class="accordion-button w-full text-left p-4 font-semibold text-lg flex justify-between items-center">
+              <span>前端性能优化</span>
+              <span class="transform transition-transform duration-300">▼</span>
+            </button>
+            <div class="accordion-content">
+              <div class="p-4 border-t border-slate-200 text-slate-600 space-y-2 text-sm">
+                <p><strong>资源优化:</strong> 预加载、延迟加载、AJAX、静态资源本地化。</p>
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item bg-white rounded-lg shadow-md mb-4">
+            <button
+              class="accordion-button w-full text-left p-4 font-semibold text-lg flex justify-between items-center">
+              <span>后端性能优化</span>
+              <span class="transform transition-transform duration-300">▼</span>
+            </button>
+            <div class="accordion-content">
+              <div class="p-4 border-t border-slate-200 text-slate-600 space-y-2 text-sm">
+                <p><strong>并发处理:</strong> BattleManager线程池管理、AutoMatch任务队列、线程安全机制。</p>
+                <p><strong>游戏逻辑与AI执行:</strong> 轻量级沙箱、AI代码运行时优化 (超时、内存限制)、增量状态更新。</p>
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item bg-white rounded-lg shadow-md">
+            <button
+              class="accordion-button w-full text-left p-4 font-semibold text-lg flex justify-between items-center">
+              <span>数据库优化</span>
+              <span class="transform transition-transform duration-300">▼</span>
+            </button>
+            <div class="accordion-content">
+              <div class="p-4 border-t border-slate-200 text-slate-600 space-y-2 text-sm">
+                <p><strong>索引策略:</strong> 设计复合索引，定期维护。</p>
+                <p><strong>查询优化:</strong> ORM懒加载、所有列表分页查询、批量操作。</p>
+                <p><strong>事务与连接池:</strong> 合理的事务粒度、高并发场景使用乐观锁、优化连接池大小。</p>
+                <p><strong>非实时更新:</strong> 对于具有较多访问量但是更新不频繁的数据使用字典等方式缓存。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="code-stats" class="py-20 bg-slate-800 text-white">
+      <div class="container mx-auto px-4">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl font-bold">项目代码统计</h2>
+          <p class="mt-2 text-slate-300 max-w-2xl mx-auto">深入了解Tuvalon项目的代码构成与分布，展示我们的开发规模与工程特点。</p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8">
+          <div class="bg-slate-700 p-6 rounded-lg shadow-xl">
+            <h3 class="font-bold text-xl mb-4 text-center">Python代码统计</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left">
+                <thead>
+                  <tr class="border-b border-slate-500">
+                    <th class="py-3 px-4 text-slate-300">指标</th>
+                    <th class="py-3 px-4 text-right text-slate-300">数量</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="border-b border-slate-600">
+                    <td class="py-3 px-4">文件数</td>
+                    <td class="py-3 px-4 text-right font-semibold">48</td>
+                  </tr>
+                  <tr class="border-b border-slate-600">
+                    <td class="py-3 px-4">代码行数</td>
+                    <td class="py-3 px-4 text-right font-semibold">11,453</td>
+                  </tr>
+                  <tr class="border-b border-slate-600">
+                    <td class="py-3 px-4">注释行数</td>
+                    <td class="py-3 px-4 text-right font-semibold">3,247</td>
+                  </tr>
+                  <tr class="border-b border-slate-600">
+                    <td class="py-3 px-4">空白行数</td>
+                    <td class="py-3 px-4 text-right font-semibold">2,309</td>
+                  </tr>
+                  <tr>
+                    <td class="py-3 px-4">总行数</td>
+                    <td class="py-3 px-4 text-right font-semibold">17,009</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="bg-slate-700 p-6 rounded-lg shadow-xl">
+            <h3 class="font-bold text-xl mb-4 text-center">其他语言代码统计</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left">
+                <thead>
+                  <tr class="border-b border-slate-500">
+                    <th class="py-3 px-4 text-slate-300">指标</th>
+                    <th class="py-3 px-4 text-right text-slate-300">数量</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="border-b border-slate-600">
+                    <td class="py-3 px-4">文件数</td>
+                    <td class="py-3 px-4 text-right font-semibold">104</td>
+                  </tr>
+                  <tr class="border-b border-slate-600">
+                    <td class="py-3 px-4">代码行数</td>
+                    <td class="py-3 px-4 text-right font-semibold">76,041</td>
+                  </tr>
+                  <tr class="border-b border-slate-600">
+                    <td class="py-3 px-4">注释行数</td>
+                    <td class="py-3 px-4 text-right font-semibold">2,259</td>
+                  </tr>
+                  <tr class="border-b border-slate-600">
+                    <td class="py-3 px-4">空白行数</td>
+                    <td class="py-3 px-4 text-right font-semibold">7,288</td>
+                  </tr>
+                  <tr>
+                    <td class="py-3 px-4">总行数</td>
+                    <td class="py-3 px-4 text-right font-semibold">85,588</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-12 bg-slate-700 p-6 rounded-lg shadow-xl">
+          <h3 class="font-bold text-xl mb-6 text-center">代码量分析</h3>
+          <div class="grid md:grid-cols-3 gap-6">
+            <div class="p-4 bg-slate-600 rounded-lg">
+              <h4 class="font-semibold text-indigo-300 mb-2">Python代码占比</h4>
+              <ul class="space-y-2 text-slate-300">
+                <li>文件数占比: <span class="font-semibold text-white">31.6%</span></li>
+                <li>代码行数占比: <span class="font-semibold text-white">13.1%</span></li>
+                <li>总行数占比: <span class="font-semibold text-white">16.6%</span></li>
+              </ul>
+            </div>
+            <div class="p-4 bg-slate-600 rounded-lg">
+              <h4 class="font-semibold text-indigo-300 mb-2">Python代码特点</h4>
+              <ul class="space-y-2 text-slate-300">
+                <li>注释密度高: 注释占比约<span class="font-semibold text-white">28.3%</span>，远高于其他语言的平均水平(3.0%)</li>
+                <li>代码结构清晰: 适当的空白行占比(<span class="font-semibold text-white">20.2%</span>)表明代码组织良好</li>
+              </ul>
+            </div>
+            <div class="p-4 bg-slate-600 rounded-lg">
+              <h4 class="font-semibold text-indigo-300 mb-2">主要代码分布</h4>
+              <ul class="space-y-2 text-slate-300">
+                <li>核心业务逻辑主要集中在Python代码中，特别是在<span class="font-semibold text-white">blueprints</span>(4,054行)、<span
+                    class="font-semibold text-white">game</span>(3,965行)和<span
+                    class="font-semibold text-white">database</span>(1,704行)目录</li>
+                <li>前端资源(CSS/JS/HTML)占据了项目的大部分代码量，主要在<span class="font-semibold text-white">static</span>目录(60,048行)
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="future" class="py-20 bg-white">
+      <div class="container mx-auto px-4 text-center">
+        <h2 class="text-3xl font-bold">总结与未来展望</h2>
+        <p class="mt-4 text-slate-500 max-w-3xl mx-auto">
+          我们成功构建了一个以AI编程与竞技为核心的在线阿瓦隆平台，并为2025数据结构与算法课程大作业提供了技术支持。</p>
+
+        <div class="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-8 text-left">
+          <div class="p-6 bg-slate-50 rounded-lg">
+            <h4 class="font-semibold text-indigo-700 mb-2"><span role="img" aria-label="地球仪图标">🌐</span> 拓展平台边界</h4>
+            <p class="text-sm text-slate-600">我们在Github上开源了我们的代码库，期待后续的课程大作业可以完善和拓展我们的平台，引入更复杂的游戏规则或新游戏。</p>
+          </div>
+          <div class="p-6 bg-slate-50 rounded-lg">
+            <h4 class="font-semibold text-indigo-700 mb-2"><span role="img" aria-label="闪电图标">⚡</span> 对AI编程的看法</h4>
+            <p class="text-sm text-slate-600">我认为AI编程将逐渐取代大部分的编码工作，随着相关的AI辅助编程工具的日益完善，可能会引发一系列基础软件的重写和革新。</p>
+          </div>
+          <div class="p-6 bg-slate-50 rounded-lg">
+            <h4 class="font-semibold text-indigo-700 mb-2"><span role="img" aria-label="灯泡图标">💡</span> 对AI编程的体会</h4>
+            <p class="text-sm text-slate-600">
+              在开始键入第一句prompt之前，我们需要明白我们要做什么，它应该是什么样的？
+          </div>
+        </div>
+
+        <h3 class="text-2xl font-bold mt-16 mb-6">项目不足与反思</h3>
+        <p class="mb-8 text-slate-500 max-w-3xl mx-auto">作为一个学习与实验性质的项目，我们在开发和运营过程中发现了以下需要改进的方面：</p>
+
+        <div class="grid sm:grid-cols-2 gap-8 text-left">
+          <div class="p-6 bg-rose-50 rounded-lg border border-rose-100">
+            <h4 class="font-semibold text-rose-700 mb-2"><span role="img" aria-label="断开连接图标">🔌</span> 平台稳定性欠佳</h4>
+            <p class="text-sm text-slate-600">过去一个月内，我们的服务曾多次中断，主要由于缺乏成熟的监控系统和容错机制，以及科学的运维方式。</p>
+          </div>
+
+          <div class="p-6 bg-rose-50 rounded-lg border border-rose-100">
+            <h4 class="font-semibold text-rose-700 mb-2"><span role="img" aria-label="程序错误图标">🐛</span> 裁判代码的缺陷</h4>
+            <p class="text-sm text-slate-600">未能全面考虑同学们代码的各种行为模式，日志和错误提示的粒度不够细致，导致调试困难。</p>
+          </div>
+
+          <div class="p-6 bg-rose-50 rounded-lg border border-rose-100">
+            <h4 class="font-semibold text-rose-700 mb-2"><span role="img" aria-label="团队图标">👥</span> 团队开发经验缺失</h4>
+            <p class="text-sm text-slate-600">虽然采用了部分DevOps方法规范开发质量，但在实际工作中的协作存在种种困难，导致效率低下。</p>
+          </div>
+
+          <div class="p-6 bg-rose-50 rounded-lg border border-rose-100">
+            <h4 class="font-semibold text-rose-700 mb-2"><span role="img" aria-label="机器人图标">🤖</span> 过度依赖AI编程</h4>
+            <p class="text-sm text-slate-600">广泛使用AI编程辅助虽提高了开发速度，但在某些问题的解决方案上引入了不必要的复杂度。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bg-slate-800 text-slate-400 py-8">
+    <div class="container mx-auto px-4 text-center text-sm">
+      <p>&copy; 2025 Tuvalon (pkudsa.avalon) Project</p>
+      <p>&copy; 2025 DSA</p>
+    </div>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const sections = document.querySelectorAll('main section');
+      const navLinks = document.querySelectorAll('.nav-link');
+
+      const observerOptions = {
+        root: null,
+        rootMargin: '0px',
+        threshold: 0.4
+      };
+
+      const observer = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            navLinks.forEach(link => {
+              link.classList.remove('active');
+              if (link.getAttribute('href').substring(1) === entry.target.id) {
+                link.classList.add('active');
+              }
+            });
+          }
+        });
+      }, observerOptions);
+
+      sections.forEach(section => {
+        observer.observe(section);
+      });
+
+      const createEloChart = () => {
+        const ctx = document.getElementById('eloChart').getContext('2d');
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: Array.from({ length: 10 }, (_, i) => `第 ${i + 1} 轮`),
+            datasets: [{
+              label: 'AI1',
+              data: [1200, 1215, 1210, 1230, 1250, 1245, 1260, 1280, 1290, 1310],
+              borderColor: '#4338CA',
+              backgroundColor: 'rgba(67, 56, 202, 0.1)',
+              fill: true,
+              tension: 0.3
+            }, {
+              label: 'AI2',
+              data: [1200, 1190, 1205, 1200, 1195, 1210, 1215, 1205, 1220, 1225],
+              borderColor: '#1D4ED8',
+              backgroundColor: 'rgba(29, 78, 216, 0.1)',
+              fill: true,
+              tension: 0.3
+            }, {
+              label: 'AI3',
+              data: [1200, 1180, 1170, 1160, 1175, 1165, 1150, 1140, 1155, 1145],
+              borderColor: '#94A3B8',
+              backgroundColor: 'rgba(148, 163, 184, 0.1)',
+              fill: true,
+              tension: 0.3
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+              },
+              tooltip: {
+                mode: 'index',
+                intersect: false,
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: false,
+                title: {
+                  display: true,
+                  text: 'ELO 分数'
+                }
+              }
+            }
+          }
+        });
+      };
+      createEloChart();
+
+      const accordionButtons = document.querySelectorAll('.accordion-button');
+      accordionButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const content = button.nextElementSibling;
+          const icon = button.querySelector('span:last-child');
+
+          button.parentElement.classList.toggle('open');
+
+          if (content.style.maxHeight) {
+            content.style.maxHeight = null;
+            icon.style.transform = 'rotate(0deg)';
+          } else {
+            content.style.maxHeight = content.scrollHeight + 'px';
+            icon.style.transform = 'rotate(180deg)';
+          }
+        });
+      });
+
+    });
+  </script>
+</body>
+
+</html>
